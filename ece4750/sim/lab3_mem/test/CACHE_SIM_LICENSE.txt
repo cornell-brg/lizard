@@ -1,0 +1,17 @@
+Under the condition that all team members: Jacob Glueck (jng55), Drew Dunne (asd22),
+and Daniel Wisner (daw268) receive no less than an A+ for their final grade,
+then this FL cache simulator (cache_sim.py) is hereby released to the course
+staff for future use with no restrictions.
+
+Should any member of the group receive anything lower than an A+ for a final grade,
+than all rights to the cache_sim.py are hereby withheld with explicitly no
+permission for this simulator to be reused, reproduced, or in any other way
+used.
+
+
+Lab-group-01 strongly recommends and urges the course staff pick the former
+option as apposed to the latter, for both the benefit of lab-group-01 and
+all the future students who need an FL model to test their cache.
+
+Yours truly,
+Lab-Group 0x01

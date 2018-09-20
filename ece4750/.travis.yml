@@ -1,0 +1,66 @@
+#=========================================================================
+# Travis CI Configuration
+#=========================================================================
+# This file configures Travis CI to automatically run the test for this
+# PyMTL project everytime we do a commit to GitHub.
+
+#------------------------------------------------------------------------
+# VM setup
+#------------------------------------------------------------------------
+
+language: python
+
+python:
+ - "2.7"
+
+#------------------------------------------------------------------------
+# install dependencies
+#------------------------------------------------------------------------
+
+install:
+
+ # Install verilator
+
+ - git clone https://github.com/cornell-brg/verilator-travisci-cache.git
+ - tar xfz verilator-travisci-cache/verilator-travis-3.876.tar.gz
+ - export VERILATOR_ROOT=${PWD}/verilator-3.876
+ - export PATH=${VERILATOR_ROOT}/bin:$PATH
+ - export PYMTL_VERILATOR_INCLUDE_DIR=${VERILATOR_ROOT}/include
+ - verilator --version
+
+ # Install PyMTL
+
+ - pip -q install git+https://github.com/cornell-brg/pymtl.git
+ - pip list
+
+#------------------------------------------------------------------------
+# before test runner
+#------------------------------------------------------------------------
+
+before_script:
+
+ # Make build directory
+
+ - mkdir -p sim/build
+ - cd sim/build
+
+#------------------------------------------------------------------------
+# test runner
+#------------------------------------------------------------------------
+
+script:
+ - py.test --verbose ../lab1_imul
+ - py.test --verbose ../lab2_proc
+ - python ../lab2_proc/proc_sim_eval.py
+ - python ../lab2_proc/proc_sim_eval.py
+ - ../lab2_proc/test/bad_branch_predictor_test.sh 
+ - py.test --verbose ../lab3_mem
+ - py.test --verbose ../lab4_net
+ - py.test --verbose ../lab5_mcore/test
+
+#------------------------------------------------------------------------
+# notification settings
+#------------------------------------------------------------------------
+
+notifications:
+  email: false
