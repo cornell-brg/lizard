@@ -1,0 +1,1 @@
+OPAQUE_SIZE = 8
