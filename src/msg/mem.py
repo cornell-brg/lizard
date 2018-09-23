@@ -1,6 +1,6 @@
 from pymtl import *
 
-from bitutil import clog2, BitEnum
+from bitutil import clog2, bit_enum
 
 MemMsgType = bit_enum(
     'MemMsgType',
@@ -57,7 +57,7 @@ class MemReqMsg(BitStructDefinition):
 
     def mk_rd(s, opaque, addr, len_):
         msg = s()
-        msg.type_ = MemReqMsg.READ
+        msg.type_ = MemMsgType.READ
         msg.opaque = opaque
         msg.addr = addr
         msg.len = len_
@@ -67,7 +67,7 @@ class MemReqMsg(BitStructDefinition):
 
     def mk_wr(s, opaque, addr, len_, data):
         msg = s()
-        msg.type_ = MemReqMsg.WRITE
+        msg.type_ = MemMsgType.WRITE
         msg.opaque = opaque
         msg.addr = addr
         msg.len = len_
@@ -86,8 +86,8 @@ class MemReqMsg(BitStructDefinition):
         return msg
 
     def __str__(s):
-        return "{}:{}:{}:{}".format(MemMsgType.short[s.type], s.opaque, s.addr,
-                                    s.data)
+        return "{}:{}:{}:{}".format(MemMsgType.short[s.type_.int()], s.opaque,
+                                    s.addr, s.data)
 
 
 #-------------------------------------------------------------------------
@@ -123,17 +123,17 @@ class MemRespMsg(BitStructDefinition):
     def __init__(s, opaque_nbits, data_nbits):
         s.type_ = BitField(MemMsgType.bits)
         s.opaque = BitField(opaque_nbits)
-        s.test = BitField(test_nbits)
+        s.test = BitField(2)
         s.stat = BitField(MemMsgStatus.bits)
-        s.len = BitField(sclog2(data_nbits / 8))
+        s.len = BitField(clog2(data_nbits / 8))
         s.data = BitField(data_nbits)
 
-    def mk_rd(s, opaque, stat, len_, data):
+    def mk_rd(s, opaque, len_, data):
         msg = s()
-        msg.type_ = MemReqMsg.READ
+        msg.type_ = MemMsgType.READ
         msg.opaque = opaque
         msg.test = 0
-        msg.stat = stat
+        msg.stat = 0  # stat
         msg.len = len_
         msg.data = data
 
@@ -141,7 +141,7 @@ class MemRespMsg(BitStructDefinition):
 
     def mk_wr(s, opaque, stat, len_):
         msg = s()
-        msg.type_ = MemReqMsg.WRITE
+        msg.type_ = MemMsgType.WRITE
         msg.opaque = opaque
         msg.test = 0
         msg.stat = stat
@@ -162,8 +162,8 @@ class MemRespMsg(BitStructDefinition):
         return msg
 
     def __str__(s):
-        return "{}:{}:{}:{}:{}".format(MemMsgType.short[s.type], s.test,
-                                       s.stat, s.data)
+        return "{}:{}:{}:{}".format(MemMsgType.short[s.type_.int()], s.test,
+                                    s.stat, s.data)
 
 
 #-------------------------------------------------------------------------

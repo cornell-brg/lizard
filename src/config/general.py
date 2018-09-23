@@ -1,6 +1,8 @@
 from pymtl import *
 
 XLEN = 64
+XLEN_BYTES = XLEN / 8
 ILEN = 32
+ILEN_BYTES = ILEN / 8
 
 RESET_VECTOR = Bits(XLEN, 0x200)
