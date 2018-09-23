@@ -7,11 +7,14 @@ def clog2(x):
 
 
 def bit_enum(name, *names):
-    N_BITS = clog2(len(names))
+    bits = clog2(len(names))
     data = {}
     short = {}
     for i, spec in enumerate(names):
-        name, s_name = spec
-        data[name] = Bits(N_BITS, i)
-        short[data[name]] = s_name
-    data['names'] = dict((value, name) for name, value in data.iteritems())
+        key, s_key = spec
+        data[key] = Bits(bits, i)
+        short[i] = s_key
+    data['names'] = dict((value, key) for key, value in data.iteritems())
+    data['short'] = short
+    data['bits'] = bits
+    return type(name, (), data)
