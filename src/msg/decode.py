@@ -29,7 +29,7 @@ class RVInstMask(object):
 
 
 
-class RV64Inst(Enum):
+class RV64Inst(object):
     # NOP
     NOP = 0
     # Loads
