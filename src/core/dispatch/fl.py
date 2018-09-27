@@ -26,21 +26,26 @@ class DispatchFL(Model):
 
         @s.tick_fl
         def tick():
-            inst = s.instr_q.popleft()
+            inst = s.instr_q.popleft().instr
             # Decode it and create packet
             opmap = {
-                Opcode.OP_IMM: dec_op_imm,
-                Opcode.OP: dec_op,
+                Opcode.OP_IMM: s.dec_op_imm,
+                Opcode.OP: s.dec_op,
             }
             try:
-                result = opmap[inst]
+                opcode = inst[RVInstMask.OPCODE]
+                print(opcode)
+                result = opmap[opcode.uint()](inst)
+
             except KeyError:
                 # Invalid instruction
-                print("Bad isntruction")
+                raise Exception
 
-            # Unsupported:
+
             result.compressed = 0
             s.decoded_q.append(result)
+
+
 
 
     def dec_op_imm(s, inst):
@@ -62,14 +67,16 @@ class DispatchFL(Model):
             0b110: RV64Inst.ORI,
             0b111: RV64Inst.ANDI,
         }
-        func3 = inst[RVInstMask.FUNCT3.uint()]
-        func7 = inst[RVInstMask.FUNCT7.uint()]
+        func3 = inst[RVInstMask.FUNCT3].uint()
+        func7 = inst[RVInstMask.FUNCT7].uint()
         if (inst[RVInstMask.FUNCT3].uint() in shamts):
-            res.inst = shamts[func3]][func7]
-            res.imm = crap
+            res.inst = shamts[func3][func7]
+            res.imm = zext(inst[RVInstMask.SHAMT], 32)
         else:
             res.inst = nshamts[func3]
-            res.imm = todo
+            res.imm = sext(inst[RVInstMask.I_IMM], 32)
+
+        return res
 
 
     def dec_op(s, inst):
@@ -95,7 +102,9 @@ class DispatchFL(Model):
         }
         res.inst = insts[(func3, func7)]
 
+        return res
+
 
 
     def line_trace(s):
-        return str(s.pc)
+        return str(s.decoded)
