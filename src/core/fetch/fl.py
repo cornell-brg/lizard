@@ -18,6 +18,7 @@ class FetchFL(Model):
 
         s.req_q = OutValRdyQueueAdapterFL(s.mem_req)
         s.resp_q = InValRdyQueueAdapterFL(s.mem_resp)
+        # output
         s.instrs_q = OutValRdyQueueAdapterFL(s.instrs)
 
         s.pc = Wire(Bits(XLEN))
