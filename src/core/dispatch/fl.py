@@ -13,57 +13,87 @@ from config.general import XLEN, ILEN, ILEN_BYTES, RESET_VECTOR
 
 class DispatchFL(Model):
     def __init__(s):
-        # input
+        # interfaces
         s.instr = InValRdyBundle(FetchPacket())
-        s.instr_q = InValRdyQueueAdapterFL(s.instr)
+        s.decoded = OutValRdyBundle(DecodePacket())
 
-        s.pc = Wire(Bits(XLEN))
+        # Adapters
+        s.instr_q = InValRdyQueueAdapterFL(s.instr)
+        s.decoded_q = OutValRdyQueueAdapterFL(s.decoded)
+        #output
+
         s.decode_q = OutValRdyQueueAdapterFL(DecodePacket())
 
         @s.tick_fl
         def tick():
             inst = s.instr_q.popleft()
             # Decode it and create packet
-            res = DecodePacket()
-            if (inst[RVInstMask.OPCODE] == Opcode.OP_IMM): # Reg imm
-                res.rs1 = inst[RVInstMask.RS1]
-                res.rd = inst[RVInstMask.RD]
-                res.imm = inst[RVInstMask.I_IMM]
-                if (inst[RVInstMask.FUNCT3] == 0b000): res.inst = RV64Inst.ADDI
-                elif (inst[RVInstMask.FUNCT3] == 0b010): res.inst = RV64Inst.SLTI
-                elif (inst[RVInstMask.FUNCT3] == 0b011): res.inst = RV64Inst.SLTIU
-                elif (inst[RVInstMask.FUNCT3] == 0b100): res.inst = RV64Inst.XORI
-                elif (inst[RVInstMask.FUNCT3] == 0b110): res.inst = RV64Inst.ORI
-                elif (inst[RVInstMask.FUNCT3] == 0b111): res.inst = RV64Inst.ANDI
+            opmap = {
+                Opcode.OP_IMM: dec_op_imm,
+                Opcode.OP: dec_op,
+            }
+            try:
+                result = opmap[inst]
+            except KeyError:
+                # Invalid instruction
+                print("Bad isntruction")
 
-            elif (inst[RVInstMask.OPCODE] = Opcode.OP): # reg reg
-                res.rs1 = inst[RVInstMask.RS1]
-                res.rs2 = inst[RVInstMask.RS2]
-                res.rd = inst[RVInstMask.RD]
-                if (inst[RVInstMask.FUNCT3] == 0b000):
-                    if (inst[RVInstMask.FUNCT7] == 0b0000000): res.inst = RV64Inst.ADD
-                    elif (inst[RVInstMask.FUNCT7] == 0b0100000): res.inst = RV64Inst.SUB
-                elif (inst[RVInstMask.FUNCT3] == 0b001):
-                    if (inst[RVInstMask.FUNCT7] == 0b0000000): res.inst = RV64Inst.SLL
-                elif (inst[RVInstMask.FUNCT3] == 0b010):
-                    if (inst[RVInstMask.FUNCT7] == 0b0000000): res.inst = RV64Inst.SLT
-                elif (inst[RVInstMask.FUNCT3] == 0b011):
-                    if (inst[RVInstMask.FUNCT7] == 0b0000000): res.inst = RV64Inst.SLTU
-                elif (inst[RVInstMask.FUNCT3] == 0b100):
-                    if (inst[RVInstMask.FUNCT7] == 0b0000000): res.inst = RV64Inst.XOR
-                elif (inst[RVInstMask.FUNCT3] == 0b101):
-                    if (inst[RVInstMask.FUNCT7] == 0b0000000): res.inst = RV64Inst.SRL
-                    elif (inst[RVInstMask.FUNCT7] == 0b0100000): res.inst = RV64Inst.SRA
-                elif (inst[RVInstMask.FUNCT3] == 0b110):
-                    if (inst[RVInstMask.FUNCT7] == 0b0000000): res.inst = RV64Inst.OR
-                elif (inst[RVInstMask.FUNCT3] == 0b111):
-                    if (inst[RVInstMask.FUNCT7] == 0b0000000): res.inst = RV64Inst.AND
+            # Unsupported:
+            result.compressed = 0
+            s.decoded_q.append(result)
 
 
+    def dec_op_imm(s, inst):
+        res = DecodePacket()
+        res.rs1 = inst[RVInstMask.RS1]
+        res.rs2 = 0
+        res.rd = inst[RVInstMask.RD]
+        shamts = {
+            0b001: {0b0000000, RV64Inst.SLLI},
+            0b101: {0b0000000, RV64Inst.SRLI},
+            0b101: {0b0100000, RV64Inst.SRAI},
+        }
+
+        nshamts = {
+            0b000: RV64Inst.ADDI,
+            0b010: RV64Inst.SLTI,
+            0b011: RV64Inst.SLTIU,
+            0b100: RV64Inst.XORI,
+            0b110: RV64Inst.ORI,
+            0b111: RV64Inst.ANDI,
+        }
+        func3 = inst[RVInstMask.FUNCT3.uint()]
+        func7 = inst[RVInstMask.FUNCT7.uint()]
+        if (inst[RVInstMask.FUNCT3].uint() in shamts):
+            res.inst = shamts[func3]][func7]
+            res.imm = crap
+        else:
+            res.inst = nshamts[func3]
+            res.imm = todo
 
 
+    def dec_op(s, inst):
+        res = DecodePacket()
+        res.rs1 = inst[RVInstMask.RS1]
+        res.rs2 = inst[RVInstMask.RS2]
+        res.rd = inst[RVInstMask.RD]
+        res.imm = 0
 
-
+        func3 = inst[RVInstMask.FUNCT3.uint()]
+        func7 = inst[RVInstMask.FUNCT7.uint()]
+        insts = {
+            (0b000, 0b0000000): RV64Inst.ADD,
+            (0b000, 0b0100000): RV64Inst.SUB,
+            (0b001, 0b0000000): RV64Inst.SLL,
+            (0b010, 0b0000000): RV64Inst.SLT,
+            (0b011, 0b0000000): RV64Inst.SLTU,
+            (0b100, 0b0000000): RV64Inst.XOR,
+            (0b101, 0b0000000): RV64Inst.SRL,
+            (0b101, 0b0100000): RV64Inst.SRA,
+            (0b110, 0b0000000): RV64Inst.OR,
+            (0b111, 0b0000000): RV64Inst.AND,
+        }
+        res.inst = insts[(func3, func7)]
 
 
 
