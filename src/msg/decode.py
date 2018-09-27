@@ -99,27 +99,27 @@ class RV64Inst(Enum):
 
 
 class Opcode(object):
-    LOAD      = 0b00000
-    LOAD_FP   = 0b00001
-    MISC_MEM  = 0b00011
-    OP_IMM    = 0b00100
-    AUIPC     = 0b00101
-    OP_IMM_32 = 0b00110
-    STORE     = 0b01000
-    STORE_FP  = 0b01001
-    AMO       = 0b01011
-    OP        = 0b01100
-    LUI       = 0b01101
-    OP_32     = 0b01110
-    MADD      = 0b10000
-    MSUB      = 0b10001
-    NMSUB     = 0b10010
-    NMADD     = 0b10011
-    OP_FP     = 0b10100
-    BRANCH    = 0b11000
-    JALR      = 0b11001
-    JAL       = 0b11011
-    SYSTEM    = 0b11100
+    LOAD      = 0b0000011
+    LOAD_FP   = 0b0000111
+    MISC_MEM  = 0b0001111
+    OP_IMM    = 0b0010011
+    AUIPC     = 0b0010111
+    OP_IMM_32 = 0b0011011
+    STORE     = 0b0100011
+    STORE_FP  = 0b0100111
+    AMO       = 0b0101111
+    OP        = 0b0110011
+    LUI       = 0b0110111
+    OP_32     = 0b0111011
+    MADD      = 0b1000011
+    MSUB      = 0b1000111
+    NMSUB     = 0b1001011
+    NMADD     = 0b1001111
+    OP_FP     = 0b1010011
+    BRANCH    = 0b1100011
+    JALR      = 0b1100111
+    JAL       = 0b1101111
+    SYSTEM    = 0b1110011
 
 
 
