@@ -1,5 +1,6 @@
 from pymtl import *
 from enum import Enum
+from config.general import REG_SPEC_LEN
 
 class RVInstMask(object):
     OPCODE = slice(0, 7)
@@ -121,13 +122,16 @@ class Opcode(object):
     JAL       = 0b1101111
     SYSTEM    = 0b1110011
 
-
+class RegSpec(BitStructDefinition):
+    def __init__(s):
+        s.id = BitField(REG_SPEC_LEN)
+        s.valid = BitField(1)
 
 class DecodePacket(BitStructDefinition):
     def __init__(s):
         s.imm = BitField(32)
         s.inst = BitField(6)
-        s.rs1 = BitField(5)
-        s.rs2 = BitField(5)
-        s.rd = BitField(5)
+        s.rs1 = RegSpec()
+        s.rs2 = RegSpec()
+        s.rd = RegSpec()
         s.compressed = BitField(1)
