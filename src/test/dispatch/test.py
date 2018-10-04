@@ -8,9 +8,10 @@ from msg.decode import DecodePacket
 from msg.fetch import FetchPacket
 from msg.decode import *
 
+
 def test_simple():
     source = FetchPacket()
-    source.instr = 0b00000000000100001000000010010011 # AddI rs1, rs1, 1
+    source.instr = 0b00000000000100001000000010010011  # AddI rs1, rs1, 1
     result = DecodePacket()
     result.imm = 1
     result.inst = RV64Inst.ADDI

@@ -2,32 +2,32 @@ from pymtl import *
 from enum import Enum
 from config.general import REG_SPEC_LEN
 
+
 class RVInstMask(object):
     OPCODE = slice(0, 7)
     FUNCT3 = slice(12, 15)
     FUNCT7 = slice(25, 32)
-    RD     = slice(7, 12)
-    RS1    = slice(15, 20)
-    RS2    = slice(20, 25)
-    SHAMT  = slice(20, 25)
+    RD = slice(7, 12)
+    RS1 = slice(15, 20)
+    RS2 = slice(20, 25)
+    SHAMT = slice(20, 25)
     # Imm masks
-    I_IMM  = slice(20, 32)
+    I_IMM = slice(20, 32)
     CSRNUM = slice(20, 32)
     S_IMM0 = slice(7, 12)
     S_IMM1 = slice(25, 32)
 
     B_IMM0 = slice(8, 12)
-    B_IMM1 = slice(25, 31 )
+    B_IMM1 = slice(25, 31)
     B_IMM2 = slice(7, 8)
-    B_IMM3 = slice(31,32)
+    B_IMM3 = slice(31, 32)
 
-    U_IMM  = slice(12, 32)
+    U_IMM = slice(12, 32)
 
     J_IMM0 = slice(21, 31)
     J_IMM1 = slice(20, 21)
     J_IMM2 = slice(12, 20)
     J_IMM3 = slice(31, 32)
-
 
 
 class RV64Inst(object):
@@ -100,27 +100,28 @@ class RV64Inst(object):
 
 
 class Opcode(object):
-    LOAD      = 0b0000011
-    LOAD_FP   = 0b0000111
-    MISC_MEM  = 0b0001111
-    OP_IMM    = 0b0010011
-    AUIPC     = 0b0010111
+    LOAD = 0b0000011
+    LOAD_FP = 0b0000111
+    MISC_MEM = 0b0001111
+    OP_IMM = 0b0010011
+    AUIPC = 0b0010111
     OP_IMM_32 = 0b0011011
-    STORE     = 0b0100011
-    STORE_FP  = 0b0100111
-    AMO       = 0b0101111
-    OP        = 0b0110011
-    LUI       = 0b0110111
-    OP_32     = 0b0111011
-    MADD      = 0b1000011
-    MSUB      = 0b1000111
-    NMSUB     = 0b1001011
-    NMADD     = 0b1001111
-    OP_FP     = 0b1010011
-    BRANCH    = 0b1100011
-    JALR      = 0b1100111
-    JAL       = 0b1101111
-    SYSTEM    = 0b1110011
+    STORE = 0b0100011
+    STORE_FP = 0b0100111
+    AMO = 0b0101111
+    OP = 0b0110011
+    LUI = 0b0110111
+    OP_32 = 0b0111011
+    MADD = 0b1000011
+    MSUB = 0b1000111
+    NMSUB = 0b1001011
+    NMADD = 0b1001111
+    OP_FP = 0b1010011
+    BRANCH = 0b1100011
+    JALR = 0b1100111
+    JAL = 0b1101111
+    SYSTEM = 0b1110011
+
 
 class RegSpec(BitStructDefinition):
     def __init__(s):
@@ -129,6 +130,7 @@ class RegSpec(BitStructDefinition):
 
     def __str__(s):
         return "{}:{}".format(s.id, s.valid)
+
 
 class DecodePacket(BitStructDefinition):
     def __init__(s):
