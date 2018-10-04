@@ -127,6 +127,9 @@ class RegSpec(BitStructDefinition):
         s.id = BitField(REG_SPEC_LEN)
         s.valid = BitField(1)
 
+    def __str__(s):
+        return "{}:{}".format(s.id, s.valid)
+
 class DecodePacket(BitStructDefinition):
     def __init__(s):
         s.imm = BitField(32)

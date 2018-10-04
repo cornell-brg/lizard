@@ -50,7 +50,9 @@ class DispatchFL(Model):
 
     def dec_op_imm(s, inst):
         res = DecodePacket()
+        print(res.rs1)
         res.rs1 = inst[RVInstMask.RS1]
+        print(res.rs1)
         res.rs2 = 0
         res.rd = inst[RVInstMask.RD]
         shamts = {
