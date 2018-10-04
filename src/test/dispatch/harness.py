@@ -22,10 +22,9 @@ class Harness(Model):
         s.connect(s.src.out, s.dispatch_unit.instr)
         s.connect(s.dispatch_unit.decoded, s.sink.in_)
 
-
     def done(s):
         return s.src.done and s.sink.done
 
-
     def line_trace(s):
-        return s.src.line_trace() + " > " + s.dispatch_unit.line_trace() + " > " + s.sink.line_trace()
+        return s.src.line_trace() + " > " + s.dispatch_unit.line_trace(
+        ) + " > " + s.sink.line_trace()

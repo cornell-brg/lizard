@@ -41,12 +41,8 @@ class DispatchFL(Model):
                 # Invalid instruction
                 raise Exception
 
-
             result.compressed = 0
             s.decoded_q.append(result)
-
-
-
 
     def dec_op_imm(s, inst):
         res = DecodePacket()
@@ -80,7 +76,6 @@ class DispatchFL(Model):
 
         return res
 
-
     def dec_op(s, inst):
         res = DecodePacket()
         res.rs1 = inst[RVInstMask.RS1]
@@ -105,8 +100,6 @@ class DispatchFL(Model):
         res.inst = insts[(func3, func7)]
 
         return res
-
-
 
     def line_trace(s):
         return str(s.decoded)
