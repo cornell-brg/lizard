@@ -123,20 +123,18 @@ class Opcode(object):
     SYSTEM = 0b1110011
 
 
-class RegSpec(BitStructDefinition):
-    def __init__(s):
-        s.id = BitField(REG_SPEC_LEN)
-        s.valid = BitField(1)
-
-    def __str__(s):
-        return "{}:{}".format(s.id, s.valid)
-
-
 class DecodePacket(BitStructDefinition):
     def __init__(s):
         s.imm = BitField(32)
         s.inst = BitField(6)
-        s.rs1 = RegSpec()
-        s.rs2 = RegSpec()
-        s.rd = RegSpec()
-        s.compressed = BitField(1)
+        s.rs1 = BitField(REG_SPEC_LEN)
+        s.rs1_valid = BitField(1)
+        s.rs2 = BitField(REG_SPEC_LEN)
+        s.rs2_valid = BitField(1)
+        s.rd = BitField(REG_SPEC_LEN)
+        s.rd_valid = BitField(1)
+
+    def __str__(s):
+        return 'imm:{} inst:{} rs1:{} v:{} rs2:{} v:{} rd:{} v:{}'.format(
+            s.imm, s.inst, s.rs1, s.rs1_valid, s.rs2, s.rs2_valid, s.rd,
+            s.rd_valid)
