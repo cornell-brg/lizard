@@ -10,8 +10,9 @@ from pclib.fl import InValRdyQueueAdapterFL, OutValRdyQueueAdapterFL
 from config.general import XLEN, ILEN, ILEN_BYTES, RESET_VECTOR, REG_COUNT
 
 
-class DataFL(Model):
+class DataFlowUnitFL(Model):
     def __init__(s):
+
         # interfaces
         s.decoded = InValRdyBundle(DecodePacket())
         s.response = OutValRdyBundle(DataUnitResponse())
