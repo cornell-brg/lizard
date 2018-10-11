@@ -1,9 +1,15 @@
 from pymtl import *
-import math
 
 
 def clog2(x):
-    return int(math.ceil(math.log(x, 2)))
+    # Could be implemented with int(math.ceil(math.log(x, 2))),
+    # but might cause strange floating point issues
+    i = 0
+    v = 1
+    while x > v:
+        v *= 2
+        i += 1
+    return i
 
 
 def bit_enum(name, *names):
