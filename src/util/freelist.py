@@ -1,58 +1,63 @@
 from pymtl import *
-from pclib.ifcs import InValRdyBundle, OutValRdyBundle
-from pclib.fl import InValRdyQueueAdapterFL, OutValRdyQueueAdapterFL
 from bitutil import clog2
 
-class EmptyMessage(BitStructDefinition):
-    def __init__(s):
-        s.foo = BitField(1)
-
-AllocRequest = EmptyMessage
-
-class AllocResponse(BitStructDefinition):
-    def __init__(s, nbits):
-        s.slot = BitField(nbits)
-
-
-class FreeRequest(BitStructDefinition):
-    def __init__(s, nbits):
-        s.slot = BitField(nbits)
-
-
-FreeResponse = EmptyMessage
-
-
-class FreeListFL(Model):
+class FreeList(Model):
     def __init__(s, nslots):
 
         nbits = clog2(nslots)
-        s.AllocRequest = AllocRequest()
-        s.AllocResponse = AllocResponse(nbits)
-        s.FreeRequest = FreeRequest(nbits)
-        s.FreeResponse = FreeResponse()
+        s.alloc_enable = InPort(1)
+        s.alloc_full = OutPort(1)
+        s.alloc_output = OutPort(nbits)
 
-        s.alloc_request = InValRdyBundle(s.AllocRequest())
-        s.alloc_response = OutValRdyBundle(s.AllocResponse())
+        s.free_enable = InPort(1)
+        s.free_slot = InPort(nbits)
 
-        s.free_request = InValRdyBundle(s.FreeRequest())
-        s.free_response = InValRdyBundle(s.FreeResponse())
+        ncount_bits = clog2(nslots + 1)
+        s.size = Wire(ncount_bits)
+        s.full = Wire(1)
+        s.free = [Wire(nbits) for _ in range(nslots)]
+        s.head = Wire(nbits)
+        s.tail = Wire(nbits)
 
-        s.alloc_request_q = InValRdyQueueAdapterFL(s.alloc_request)
-        s.alloc_response_q = OutValRdyQueueAdapterFL(s.alloc_response)
-        s.free_request_q = InValRdyQueueAdapterFL(s.free_request)
-        s.free_response_q = InValRdyQueueAdapterFL(s.free_response)
+        s.connect(s.full, s.alloc_full)
 
-        @s.tick_fl
+        for x in range(len(s.free)):
+            @s.tick_rtl
+            def reset_free():
+                if s.reset:
+                    s.free[x].next = x
+
+        @s.tick_rtl
         def tick():
-            decoded = s.decoded_q.popleft()
-            result = DataUnitResponse()
-            if decoded.rs1.reg.valid:
-                result.rs1.value = s.reg_file[decoded.rs1.reg.id]
-            if decoded.rs2.reg.valid:
-                result.rs2.value = s.reg_file[decoded.rs1.reg.id]
-            result.rs1.reg = deocded.rs1.reg
-            result.rs2.reg = decoded.rs2.reg
-            s.decoded_q.append(result)
+            if s.reset:
+                s.head.next = 0
+                s.tail.next = 0
+                s.size.next = 0
+            else:
+                # If there is an alloc request are we aren't full then we have 
+                # served it, so advance the head
+                if s.alloc_enable and not s.full:
+                    s.size.next = s.size.value + 1
+                    if s.head.value == nslots - 1:
+                        s.head.next = 0
+                    else:
+                        s.head.next = s.head.value + 1
+
+                # If there is a free request then execute it
+                # Note we do not combinationally handle a free request
+                # and an alloc request in the same cycle when full
+                if s.free_enable:
+                    s.free[s.tail.value].next = s.free_slot
+                    s.size.next = s.size.value - 1
+                    if s.tail.value == nslots - 1:
+                        s.tail.next = 0
+                    else:
+                        s.tail.next = s.tail.value + 1
+        
+        @s.combinational
+        def b1():
+            s.alloc_output.value = s.free[s.head]
+            s.full.value = (s.size == nslots)
 
     def line_trace(s):
-        return "\xc2\_(\xe3)_/\xc2"
+        return "hd:{}tl:{}:sz:{}".format(s.head, s.tail, s.size)
