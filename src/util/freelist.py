@@ -3,22 +3,23 @@ from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 from pclib.fl import InValRdyQueueAdapterFL, OutValRdyQueueAdapterFL
 from bitutil import clog2
 
-
-class AllocRequest(BitStructDefinition):
+class EmptyMessage(BitStructDefinition):
     def __init__(s):
-        pass
+        s.foo = BitField(1)
+
+AllocRequest = EmptyMessage
 
 class AllocResponse(BitStructDefinition):
     def __init__(s, nbits):
         s.slot = BitField(nbits)
 
+
 class FreeRequest(BitStructDefinition):
     def __init__(s, nbits):
         s.slot = BitField(nbits)
 
-class FreeResponse(BitStructDefinition):
-    def __int__(s):
-        pass
+
+FreeResponse = EmptyMessage
 
 
 class FreeListFL(Model):
@@ -36,11 +37,10 @@ class FreeListFL(Model):
         s.free_request = InValRdyBundle(s.FreeRequest())
         s.free_response = InValRdyBundle(s.FreeResponse())
 
-        # Adapters
-        s.decoded_q = InValRdyQueueAdapterFL(s.decoded)
-        s.response_q = OutValRdyQueueAdapterFL(s.response)
-
-        s.reg_file = [Bits(XLEN) for x in range(REG_COUNT)]
+        s.alloc_request_q = InValRdyQueueAdapterFL(s.alloc_request)
+        s.alloc_response_q = OutValRdyQueueAdapterFL(s.alloc_response)
+        s.free_request_q = InValRdyQueueAdapterFL(s.free_request)
+        s.free_response_q = InValRdyQueueAdapterFL(s.free_response)
 
         @s.tick_fl
         def tick():
@@ -55,4 +55,4 @@ class FreeListFL(Model):
             s.decoded_q.append(result)
 
     def line_trace(s):
-        return "¯\_(ツ)_/¯"
+        return "\xc2\_(\xe3)_/\xc2"
