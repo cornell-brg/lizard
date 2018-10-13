@@ -1,6 +1,7 @@
 from pymtl import *
-from enum import Enum
+from bitutil import bit_enum
 from config.general import REG_SPEC_LEN
+from config.general import DECODED_IMM_LEN
 
 
 class RVInstMask(object):
@@ -30,73 +31,75 @@ class RVInstMask(object):
     J_IMM3 = slice(31, 32)
 
 
-class RV64Inst(object):
+RV64Inst = bit_enum(
+    'RV64Inst',
     # NOP
-    NOP = 0
+    'NOP',
     # Loads
-    LB = 1
-    LBU = 2
-    LH = 3
-    LHU = 4
-    LD = 5
+    'LB',
+    'LBU',
+    'LH',
+    'LHU',
+    'LD',
     # Stores
-    SB = 5
-    SH = 6
-    SW = 7
-    SD = 8
+    'SB',
+    'SH',
+    'SW',
+    'SD',
     # IMM integer instructions
-    ADDI = 9
-    ADDIW = 10
-    SLTI = 11
-    SLTIU = 12
-    ANDI = 13
-    ORI = 14
-    XORI = 15
-    SLLI = 16
-    SLLIW = 17
-    SRLI = 18
-    SRLIW = 19
-    SRAI = 20
-    SRAIW = 21
-    LUI = 22
-    AUIPC = 23
+    'ADDI',
+    'ADDIW',
+    'SLTI',
+    'SLTIU',
+    'ANDI',
+    'ORI',
+    'XORI',
+    'SLLI',
+    'SLLIW',
+    'SRLI',
+    'SRLIW',
+    'SRAI',
+    'SRAIW',
+    'LUI',
+    'AUIPC',
     # reg-reg integer instructions
-    ADD = 24
-    ADDW = 25
-    SLT = 26
-    SLTU = 27
-    AND = 28
-    OR = 29
-    XOR = 30
-    SLL = 31
-    SLLW = 32
-    SRL = 33
-    SRLW = 34
-    SUB = 35
-    SUBW = 36
-    SRA = 37
-    SRAW = 38
+    'ADD',
+    'ADDW',
+    'SLT',
+    'SLTU',
+    'AND',
+    'OR',
+    'XOR',
+    'SLL',
+    'SLLW',
+    'SRL',
+    'SRLW',
+    'SUB',
+    'SUBW',
+    'SRA',
+    'SRAW',
     # Jumps
-    JAL = 39
-    JALR = 40
+    'JAL',
+    'JALR',
     # Conditional Branches
-    BEQ = 41
-    BNE = 42
-    BLT = 43
-    BLTU = 44
-    BGE = 45
-    BGEU = 46
+    'BEQ',
+    'BNE',
+    'BLT',
+    'BLTU',
+    'BGE',
+    'BGEU',
     # Barriers
-    FENCE = 47
-    FENCEI = 48
+    'FENCE',
+    'FENCEI',
     # System Instructions
-    ECALL = 49
-    EBREAK = 50
+    'ECALL',
+    'EBREAK',
     # Counters
-    RDCYCLE = 51
-    RDTIME = 52
-    RDINSTRET = 53
+    'RDCYCLE',
+    'RDTIME',
+    'RDINSTRET'
     # TODO CSSR ops
+)
 
 
 class Opcode(object):
@@ -125,8 +128,8 @@ class Opcode(object):
 
 class DecodePacket(BitStructDefinition):
     def __init__(s):
-        s.imm = BitField(32)
-        s.inst = BitField(6)
+        s.imm = BitField(DECODED_IMM_LEN)
+        s.inst = BitField(RV64Inst.bits)
         s.rs1 = BitField(REG_SPEC_LEN)
         s.rs1_valid = BitField(1)
         s.rs2 = BitField(REG_SPEC_LEN)

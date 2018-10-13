@@ -17,7 +17,10 @@ def bit_enum(name, *names):
     data = {}
     short = {}
     for i, spec in enumerate(names):
-        key, s_key = spec
+        if isinstance(spec, tuple):
+            key, s_key = spec
+        else:
+            key, s_key = spec, spec
         data[key] = Bits(bits, i)
         short[i] = s_key
     data['names'] = dict((value, key) for key, value in data.iteritems())
