@@ -1,6 +1,7 @@
 from pymtl import *
 from bitutil import clog2
 
+
 class FreeList(Model):
     def __init__(s, nslots):
 
@@ -22,6 +23,7 @@ class FreeList(Model):
         s.connect(s.full, s.alloc_full)
 
         for x in range(len(s.free)):
+
             @s.tick_rtl
             def reset_free():
                 if s.reset:
@@ -34,7 +36,7 @@ class FreeList(Model):
                 s.tail.next = 0
                 s.size.next = 0
             else:
-                # If there is an alloc request are we aren't full then we have 
+                # If there is an alloc request are we aren't full then we have
                 # served it, so advance the head
                 if s.alloc_enable and not s.full:
                     s.size.next = s.size.value + 1
@@ -53,7 +55,7 @@ class FreeList(Model):
                         s.tail.next = 0
                     else:
                         s.tail.next = s.tail.value + 1
-        
+
         @s.combinational
         def b1():
             s.alloc_output.value = s.free[s.head]
