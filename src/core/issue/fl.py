@@ -1,7 +1,3 @@
-#=========================================================================
-# Decode FL Model
-#=========================================================================
-
 from pymtl import *
 from msg.decode import *
 from msg.data import *
@@ -11,17 +7,8 @@ from config.general import XLEN, ILEN, ILEN_BYTES, RESET_VECTOR, REG_COUNT
 
 
 class IssueFL(Model):
-    def __init__(s):
-        # interfaces
+    def __init__(s, dataflow):
         s.decoded = InValRdyBundle(DecodePacket())
-        s.data = InValRdyBundle(DataUnitResponse())
-        s.response = OutValRdyBundle(DataUnitResponse())
-
-        # Adapters
-        s.decoded_q = InValRdyQueueAdapterFL(s.decoded)
-        s.response_q = OutValRdyQueueAdapterFL(s.response)
-
-        s.reg_file = [Bits(XLEN) for x in range(REG_COUNT)]
 
         @s.tick_fl
         def tick():
