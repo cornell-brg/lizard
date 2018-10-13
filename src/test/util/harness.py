@@ -4,8 +4,7 @@ from util.freelist import FreeList
 
 
 class Harness(Model):
-    def __init__(s)
-
+    def __init__(s):
         s.sink = TestSink(FetchPacket(), sink_msgs, sink_delay)
         s.fetch_unit = FetchModel()
         s.mem = TestMemory(MemMsg4B, 1, mem_stall_prob, mem_latency)
