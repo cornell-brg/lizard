@@ -29,14 +29,12 @@ class DispatchFL(Model):
             inst = s.instr_q.popleft().instr
             # Decode it and create packet
             opmap = {
-                Opcode.OP_IMM: s.dec_op_imm,
-                Opcode.OP: s.dec_op,
+                int(Opcode.OP_IMM): s.dec_op_imm,
+                int(Opcode.OP): s.dec_op,
             }
             try:
                 opcode = inst[RVInstMask.OPCODE]
-                print(opcode)
                 result = opmap[opcode.uint()](inst)
-
             except KeyError:
                 # Invalid instruction
                 raise Exception
