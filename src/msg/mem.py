@@ -4,6 +4,7 @@ from bitutil import clog2, bit_enum
 
 MemMsgType = bit_enum(
     'MemMsgType',
+    None,
     ('READ', 'rd'),
     ('WRITE', 'wr'),
     ('WRITE_INIT', 'in'),
@@ -17,6 +18,7 @@ MemMsgType = bit_enum(
 
 MemMsgStatus = bit_enum(
     'MemMsgStatus',
+    None,
     ('OK', 'ok'),
     ('ADDRESS_MISALIGNED', 'ma'),
     ('ACCESS_FAULT', 'fa'),
