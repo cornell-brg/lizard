@@ -13,6 +13,8 @@ install:
  - verilator --version
  # Install PyMTL
  - pip -q install git+https://github.com/cornell-brg/pymtl.git
+ # Install YAPF formatter
+ - pip -q install yapf
  - pip list
 
 before_script:
@@ -21,6 +23,7 @@ before_script:
 
 script:
  - py.test --verbose ../src/test
+ - ../src/format
 
 notifications:
   email: false
