@@ -1,3 +1,24 @@
-#! /bin/bash
+#! /usr/bin/env python3
+import subprocess
+import os
+import argparse
+import sys
 
-yapf -r -i .
+DIR = os.path.dirname(os.path.realpath(__file__))
+
+
+def format(diff):
+    command = ['yapf', '-r', '-d' if diff else '-i', DIR]
+    proc = subprocess.run(command)
+    return proc.returncode
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Format source code')
+    parser.add_argument('-d', '--diff', action='store_true')
+    args = parser.parse_args()
+    sys.exit(format(args.diff))
+
+
+if __name__ == '__main__':
+    main()
