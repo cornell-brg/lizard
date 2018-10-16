@@ -8,3 +8,6 @@ class ResultPacket(BitStructDefinition):
         s.rd = BitField(REG_TAG_LEN)
         s.rd_valid = BitField(1)
         s.result = BitField(XLEN)
+
+        s.csr = BitField(CSR_SPEC_LEN)
+        s.csr_valid = BitField(1)
