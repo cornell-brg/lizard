@@ -1,7 +1,3 @@
-#=========================================================================
-# Fetch FL Model
-#=========================================================================
-
 from pymtl import *
 from msg import MemMsg4B
 from msg.fetch import FetchPacket
