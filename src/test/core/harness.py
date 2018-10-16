@@ -33,173 +33,191 @@ from config.general import *
 #    run_test( ProcFL, gen_test )
 #
 
-def asm_test( func ):
-  name = func.__name__
-  if name.startswith("gen_"):
-    name = name[4:]
-  if name.endswith("_test"):
-    name = name[:-5]
-  return (name,func)
 
-def is_mod_function( mod, func ):
-  return inspect.isfunction(func) and inspect.getmodule(func) == mod
+def asm_test(func):
+    name = func.__name__
+    if name.startswith("gen_"):
+        name = name[4:]
+    if name.endswith("_test"):
+        name = name[:-5]
+    return (name, func)
 
-def list_functions( mod ):
-  return [func for func in mod.__dict__.itervalues() if is_mod_function(mod, func)]
 
-def clean_module_name( m, n = 2):
-  return '-'.join(m.__name__.split('.')[-n:])
+def is_mod_function(mod, func):
+    return inspect.isfunction(func) and inspect.getmodule(func) == mod
 
-def extract_module_tests( m ):
-  funcs = [f for f in list_functions(m) if f.__name__.endswith('_test')]
-  result = [('{}_{}'.format(clean_module_name(m), name), func) for name, func in [asm_test(f) for f in funcs]]
-  return result
 
-def extract_tests( ms ):
-  return [test_pair for m in ms for test_pair in extract_module_tests(m)]
+def list_functions(mod):
+    return [
+        func for func in mod.__dict__.itervalues()
+        if is_mod_function(mod, func)
+    ]
+
+
+def clean_module_name(m, n=2):
+    return '-'.join(m.__name__.split('.')[-n:])
+
+
+def extract_module_tests(m):
+    funcs = [f for f in list_functions(m) if f.__name__.endswith('_test')]
+    result = [('{}_{}'.format(clean_module_name(m), name), func)
+              for name, func in [asm_test(f) for f in funcs]]
+    return result
+
+
+def extract_tests(ms):
+    return [test_pair for m in ms for test_pair in extract_module_tests(m)]
+
 
 #=========================================================================
 # TestHarness
 #=========================================================================
 
-class TestHarness (Model):
 
-  #-----------------------------------------------------------------------
-  # constructor
-  #-----------------------------------------------------------------------
+class TestHarness(Model):
 
-  def __init__( s, ProcModel, dump_vcd,
-                src_delay, sink_delay,
-                mem_stall_prob, mem_latency ):
+    #-----------------------------------------------------------------------
+    # constructor
+    #-----------------------------------------------------------------------
 
-    s.src    = TestSource    ( XLEN, [], src_delay  )
-    s.sink   = TestSink      ( XLEN, [], sink_delay )
-    s.proc   = ProcModel     ()
-    s.mem    = TestMemory    ( MemMsg4B, 1, mem_stall_prob, mem_latency )
+    def __init__(s, ProcModel, dump_vcd, src_delay, sink_delay, mem_stall_prob,
+                 mem_latency):
 
-    # Dump VCD
+        s.src = TestSource(XLEN, [], src_delay)
+        s.sink = TestSink(XLEN, [], sink_delay)
+        s.proc = ProcModel()
+        s.mem = TestMemory(MemMsg4B, 1, mem_stall_prob, mem_latency)
 
-    if dump_vcd:
-      s.proc.vcd_file = dump_vcd
+        # Dump VCD
 
-    # Processor <-> Proc/Mngr
+        if dump_vcd:
+            s.proc.vcd_file = dump_vcd
 
-    s.connect( s.proc.mngr2proc, s.src.out         )
-    s.connect( s.proc.proc2mngr, s.sink.in_        )
+        # Processor <-> Proc/Mngr
 
-    # Processor <-> Memory
+        s.connect(s.proc.mngr2proc, s.src.out)
+        s.connect(s.proc.proc2mngr, s.sink.in_)
 
-    s.connect( s.proc.mem_req,   s.mem.reqs[0]     )
-    s.connect( s.proc.mem_resp,  s.mem.resps[0]    )
+        # Processor <-> Memory
 
-  #-----------------------------------------------------------------------
-  # load
-  #-----------------------------------------------------------------------
+        s.connect(s.proc.mem_req, s.mem.reqs[0])
+        s.connect(s.proc.mem_resp, s.mem.resps[0])
 
-  def load( self, mem_image ):
+    #-----------------------------------------------------------------------
+    # load
+    #-----------------------------------------------------------------------
 
-    # Iterate over the sections
+    def load(self, mem_image):
 
-    sections = mem_image.get_sections()
-    for section in sections:
+        # Iterate over the sections
 
-      # For .mngr2proc sections, copy section into mngr2proc src
+        sections = mem_image.get_sections()
+        for section in sections:
 
-      if section.name == ".mngr2proc":
-        for i in xrange(0,len(section.data),4):
-          bits = struct.unpack_from("<I",buffer(section.data,i,4))[0]
-          self.src.src.msgs.append( Bits(XLEN,bits) )
+            # For .mngr2proc sections, copy section into mngr2proc src
 
-      # For .proc2mngr sections, copy section into proc2mngr_ref src
+            if section.name == ".mngr2proc":
+                for i in xrange(0, len(section.data), 4):
+                    bits = struct.unpack_from("<I", buffer(section.data, i,
+                                                           4))[0]
+                    self.src.src.msgs.append(Bits(XLEN, bits))
 
-      elif section.name == ".proc2mngr":
-        for i in xrange(0,len(section.data),4):
-          bits = struct.unpack_from("<I",buffer(section.data,i,4))[0]
-          self.sink.sink.msgs.append( Bits(XLEN,bits) )
+            # For .proc2mngr sections, copy section into proc2mngr_ref src
 
-      # For all other sections, simply copy them into the memory
+            elif section.name == ".proc2mngr":
+                for i in xrange(0, len(section.data), 4):
+                    bits = struct.unpack_from("<I", buffer(section.data, i,
+                                                           4))[0]
+                    self.sink.sink.msgs.append(Bits(XLEN, bits))
 
-      else:
-        start_addr = section.addr
-        stop_addr  = section.addr + len(section.data)
-        self.mem.mem[start_addr:stop_addr] = section.data
+            # For all other sections, simply copy them into the memory
 
-  #-----------------------------------------------------------------------
-  # cleanup
-  #-----------------------------------------------------------------------
+            else:
+                start_addr = section.addr
+                stop_addr = section.addr + len(section.data)
+                self.mem.mem[start_addr:stop_addr] = section.data
 
-  def cleanup( s ):
-    del s.mem.mem[:]
+    #-----------------------------------------------------------------------
+    # cleanup
+    #-----------------------------------------------------------------------
 
-  #-----------------------------------------------------------------------
-  # done
-  #-----------------------------------------------------------------------
+    def cleanup(s):
+        del s.mem.mem[:]
 
-  def done( s ):
-    return s.src.done and s.sink.done
+    #-----------------------------------------------------------------------
+    # done
+    #-----------------------------------------------------------------------
 
-  #-----------------------------------------------------------------------
-  # line_trace
-  #-----------------------------------------------------------------------
+    def done(s):
+        return s.src.done and s.sink.done
 
-  def line_trace( s ):
-    return s.src.line_trace()  + " >" + \
-           ("- " if s.proc.stats_en else "  ") + \
-           s.proc.line_trace() + "|" + \
-           s.mem.line_trace()  + " > " + \
-           s.sink.line_trace()
+    #-----------------------------------------------------------------------
+    # line_trace
+    #-----------------------------------------------------------------------
+
+    def line_trace(s):
+        return s.src.line_trace()  + " >" + \
+               ("- " if s.proc.stats_en else "  ") + \
+               s.proc.line_trace() + "|" + \
+               s.mem.line_trace()  + " > " + \
+               s.sink.line_trace()
+
 
 #=========================================================================
 # run_test
 #=========================================================================
 
-def run_test( ProcModel, gen_test, dump_vcd=None,
-              src_delay=0, sink_delay=0,
-              mem_stall_prob=0, mem_latency=0,
-              max_cycles=200):
 
-  # Instantiate and elaborate the model
+def run_test(ProcModel,
+             gen_test,
+             dump_vcd=None,
+             src_delay=0,
+             sink_delay=0,
+             mem_stall_prob=0,
+             mem_latency=0,
+             max_cycles=200):
 
-  model = TestHarness( ProcModel, dump_vcd,
-                       src_delay, sink_delay,
-                       mem_stall_prob, mem_latency )
+    # Instantiate and elaborate the model
 
-  model.vcd_file = dump_vcd
-  model.elaborate()
+    model = TestHarness(ProcModel, dump_vcd, src_delay, sink_delay,
+                        mem_stall_prob, mem_latency)
 
-  # Assemble the test program
+    model.vcd_file = dump_vcd
+    model.elaborate()
 
-  mem_image = assemble( gen_test() )
+    # Assemble the test program
 
-  # Load the program into the model
+    mem_image = assemble(gen_test())
 
-  model.load( mem_image )
+    # Load the program into the model
 
-  # Create a simulator using the simulation tool
+    model.load(mem_image)
 
-  sim = SimulationTool( model )
+    # Create a simulator using the simulation tool
 
-  # Run the simulation
+    sim = SimulationTool(model)
 
-  print()
+    # Run the simulation
 
-  sim.reset()
-  while not model.done() and sim.ncycles < max_cycles:
+    print()
+
+    sim.reset()
+    while not model.done() and sim.ncycles < max_cycles:
+        sim.print_line_trace()
+        sim.cycle()
+
+    # print the very last line trace after the last tick
+
     sim.print_line_trace()
+
+    # Force a test failure if we timed out
+
+    assert sim.ncycles < max_cycles
+
+    # Add a couple extra ticks so that the VCD dump is nicer
+
+    sim.cycle()
+    sim.cycle()
     sim.cycle()
 
-  # print the very last line trace after the last tick
-
-  sim.print_line_trace()
-
-  # Force a test failure if we timed out
-
-  assert sim.ncycles < max_cycles
-
-  # Add a couple extra ticks so that the VCD dump is nicer
-
-  sim.cycle()
-  sim.cycle()
-  sim.cycle()
-
-  model.cleanup()
+    model.cleanup()

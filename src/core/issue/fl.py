@@ -62,7 +62,8 @@ class IssueFL(Model):
                 s.current_d = None
                 s.current_rs1 = None
                 s.current_rs2 = None
-                print('ISSUED ISSUED ISSUED ISSUED ISSUED ISSUED ISSUED ISSUED')
+                print(
+                    'ISSUED ISSUED ISSUED ISSUED ISSUED ISSUED ISSUED ISSUED')
 
     def line_trace(s):
         return "0xDEADBEEF"

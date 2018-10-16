@@ -11,8 +11,9 @@ from test.core.inst_utils import *
 # gen_basic_test
 #-------------------------------------------------------------------------
 
+
 def gen_basic_test():
-  return """
+    return """
 
     # Use r3 to track the control flow pattern
     addi  x3, x0, 0     # 0x0200
@@ -49,9 +50,11 @@ def gen_basic_test():
 
   """
 
+
 # ''' LAB TASK ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 # Define additional directed and random test cases.
 # '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
 
 # tests that x1 stalls/bypass are accounted for from JAL
 def gen_dest_dep_test():
@@ -73,8 +76,9 @@ def gen_dest_dep_test():
 
   """
 
+
 def gen_jal_multi_test():
-  return """
+    return """
 
     # Use r3 to track the control flow pattern
     addi  x3, x0, 0     # 0x0200
@@ -94,8 +98,9 @@ def gen_jal_multi_test():
 
   """
 
+
 def gen_bne_over_jal_test():
-  return """
+    return """
 
     # Use r3 to track the control flow pattern
     addi  x3, x0, 0     # 0x0200

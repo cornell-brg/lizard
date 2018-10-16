@@ -31,9 +31,8 @@ class DataFlowUnitFL(Model):
             tag = s.get_dst(areg).tag
             s.write_tag(tag, 0)
             s.commit_tag(tag, True)
-        
-        s.csr_file = {}
 
+        s.csr_file = {}
 
     def get_src(s, areg):
         resp = GetSrcResponse()

@@ -5,7 +5,7 @@ from test.core.inst_utils import *
 
 
 def gen_test():
-  return """
+    return """
         addi x5, x0, 6
         addi x6, x0, 7
         addi x2, x0, 0
