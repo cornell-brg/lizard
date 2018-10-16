@@ -88,8 +88,8 @@ class MemReqMsg(BitStructDefinition):
         return msg
 
     def __str__(s):
-        return "{}:{}:{}:{}".format(MemMsgType.short(s.type_), s.opaque,
-                                    s.addr, s.data)
+        return "{}:{}:{}:{}".format(
+            MemMsgType.short(s.type_), s.opaque, s.addr, s.data)
 
 
 #-------------------------------------------------------------------------
@@ -164,8 +164,8 @@ class MemRespMsg(BitStructDefinition):
         return msg
 
     def __str__(s):
-        return "{}:{}:{}:{}".format(MemMsgType.short(s.type_), s.test,
-                                    s.stat, s.data)
+        return "{}:{}:{}:{}".format(
+            MemMsgType.short(s.type_), s.test, s.stat, s.data)
 
 
 #-------------------------------------------------------------------------

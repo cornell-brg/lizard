@@ -14,23 +14,10 @@ class PregState(BitStructDefinition):
 
 class DataFlowUnitFL(Model):
     def __init__(s):
-
         s.free_regs = FreeListFL(REG_TAG_COUNT)
         s.rename_table = [Bits(REG_TAG_LEN) for _ in range(REG_COUNT)]
         s.preg_file = [PregState() for _ in range(REG_TAG_COUNT)]
         s.areg_file = [Bits(REG_TAG_LEN) for _ in range(REG_COUNT)]
-
-        @s.tick_fl
-        def tick():
-            decoded = s.decoded_q.popleft()
-            result = DataUnitResponse()
-            if decoded.rs1.reg.valid:
-                result.rs1.value = s.reg_file[decoded.rs1.reg.id]
-            if decoded.rs2.reg.valid:
-                result.rs2.value = s.reg_file[decoded.rs1.reg.id]
-            result.rs1.reg = deocded.rs1.reg
-            result.rs2.reg = decoded.rs2.reg
-            s.decoded_q.append(result)
 
     def get_src(s, areg):
         resp = GetSrcResponse()

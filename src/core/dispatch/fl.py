@@ -1,7 +1,3 @@
-#=========================================================================
-# Decode FL Model
-#=========================================================================
-
 from pymtl import *
 from msg import MemMsg4B
 from msg.fetch import FetchPacket
@@ -13,16 +9,11 @@ from config.general import XLEN, ILEN, ILEN_BYTES, RESET_VECTOR
 
 class DispatchFL(Model):
     def __init__(s):
-        # interfaces
         s.instr = InValRdyBundle(FetchPacket())
         s.decoded = OutValRdyBundle(DecodePacket())
 
-        # Adapters
         s.instr_q = InValRdyQueueAdapterFL(s.instr)
         s.decoded_q = OutValRdyQueueAdapterFL(s.decoded)
-        #output
-
-        s.decode_q = OutValRdyQueueAdapterFL(DecodePacket())
 
         @s.tick_fl
         def tick():
@@ -44,9 +35,7 @@ class DispatchFL(Model):
 
     def dec_op_imm(s, inst):
         res = DecodePacket()
-        print(res.rs1)
         res.rs1 = inst[RVInstMask.RS1]
-        print(res.rs1)
         res.rs2 = 0
         res.rd = inst[RVInstMask.RD]
         shamts = {
