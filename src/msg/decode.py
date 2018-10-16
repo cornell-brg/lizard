@@ -99,8 +99,13 @@ RV64Inst = bit_enum(
     'RDCYCLE',
     'RDTIME',
     'RDINSTRET'
-    # TODO CSSR ops
-)
+    # CSR ops
+    'CSRRW',
+    'CSRRS',
+    'CSRRC',
+    'CSRRWI',
+    'CSRRSI',
+    'CSRRCI')
 
 Opcode = bit_enum(
     'Opcode',
