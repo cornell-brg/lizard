@@ -22,6 +22,7 @@ class DispatchFL(Model):
             opmap = {
                 int(Opcode.OP_IMM): s.dec_op_imm,
                 int(Opcode.OP): s.dec_op,
+                int(Opcode.SYSTEM): s.dec_system,
             }
             try:
                 opcode = inst[RVInstMask.OPCODE]
@@ -36,8 +37,10 @@ class DispatchFL(Model):
     def dec_op_imm(s, inst):
         res = DecodePacket()
         res.rs1 = inst[RVInstMask.RS1]
-        res.rs2 = 0
+        res.rs1_valid = 1
+        res.rs2_valid = 0
         res.rd = inst[RVInstMask.RD]
+        res.rd_valid = 1
         shamts = {
             0b001: {0b0000000, RV64Inst.SLLI},
             0b101: {0b0000000, RV64Inst.SRLI},
@@ -85,6 +88,28 @@ class DispatchFL(Model):
             (0b111, 0b0000000): RV64Inst.AND,
         }
         res.inst = insts[(func3, func7)]
+
+        return res
+
+    def dec_system(s, inst):
+        res = DecodePacket()
+
+        func3 = int(inst[RVInstMask.FUNCT3])
+        insts = {
+            0b001: RV64Inst.CSRRW,
+            0b010: RV64Inst.CSRRS,
+            0b011: RV64Inst.CSRRC,
+        }
+
+        res.inst = insts[func3]
+        res.rs1 = inst[RVInstMask.RS1]
+        res.rs1_valid = 1
+        res.rs2_vallid = 0
+        res.rd = inst[RVInstMask.RD]
+        res.rd_valid = 1
+
+        res.csr = inst[RVInstMask.CSRNUM]
+        res.csr_valid = 1
 
         return res
 

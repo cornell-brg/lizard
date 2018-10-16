@@ -65,10 +65,16 @@ class DataFlowUnitFL(Model):
         s.areg_file[preg.areg] = tag
 
     def read_csr(s, csr_num):
-        return s.csr_file.get(int(csr_num), Bits(XLEN, 0))
+        if csr_num == CsrRegisters.mngr2proc:
+            return s.mngr2proc.popleft()
+        else:
+            return s.csr_file.get(int(csr_num), Bits(XLEN, 0))
 
     def write_csr(s, csr_num, value):
-        s.csr_file[int(csr_num)] = value
+        if csr_num == CsrRegisters.proc2mngr:
+            s.proc2mngr.append(value)
+        else:
+            s.csr_file[int(csr_num)] = value
 
     def line_trace(s):
         return "<dataflowfl>"
