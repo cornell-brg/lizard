@@ -17,9 +17,9 @@ class FreeListFL(Model):
         for x in range(len(self.free_list)):
             self.free_list[x] = x
 
-        self.head= 0
-        self.tail= 0
-        self.size= 0
+        self.head = 0
+        self.tail = 0
+        self.size = 0
 
     def wrap_incr(self, x):
         if x == len(self.free_list) - 1:

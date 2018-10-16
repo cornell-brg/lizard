@@ -41,7 +41,8 @@ class FunctionalFL(Model):
                 if p.rs1 != 0:
                     s.dataflow.write_csr(p.csr, out.result | p.rs1)
             else:
-                raise NotImplementedError('Not implemented so sad: ' + RV64Inst.name(p.inst))
+                raise NotImplementedError('Not implemented so sad: ' +
+                                          RV64Inst.name(p.inst))
 
             s.result_q.append(out)
 

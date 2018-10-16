@@ -11,8 +11,9 @@ from test.core.inst_utils import *
 # gen_basic_test
 #-------------------------------------------------------------------------
 
+
 def gen_basic_test():
-  return """
+    return """
 
     # Use r3 to track the control flow pattern
     addi  x3, x0, 0           # 0x0200
@@ -52,19 +53,21 @@ def gen_basic_test():
 
   """
 
+
 # ''' LAB TASK ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 # Define additional directed and random test cases.
 # '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 gen_jalr_template_id = 0
 
-def gen_jalr_template(num_nops_src0, num_nops_dest,
-  reg_src0, reg_dest, ret_addr):
-  #ret_addr = (num_nops_src0+2) * 4 + 0x0208
-  global gen_jalr_template_id
-  id_a = "label_{}".format( gen_jalr_template_id + 1 )
-  gen_jalr_template_id += 1
-  return """
+
+def gen_jalr_template(num_nops_src0, num_nops_dest, reg_src0, reg_dest,
+                      ret_addr):
+    #ret_addr = (num_nops_src0+2) * 4 + 0x0208
+    global gen_jalr_template_id
+    id_a = "label_{}".format(gen_jalr_template_id + 1)
+    gen_jalr_template_id += 1
+    return """
 
     # Use r3 to track the control flow pattern
     addi  x3, x0, 0           # 0x0200
@@ -89,54 +92,47 @@ def gen_jalr_template(num_nops_src0, num_nops_dest,
     csrw  proc2mngr, x3  > 0b10
 
   """.format(
-    nops_src0 = gen_nops(num_nops_src0),
-    nops_dets = gen_nops(num_nops_dest),
-    **locals()
-  )
+        nops_src0=gen_nops(num_nops_src0),
+        nops_dets=gen_nops(num_nops_dest),
+        **locals())
+
 
 def gen_jalr_test_dest_dep(num_nops_dest, ret_addr):
     return gen_jalr_template(8, num_nops_dest, "x1", "x2", ret_addr)
 
+
 def gen_jalr_test_src_dep(num_nops_src, ret_addr):
     return gen_jalr_template(num_nops_src, 8, "x1", "x2", ret_addr)
 
+
 # tests that x1 stalls/bypass are accounted for from JAL
 def gen_dest_dep0_test():
-    return [
-        gen_jalr_test_dest_dep(0, 0x230)
-    ]
+    return [gen_jalr_test_dest_dep(0, 0x230)]
+
 
 def gen_dest_dep1_test():
-    return [
-        gen_jalr_test_dest_dep(1, 0x230)
-    ]
+    return [gen_jalr_test_dest_dep(1, 0x230)]
+
 
 def gen_dest_dep2_test():
-    return [
-        gen_jalr_test_dest_dep(2, 0x230)
-    ]
+    return [gen_jalr_test_dest_dep(2, 0x230)]
+
 
 def gen_src_dep0_test():
-    return [
-        gen_jalr_test_src_dep(0, 0x210)
-    ]
+    return [gen_jalr_test_src_dep(0, 0x210)]
+
 
 def gen_src_dep1_test():
-    return [
-        gen_jalr_test_src_dep(1, 0x214)
-    ]
+    return [gen_jalr_test_src_dep(1, 0x214)]
+
 
 def gen_src_dep2_test():
-    return [
-        gen_jalr_test_src_dep(2, 0x218)
-    ]
+    return [gen_jalr_test_src_dep(2, 0x218)]
+
 
 def gen_src_dep3_test():
-    return [
-        gen_jalr_test_src_dep(3, 0x21c)
-    ]
+    return [gen_jalr_test_src_dep(3, 0x21c)]
+
 
 def gen_src_dep4_test():
-    return [
-        gen_jalr_test_src_dep(4, 0x220)
-    ]
+    return [gen_jalr_test_src_dep(4, 0x220)]

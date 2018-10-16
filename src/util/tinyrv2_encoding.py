@@ -14,8 +14,8 @@
 
 import struct
 
-from pymtl             import Bits, concat
-from string            import translate,maketrans
+from pymtl import Bits, concat
+from string import translate, maketrans
 from util.sparse_memory_image import SparseMemoryImage
 from config.general import *
 
@@ -36,88 +36,88 @@ from config.general import *
 tinyrv2_encoding_table = \
 [
 
-  # inst                       opcode mask                         opcode
+    # inst                       opcode mask                         opcode
 
-  # nop
+    # nop
 
-  [ "nop",                     0b11111111111111111111111111111111, 0b00000000000000000000000000010011 ],
+    [ "nop",                     0b11111111111111111111111111111111, 0b00000000000000000000000000010011 ],
 
-  # Currently these instructions are listed in the same order as
-  # the risc-v reference card
-  # https://www.cl.cam.ac.uk/teaching/1516/ECAD+Arch/files/docs/RISCVGreenCardv8-20151013.pdf
+    # Currently these instructions are listed in the same order as
+    # the risc-v reference card
+    # https://www.cl.cam.ac.uk/teaching/1516/ECAD+Arch/files/docs/RISCVGreenCardv8-20151013.pdf
 
-  # See "The RISC-V Instruction Set Manual Volume I User-Level ISA.pdf" pp.65 "RV32/64G Instruction Set Listings"
+    # See "The RISC-V Instruction Set Manual Volume I User-Level ISA.pdf" pp.65 "RV32/64G Instruction Set Listings"
 
-  #----------------------------------------------------------------------
-  # RV32I
-  #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # RV32I
+    #----------------------------------------------------------------------
 
-  # Loads
-  [ "lw     rd, i_imm(rs1)",  0b00000000000000000111000001111111, 0b00000000000000000010000000000011 ], # I-type, tinyrv{1,2}
+    # Loads
+    [ "lw     rd, i_imm(rs1)",  0b00000000000000000111000001111111, 0b00000000000000000010000000000011 ], # I-type, tinyrv{1,2}
 
-  # Stores
-  [ "sw     rs2, s_imm(rs1)",  0b00000000000000000111000001111111, 0b00000000000000000010000000100011 ], # S-type, tinyrv{1,2}
+    # Stores
+    [ "sw     rs2, s_imm(rs1)",  0b00000000000000000111000001111111, 0b00000000000000000010000000100011 ], # S-type, tinyrv{1,2}
 
-  # Shifts
-  [ "sll    rd, rs1, rs2",     0b11111110000000000111000001111111, 0b00000000000000000001000000110011 ], # R-type, tinyrv{2}
-  [ "slli   rd, rs1, shamt",   0b11111110000000000111000001111111, 0b00000000000000000001000000010011 ], # R-type, tinyrv{2}
-  [ "srl    rd, rs1, rs2",     0b11111110000000000111000001111111, 0b00000000000000000101000000110011 ], # R-type, tinyrv{2}
-  [ "srli   rd, rs1, shamt",   0b11111110000000000111000001111111, 0b00000000000000000101000000010011 ], # R-type, tinyrv{2}
-  [ "sra    rd, rs1, rs2",     0b11111110000000000111000001111111, 0b01000000000000000101000000110011 ], # R-type, tinyrv{2}
-  [ "srai   rd, rs1, shamt",   0b11111110000000000111000001111111, 0b01000000000000000101000000010011 ], # R-type, tinyrv{2}
+    # Shifts
+    [ "sll    rd, rs1, rs2",     0b11111110000000000111000001111111, 0b00000000000000000001000000110011 ], # R-type, tinyrv{2}
+    [ "slli   rd, rs1, shamt",   0b11111110000000000111000001111111, 0b00000000000000000001000000010011 ], # R-type, tinyrv{2}
+    [ "srl    rd, rs1, rs2",     0b11111110000000000111000001111111, 0b00000000000000000101000000110011 ], # R-type, tinyrv{2}
+    [ "srli   rd, rs1, shamt",   0b11111110000000000111000001111111, 0b00000000000000000101000000010011 ], # R-type, tinyrv{2}
+    [ "sra    rd, rs1, rs2",     0b11111110000000000111000001111111, 0b01000000000000000101000000110011 ], # R-type, tinyrv{2}
+    [ "srai   rd, rs1, shamt",   0b11111110000000000111000001111111, 0b01000000000000000101000000010011 ], # R-type, tinyrv{2}
 
-  # Arithmetic
-  [ "add    rd, rs1, rs2",     0b11111110000000000111000001111111, 0b00000000000000000000000000110011 ], # R-type, tinyrv{1,2}
-  [ "addi   rd, rs1, i_imm",   0b00000000000000000111000001111111, 0b00000000000000000000000000010011 ], # I-type, tinyrv{2}
-  [ "sub    rd, rs1, rs2",     0b11111110000000000111000001111111, 0b01000000000000000000000000110011 ], # R-type, tinyrv{2}
-  [ "lui    rd, u_imm",        0b00000000000000000000000001111111, 0b00000000000000000000000000110111 ], # U-type, tinyrv{2}
-  [ "auipc  rd, u_imm",        0b00000000000000000000000001111111, 0b00000000000000000000000000010111 ], # U-type, tinyrv{2}
+    # Arithmetic
+    [ "add    rd, rs1, rs2",     0b11111110000000000111000001111111, 0b00000000000000000000000000110011 ], # R-type, tinyrv{1,2}
+    [ "addi   rd, rs1, i_imm",   0b00000000000000000111000001111111, 0b00000000000000000000000000010011 ], # I-type, tinyrv{2}
+    [ "sub    rd, rs1, rs2",     0b11111110000000000111000001111111, 0b01000000000000000000000000110011 ], # R-type, tinyrv{2}
+    [ "lui    rd, u_imm",        0b00000000000000000000000001111111, 0b00000000000000000000000000110111 ], # U-type, tinyrv{2}
+    [ "auipc  rd, u_imm",        0b00000000000000000000000001111111, 0b00000000000000000000000000010111 ], # U-type, tinyrv{2}
 
-  # Logical
-  [ "xor    rd, rs1, rs2",     0b11111110000000000111000001111111, 0b00000000000000000100000000110011 ], # R-type, tinyrv{2}
-  [ "xori   rd, rs1, i_imm",   0b00000000000000000111000001111111, 0b00000000000000000100000000010011 ], # I-type, tinyrv{2}
-  [ "or     rd, rs1, rs2",     0b11111110000000000111000001111111, 0b00000000000000000110000000110011 ], # R-type, tinyrv{2}
-  [ "ori    rd, rs1, i_imm",   0b00000000000000000111000001111111, 0b00000000000000000110000000010011 ], # I-type, tinyrv{2}
-  [ "and    rd, rs1, rs2",     0b11111110000000000111000001111111, 0b00000000000000000111000000110011 ], # R-type, tinyrv{2}
-  [ "andi   rd, rs1, i_imm",   0b00000000000000000111000001111111, 0b00000000000000000111000000010011 ], # I-type, tinyrv{2}
+    # Logical
+    [ "xor    rd, rs1, rs2",     0b11111110000000000111000001111111, 0b00000000000000000100000000110011 ], # R-type, tinyrv{2}
+    [ "xori   rd, rs1, i_imm",   0b00000000000000000111000001111111, 0b00000000000000000100000000010011 ], # I-type, tinyrv{2}
+    [ "or     rd, rs1, rs2",     0b11111110000000000111000001111111, 0b00000000000000000110000000110011 ], # R-type, tinyrv{2}
+    [ "ori    rd, rs1, i_imm",   0b00000000000000000111000001111111, 0b00000000000000000110000000010011 ], # I-type, tinyrv{2}
+    [ "and    rd, rs1, rs2",     0b11111110000000000111000001111111, 0b00000000000000000111000000110011 ], # R-type, tinyrv{2}
+    [ "andi   rd, rs1, i_imm",   0b00000000000000000111000001111111, 0b00000000000000000111000000010011 ], # I-type, tinyrv{2}
 
-  # Compare
-  [ "slt    rd, rs1, rs2",     0b11111110000000000111000001111111, 0b00000000000000000010000000110011 ], # R-type, tinyrv{2}
-  [ "slti   rd, rs1, i_imm",   0b00000000000000000111000001111111, 0b00000000000000000010000000010011 ], # I-type, tinyrv{2}
-  [ "sltu   rd, rs1, rs2",     0b11111110000000000111000001111111, 0b00000000000000000011000000110011 ], # R-type, tinyrv{2}
-  [ "sltiu  rd, rs1, i_imm",   0b00000000000000000111000001111111, 0b00000000000000000011000000010011 ], # I-type, tinyrv{2}
+    # Compare
+    [ "slt    rd, rs1, rs2",     0b11111110000000000111000001111111, 0b00000000000000000010000000110011 ], # R-type, tinyrv{2}
+    [ "slti   rd, rs1, i_imm",   0b00000000000000000111000001111111, 0b00000000000000000010000000010011 ], # I-type, tinyrv{2}
+    [ "sltu   rd, rs1, rs2",     0b11111110000000000111000001111111, 0b00000000000000000011000000110011 ], # R-type, tinyrv{2}
+    [ "sltiu  rd, rs1, i_imm",   0b00000000000000000111000001111111, 0b00000000000000000011000000010011 ], # I-type, tinyrv{2}
 
-  # Branches
-  [ "beq    rs1, rs2, b_imm",  0b00000000000000000111000001111111, 0b00000000000000000000000001100011 ], # SB-type, tinyrv{2}
-  [ "bne    rs1, rs2, b_imm",  0b00000000000000000111000001111111, 0b00000000000000000001000001100011 ], # SB-type, tinyrv{1,2}
-  [ "blt    rs1, rs2, b_imm",  0b00000000000000000111000001111111, 0b00000000000000000100000001100011 ], # SB-type, tinyrv{2}
-  [ "bge    rs1, rs2, b_imm",  0b00000000000000000111000001111111, 0b00000000000000000101000001100011 ], # SB-type, tinyrv{2}
-  [ "bltu   rs1, rs2, b_imm",  0b00000000000000000111000001111111, 0b00000000000000000110000001100011 ], # SB-type, tinyrv{2}
-  [ "bgeu   rs1, rs2, b_imm",  0b00000000000000000111000001111111, 0b00000000000000000111000001100011 ], # SB-type, tinyrv{2}
+    # Branches
+    [ "beq    rs1, rs2, b_imm",  0b00000000000000000111000001111111, 0b00000000000000000000000001100011 ], # SB-type, tinyrv{2}
+    [ "bne    rs1, rs2, b_imm",  0b00000000000000000111000001111111, 0b00000000000000000001000001100011 ], # SB-type, tinyrv{1,2}
+    [ "blt    rs1, rs2, b_imm",  0b00000000000000000111000001111111, 0b00000000000000000100000001100011 ], # SB-type, tinyrv{2}
+    [ "bge    rs1, rs2, b_imm",  0b00000000000000000111000001111111, 0b00000000000000000101000001100011 ], # SB-type, tinyrv{2}
+    [ "bltu   rs1, rs2, b_imm",  0b00000000000000000111000001111111, 0b00000000000000000110000001100011 ], # SB-type, tinyrv{2}
+    [ "bgeu   rs1, rs2, b_imm",  0b00000000000000000111000001111111, 0b00000000000000000111000001100011 ], # SB-type, tinyrv{2}
 
-  # Jump & Link
-  [ "jal    rd, j_imm",        0b00000000000000000000000001111111, 0b00000000000000000000000001101111 ], # UJ-type, tinyrv{1,2}
-  [ "jalr   rd, rs1, i_imm",   0b00000000000000000111000001111111, 0b00000000000000000000000001100111 ], # I-type, tinyrv{1,2}
+    # Jump & Link
+    [ "jal    rd, j_imm",        0b00000000000000000000000001111111, 0b00000000000000000000000001101111 ], # UJ-type, tinyrv{1,2}
+    [ "jalr   rd, rs1, i_imm",   0b00000000000000000111000001111111, 0b00000000000000000000000001100111 ], # I-type, tinyrv{1,2}
 
-  #-----------------------------------------------------------------------
-  # RV32M
-  #-----------------------------------------------------------------------
+    #-----------------------------------------------------------------------
+    # RV32M
+    #-----------------------------------------------------------------------
 
-  # Multiply
-  [ "mul    rd, rs1, rs2",     0b11111110000000000111000001111111, 0b00000010000000000000000000110011 ], # R-type, tinyrv{1,2}
+    # Multiply
+    [ "mul    rd, rs1, rs2",     0b11111110000000000111000001111111, 0b00000010000000000000000000110011 ], # R-type, tinyrv{1,2}
 
-  #-----------------------------------------------------------------------
-  # RV Privileged
-  #-----------------------------------------------------------------------
-  # See "The RISC-V Instruction Set Manual Volume II Privileged Architecture.pdf" pp.13-21
-  [ "csrr   rd, csrnum",       0b00000000000011111111000001111111, 0b00000000000000000010000001110011 ], # I-type, csrrs
-  [ "csrw   csrnum, rs1",      0b00000000000000000111111111111111, 0b00000000000000000001000001110011 ], # I-type, csrrw
+    #-----------------------------------------------------------------------
+    # RV Privileged
+    #-----------------------------------------------------------------------
+    # See "The RISC-V Instruction Set Manual Volume II Privileged Architecture.pdf" pp.13-21
+    [ "csrr   rd, csrnum",       0b00000000000011111111000001111111, 0b00000000000000000010000001110011 ], # I-type, csrrs
+    [ "csrw   csrnum, rs1",      0b00000000000000000111111111111111, 0b00000000000000000001000001110011 ], # I-type, csrrw
 
 
-  # These two are for elf execution.
+    # These two are for elf execution.
 
-  [ "lb     rd,  i_imm(rs1)",  0b00000000000000000111000001111111, 0b00000000000000000000000000000011 ], # I-type
-  [ "sb     rs2, s_imm(rs1)",  0b00000000000000000111000001111111, 0b00000000000000000000000000100011 ], # S-type
+    [ "lb     rd,  i_imm(rs1)",  0b00000000000000000111000001111111, 0b00000000000000000000000000000011 ], # I-type
+    [ "sb     rs2, s_imm(rs1)",  0b00000000000000000111000001111111, 0b00000000000000000000000000100011 ], # S-type
 ]
 
 #=========================================================================
@@ -148,32 +148,32 @@ tinyrv2_encoding_table = \
 
 # Note python slice [ a, b ) == above slice [ b-1, a ]
 
-tinyrv2_field_slice_opcode = slice(  0,  7 )
-tinyrv2_field_slice_funct3 = slice( 12, 15 )
-tinyrv2_field_slice_funct7 = slice( 25 ,32 )
+tinyrv2_field_slice_opcode = slice(0, 7)
+tinyrv2_field_slice_funct3 = slice(12, 15)
+tinyrv2_field_slice_funct7 = slice(25, 32)
 
-tinyrv2_field_slice_rd     = slice(  7, 12 )
-tinyrv2_field_slice_rs1    = slice( 15, 20 )
-tinyrv2_field_slice_rs2    = slice( 20, 25 )
-tinyrv2_field_slice_shamt  = slice( 20, 25 )
+tinyrv2_field_slice_rd = slice(7, 12)
+tinyrv2_field_slice_rs1 = slice(15, 20)
+tinyrv2_field_slice_rs2 = slice(20, 25)
+tinyrv2_field_slice_shamt = slice(20, 25)
 
-tinyrv2_field_slice_i_imm  = slice( 20, 32 )
-tinyrv2_field_slice_csrnum = slice( 20, 32 )
+tinyrv2_field_slice_i_imm = slice(20, 32)
+tinyrv2_field_slice_csrnum = slice(20, 32)
 
-tinyrv2_field_slice_s_imm0 = slice(  7, 12 )
-tinyrv2_field_slice_s_imm1 = slice( 25, 32 )
+tinyrv2_field_slice_s_imm0 = slice(7, 12)
+tinyrv2_field_slice_s_imm1 = slice(25, 32)
 
-tinyrv2_field_slice_b_imm0 = slice(  8, 12 )
-tinyrv2_field_slice_b_imm1 = slice( 25, 31 )
-tinyrv2_field_slice_b_imm2 = slice(  7,  8 )
-tinyrv2_field_slice_b_imm3 = slice( 31, 32 )
+tinyrv2_field_slice_b_imm0 = slice(8, 12)
+tinyrv2_field_slice_b_imm1 = slice(25, 31)
+tinyrv2_field_slice_b_imm2 = slice(7, 8)
+tinyrv2_field_slice_b_imm3 = slice(31, 32)
 
-tinyrv2_field_slice_u_imm  = slice( 12, 32 )
+tinyrv2_field_slice_u_imm = slice(12, 32)
 
-tinyrv2_field_slice_j_imm0 = slice( 21, 31 )
-tinyrv2_field_slice_j_imm1 = slice( 20, 21 )
-tinyrv2_field_slice_j_imm2 = slice( 12, 20 )
-tinyrv2_field_slice_j_imm3 = slice( 31, 32 )
+tinyrv2_field_slice_j_imm0 = slice(21, 31)
+tinyrv2_field_slice_j_imm1 = slice(20, 21)
+tinyrv2_field_slice_j_imm2 = slice(12, 20)
+tinyrv2_field_slice_j_imm3 = slice(31, 32)
 
 #-------------------------------------------------------------------------
 # rs1 assembly/disassembly functions
@@ -183,216 +183,245 @@ tinyrv2_field_slice_j_imm3 = slice( 31, 32 )
 # "Programmers" Model for Base Integer Subset" for register specifiers
 # x0 .. x31
 
-def assemble_field_rs1( bits, sym, pc, field_str ):
 
-  # Register specifiers must begin with an "x"
-  assert field_str[0] == "x"
+def assemble_field_rs1(bits, sym, pc, field_str):
 
-  # Register specifier must be between 0 and 31
-  reg_specifier = int(field_str.lstrip("x"))
-  assert 0 <= reg_specifier <= 31
+    # Register specifiers must begin with an "x"
+    assert field_str[0] == "x"
 
-  bits[ tinyrv2_field_slice_rs1 ] = reg_specifier
+    # Register specifier must be between 0 and 31
+    reg_specifier = int(field_str.lstrip("x"))
+    assert 0 <= reg_specifier <= 31
 
-def disassemble_field_rs1( bits ):
-  return "x{:0>2}".format( bits[ tinyrv2_field_slice_rs1 ].uint() )
+    bits[tinyrv2_field_slice_rs1] = reg_specifier
+
+
+def disassemble_field_rs1(bits):
+    return "x{:0>2}".format(bits[tinyrv2_field_slice_rs1].uint())
+
 
 #-------------------------------------------------------------------------
 # rs2 assembly/disassembly functions
 #-------------------------------------------------------------------------
 
-def assemble_field_rs2( bits, sym, pc, field_str ):
 
-  # Register specifiers must begin with an "x"
-  assert field_str[0] == "x"
+def assemble_field_rs2(bits, sym, pc, field_str):
 
-  # Register specifier must be between 0 and 31
-  reg_specifier = int(field_str.lstrip("x"))
-  assert 0 <= reg_specifier <= 31
+    # Register specifiers must begin with an "x"
+    assert field_str[0] == "x"
 
-  bits[ tinyrv2_field_slice_rs2 ] = reg_specifier
+    # Register specifier must be between 0 and 31
+    reg_specifier = int(field_str.lstrip("x"))
+    assert 0 <= reg_specifier <= 31
 
-def disassemble_field_rs2( bits ):
-  return "x{:0>2}".format( bits[ tinyrv2_field_slice_rs2 ].uint() )
+    bits[tinyrv2_field_slice_rs2] = reg_specifier
+
+
+def disassemble_field_rs2(bits):
+    return "x{:0>2}".format(bits[tinyrv2_field_slice_rs2].uint())
+
 
 #-------------------------------------------------------------------------
 # shamt assembly/disassembly functions
 #-------------------------------------------------------------------------
 
-def assemble_field_shamt( bits, sym, pc, field_str ):
 
-  shamt = int(field_str,0)
-  assert 0 <= shamt <= 31
+def assemble_field_shamt(bits, sym, pc, field_str):
 
-  bits[ tinyrv2_field_slice_shamt ] = shamt
+    shamt = int(field_str, 0)
+    assert 0 <= shamt <= 31
 
-def disassemble_field_shamt( bits ):
-  return "{:0>2x}".format( bits[ tinyrv2_field_slice_shamt ].uint() )
+    bits[tinyrv2_field_slice_shamt] = shamt
+
+
+def disassemble_field_shamt(bits):
+    return "{:0>2x}".format(bits[tinyrv2_field_slice_shamt].uint())
+
 
 #-------------------------------------------------------------------------
 # rd assembly/disassembly functions
 #-------------------------------------------------------------------------
 
-def assemble_field_rd( bits, sym, pc, field_str ):
 
-  # Register specifiers must begin with an "x"
-  assert field_str[0] == "x"
+def assemble_field_rd(bits, sym, pc, field_str):
 
-  # Register specifier must be between 0 and 31
-  reg_specifier = int(field_str.lstrip("x"))
-  assert 0 <= reg_specifier <= 31
+    # Register specifiers must begin with an "x"
+    assert field_str[0] == "x"
 
-  bits[ tinyrv2_field_slice_rd ] = reg_specifier
+    # Register specifier must be between 0 and 31
+    reg_specifier = int(field_str.lstrip("x"))
+    assert 0 <= reg_specifier <= 31
 
-def disassemble_field_rd( bits ):
-  return "x{:0>2}".format( bits[ tinyrv2_field_slice_rd ].uint() )
+    bits[tinyrv2_field_slice_rd] = reg_specifier
+
+
+def disassemble_field_rd(bits):
+    return "x{:0>2}".format(bits[tinyrv2_field_slice_rd].uint())
+
 
 #-------------------------------------------------------------------------
 # i_imm assembly/disassembly functions
 #-------------------------------------------------------------------------
 
-def assemble_field_i_imm( bits, sym, pc, field_str ):
 
-  # Check to see if the immediate field derives from a label
-  if field_str[0] == "%":
-    label_addr = Bits( 32, sym[ field_str[4:-1] ] )
-    if field_str.startswith( "%hi[" ):
-      imm = label_addr[20:32]
-    elif field_str.startswith( "%md[" ):
-      imm = label_addr[13:25]
-    elif field_str.startswith( "%lo[" ):
-      imm = label_addr[0:12]
-  else:
-    imm = int(field_str,0)
+def assemble_field_i_imm(bits, sym, pc, field_str):
 
-  assert imm < (1 << 12)
+    # Check to see if the immediate field derives from a label
+    if field_str[0] == "%":
+        label_addr = Bits(32, sym[field_str[4:-1]])
+        if field_str.startswith("%hi["):
+            imm = label_addr[20:32]
+        elif field_str.startswith("%md["):
+            imm = label_addr[13:25]
+        elif field_str.startswith("%lo["):
+            imm = label_addr[0:12]
+    else:
+        imm = int(field_str, 0)
 
-  bits[ tinyrv2_field_slice_i_imm ] = imm
+    assert imm < (1 << 12)
 
-def disassemble_field_i_imm( bits ):
-  return "0x{:0>3x}".format( bits[ tinyrv2_field_slice_i_imm ].uint() )
+    bits[tinyrv2_field_slice_i_imm] = imm
 
-def assemble_field_csrnum( bits, sym, pc, field_str ):
 
-  assert (field_str == "proc2mngr") or (field_str == "mngr2proc") \
-      or (field_str == "numcores" ) or (field_str == "coreid") \
-      or (field_str == "stats_en" )
+def disassemble_field_i_imm(bits):
+    return "0x{:0>3x}".format(bits[tinyrv2_field_slice_i_imm].uint())
 
-  if   field_str == "mngr2proc":
-    imm = 0xFC0
-  elif field_str == "proc2mngr":
-    imm = 0x7C0
-  elif field_str == "numcores":
-    imm = 0xFC1
-  elif field_str == "coreid":
-    imm = 0xF14
-  elif field_str == "stats_en":
-    imm = 0x7C1
 
-  bits[ tinyrv2_field_slice_csrnum ] = imm
+def assemble_field_csrnum(bits, sym, pc, field_str):
 
-def disassemble_field_csrnum( bits ):
-  return "0x{:0>3x}".format( bits[ tinyrv2_field_slice_csrnum ].uint() )
+    assert (field_str == "proc2mngr") or (field_str == "mngr2proc") \
+        or (field_str == "numcores" ) or (field_str == "coreid") \
+        or (field_str == "stats_en" )
+
+    if field_str == "mngr2proc":
+        imm = 0xFC0
+    elif field_str == "proc2mngr":
+        imm = 0x7C0
+    elif field_str == "numcores":
+        imm = 0xFC1
+    elif field_str == "coreid":
+        imm = 0xF14
+    elif field_str == "stats_en":
+        imm = 0x7C1
+
+    bits[tinyrv2_field_slice_csrnum] = imm
+
+
+def disassemble_field_csrnum(bits):
+    return "0x{:0>3x}".format(bits[tinyrv2_field_slice_csrnum].uint())
+
 
 #-------------------------------------------------------------------------
 # s_imm assembly/disassembly functions
 #-------------------------------------------------------------------------
 
-def assemble_field_s_imm( bits, sym, pc, field_str ):
 
-  imm = Bits( 12, int(field_str,0) )
+def assemble_field_s_imm(bits, sym, pc, field_str):
 
-  bits[ tinyrv2_field_slice_s_imm0 ] = imm[0:5 ]
-  bits[ tinyrv2_field_slice_s_imm1 ] = imm[5:12]
+    imm = Bits(12, int(field_str, 0))
 
-def disassemble_field_s_imm( bits ):
-  imm = Bits( 12, 0 )
-  imm[0:5]  = bits[ tinyrv2_field_slice_s_imm0 ]
-  imm[5:12] = bits[ tinyrv2_field_slice_s_imm1 ]
+    bits[tinyrv2_field_slice_s_imm0] = imm[0:5]
+    bits[tinyrv2_field_slice_s_imm1] = imm[5:12]
 
-  return "0x{:0>3x}".format( imm.uint() )
+
+def disassemble_field_s_imm(bits):
+    imm = Bits(12, 0)
+    imm[0:5] = bits[tinyrv2_field_slice_s_imm0]
+    imm[5:12] = bits[tinyrv2_field_slice_s_imm1]
+
+    return "0x{:0>3x}".format(imm.uint())
+
 
 #-------------------------------------------------------------------------
 # b_imm assembly/disassembly functions
 #-------------------------------------------------------------------------
 
-def assemble_field_b_imm( bits, sym, pc, field_str ):
 
-  if sym.has_key( field_str ):
-    # notice that we encode the branch target address (a lable) relative
-    # to current PC
-    btarg_byte_addr = sym[field_str] - pc
-  else:
-    btarg_byte_addr = int(field_str,0)
+def assemble_field_b_imm(bits, sym, pc, field_str):
 
-  imm = Bits( 13, btarg_byte_addr )
+    if sym.has_key(field_str):
+        # notice that we encode the branch target address (a lable) relative
+        # to current PC
+        btarg_byte_addr = sym[field_str] - pc
+    else:
+        btarg_byte_addr = int(field_str, 0)
 
-  bits[ tinyrv2_field_slice_b_imm0 ] = imm[1:5]
-  bits[ tinyrv2_field_slice_b_imm1 ] = imm[5:11]
-  bits[ tinyrv2_field_slice_b_imm2 ] = imm[11:12]
-  bits[ tinyrv2_field_slice_b_imm3 ] = imm[12:13]
+    imm = Bits(13, btarg_byte_addr)
 
-def disassemble_field_b_imm( bits ):
+    bits[tinyrv2_field_slice_b_imm0] = imm[1:5]
+    bits[tinyrv2_field_slice_b_imm1] = imm[5:11]
+    bits[tinyrv2_field_slice_b_imm2] = imm[11:12]
+    bits[tinyrv2_field_slice_b_imm3] = imm[12:13]
 
-  imm = Bits( 13, 0 )
-  imm[1:5]   = bits[ tinyrv2_field_slice_b_imm0 ]
-  imm[5:11]  = bits[ tinyrv2_field_slice_b_imm1 ]
-  imm[11:12] = bits[ tinyrv2_field_slice_b_imm2 ]
-  imm[12:13] = bits[ tinyrv2_field_slice_b_imm3 ]
 
-  return "0x{:0>4x}".format( imm.uint() )
+def disassemble_field_b_imm(bits):
+
+    imm = Bits(13, 0)
+    imm[1:5] = bits[tinyrv2_field_slice_b_imm0]
+    imm[5:11] = bits[tinyrv2_field_slice_b_imm1]
+    imm[11:12] = bits[tinyrv2_field_slice_b_imm2]
+    imm[12:13] = bits[tinyrv2_field_slice_b_imm3]
+
+    return "0x{:0>4x}".format(imm.uint())
+
 
 #-------------------------------------------------------------------------
 # u_imm assembly/disassembly functions
 #-------------------------------------------------------------------------
 
-def assemble_field_u_imm( bits, sym, pc, field_str ):
 
-  # Check to see if the immediate field derives from a label
-  if field_str[0] == "%":
-    label_addr = Bits( 32, sym[ field_str[4:-1] ] )
-    if field_str.startswith( "%hi[" ):
-      imm = label_addr[12:32]
-    elif field_str.startswith( "%lo[" ):
-      imm = label_addr[0:12]
+def assemble_field_u_imm(bits, sym, pc, field_str):
+
+    # Check to see if the immediate field derives from a label
+    if field_str[0] == "%":
+        label_addr = Bits(32, sym[field_str[4:-1]])
+        if field_str.startswith("%hi["):
+            imm = label_addr[12:32]
+        elif field_str.startswith("%lo["):
+            imm = label_addr[0:12]
+        else:
+            assert False
     else:
-      assert False
-  else:
-    imm = int(field_str,0)
+        imm = int(field_str, 0)
 
-  assert imm < (1 << 20)
-  bits[ tinyrv2_field_slice_u_imm ] = imm
+    assert imm < (1 << 20)
+    bits[tinyrv2_field_slice_u_imm] = imm
 
-def disassemble_field_u_imm( bits ):
-  return "0x{:0>5x}".format( bits[ tinyrv2_field_slice_u_imm ].uint() )
+
+def disassemble_field_u_imm(bits):
+    return "0x{:0>5x}".format(bits[tinyrv2_field_slice_u_imm].uint())
+
 
 #-------------------------------------------------------------------------
 # j_imm assembly/disassembly functions
 #-------------------------------------------------------------------------
 
-def assemble_field_j_imm( bits, sym, pc, field_str ):
 
-  if sym.has_key( field_str ):
-    # notice that we encode the branch target address (a lable) relative
-    # to current PC
-    jtarg_byte_addr = sym[field_str] - pc
-  else:
-    jtarg_byte_addr = int(field_str,0)
+def assemble_field_j_imm(bits, sym, pc, field_str):
 
-  imm = Bits( 21, jtarg_byte_addr )
+    if sym.has_key(field_str):
+        # notice that we encode the branch target address (a lable) relative
+        # to current PC
+        jtarg_byte_addr = sym[field_str] - pc
+    else:
+        jtarg_byte_addr = int(field_str, 0)
 
-  bits[ tinyrv2_field_slice_j_imm0 ] = imm[1:11]
-  bits[ tinyrv2_field_slice_j_imm1 ] = imm[11:12]
-  bits[ tinyrv2_field_slice_j_imm2 ] = imm[12:20]
-  bits[ tinyrv2_field_slice_j_imm3 ] = imm[20:21]
+    imm = Bits(21, jtarg_byte_addr)
 
-def disassemble_field_j_imm( bits ):
-  imm = Bits( 21, 0 )
-  imm[1:11]  = bits[ tinyrv2_field_slice_j_imm0 ]
-  imm[11:12] = bits[ tinyrv2_field_slice_j_imm1 ]
-  imm[12:20] = bits[ tinyrv2_field_slice_j_imm2 ]
-  imm[20:21] = bits[ tinyrv2_field_slice_j_imm3 ]
-  return "0x{:0>6x}".format( imm.uint() )
+    bits[tinyrv2_field_slice_j_imm0] = imm[1:11]
+    bits[tinyrv2_field_slice_j_imm1] = imm[11:12]
+    bits[tinyrv2_field_slice_j_imm2] = imm[12:20]
+    bits[tinyrv2_field_slice_j_imm3] = imm[20:21]
+
+
+def disassemble_field_j_imm(bits):
+    imm = Bits(21, 0)
+    imm[1:11] = bits[tinyrv2_field_slice_j_imm0]
+    imm[11:12] = bits[tinyrv2_field_slice_j_imm1]
+    imm[12:20] = bits[tinyrv2_field_slice_j_imm2]
+    imm[20:21] = bits[tinyrv2_field_slice_j_imm3]
+    return "0x{:0>6x}".format(imm.uint())
+
 
 #-------------------------------------------------------------------------
 # Field Dictionary
@@ -403,16 +432,16 @@ def disassemble_field_j_imm( bits ):
 
 tinyrv2_fields = \
 {
-  "rs1"    : [ assemble_field_rs1,    disassemble_field_rs1    ],
-  "rs2"    : [ assemble_field_rs2,    disassemble_field_rs2    ],
-  "shamt"  : [ assemble_field_shamt,  disassemble_field_shamt  ],
-  "rd"     : [ assemble_field_rd,     disassemble_field_rd     ],
-  "i_imm"  : [ assemble_field_i_imm,  disassemble_field_i_imm  ],
-  "csrnum" : [ assemble_field_csrnum, disassemble_field_csrnum ],
-  "s_imm"  : [ assemble_field_s_imm,  disassemble_field_s_imm  ],
-  "b_imm"  : [ assemble_field_b_imm,  disassemble_field_b_imm  ],
-  "u_imm"  : [ assemble_field_u_imm,  disassemble_field_u_imm  ],
-  "j_imm"  : [ assemble_field_j_imm,  disassemble_field_j_imm  ],
+    "rs1"    : [ assemble_field_rs1,    disassemble_field_rs1    ],
+    "rs2"    : [ assemble_field_rs2,    disassemble_field_rs2    ],
+    "shamt"  : [ assemble_field_shamt,  disassemble_field_shamt  ],
+    "rd"     : [ assemble_field_rd,     disassemble_field_rd     ],
+    "i_imm"  : [ assemble_field_i_imm,  disassemble_field_i_imm  ],
+    "csrnum" : [ assemble_field_csrnum, disassemble_field_csrnum ],
+    "s_imm"  : [ assemble_field_s_imm,  disassemble_field_s_imm  ],
+    "b_imm"  : [ assemble_field_b_imm,  disassemble_field_b_imm  ],
+    "u_imm"  : [ assemble_field_u_imm,  disassemble_field_u_imm  ],
+    "j_imm"  : [ assemble_field_j_imm,  disassemble_field_j_imm  ],
 }
 
 #=========================================================================
@@ -423,545 +452,566 @@ tinyrv2_fields = \
 # assembly/disassembly functions. I am not sure if we still want to
 # refactor this here, but it is good enough for now.
 
-class IsaImpl (object):
 
-  #-----------------------------------------------------------------------
-  # Constructor
-  #-----------------------------------------------------------------------
+class IsaImpl(object):
 
-  def __init__( self, nbits, inst_encoding_table, inst_fields ):
+    #-----------------------------------------------------------------------
+    # Constructor
+    #-----------------------------------------------------------------------
 
-    self.nbits                   = nbits
-    self.inst_encoding_table     = inst_encoding_table
-    self.asm_field_funcs_dict    = {}
-    self.disasm_field_funcs_dict = {}
-    self.opcode_match_dict       = {}
+    def __init__(self, nbits, inst_encoding_table, inst_fields):
 
-    self.disasm_field_funcs_dict[''] = {} # this is for all-zero case
+        self.nbits = nbits
+        self.inst_encoding_table = inst_encoding_table
+        self.asm_field_funcs_dict = {}
+        self.disasm_field_funcs_dict = {}
+        self.opcode_match_dict = {}
 
-    for row in inst_encoding_table:
+        self.disasm_field_funcs_dict[''] = {}  # this is for all-zero case
 
-      # Extract the columns from the row
+        for row in inst_encoding_table:
 
-      inst_tmpl    = row[0]
-      opcode_mask  = row[1]
-      opcode_match = row[2]
+            # Extract the columns from the row
 
-      # Extract instruction name from string template
+            inst_tmpl = row[0]
+            opcode_mask = row[1]
+            opcode_match = row[2]
 
-      (inst_name,sep,inst_tmpl) = inst_tmpl.partition(' ')
+            # Extract instruction name from string template
 
-      # Add opcode match to the a dictionary using the instruction
-      # name as the key
+            (inst_name, sep, inst_tmpl) = inst_tmpl.partition(' ')
 
-      self.opcode_match_dict[ inst_name ] = opcode_match
+            # Add opcode match to the a dictionary using the instruction
+            # name as the key
 
-      # Split the remainder of the template into field strings. First we
-      # translate non-whitespace deliminters into whitespace so that we
-      # can use split.
+            self.opcode_match_dict[inst_name] = opcode_match
 
-      translation_table = maketrans(",()","   ")
-      inst_field_tags = translate(inst_tmpl,translation_table).split()
+            # Split the remainder of the template into field strings. First we
+            # translate non-whitespace deliminters into whitespace so that we
+            # can use split.
 
-      # Create the list of asm field functions
+            translation_table = maketrans(",()", "   ")
+            inst_field_tags = translate(inst_tmpl, translation_table).split()
 
-      asm_field_funcs = []
-      for asm_field_tag in inst_field_tags:
-        asm_field_funcs.append( inst_fields[asm_field_tag][0] )
+            # Create the list of asm field functions
 
-      # Add the list of asm field functions to the encoding
+            asm_field_funcs = []
+            for asm_field_tag in inst_field_tags:
+                asm_field_funcs.append(inst_fields[asm_field_tag][0])
 
-      self.asm_field_funcs_dict[ inst_name ] = asm_field_funcs
+            # Add the list of asm field functions to the encoding
 
-      # Create the list of disasm field functions
+            self.asm_field_funcs_dict[inst_name] = asm_field_funcs
 
-      disasm_field_funcs = {}
-      for asm_field_tag in inst_field_tags:
-        disasm_field_funcs[ asm_field_tag ] = inst_fields[asm_field_tag][1]
+            # Create the list of disasm field functions
 
-      # Add the list of disasm field functions to the encoding
+            disasm_field_funcs = {}
+            for asm_field_tag in inst_field_tags:
+                disasm_field_funcs[asm_field_tag] = inst_fields[asm_field_tag][
+                    1]
 
-      self.disasm_field_funcs_dict[ inst_name ] = disasm_field_funcs
+            # Add the list of disasm field functions to the encoding
 
-  #-----------------------------------------------------------------------
-  # decode_tmpl
-  #-----------------------------------------------------------------------
-  # For now this is O(n) where n is the number of instructions in the
-  # encoding table. Obviously, this is pretty slow. I am sure we can do
-  # better by creating some kind of tree-based data structure.
+            self.disasm_field_funcs_dict[inst_name] = disasm_field_funcs
 
-  def decode_tmpl( self, inst_bits ):
+    #-----------------------------------------------------------------------
+    # decode_tmpl
+    #-----------------------------------------------------------------------
+    # For now this is O(n) where n is the number of instructions in the
+    # encoding table. Obviously, this is pretty slow. I am sure we can do
+    # better by creating some kind of tree-based data structure.
 
-    if inst_bits == 0: # hacky
-      return ""
+    def decode_tmpl(self, inst_bits):
 
-    for row in self.inst_encoding_table:
+        if inst_bits == 0:  # hacky
+            return ""
 
-      # Extract the columns from the row
+        for row in self.inst_encoding_table:
 
-      inst_tmpl    = row[0]
-      opcode_mask  = row[1]
-      opcode_match = row[2]
+            # Extract the columns from the row
 
-      # If match, then return instruction name
+            inst_tmpl = row[0]
+            opcode_mask = row[1]
+            opcode_match = row[2]
 
-      if (inst_bits & opcode_mask) == opcode_match:
-        return inst_tmpl
+            # If match, then return instruction name
 
-    # Illegal instruction
+            if (inst_bits & opcode_mask) == opcode_match:
+                return inst_tmpl
 
-    raise AssertionError( "Illegal instruction {}!".format( inst_bits ) )
+        # Illegal instruction
 
-  #-----------------------------------------------------------------------
-  # decode_name
-  #-----------------------------------------------------------------------
+        raise AssertionError("Illegal instruction {}!".format(inst_bits))
 
-  def decode_inst_name( self, inst_bits ):
+    #-----------------------------------------------------------------------
+    # decode_name
+    #-----------------------------------------------------------------------
 
-    # Decode template
+    def decode_inst_name(self, inst_bits):
 
-    inst_tmpl = self.decode_tmpl( inst_bits )
+        # Decode template
 
-    # Extract instruction name
+        inst_tmpl = self.decode_tmpl(inst_bits)
 
-    return inst_tmpl.partition(' ')[0]
+        # Extract instruction name
 
-  #-----------------------------------------------------------------------
-  # assemble_inst
-  #-----------------------------------------------------------------------
+        return inst_tmpl.partition(' ')[0]
 
-  def assemble_inst( self, sym, pc, inst_str ):
+    #-----------------------------------------------------------------------
+    # assemble_inst
+    #-----------------------------------------------------------------------
 
-    # Extract instruction name from asm string
+    def assemble_inst(self, sym, pc, inst_str):
 
-    (inst_name,sep,inst_str) = inst_str.partition(' ')
+        # Extract instruction name from asm string
 
-    # Use the instruction name to get the opcode match which we can
-    # the use to initialize the instruction bits
+        (inst_name, sep, inst_str) = inst_str.partition(' ')
 
-    inst_bits = Bits( self.nbits, self.opcode_match_dict[ inst_name ] )
+        # Use the instruction name to get the opcode match which we can
+        # the use to initialize the instruction bits
 
-    # Split the remainder of the asm string into field strings. First
-    # we translate non-whitespace deliminters into whitespace so that
-    # we can use split.
+        inst_bits = Bits(self.nbits, self.opcode_match_dict[inst_name])
 
-    translation_table = maketrans(",()","   ")
-    asm_field_strs = translate(inst_str,translation_table).split()
+        # Split the remainder of the asm string into field strings. First
+        # we translate non-whitespace deliminters into whitespace so that
+        # we can use split.
 
-    # Retrieve the list of asm field functions for this instruction
+        translation_table = maketrans(",()", "   ")
+        asm_field_strs = translate(inst_str, translation_table).split()
 
-    asm_field_funcs = self.asm_field_funcs_dict[ inst_name ]
+        # Retrieve the list of asm field functions for this instruction
 
-    # Apply these asm field functions to the asm field strings
+        asm_field_funcs = self.asm_field_funcs_dict[inst_name]
 
-    for asm_field_str, asm_field_func in zip( asm_field_strs, asm_field_funcs ):
-      asm_field_func( inst_bits, sym, pc, asm_field_str )
+        # Apply these asm field functions to the asm field strings
 
-    # Return the assembled instruction
+        for asm_field_str, asm_field_func in zip(asm_field_strs,
+                                                 asm_field_funcs):
+            asm_field_func(inst_bits, sym, pc, asm_field_str)
 
-    return inst_bits
+        # Return the assembled instruction
 
-  #-----------------------------------------------------------------------
-  # disassemble_inst
-  #-----------------------------------------------------------------------
+        return inst_bits
 
-  def disassemble_inst( self, inst_bits ):
+    #-----------------------------------------------------------------------
+    # disassemble_inst
+    #-----------------------------------------------------------------------
 
-    # Decode the instruction to find instruction template
+    def disassemble_inst(self, inst_bits):
 
-    inst_tmpl = self.decode_tmpl( inst_bits )
+        # Decode the instruction to find instruction template
 
-    # Extract instruction name from asm template
+        inst_tmpl = self.decode_tmpl(inst_bits)
 
-    inst_name = inst_tmpl.partition(' ')[0]
+        # Extract instruction name from asm template
 
-    # Retrieve the list of disasm field functions for this instruction
+        inst_name = inst_tmpl.partition(' ')[0]
 
-    disasm_field_funcs = self.disasm_field_funcs_dict[ inst_name ]
+        # Retrieve the list of disasm field functions for this instruction
 
-    # Apply these asm field functions to create the disasm string
+        disasm_field_funcs = self.disasm_field_funcs_dict[inst_name]
 
-    inst_str = inst_tmpl
-    for inst_field_tag,disasm_field_func in disasm_field_funcs.iteritems():
-      field_str = disasm_field_func( inst_bits )
-      inst_str = inst_str.replace( inst_field_tag, field_str )
+        # Apply these asm field functions to create the disasm string
 
-    # Return the disassembled instruction
+        inst_str = inst_tmpl
+        for inst_field_tag, disasm_field_func in disasm_field_funcs.iteritems(
+        ):
+            field_str = disasm_field_func(inst_bits)
+            inst_str = inst_str.replace(inst_field_tag, field_str)
 
-    return inst_str
+        # Return the disassembled instruction
+
+        return inst_str
+
 
 # Here is the actual riscv_isa_impl. I think I refactored this because the
 # idea was that the IsaImpl class could be reused across different ISAs?
 
-tinyrv2_isa_impl = IsaImpl( 32, tinyrv2_encoding_table, tinyrv2_fields )
+tinyrv2_isa_impl = IsaImpl(32, tinyrv2_encoding_table, tinyrv2_fields)
 
 #=========================================================================
 # Assemble
 #=========================================================================
 
-def assemble_inst( sym, pc, inst_str ):
-  return tinyrv2_isa_impl.assemble_inst( sym, pc, inst_str )
 
-def assemble( asm_code ):
+def assemble_inst(sym, pc, inst_str):
+    return tinyrv2_isa_impl.assemble_inst(sym, pc, inst_str)
 
-  # If asm_code is a single string, then put it in a list to simplify the
-  # rest of the logic.
 
-  asm_code_list = asm_code
-  if isinstance( asm_code, str ):
-    asm_code_list = [ asm_code ]
+def assemble(asm_code):
 
-  # Create a single list of lines
+    # If asm_code is a single string, then put it in a list to simplify the
+    # rest of the logic.
 
-  asm_list = []
-  for asm_seq in asm_code_list:
-    asm_list.extend( asm_seq.splitlines() )
+    asm_code_list = asm_code
+    if isinstance(asm_code, str):
+        asm_code_list = [asm_code]
 
-  # First pass to create symbol table. This is obviously very simplistic.
-  # We can maybe make it more robust in the future.
+    # Create a single list of lines
 
-  addr = RESET_VECTOR
-  sym  = {}
-  for line in asm_list:
-    line = line.partition('#')[0]
-    line = line.strip()
+    asm_list = []
+    for asm_seq in asm_code_list:
+        asm_list.extend(asm_seq.splitlines())
 
-    if line == "":
-      continue
+    # First pass to create symbol table. This is obviously very simplistic.
+    # We can maybe make it more robust in the future.
 
-    if line.startswith(".offset"):
-      (cmd,sep,addr_str) = line.partition(' ')
-      addr = int(addr_str,0)
+    addr = RESET_VECTOR
+    sym = {}
+    for line in asm_list:
+        line = line.partition('#')[0]
+        line = line.strip()
 
-    elif line.startswith(".data"):
-      pass
+        if line == "":
+            continue
+
+        if line.startswith(".offset"):
+            (cmd, sep, addr_str) = line.partition(' ')
+            addr = int(addr_str, 0)
+
+        elif line.startswith(".data"):
+            pass
+
+        else:
+            (label, sep, rest) = line.partition(':')
+            if sep != "":
+                sym[label.strip()] = addr
+            else:
+                addr += 4
+
+    # Second pass to assemble text section
+
+    asm_list_idx = 0
+    addr = 0x00000200
+    text_bytes = bytearray()
+    mngr2proc_bytes = bytearray()
+    proc2mngr_bytes = bytearray()
+
+    # Shunning: the way I handle multiple manager is as follows.
+    #
+    # At the beginning the single_core sign is true and all "> 1" "< 2"
+    # values are dumped into the above mngr2proc_bytes and mngr2proc_bytes.
+    # So, for single core testing the assembler works as usual.
+    #
+    # For multicore testing, I assume that all lists wrapped by curly braces
+    # have the same width, and I will use the first ever length as the number
+    # of cores. For example, when I see "> {1,2,3,4}", it means there are 4
+    # cores. It will then set single_core=False and num_cores=4.
+    # Later if I see "> {1,2,3}" I will throw out assertion error.
+    #
+    # Also, Upon the first occurence of the mentioned curly braces, I will
+    # just duplicate mngr2proc_bytes for #core times, and put the duplicates
+    # into mngrs2procs.  Later, when I see a "> 1", I will check the
+    # single_core flag. If it's False, it will dump the check message into
+    # all the duplicated bytearrays.
+    #
+    # The problem of co-existence if we keep mngr2proc and mngrs2procs, is
+    # that unless we record the exact order we receive the csr instructions,
+    # we cannot arbitrarily interleave the values in mngr2proc and mngrs2procs.
+
+    mngrs2procs_bytes = []
+    procs2mngrs_bytes = []
+    single_core = True
+    num_cores = 1
+
+    def duplicate():
+
+        # duplicate the bytes and no more mngr2proc/proc2mngr
+
+        for i in xrange(num_cores):
+            mngrs2procs_bytes.append(bytearray())
+            mngrs2procs_bytes[i][:] = mngr2proc_bytes
+
+            procs2mngrs_bytes.append(bytearray())
+            procs2mngrs_bytes[i][:] = proc2mngr_bytes
+
+    for line in asm_list:
+        asm_list_idx += 1
+        line = line.partition('#')[0]
+        line = line.strip()
+
+        if line == "":
+            continue
+
+        if line.startswith(".offset"):
+            (cmd, sep, addr_str) = line.partition(' ')
+            addr = int(addr_str, 0)
+
+        elif line.startswith(".data"):
+            break
+
+        else:
+            if ':' not in line:
+
+                inst_str = line
+
+                # First see if we have either a < or a >
+
+                if '<' in line:
+                    (temp, sep, value) = line.partition('<')
+
+                    value = value.lstrip(' ')
+                    if value.startswith('{'):
+                        values = map(lambda x: int(x, 0),
+                                     value[1:-1].split(','))
+
+                        if not single_core and len(values) != num_cores:
+                            raise Exception(
+                                "Previous curly brace pair has {} elements in between, but this one \"{}\" has {}."
+                                .format(num_cores, line, len(values)))
+
+                        if single_core:
+                            single_core = False
+                            num_cores = len(values)
+                            duplicate()
+
+                        for i in xrange(num_cores):
+                            mngrs2procs_bytes[i].extend(
+                                struct.pack("<I", Bits(XLEN, values[i])))
+
+                    else:
+                        bits = Bits(XLEN, int(value, 0))
+
+                        if single_core:
+                            mngr2proc_bytes.extend(struct.pack("<I", bits))
+                        else:
+                            for x in mngrs2procs_bytes:
+                                x.extend(struct.pack("<I", bits))
+
+                    inst_str = temp
+
+                elif '>' in line:
+                    (temp, sep, value) = line.partition('>')
+
+                    value = value.lstrip(' ')
+                    if value.startswith('{'):
+                        values = map(lambda x: int(x, 0),
+                                     value[1:-1].split(','))
+
+                        if not single_core and len(values) != num_cores:
+                            raise Exception(
+                                "Previous curly brace pair has {} elements in between, but this one \"{}\" has {}."
+                                .format(num_cores, line, len(values)))
+
+                        if single_core:
+                            single_core = False
+                            num_cores = len(values)
+                            duplicate()
+
+                        for i in xrange(num_cores):
+                            procs2mngrs_bytes[i].extend(
+                                struct.pack("<I", Bits(XLEN, values[i])))
+
+                    else:
+                        bits = Bits(XLEN, int(value, 0))
+
+                        if single_core:
+                            proc2mngr_bytes.extend(struct.pack("<I", bits))
+                        else:
+                            for x in procs2mngrs_bytes:
+                                x.extend(struct.pack("<I", bits))
+
+                    inst_str = temp
+
+                bits = assemble_inst(sym, addr, inst_str)
+                text_bytes.extend(struct.pack("<I", bits.uint()))
+                addr += 4
+
+    # Assemble data section
+
+    data_bytes = bytearray()
+    for line in asm_list[asm_list_idx:]:
+        line = line.partition('#')[0]
+        line = line.strip()
+
+        if line == "":
+            continue
+
+        if line.startswith(".offset"):
+            (cmd, sep, addr_str) = line.partition(' ')
+            addr = int(addr_str, 0)
+
+        elif line.startswith(".word"):
+            (cmd, sep, value) = line.partition(' ')
+            data_bytes.extend(struct.pack("<I", int(value, 0)))
+            addr += 4
+
+        elif line.startswith(".hword"):
+            (cmd, sep, value) = line.partition(' ')
+            data_bytes.extend(struct.pack("<H", int(value, 0)))
+            addr += 2
+
+        elif line.startswith(".byte"):
+            (cmd, sep, value) = line.partition(' ')
+            data_bytes.extend(struct.pack("<B", int(value, 0)))
+            addr += 1
+
+    # Construct the corresponding section objects
+
+    text_section = \
+      SparseMemoryImage.Section( ".text", 0x0200, text_bytes )
+
+    data_section = SparseMemoryImage.Section(".data", 0x2000, data_bytes)
+
+    # Build a sparse memory image
+
+    mem_image = SparseMemoryImage()
+    mem_image.add_section(text_section)
+
+    if len(data_section.data) > 0:
+        mem_image.add_section(data_section)
+
+    if single_core:
+
+        mngr2proc_section = \
+          SparseMemoryImage.Section( ".mngr2proc", 0x13000, mngr2proc_bytes )
+
+        if len(mngr2proc_section.data) > 0:
+            mem_image.add_section(mngr2proc_section)
+
+        proc2mngr_section = \
+          SparseMemoryImage.Section( ".proc2mngr", 0x14000, proc2mngr_bytes )
+
+        if len(proc2mngr_section.data) > 0:
+            mem_image.add_section(proc2mngr_section)
 
     else:
-      (label,sep,rest) = line.partition(':')
-      if sep != "":
-        sym[label.strip()] = addr
-      else:
-        addr += 4
 
-  # Second pass to assemble text section
+        for i in xrange(len(mngrs2procs_bytes)):
+            img = SparseMemoryImage.Section(".mngr{}_2proc".format(i),
+                                            0x15000 + 0x1000 * i,
+                                            mngrs2procs_bytes[i])
 
-  asm_list_idx    = 0
-  addr            = 0x00000200
-  text_bytes      = bytearray()
-  mngr2proc_bytes = bytearray()
-  proc2mngr_bytes = bytearray()
+            if len(img.data) > 0:
+                mem_image.add_section(img)
 
-  # Shunning: the way I handle multiple manager is as follows.
-  #
-  # At the beginning the single_core sign is true and all "> 1" "< 2"
-  # values are dumped into the above mngr2proc_bytes and mngr2proc_bytes.
-  # So, for single core testing the assembler works as usual.
-  #
-  # For multicore testing, I assume that all lists wrapped by curly braces
-  # have the same width, and I will use the first ever length as the number
-  # of cores. For example, when I see "> {1,2,3,4}", it means there are 4
-  # cores. It will then set single_core=False and num_cores=4.
-  # Later if I see "> {1,2,3}" I will throw out assertion error.
-  #
-  # Also, Upon the first occurence of the mentioned curly braces, I will
-  # just duplicate mngr2proc_bytes for #core times, and put the duplicates
-  # into mngrs2procs.  Later, when I see a "> 1", I will check the
-  # single_core flag. If it's False, it will dump the check message into
-  # all the duplicated bytearrays.
-  #
-  # The problem of co-existence if we keep mngr2proc and mngrs2procs, is
-  # that unless we record the exact order we receive the csr instructions,
-  # we cannot arbitrarily interleave the values in mngr2proc and mngrs2procs.
+        for i in xrange(len(procs2mngrs_bytes)):
+            img = SparseMemoryImage.Section(".proc{}_2mngr".format(i),
+                                            0x16000 + 0x2000 * i,
+                                            procs2mngrs_bytes[i])
+            if len(img.data) > 0:
+                mem_image.add_section(img)
 
-  mngrs2procs_bytes = []
-  procs2mngrs_bytes = []
-  single_core       = True
-  num_cores         = 1
+    return mem_image
 
-  def duplicate():
-
-    # duplicate the bytes and no more mngr2proc/proc2mngr
-
-    for i in xrange( num_cores ):
-      mngrs2procs_bytes.append( bytearray() )
-      mngrs2procs_bytes[i][:] = mngr2proc_bytes
-
-      procs2mngrs_bytes.append( bytearray() )
-      procs2mngrs_bytes[i][:] = proc2mngr_bytes
-
-  for line in asm_list:
-    asm_list_idx += 1
-    line = line.partition('#')[0]
-    line = line.strip()
-
-    if line == "":
-      continue
-
-    if line.startswith(".offset"):
-      (cmd,sep,addr_str) = line.partition(' ')
-      addr = int(addr_str,0)
-
-    elif line.startswith(".data"):
-      break
-
-    else:
-      if ':' not in line:
-
-        inst_str = line
-
-        # First see if we have either a < or a >
-
-        if '<' in line:
-          (temp,sep,value) = line.partition('<')
-
-          value = value.lstrip(' ')
-          if value.startswith('{'):
-            values = map( lambda x:int(x, 0), value[1:-1].split(',') )
-
-            if not single_core and len(values)!=num_cores:
-              raise Exception( "Previous curly brace pair has {} elements in between, but this one \"{}\" has {}."
-                               .format(num_cores, line, len(values)) )
-
-            if single_core:
-              single_core = False
-              num_cores   = len(values)
-              duplicate()
-
-            for i in xrange( num_cores ):
-              mngrs2procs_bytes[i].extend(struct.pack("<I", Bits(XLEN, values[i]) ))
-
-          else:
-            bits = Bits( XLEN, int(value,0) )
-
-            if single_core:
-              mngr2proc_bytes.extend(struct.pack("<I",bits))
-            else:
-              for x in mngrs2procs_bytes:
-                x.extend(struct.pack("<I",bits))
-
-          inst_str = temp
-
-        elif '>' in line:
-          (temp,sep,value) = line.partition('>')
-
-          value = value.lstrip(' ')
-          if value.startswith('{'):
-            values = map( lambda x:int(x, 0), value[1:-1].split(',') )
-
-            if not single_core and len(values)!=num_cores:
-              raise Exception( "Previous curly brace pair has {} elements in between, but this one \"{}\" has {}."
-                               .format(num_cores, line, len(values)) )
-
-            if single_core:
-              single_core = False
-              num_cores   = len(values)
-              duplicate()
-
-            for i in xrange( num_cores ):
-              procs2mngrs_bytes[i].extend(struct.pack("<I", Bits(XLEN, values[i]) ))
-
-          else:
-            bits = Bits( XLEN, int(value,0) )
-
-            if single_core:
-              proc2mngr_bytes.extend(struct.pack("<I",bits))
-            else:
-              for x in procs2mngrs_bytes:
-                x.extend(struct.pack("<I",bits))
-
-          inst_str = temp
-
-        bits = assemble_inst( sym, addr, inst_str )
-        text_bytes.extend(struct.pack("<I",bits.uint()))
-        addr += 4
-
-  # Assemble data section
-
-  data_bytes = bytearray()
-  for line in asm_list[asm_list_idx:]:
-    line = line.partition('#')[0]
-    line = line.strip()
-
-    if line == "":
-      continue
-
-    if line.startswith(".offset"):
-      (cmd,sep,addr_str) = line.partition(' ')
-      addr = int(addr_str,0)
-
-    elif line.startswith(".word"):
-      (cmd,sep,value) = line.partition(' ')
-      data_bytes.extend(struct.pack("<I",int(value,0)))
-      addr += 4
-
-    elif line.startswith(".hword"):
-      (cmd,sep,value) = line.partition(' ')
-      data_bytes.extend(struct.pack("<H",int(value,0)))
-      addr += 2
-
-    elif line.startswith(".byte"):
-      (cmd,sep,value) = line.partition(' ')
-      data_bytes.extend(struct.pack("<B",int(value,0)))
-      addr += 1
-
-  # Construct the corresponding section objects
-
-  text_section = \
-    SparseMemoryImage.Section( ".text", 0x0200, text_bytes )
-
-  data_section = SparseMemoryImage.Section( ".data", 0x2000, data_bytes )
-
-  # Build a sparse memory image
-
-  mem_image = SparseMemoryImage()
-  mem_image.add_section( text_section )
-
-  if len(data_section.data) > 0:
-    mem_image.add_section( data_section )
-
-  if single_core:
-
-    mngr2proc_section = \
-      SparseMemoryImage.Section( ".mngr2proc", 0x13000, mngr2proc_bytes )
-
-    if len(mngr2proc_section.data) > 0:
-      mem_image.add_section( mngr2proc_section )
-
-    proc2mngr_section = \
-      SparseMemoryImage.Section( ".proc2mngr", 0x14000, proc2mngr_bytes )
-
-    if len(proc2mngr_section.data) > 0:
-      mem_image.add_section( proc2mngr_section )
-
-  else:
-
-    for i in xrange( len(mngrs2procs_bytes) ):
-      img = SparseMemoryImage.Section( ".mngr{}_2proc".format(i),
-                                       0x15000+0x1000*i, mngrs2procs_bytes[i] )
-
-      if len( img.data ) > 0:
-        mem_image.add_section( img )
-
-    for i in xrange( len(procs2mngrs_bytes) ):
-      img = SparseMemoryImage.Section( ".proc{}_2mngr".format(i),
-                                       0x16000+0x2000*i, procs2mngrs_bytes[i] )
-      if len( img.data ) > 0:
-        mem_image.add_section( img )
-
-  return mem_image
 
 #=========================================================================
 # Disassemble
 #=========================================================================
 
-def disassemble_inst( inst_bits ):
-  return tinyrv2_isa_impl.disassemble_inst( inst_bits )
 
-def decode_inst_name( inst ):
+def disassemble_inst(inst_bits):
+    return tinyrv2_isa_impl.disassemble_inst(inst_bits)
 
-  # Originally I was just using this:
-  #
-  #  return parc_isa_impl.decode_inst_name( inst_bits )
-  #
-  # which basically just does a linear search in the encoding table to
-  # find a match. Eventually, I think we should figure out a way to
-  # automatically turn the encoding table into some kind of fast
-  # tree-bsaed search, but for now we just explicitly create a big case
-  # statement to do the instruction name decode.
 
-  # Short names
+def decode_inst_name(inst):
 
-  opcode = tinyrv2_field_slice_opcode
-  funct3 = tinyrv2_field_slice_funct3
-  funct7 = tinyrv2_field_slice_funct7
+    # Originally I was just using this:
+    #
+    #  return parc_isa_impl.decode_inst_name( inst_bits )
+    #
+    # which basically just does a linear search in the encoding table to
+    # find a match. Eventually, I think we should figure out a way to
+    # automatically turn the encoding table into some kind of fast
+    # tree-bsaed search, but for now we just explicitly create a big case
+    # statement to do the instruction name decode.
 
-  inst_name = ""
+    # Short names
 
-  if inst == 0b00000000000000000000000000010011: inst_name = "nop"
+    opcode = tinyrv2_field_slice_opcode
+    funct3 = tinyrv2_field_slice_funct3
+    funct7 = tinyrv2_field_slice_funct7
 
-  elif inst[opcode] == 0b0110011:
-    if   inst[funct7] == 0b0000000:
-      if   inst[funct3] == 0b000:     inst_name = "add"
-      elif inst[funct3] == 0b001:     inst_name = "sll"
-      elif inst[funct3] == 0b010:     inst_name = "slt"
-      elif inst[funct3] == 0b011:     inst_name = "sltu"
-      elif inst[funct3] == 0b100:     inst_name = "xor"
-      elif inst[funct3] == 0b101:     inst_name = "srl"
-      elif inst[funct3] == 0b110:     inst_name = "or"
-      elif inst[funct3] == 0b111:     inst_name = "and"
-    elif inst[funct7] == 0b0100000:
-      if   inst[funct3] == 0b000:     inst_name = "sub"
-      elif inst[funct3] == 0b101:     inst_name = "sra"
-    elif inst[funct7] == 0b0000001:
-      if   inst[funct3] == 0b000:     inst_name = "mul"
+    inst_name = ""
 
-  elif inst[opcode] == 0b0010011:
-    if   inst[funct3] == 0b000:       inst_name = "addi"
-    elif inst[funct3] == 0b010:       inst_name = "slti"
-    elif inst[funct3] == 0b011:       inst_name = "sltiu"
-    elif inst[funct3] == 0b100:       inst_name = "xori"
-    elif inst[funct3] == 0b110:       inst_name = "ori"
-    elif inst[funct3] == 0b111:       inst_name = "andi"
-    elif inst[funct3] == 0b001:       inst_name = "slli"
-    elif inst[funct3] == 0b101:
-      if   inst[funct7] == 0b0000000: inst_name = "srli"
-      elif inst[funct7] == 0b0100000: inst_name = "srai"
+    if inst == 0b00000000000000000000000000010011: inst_name = "nop"
 
-  elif inst[opcode] == 0b0100011:
-    if   inst[funct3] == 0b010:       inst_name = "sw"
-    elif inst[funct3] == 0b000:       inst_name = "sb"
+    elif inst[opcode] == 0b0110011:
+        if inst[funct7] == 0b0000000:
+            if inst[funct3] == 0b000: inst_name = "add"
+            elif inst[funct3] == 0b001: inst_name = "sll"
+            elif inst[funct3] == 0b010: inst_name = "slt"
+            elif inst[funct3] == 0b011: inst_name = "sltu"
+            elif inst[funct3] == 0b100: inst_name = "xor"
+            elif inst[funct3] == 0b101: inst_name = "srl"
+            elif inst[funct3] == 0b110: inst_name = "or"
+            elif inst[funct3] == 0b111: inst_name = "and"
+        elif inst[funct7] == 0b0100000:
+            if inst[funct3] == 0b000: inst_name = "sub"
+            elif inst[funct3] == 0b101: inst_name = "sra"
+        elif inst[funct7] == 0b0000001:
+            if inst[funct3] == 0b000: inst_name = "mul"
 
-  elif inst[opcode] == 0b0000011:
-    if   inst[funct3] == 0b010:       inst_name = "lw"
-    elif inst[funct3] == 0b000:       inst_name = "lb"
+    elif inst[opcode] == 0b0010011:
+        if inst[funct3] == 0b000: inst_name = "addi"
+        elif inst[funct3] == 0b010: inst_name = "slti"
+        elif inst[funct3] == 0b011: inst_name = "sltiu"
+        elif inst[funct3] == 0b100: inst_name = "xori"
+        elif inst[funct3] == 0b110: inst_name = "ori"
+        elif inst[funct3] == 0b111: inst_name = "andi"
+        elif inst[funct3] == 0b001: inst_name = "slli"
+        elif inst[funct3] == 0b101:
+            if inst[funct7] == 0b0000000: inst_name = "srli"
+            elif inst[funct7] == 0b0100000: inst_name = "srai"
 
-  elif inst[opcode] == 0b1100011:
-    if   inst[funct3] == 0b000:       inst_name = "beq"
-    elif inst[funct3] == 0b001:       inst_name = "bne"
-    elif inst[funct3] == 0b100:       inst_name = "blt"
-    elif inst[funct3] == 0b101:       inst_name = "bge"
-    elif inst[funct3] == 0b110:       inst_name = "bltu"
-    elif inst[funct3] == 0b111:       inst_name = "bgeu"
+    elif inst[opcode] == 0b0100011:
+        if inst[funct3] == 0b010: inst_name = "sw"
+        elif inst[funct3] == 0b000: inst_name = "sb"
 
-  elif inst[opcode] == 0b0110111:     inst_name = "lui"
+    elif inst[opcode] == 0b0000011:
+        if inst[funct3] == 0b010: inst_name = "lw"
+        elif inst[funct3] == 0b000: inst_name = "lb"
 
-  elif inst[opcode] == 0b0010111:     inst_name = "auipc"
+    elif inst[opcode] == 0b1100011:
+        if inst[funct3] == 0b000: inst_name = "beq"
+        elif inst[funct3] == 0b001: inst_name = "bne"
+        elif inst[funct3] == 0b100: inst_name = "blt"
+        elif inst[funct3] == 0b101: inst_name = "bge"
+        elif inst[funct3] == 0b110: inst_name = "bltu"
+        elif inst[funct3] == 0b111: inst_name = "bgeu"
 
-  elif inst[opcode] == 0b1101111:     inst_name = "jal"
+    elif inst[opcode] == 0b0110111: inst_name = "lui"
 
-  elif inst[opcode] == 0b1100111:     inst_name = "jalr"
+    elif inst[opcode] == 0b0010111: inst_name = "auipc"
 
-  elif inst[opcode] == 0b1110011:
-    if   inst[funct3] == 0b001:       inst_name = "csrw"
-    elif inst[funct3] == 0b010:       inst_name = "csrr"
+    elif inst[opcode] == 0b1101111: inst_name = "jal"
 
-  elif inst == 0: inst_name = " "
+    elif inst[opcode] == 0b1100111: inst_name = "jalr"
 
-  if inst_name == "":
-    raise AssertionError( "Illegal instruction {}!".format(inst) )
+    elif inst[opcode] == 0b1110011:
+        if inst[funct3] == 0b001: inst_name = "csrw"
+        elif inst[funct3] == 0b010: inst_name = "csrr"
 
-  return inst_name
+    elif inst == 0: inst_name = " "
 
-def disassemble( mem_image ):
+    if inst_name == "":
+        raise AssertionError("Illegal instruction {}!".format(inst))
 
-  # Get the text section to disassemble
+    return inst_name
 
-  text_section = mem_image.get_section( ".text" )
 
-  # Iterate through the text section four bytes at a time
+def disassemble(mem_image):
 
-  addr = text_section.addr
-  asm_code = ""
-  for i in xrange(0,len(text_section.data),4):
+    # Get the text section to disassemble
 
-    print hex(addr+i)
+    text_section = mem_image.get_section(".text")
 
-    bits = struct.unpack_from("<I",buffer(text_section.data,i,4))[0]
-    inst_str= disassemble_inst( Bits(32,bits) )
-    disasm_line = " {:0>8x}  {:0>8x}  {}\n".format( addr+i, bits, inst_str )
-    asm_code += disasm_line
+    # Iterate through the text section four bytes at a time
 
-  return asm_code
+    addr = text_section.addr
+    asm_code = ""
+    for i in xrange(0, len(text_section.data), 4):
+
+        print hex(addr + i)
+
+        bits = struct.unpack_from("<I", buffer(text_section.data, i, 4))[0]
+        inst_str = disassemble_inst(Bits(32, bits))
+        disasm_line = " {:0>8x}  {:0>8x}  {}\n".format(addr + i, bits,
+                                                       inst_str)
+        asm_code += disasm_line
+
+    return asm_code
+
 
 #=========================================================================
 # TinyRV2Inst
@@ -969,88 +1019,88 @@ def disassemble( mem_image ):
 # This is a concrete instruction class for TinyRV2 with methods for
 # accessing the various instruction fields.
 
-class TinyRV2Inst (object):
 
-  #-----------------------------------------------------------------------
-  # Constructor
-  #-----------------------------------------------------------------------
+class TinyRV2Inst(object):
 
-  def __init__( self, inst_bits ):
-    self.bits = Bits( 32, inst_bits )
+    #-----------------------------------------------------------------------
+    # Constructor
+    #-----------------------------------------------------------------------
 
-  #-----------------------------------------------------------------------
-  # Get instruction name
-  #-----------------------------------------------------------------------
+    def __init__(self, inst_bits):
+        self.bits = Bits(32, inst_bits)
 
-  @property
-  def name( self ):
-    return decode_inst_name( self.bits )
+    #-----------------------------------------------------------------------
+    # Get instruction name
+    #-----------------------------------------------------------------------
 
-  #-----------------------------------------------------------------------
-  # Get fields
-  #-----------------------------------------------------------------------
+    @property
+    def name(self):
+        return decode_inst_name(self.bits)
 
-  @property
-  def rd( self ):
-    return self.bits[ tinyrv2_field_slice_rd ]
+    #-----------------------------------------------------------------------
+    # Get fields
+    #-----------------------------------------------------------------------
 
-  @property
-  def rs1( self ):
-    return self.bits[ tinyrv2_field_slice_rs1 ]
+    @property
+    def rd(self):
+        return self.bits[tinyrv2_field_slice_rd]
 
-  @property
-  def rs2( self ):
-    return self.bits[ tinyrv2_field_slice_rs2 ]
+    @property
+    def rs1(self):
+        return self.bits[tinyrv2_field_slice_rs1]
 
-  @property
-  def shamt( self ):
-    return self.bits[ tinyrv2_field_slice_shamt ]
+    @property
+    def rs2(self):
+        return self.bits[tinyrv2_field_slice_rs2]
 
-  @property
-  def i_imm( self ):
-    return self.bits[ tinyrv2_field_slice_i_imm ]
+    @property
+    def shamt(self):
+        return self.bits[tinyrv2_field_slice_shamt]
 
-  @property
-  def s_imm( self ):
-    imm = Bits( 12, 0 )
-    imm[0:5]  = self.bits[ tinyrv2_field_slice_s_imm0 ]
-    imm[5:12] = self.bits[ tinyrv2_field_slice_s_imm1 ]
-    return imm
+    @property
+    def i_imm(self):
+        return self.bits[tinyrv2_field_slice_i_imm]
 
-  @property
-  def b_imm( self ):
-    imm = Bits( 13, 0 )
-    imm[1:5]   = self.bits[ tinyrv2_field_slice_b_imm0 ]
-    imm[5:11]  = self.bits[ tinyrv2_field_slice_b_imm1 ]
-    imm[11:12] = self.bits[ tinyrv2_field_slice_b_imm2 ]
-    imm[12:13] = self.bits[ tinyrv2_field_slice_b_imm3 ]
-    return imm
+    @property
+    def s_imm(self):
+        imm = Bits(12, 0)
+        imm[0:5] = self.bits[tinyrv2_field_slice_s_imm0]
+        imm[5:12] = self.bits[tinyrv2_field_slice_s_imm1]
+        return imm
 
-  @property
-  def u_imm( self ):
-    return concat( self.bits[ tinyrv2_field_slice_u_imm ], Bits(12,0) )
+    @property
+    def b_imm(self):
+        imm = Bits(13, 0)
+        imm[1:5] = self.bits[tinyrv2_field_slice_b_imm0]
+        imm[5:11] = self.bits[tinyrv2_field_slice_b_imm1]
+        imm[11:12] = self.bits[tinyrv2_field_slice_b_imm2]
+        imm[12:13] = self.bits[tinyrv2_field_slice_b_imm3]
+        return imm
 
-  @property
-  def j_imm( self ):
-    imm = Bits( 21, 0 )
-    imm[1:11]  = self.bits[ tinyrv2_field_slice_j_imm0 ]
-    imm[11:12] = self.bits[ tinyrv2_field_slice_j_imm1 ]
-    imm[12:20] = self.bits[ tinyrv2_field_slice_j_imm2 ]
-    imm[20:21] = self.bits[ tinyrv2_field_slice_j_imm3 ]
-    return imm
+    @property
+    def u_imm(self):
+        return concat(self.bits[tinyrv2_field_slice_u_imm], Bits(12, 0))
 
-  @property
-  def csrnum( self ):
-    return self.bits[ tinyrv2_field_slice_i_imm ]
+    @property
+    def j_imm(self):
+        imm = Bits(21, 0)
+        imm[1:11] = self.bits[tinyrv2_field_slice_j_imm0]
+        imm[11:12] = self.bits[tinyrv2_field_slice_j_imm1]
+        imm[12:20] = self.bits[tinyrv2_field_slice_j_imm2]
+        imm[20:21] = self.bits[tinyrv2_field_slice_j_imm3]
+        return imm
 
-  @property
-  def funct( self ):
-    return self.bits[ tinyrv2_field_slice_funct7 ]
+    @property
+    def csrnum(self):
+        return self.bits[tinyrv2_field_slice_i_imm]
 
-  #-----------------------------------------------------------------------
-  # to string
-  #-----------------------------------------------------------------------
+    @property
+    def funct(self):
+        return self.bits[tinyrv2_field_slice_funct7]
 
-  def __str__( self ):
-    return disassemble_inst( self.bits )
+    #-----------------------------------------------------------------------
+    # to string
+    #-----------------------------------------------------------------------
 
+    def __str__(self):
+        return disassemble_inst(self.bits)

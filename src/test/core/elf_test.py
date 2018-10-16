@@ -13,41 +13,41 @@ from util.sparse_memory_image import SparseMemoryImage
 # test_basic
 #-------------------------------------------------------------------------
 
-def test_basic( tmpdir ):
 
-  # Create a sparse memory image
+def test_basic(tmpdir):
 
-  mem_image = SparseMemoryImage()
+    # Create a sparse memory image
 
-  section_names = [ ".text", ".data" ]
+    mem_image = SparseMemoryImage()
 
-  for i in xrange(4):
+    section_names = [".text", ".data"]
 
-    section = SparseMemoryImage.Section()
-    section.name = section_names[ random.randint(0,1) ]
-    section.addr = i * 0x00000200
+    for i in xrange(4):
 
-    data_ints  = [ random.randint(0,1000) for r in xrange(10) ]
-    data_bytes = bytearray()
-    for data_int in data_ints:
-      data_bytes.extend(struct.pack("<I",data_int))
+        section = SparseMemoryImage.Section()
+        section.name = section_names[random.randint(0, 1)]
+        section.addr = i * 0x00000200
 
-    section.data = data_bytes
+        data_ints = [random.randint(0, 1000) for r in xrange(10)]
+        data_bytes = bytearray()
+        for data_int in data_ints:
+            data_bytes.extend(struct.pack("<I", data_int))
 
-    mem_image.add_section( section )
+        section.data = data_bytes
 
-  # Write the sparse memory image to an ELF file
+        mem_image.add_section(section)
 
-  with tmpdir.join("elf-test").open('wb') as file_obj:
-    elf.elf_writer( mem_image, file_obj )
+    # Write the sparse memory image to an ELF file
 
-  # Read the ELF file back into a new sparse memory image
+    with tmpdir.join("elf-test").open('wb') as file_obj:
+        elf.elf_writer(mem_image, file_obj)
 
-  mem_image_test = None
-  with tmpdir.join("elf-test").open('rb') as file_obj:
-    mem_image_test = elf.elf_reader( file_obj )
+    # Read the ELF file back into a new sparse memory image
 
-  # Check that the original and new sparse memory images are equal
+    mem_image_test = None
+    with tmpdir.join("elf-test").open('rb') as file_obj:
+        mem_image_test = elf.elf_reader(file_obj)
 
-  assert mem_image == mem_image_test
+    # Check that the original and new sparse memory images are equal
 
+    assert mem_image == mem_image_test
