@@ -9,7 +9,7 @@ from pclib.fl import InValRdyQueueAdapterFL, OutValRdyQueueAdapterFL
 
 class ResultFL(Model):
     def __init__(s, dataflow):
-        s.result_in= InValRdyBundle(FunctionalPacket())
+        s.result_in = InValRdyBundle(FunctionalPacket())
         s.result_out = OutValRdyBundle(ResultPacket())
 
         s.result_in_q = InValRdyQueueAdapterFL(s.result_in)
@@ -32,7 +32,5 @@ class ResultFL(Model):
 
             result_out_q.append(out)
 
-
     def line_trace(s):
         return "No line trace for you!"
-

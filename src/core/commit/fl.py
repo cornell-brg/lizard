@@ -9,7 +9,7 @@ from pclib.fl import InValRdyQueueAdapterFL, OutValRdyQueueAdapterFL
 
 class CommitFL(Model):
     def __init__(s, dataflow):
-        s.result_in= InValRdyBundle(ResultPacket())
+        s.result_in = InValRdyBundle(ResultPacket())
         s.result_in_q = InValRdyQueueAdapterFL(s.result_in)
 
         s.dataflow = dataflow
@@ -23,5 +23,3 @@ class CommitFL(Model):
 
     def line_trace(s):
         return "No line trace for you!"
-
-
