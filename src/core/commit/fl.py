@@ -16,10 +16,10 @@ class CommitFL(Model):
 
         @s.tick_fl
         def tick():
-            p = result_in_q.popleft()
+            p = s.result_in_q.popleft()
 
             if p.rd_valid:
-                dataflow.commit_tag(p.rd)
+                s.dataflow.commit_tag(p.rd)
 
     def line_trace(s):
         return "No line trace for you!"

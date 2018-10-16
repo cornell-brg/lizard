@@ -1,6 +1,6 @@
 from pymtl import *
 from config.general import *
-
+from msg.decode import *
 
 class ResultPacket(BitStructDefinition):
     def __init__(s):

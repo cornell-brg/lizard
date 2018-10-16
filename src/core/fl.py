@@ -1,4 +1,4 @@
-from pytml import *
+from pymtl import *
 from msg import MemMsg4B
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 from pclib.fl import InValRdyQueueAdapterFL, OutValRdyQueueAdapterFL
@@ -20,13 +20,15 @@ class CoreFL(Model):
         s.mngr2proc = InValRdyBundle(Bits(XLEN))
         s.proc2mngr = OutValRdyBundle(Bits(XLEN))
 
+        s.stats_en = Bits(1, 0)
+
         s.dataflow = DataFlowUnitFL()
         s.fetch = FetchFL()
         s.dispatch = DispatchFL()
-        s.issue = IssueFL(dataflow)
-        s.functional = FunctionalFL(dataflow)
-        s.result = ResultFL(dataflow)
-        s.commit = CommitFL(dataflow)
+        s.issue = IssueFL(s.dataflow)
+        s.functional = FunctionalFL(s.dataflow)
+        s.result = ResultFL(s.dataflow)
+        s.commit = CommitFL(s.dataflow)
 
         s.connect(s.mngr2proc, s.dataflow.mngr2proc)
         s.connect(s.proc2mngr, s.dataflow.proc2mngr)
@@ -38,3 +40,8 @@ class CoreFL(Model):
         s.connect(s.issue.issued, s.functional.issued)
         s.connect(s.functional.result, s.result.result_in)
         s.connect(s.result.result_out, s.commit.result_in)
+
+        @s.tick_fl
+        def tick():
+            if s.reset:
+                s.dataflow.fl_reset()

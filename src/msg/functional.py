@@ -1,5 +1,6 @@
 from pymtl import *
 from config.general import *
+from msg.decode import *
 
 
 class FunctionalPacket(BitStructDefinition):

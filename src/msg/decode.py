@@ -98,7 +98,7 @@ RV64Inst = bit_enum(
     # Counters
     'RDCYCLE',
     'RDTIME',
-    'RDINSTRET'
+    'RDINSTRET',
     # CSR ops
     'CSRRW',
     'CSRRS',

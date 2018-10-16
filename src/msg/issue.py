@@ -1,4 +1,5 @@
 from pymtl import *
+from msg.decode import *
 from config.general import *
 
 

@@ -27,9 +27,12 @@ class DispatchFL(Model):
             try:
                 opcode = inst[RVInstMask.OPCODE]
                 result = opmap[opcode.uint()](inst)
+                print(RV64Inst.name(result.inst))
+                print("{}-{}:{}-{}:{}-{}".format(result.rs1, result.rs1_valid, result.rs1, result.rs2_valid, result.rd, result.rd_valid))
             except KeyError:
                 # Invalid instruction
-                raise Exception
+               #  raise Exception
+               return
 
             result.compressed = 0
             s.decoded_q.append(result)
