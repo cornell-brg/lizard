@@ -27,11 +27,6 @@ class IssueFL(Model):
                 s.current_d = s.decoded_q.popleft()
                 s.current_i = IssuePacket()
 
-            if s.current_d.rd_valid and not s.current_i.rd_valid:
-                dst = s.dataflow.get_dst(s.current_d.rd)
-                s.current_i.rd_valid = dst.success
-                s.current_i.rd = dst.tag
-
             if s.current_d.rs1_valid and not s.current_i.rs1_valid and not s.current_rs1:
                 src = s.dataflow.get_src(s.current_d.rs1)
                 s.current_rs1 = src.tag
@@ -48,6 +43,14 @@ class IssueFL(Model):
                 s.current_i.rs2_valid = src.ready
                 if src.ready:
                     s.current_i.rs2 = s.dataflow.read_tag(src.tag).value
+
+            # Must get sources before renaming destination!
+            # Otherwise consider ADDI x1, x1, 1
+            # If you rename the destination first, the instruction is waiting for itself
+            if s.current_d.rd_valid and not s.current_i.rd_valid:
+                dst = s.dataflow.get_dst(s.current_d.rd)
+                s.current_i.rd_valid = dst.success
+                s.current_i.rd = dst.tag
 
             # Done if all fields are as they should be
             if s.current_d.rd_valid == s.current_i.rd_valid and s.current_d.rs1_valid == s.current_i.rs1_valid and s.current_d.rs2_valid == s.current_i.rs2_valid:
