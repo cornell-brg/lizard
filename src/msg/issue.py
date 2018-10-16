@@ -1,6 +1,4 @@
 from pymtl import *
-from enum import Enum
-from msg.decode import RegSpec
 from config.general import *
 
 
