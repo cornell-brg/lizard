@@ -16,7 +16,9 @@ def test_simple():
     result.imm = 1
     result.inst = RV64Inst.ADDI
     result.rs1 = 1
+    result.rs1_valid = 1
     result.rd = 1
+    result.rd_valid = 1
     model = Harness(DispatchFL, [source], [result], 0)
     model.elaborate()
     sim = SimulationTool(model)
