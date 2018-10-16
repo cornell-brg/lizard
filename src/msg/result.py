@@ -8,4 +8,3 @@ class ResultPacket(BitStructDefinition):
         s.rd = BitField(REG_TAG_LEN)
         s.rd_valid = BitField(1)
         s.result = BitField(XLEN)
-
