@@ -12,3 +12,6 @@ class IssuePacket(BitStructDefinition):
         s.rs2_valid = BitField(1)
         s.rd = BitField(REG_TAG_LEN)
         s.rd_valid = BitField(1)
+
+        s.csr = BitField(CSR_SPEC_LEN)
+        s.csr_valid = BitField(1)

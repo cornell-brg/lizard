@@ -1,7 +1,6 @@
 from pymtl import *
 from bitutil import bit_enum
-from config.general import REG_SPEC_LEN
-from config.general import DECODED_IMM_LEN
+from config.general import *
 
 
 class RVInstMask(object):
@@ -140,6 +139,9 @@ class DecodePacket(BitStructDefinition):
         s.rs2_valid = BitField(1)
         s.rd = BitField(REG_SPEC_LEN)
         s.rd_valid = BitField(1)
+
+        s.csr = BitField(CSR_SPEC_LEN)
+        s.csr_valid = BitField(1)
 
     def __str__(s):
         return 'imm:{} inst:{} rs1:{} v:{} rs2:{} v:{} rd:{} v:{}'.format(
