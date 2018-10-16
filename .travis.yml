@@ -25,5 +25,3 @@ script:
  - py.test --verbose ../src/test
  - ../src/format
 
-notifications:
-  email: false
