@@ -2,44 +2,44 @@ from pymtl import *
 from bitutil import clog2
 
 
-class FreeListFL(model):
+class FreeListFL(Model):
     def __init__(self, nslots):
 
         self.nbits = clog2(nslots)
-        self.free = [Bits(self.nbits) for _ in range(nslots)]
+        self.free_list = [Bits(self.nbits) for _ in range(nslots)]
 
         ncount_bits = clog2(nslots + 1)
         self.size = Bits(ncount_bits)
-        self.head = Bits(nbits)
-        self.tail = Bits(nbits)
+        self.head = Bits(self.nbits)
+        self.tail = Bits(self.nbits)
 
-    def reset(s):
-        for x in range(len(self.free)):
-            self.free[x] = x
+    def fl_reset(self):
+        for x in range(len(self.free_list)):
+            self.free_list[x] = x
 
-        self.head.next = 0
-        self.tail.next = 0
-        self.size.next = 0
+        self.head= 0
+        self.tail= 0
+        self.size= 0
 
     def wrap_incr(self, x):
-        if x == len(self.free) - 1:
+        if x == len(self.free_list) - 1:
             return 0
         else:
             return x + 1
 
     # Returns either the tag or None if full
-    def alloc():
-        if self.size == len(self.free):
+    def alloc(self):
+        if self.size == len(self.free_list):
             return None
         ret = self.head
         self.size += 1
-        self.head = wrap_incr(self.head)
+        self.head = self.wrap_incr(self.head)
         return ret
 
-    def free(tag):
-        self.free[self.tail] = tag
+    def free(self, tag):
+        self.free_list[self.tail] = tag
         self.size -= 1
-        self.tail = wrap_incr(self.tail)
+        self.tail = self.wrap_incr(self.tail)
 
-    def line_trace(s):
+    def line_trace(self):
         return "hd:{}tl:{}:sz:{}".format(self.head, self.tail, self.size)

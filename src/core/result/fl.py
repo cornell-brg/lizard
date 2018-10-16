@@ -19,7 +19,7 @@ class ResultFL(Model):
 
         @s.tick_fl
         def tick():
-            p = result_in_q.popleft()
+            p = s.result_in_q.popleft()
 
             if p.rd_valid:
                 dataflow.write_tag(p.rd, p.result)
@@ -30,7 +30,7 @@ class ResultFL(Model):
             out.result.rd = p.rd
             out.result = p.result
 
-            result_out_q.append(out)
+            s.result_out_q.append(out)
 
     def line_trace(s):
         return "No line trace for you!"
