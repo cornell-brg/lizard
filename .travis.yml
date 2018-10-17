@@ -22,6 +22,6 @@ before_script:
  - cd build
 
 script:
- - py.test --verbose --tb=long ../src/test
+ - py.test --verbose ../src/test
  - ../src/format
 
