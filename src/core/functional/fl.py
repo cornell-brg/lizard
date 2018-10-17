@@ -46,9 +46,9 @@ class FunctionalFL(Model):
             elif p.inst == RV64Inst.SLLI:
                 out.result = p.rs1 << p.imm
             elif p.inst == RV64Inst.SRLI:
-                out.result = Bits(XLEN, rs1.uint() >> imm.uint(), trunc=True)
+                out.result = Bits(XLEN, p.rs1.uint() >> imm.uint(), trunc=True)
             elif p.inst == RV64Inst.SRAI:
-                out.result = Bits(XLEN, rs1.int() >> imm.uint(), trunc=True)
+                out.result = Bits(XLEN, p.rs1.int() >> imm.uint(), trunc=True)
             elif p.inst == RV64Inst.CSRRW:
                 if p.rd_valid:
                     out.result = s.dataflow.read_csr(p.csr)
