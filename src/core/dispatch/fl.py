@@ -44,9 +44,15 @@ class DispatchFL(Model):
         res.rd = inst[RVInstMask.RD]
         res.rd_valid = 1
         shamts = {
-            0b001: {0b0000000, RV64Inst.SLLI},
-            0b101: {0b0000000, RV64Inst.SRLI},
-            0b101: {0b0100000, RV64Inst.SRAI},
+            0b001: {
+                0b0000000: RV64Inst.SLLI
+            },
+            0b101: {
+                0b0000000: RV64Inst.SRLI
+            },
+            0b101: {
+                0b0100000: RV64Inst.SRAI
+            },
         }
 
         nshamts = {

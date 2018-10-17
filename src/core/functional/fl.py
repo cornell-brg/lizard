@@ -27,6 +27,28 @@ class FunctionalFL(Model):
 
             if p.inst == RV64Inst.ADDI:
                 out.result = p.rs1 + sext(p.imm, XLEN)
+            elif p.inst == RV64Inst.SLTI:
+                if p.rs1.int() < p.imm.int():
+                    out.result = 1
+                else:
+                    out.result = 0
+            elif p.inst == RV64Inst.SLTIU:
+                if p.rs1.uint() < p.imm.uint():
+                    out.result = 1
+                else:
+                    out.result = 0
+            elif p.inst == RV64Inst.XORI:
+                out.result = p.rs1 ^ sext(p.imm, XLEN)
+            elif p.inst == RV64Inst.ORI:
+                out.result = p.rs1 | sext(p.imm, XLEN)
+            elif p.inst == RV64Inst.ANDI:
+                out.result = p.rs1 & sext(p.imm, XLEN)
+            elif p.inst == RV64Inst.SLLI:
+                out.result = p.rs1 << p.imm
+            elif p.inst == RV64Inst.SRLI:
+                out.result = Bits(XLEN, rs1.uint() >> imm.uint(), trunc=True)
+            elif p.inst == RV64Inst.SRAI:
+                out.result = Bits(XLEN, rs1.int() >> imm.uint(), trunc=True)
             elif p.inst == RV64Inst.CSRRW:
                 if p.rd_valid:
                     out.result = s.dataflow.read_csr(p.csr)

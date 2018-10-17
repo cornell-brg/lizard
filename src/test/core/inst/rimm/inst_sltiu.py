@@ -6,6 +6,7 @@ import random
 
 from pymtl import *
 from test.core.inst_utils import *
+from config.general import *
 
 #-------------------------------------------------------------------------
 # gen_basic_test
@@ -106,9 +107,9 @@ def gen_value_test():
 def gen_random_test():
     asm_code = []
     for i in xrange(100):
-        src = Bits(32, random.randint(0, 0xffffffff))
+        src = Bits(XLEN, random.randint(0, 0xffffffff))
         imm = Bits(12, random.randint(0, 0xfff))
-        dest = Bits(32, 1 if src.uint() < sext(imm, 32).uint() else 0)
+        dest = Bits(XLEN, 1 if src.uint() < sext(imm, XLEN).uint() else 0)
         asm_code.append(
             gen_rimm_value_test("sltiu", src.uint(), imm.uint(), dest.uint()))
     return asm_code
