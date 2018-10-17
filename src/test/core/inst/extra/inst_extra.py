@@ -20,3 +20,10 @@ def gen_test():
         addi x10,x20,0
         csrw  proc2mngr, x10 > -94
         """
+
+
+def gen_write_x0_test():
+    return """
+    addi x0, x0, 1
+    csrw proc2mngr, x0 > 0
+    """
