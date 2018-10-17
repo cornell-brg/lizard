@@ -14,7 +14,9 @@ class PregState(BitStructDefinition):
 
 class DataFlowUnitFL(Model):
     def __init__(s):
-        s.free_regs = FreeListFL(REG_TAG_COUNT)
+        # Reserve the highest tag for x0
+        s.free_regs = FreeListFL(REG_TAG_COUNT - 1)
+        s.zero_tag = Bits(REG_TAG_LEN, REG_TAG_COUNT - 1)
         s.rename_table = [Bits(REG_TAG_LEN) for _ in range(REG_COUNT)]
         s.preg_file = [PregState() for _ in range(REG_TAG_COUNT)]
         s.areg_file = [Bits(REG_TAG_LEN) for _ in range(REG_COUNT)]
@@ -36,42 +38,56 @@ class DataFlowUnitFL(Model):
 
     def get_src(s, areg):
         resp = GetSrcResponse()
-        resp.tag = s.rename_table[areg]
-        resp.ready = s.preg_file[resp.tag].ready
+        if areg != 0:
+            resp.tag = s.rename_table[areg]
+            resp.ready = s.preg_file[resp.tag].ready
+        else:
+            resp.tag = s.zero_tag
+            resp.ready = 1
         return resp
 
     def get_dst(s, areg):
         resp = GetDstResponse()
-        preg = s.free_regs.alloc()
-        if not preg:
-            resp.success = 0
+        if areg != 0:
+            preg = s.free_regs.alloc()
+            if not preg:
+                resp.success = 0
+            else:
+                s.rename_table[areg] = preg
+                resp.success = 1
+                resp.tag = preg
+                preg_entry = s.preg_file[preg]
+                preg_entry.ready = 0
+                preg_entry.areg = areg
         else:
-            s.rename_table[areg] = preg
             resp.success = 1
-            resp.tag = preg
-            preg_entry = s.preg_file[preg]
-            preg_entry.ready = 0
-            preg_entry.areg = areg
+            resp.tag = s.zero_tag
         return resp
 
     def read_tag(s, tag):
         resp = ReadTagResponse()
-        preg = s.preg_file[tag]
-        resp.ready = preg.ready
-        resp.value = preg.value
+        if tag != s.zero_tag:
+            preg = s.preg_file[tag]
+            resp.ready = preg.ready
+            resp.value = preg.value
+        else:
+            resp.ready = 1
+            resp.value = 0
         return resp
 
     def write_tag(s, tag, value):
-        preg = s.preg_file[tag]
-        preg.value = value
-        preg.ready = 1
+        if tag != s.zero_tag:
+            preg = s.preg_file[tag]
+            preg.value = value
+            preg.ready = 1
 
     def commit_tag(s, tag, initial=False):
-        preg = s.preg_file[tag]
-        if not initial:
-            # Free the old one
-            s.free_regs.free(s.areg_file[preg.areg])
-        s.areg_file[preg.areg] = tag
+        if tag != s.zero_tag:
+            preg = s.preg_file[tag]
+            if not initial:
+                # Free the old one
+                s.free_regs.free(s.areg_file[preg.areg])
+            s.areg_file[preg.areg] = tag
 
     def read_csr(s, csr_num):
         if csr_num == CsrRegisters.mngr2proc:
