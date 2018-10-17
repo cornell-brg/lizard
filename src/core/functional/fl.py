@@ -26,16 +26,13 @@ class FunctionalFL(Model):
             out.rd = p.rd
 
             if p.inst == RV64Inst.ADDI:
-                print('executing ADDI: {} + {}'.format(p.rs1, p.imm))
-                out.result = p.rs1 + p.imm
+                out.result = p.rs1 + sext(p.imm, XLEN)
             elif p.inst == RV64Inst.CSRRW:
                 if p.rd_valid:
                     out.result = s.dataflow.read_csr(p.csr)
                 s.dataflow.write_csr(p.csr, p.rs1)
             elif p.inst == RV64Inst.CSRRS:
-                print('doing CSSR read!')
                 out.result = s.dataflow.read_csr(p.csr)
-                print('result: {}'.format(out.result))
                 # TODO: not quite right because we should attempt to set
                 # if the value of rs1 is zero but rs1 is not x0
                 if p.rs1 != 0:

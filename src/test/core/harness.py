@@ -13,7 +13,7 @@ from msg import MemMsg4B
 from pclib.test import TestSource, TestSink
 from pclib.test import TestMemory
 
-from util.tinyrv2_encoding import assemble
+from util.tinyrv2_encoding import assemble, DATA_PACK_DIRECTIVE
 
 from config.general import *
 
@@ -117,17 +117,19 @@ class TestHarness(Model):
             # For .mngr2proc sections, copy section into mngr2proc src
 
             if section.name == ".mngr2proc":
-                for i in xrange(0, len(section.data), 4):
-                    bits = struct.unpack_from("<I", buffer(section.data, i,
-                                                           4))[0]
+                for i in xrange(0, len(section.data), XLEN_BYTES):
+                    bits = struct.unpack_from(
+                        DATA_PACK_DIRECTIVE, buffer(section.data, i,
+                                                    XLEN_BYTES))[0]
                     self.src.src.msgs.append(Bits(XLEN, bits))
 
             # For .proc2mngr sections, copy section into proc2mngr_ref src
 
             elif section.name == ".proc2mngr":
-                for i in xrange(0, len(section.data), 4):
-                    bits = struct.unpack_from("<I", buffer(section.data, i,
-                                                           4))[0]
+                for i in xrange(0, len(section.data), XLEN_BYTES):
+                    bits = struct.unpack_from(
+                        DATA_PACK_DIRECTIVE, buffer(section.data, i,
+                                                    XLEN_BYTES))[0]
                     self.sink.sink.msgs.append(Bits(XLEN, bits))
 
             # For all other sections, simply copy them into the memory
@@ -175,7 +177,8 @@ def run_test(ProcModel,
              sink_delay=0,
              mem_stall_prob=0,
              mem_latency=0,
-             max_cycles=200):
+             max_cycles=20000,
+             extra_cycles=3):
 
     # Instantiate and elaborate the model
 
@@ -186,8 +189,18 @@ def run_test(ProcModel,
     model.elaborate()
 
     # Assemble the test program
-
-    mem_image = assemble(gen_test())
+    asm = gen_test()
+    # We CANNOT just walk of the end because of extra cycles
+    # That will trigger an illegal instruction exception
+    trailer = '\n'.join(['nop'] * extra_cycles)
+    if isinstance(asm, list):
+        for seq in asm:
+            print(seq)
+        asm += [trailer]
+    else:
+        print(asm)
+        asm += trailer
+    mem_image = assemble(asm)
 
     # Load the program into the model
 
@@ -215,9 +228,7 @@ def run_test(ProcModel,
     assert sim.ncycles < max_cycles
 
     # Add a couple extra ticks so that the VCD dump is nicer
-
-    sim.cycle()
-    sim.cycle()
-    sim.cycle()
+    for _ in range(extra_cycles):
+        sim.cycle()
 
     model.cleanup()

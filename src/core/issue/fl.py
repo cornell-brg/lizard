@@ -16,33 +16,36 @@ class IssueFL(Model):
 
         s.dataflow = dataflow
 
+        s.current_i = IssuePacket()
+
         @s.tick_fl
         def tick():
             if s.reset:
-                s.current = None
+                s.current_d = None
                 s.current_rs1 = None
                 s.current_rs2 = None
 
-            if not s.current:
+            if s.current_d is None:
                 s.current_d = s.decoded_q.popleft()
                 s.current_i = IssuePacket()
 
-            if s.current_d.rs1_valid and not s.current_i.rs1_valid and not s.current_rs1:
+            if s.current_d.rs1_valid and s.current_rs1 is None:
                 src = s.dataflow.get_src(s.current_d.rs1)
                 s.current_rs1 = src.tag
-                print('renamed src: {} -> {}'.format(s.current_d.rs1, src.tag))
+
             if s.current_rs1 is not None and not s.current_i.rs1_valid:
                 read = s.dataflow.read_tag(s.current_rs1)
                 s.current_i.rs1 = read.value
                 s.current_i.rs1_valid = read.ready
-                if s.current_i.rs1_valid:
-                    print('got rs1 value: {}'.format(s.current_i.rs1))
 
-            if s.current_d.rs2_valid and not s.current_i.rs2_valid:
+            if s.current_d.rs2_valid and s.current_rs2 is None:
                 src = s.dataflow.get_src(s.current_d.rs2)
-                s.current_i.rs2_valid = src.ready
-                if src.ready:
-                    s.current_i.rs2 = s.dataflow.read_tag(src.tag).value
+                s.current_rs2 = src.tag
+
+            if s.current_rs2 is not None and not s.current_i.rs2_valid:
+                read = s.dataflow.read_tag(s.current_rs2)
+                s.current_i.rs2 = read.value
+                s.current_i.rs2_valid = read.ready
 
             # Must get sources before renaming destination!
             # Otherwise consider ADDI x1, x1, 1
@@ -62,8 +65,6 @@ class IssueFL(Model):
                 s.current_d = None
                 s.current_rs1 = None
                 s.current_rs2 = None
-                print(
-                    'ISSUED ISSUED ISSUED ISSUED ISSUED ISSUED ISSUED ISSUED')
 
     def line_trace(s):
-        return "0xDEADBEEF"
+        return s.current_i
