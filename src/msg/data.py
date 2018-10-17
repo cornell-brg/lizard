@@ -1,5 +1,4 @@
 from pymtl import *
-from enum import Enum
 
 from config.general import XLEN, REG_SPEC_LEN, REG_TAG_LEN
 
