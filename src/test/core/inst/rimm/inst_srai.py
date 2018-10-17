@@ -6,6 +6,7 @@ import random
 
 from pymtl import *
 from test.core.inst_utils import *
+from config.general import *
 
 #-------------------------------------------------------------------------
 # gen_basic_test
@@ -93,10 +94,10 @@ def gen_srcs_dest_test():
 
 def gen_value_test():
     return [
-        gen_rimm_value_test("srai", 0xff00ff00, 0x0f, 0xFFFFFE01),
-        gen_rimm_value_test("srai", 0x0ff00ff0, 0x10, 0x00000ff0),
-        gen_rimm_value_test("srai", 0x00ff00ff, 0x0f, 0x000001fe),
-        gen_rimm_value_test("srai", 0xf00ff00f, 0x10, 0xfffff00f),
+        gen_rimm_value_test("srai", 0xffffffffff00ff00, 0x0f, 0xfffffffffffffe01),
+        gen_rimm_value_test("srai", 0x000000000ff00ff0, 0x10, 0x0000000000000ff0),
+        gen_rimm_value_test("srai", 0x0000000000ff00ff, 0x0f, 0x00000000000001fe),
+        gen_rimm_value_test("srai", 0xfffffffff00ff00f, 0x10, 0xfffffffffffff00f),
     ]
 
 
@@ -108,9 +109,9 @@ def gen_value_test():
 def gen_random_test():
     asm_code = []
     for i in xrange(100):
-        src = Bits(32, random.randint(0, 0xffffffff))
+        src = Bits(XLEN, random.randint(0, 0xffffffff))
         imm = Bits(5, random.randint(0, 0x1f))
-        dest = Bits(32, src.int() >> imm.uint(), trunc=True)
+        dest = Bits(XLEN, src.int() >> imm.uint(), trunc=True)
         asm_code.append(
             gen_rimm_value_test("srai", src.uint(), imm.uint(), dest.uint()))
     return asm_code
