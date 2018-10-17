@@ -16,3 +16,8 @@ class IssuePacket(BitStructDefinition):
 
         s.csr = BitField(CSR_SPEC_LEN)
         s.csr_valid = BitField(1)
+
+    def __str__(s):
+        return 'imm:{} inst:{: <5} rs1:{} v:{} rs2:{} v:{} rd:{} v:{}'.format(
+            s.imm, RV64Inst.name(s.inst), s.rs1, s.rs1_valid, s.rs2,
+            s.rs2_valid, s.rd, s.rd_valid)

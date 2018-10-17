@@ -15,8 +15,11 @@ class DispatchFL(Model):
         s.instr_q = InValRdyQueueAdapterFL(s.instr)
         s.decoded_q = OutValRdyQueueAdapterFL(s.decoded)
 
+        s.result = None
+
         @s.tick_fl
         def tick():
+            s.result = None
             inst = s.instr_q.popleft().instr
             # Decode it and create packet
             opmap = {
@@ -26,18 +29,12 @@ class DispatchFL(Model):
             }
             try:
                 opcode = inst[RVInstMask.OPCODE]
-                result = opmap[opcode.uint()](inst)
-                print(RV64Inst.name(result.inst))
-                print("{}-{}:{}-{}:{}-{}".format(result.rs1, result.rs1_valid,
-                                                 result.rs1, result.rs2_valid,
-                                                 result.rd, result.rd_valid))
+                s.result = opmap[opcode.uint()](inst)
             except KeyError:
-                # Invalid instruction
-                #  raise Exception
-                return
+                raise NotImplementedError('Not implemented so sad: ' +
+                                          Opcode.name(opcode))
 
-            result.compressed = 0
-            s.decoded_q.append(result)
+            s.decoded_q.append(s.result)
 
     def dec_op_imm(s, inst):
         res = DecodePacket()
@@ -119,4 +116,8 @@ class DispatchFL(Model):
         return res
 
     def line_trace(s):
-        return str(s.decoded)
+        bogus = ' ' * len(str(DecodePacket()))
+        if s.result is None:
+            return bogus
+        else:
+            return str(s.result)

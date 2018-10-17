@@ -45,3 +45,10 @@ class CoreFL(Model):
         def tick():
             if s.reset:
                 s.dataflow.fl_reset()
+
+    def line_trace(s):
+        return 'DF: {} F: {} D: {} I: {} E: {} W: {} C: {}'.format(
+            s.dataflow.line_trace(), s.fetch.line_trace(),
+            s.dispatch.line_trace(), s.issue.line_trace(),
+            s.functional.line_trace(), s.result.line_trace(),
+            s.commit.line_trace())

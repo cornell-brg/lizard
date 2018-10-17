@@ -633,13 +633,19 @@ tinyrv2_isa_impl = IsaImpl(32, tinyrv2_encoding_table, tinyrv2_fields)
 # Assemble
 #=========================================================================
 
+# https://docs.python.org/2/library/struct.html#format-characters
+# 64 bit data elements packed as unsigned long long
+if XLEN == 64:
+    DATA_PACK_DIRECTIVE = "<Q"
+else:
+    DATA_PACK_DIRECTIVE = "<I"
+
 
 def assemble_inst(sym, pc, inst_str):
     return tinyrv2_isa_impl.assemble_inst(sym, pc, inst_str)
 
 
 def assemble(asm_code):
-
     # If asm_code is a single string, then put it in a list to simplify the
     # rest of the logic.
 
@@ -682,7 +688,7 @@ def assemble(asm_code):
     # Second pass to assemble text section
 
     asm_list_idx = 0
-    addr = 0x00000200
+    addr = RESET_VECTOR
     text_bytes = bytearray()
     mngr2proc_bytes = bytearray()
     proc2mngr_bytes = bytearray()
@@ -767,16 +773,19 @@ def assemble(asm_code):
 
                         for i in xrange(num_cores):
                             mngrs2procs_bytes[i].extend(
-                                struct.pack("<I", Bits(XLEN, values[i])))
+                                struct.pack(DATA_PACK_DIRECTIVE,
+                                            Bits(XLEN, values[i])))
 
                     else:
                         bits = Bits(XLEN, int(value, 0))
 
                         if single_core:
-                            mngr2proc_bytes.extend(struct.pack("<I", bits))
+                            mngr2proc_bytes.extend(
+                                struct.pack(DATA_PACK_DIRECTIVE, bits))
                         else:
                             for x in mngrs2procs_bytes:
-                                x.extend(struct.pack("<I", bits))
+                                x.extend(
+                                    struct.pack(DATA_PACK_DIRECTIVE, bits))
 
                     inst_str = temp
 
@@ -800,16 +809,19 @@ def assemble(asm_code):
 
                         for i in xrange(num_cores):
                             procs2mngrs_bytes[i].extend(
-                                struct.pack("<I", Bits(XLEN, values[i])))
+                                struct.pack(DATA_PACK_DIRECTIVE,
+                                            Bits(XLEN, values[i])))
 
                     else:
                         bits = Bits(XLEN, int(value, 0))
 
                         if single_core:
-                            proc2mngr_bytes.extend(struct.pack("<I", bits))
+                            proc2mngr_bytes.extend(
+                                struct.pack(DATA_PACK_DIRECTIVE, bits))
                         else:
                             for x in procs2mngrs_bytes:
-                                x.extend(struct.pack("<I", bits))
+                                x.extend(
+                                    struct.pack(DATA_PACK_DIRECTIVE, bits))
 
                     inst_str = temp
 
