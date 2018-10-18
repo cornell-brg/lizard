@@ -23,5 +23,5 @@ before_script:
 
 script:
  - py.test --verbose ../src/test
- - ../src/format
+ - ../src/format --diff
 
