@@ -94,10 +94,14 @@ def gen_srcs_dest_test():
 
 def gen_value_test():
     return [
-        gen_rimm_value_test("srai", 0xffffffffff00ff00, 0x0f, 0xfffffffffffffe01),
-        gen_rimm_value_test("srai", 0x000000000ff00ff0, 0x10, 0x0000000000000ff0),
-        gen_rimm_value_test("srai", 0x0000000000ff00ff, 0x0f, 0x00000000000001fe),
-        gen_rimm_value_test("srai", 0xfffffffff00ff00f, 0x10, 0xfffffffffffff00f),
+        gen_rimm_value_test("srai", 0xffffffffff00ff00, 0x0f,
+                            0xfffffffffffffe01),
+        gen_rimm_value_test("srai", 0x000000000ff00ff0, 0x10,
+                            0x0000000000000ff0),
+        gen_rimm_value_test("srai", 0x0000000000ff00ff, 0x0f,
+                            0x00000000000001fe),
+        gen_rimm_value_test("srai", 0xfffffffff00ff00f, 0x10,
+                            0xfffffffffffff00f),
     ]
 
 

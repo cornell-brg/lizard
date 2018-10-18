@@ -29,6 +29,7 @@ class ResultFL(Model):
             out.rd_valid = p.rd_valid
             out.result.rd = p.rd
             out.result = p.result
+            out.pc = p.pc
 
             s.result_out_q.append(out)
 

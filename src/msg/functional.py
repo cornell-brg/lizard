@@ -12,3 +12,5 @@ class FunctionalPacket(BitStructDefinition):
 
         s.csr = BitField(CSR_SPEC_LEN)
         s.csr_valid = BitField(1)
+
+        s.pc = BitField(XLEN)

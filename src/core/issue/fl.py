@@ -61,6 +61,7 @@ class IssueFL(Model):
                 s.current_i.inst = s.current_d.inst
                 s.current_i.csr = s.current_d.csr
                 s.current_i.csr_valid = s.current_d.csr_valid
+                s.current_i.pc = s.current_d.pc
                 s.issued_q.append(s.current_i)
                 s.current_d = None
                 s.current_rs1 = None
