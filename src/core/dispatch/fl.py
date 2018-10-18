@@ -20,7 +20,8 @@ class DispatchFL(Model):
         @s.tick_fl
         def tick():
             s.result = None
-            inst = s.instr_q.popleft().instr
+            decoded = s.instr_q.popleft()
+            inst = decoded.instr
             # Decode it and create packet
             opmap = {
                 int(Opcode.OP_IMM): s.dec_op_imm,
@@ -30,6 +31,7 @@ class DispatchFL(Model):
             try:
                 opcode = inst[RVInstMask.OPCODE]
                 s.result = opmap[opcode.uint()](inst)
+                s.result.pc = decoded.pc
             except KeyError:
                 raise NotImplementedError('Not implemented so sad: ' +
                                           Opcode.name(opcode))
@@ -52,7 +54,6 @@ class DispatchFL(Model):
                 0b0000000: RV64Inst.SRLI,
                 0b0100000: RV64Inst.SRAI,
             },
-
         }
 
         nshamts = {

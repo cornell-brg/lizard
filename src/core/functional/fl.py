@@ -46,9 +46,11 @@ class FunctionalFL(Model):
             elif p.inst == RV64Inst.SLLI:
                 out.result = p.rs1 << p.imm
             elif p.inst == RV64Inst.SRLI:
-                out.result = Bits(XLEN, p.rs1.uint() >> p.imm.uint(), trunc=True)
+                out.result = Bits(
+                    XLEN, p.rs1.uint() >> p.imm.uint(), trunc=True)
             elif p.inst == RV64Inst.SRAI:
-                out.result = Bits(XLEN, p.rs1.int() >> p.imm.uint(), trunc=True)
+                out.result = Bits(
+                    XLEN, p.rs1.int() >> p.imm.uint(), trunc=True)
             elif p.inst == RV64Inst.CSRRW:
                 if p.rd_valid:
                     out.result = s.dataflow.read_csr(p.csr)
@@ -63,6 +65,7 @@ class FunctionalFL(Model):
                 raise NotImplementedError('Not implemented so sad: ' +
                                           RV64Inst.name(p.inst))
 
+            out.pc = p.pc
             s.result_q.append(out)
 
     def line_trace(s):
