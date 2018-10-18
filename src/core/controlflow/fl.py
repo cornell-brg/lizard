@@ -67,7 +67,7 @@ class ControlFlowUnitFL(Model):
         # set a new epoch
         # all new instructions must fall sequentially "into the shadow"
         # of this one
-        s.epoch = request.tag
+        s.epoch += 1
 
     def tag_valid(s, request):
         return s.in_flight[request.tag].valid
