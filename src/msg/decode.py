@@ -3,32 +3,32 @@ from bitutil import bit_enum
 from config.general import *
 
 
-class RVInstMask(object):
-    OPCODE = slice(0, 7)
-    FUNCT3 = slice(12, 15)
-    FUNCT7 = slice(25, 32)
+class RVInstMask( object ):
+  OPCODE = slice( 0, 7 )
+  FUNCT3 = slice( 12, 15 )
+  FUNCT7 = slice( 25, 32 )
 
-    RD = slice(7, 12)
-    RS1 = slice(15, 20)
-    RS2 = slice(20, 25)
-    SHAMT = slice(20, 25)
+  RD = slice( 7, 12 )
+  RS1 = slice( 15, 20 )
+  RS2 = slice( 20, 25 )
+  SHAMT = slice( 20, 25 )
 
-    I_IMM = slice(20, 32)
-    CSRNUM = slice(20, 32)
-    S_IMM0 = slice(7, 12)
-    S_IMM1 = slice(25, 32)
+  I_IMM = slice( 20, 32 )
+  CSRNUM = slice( 20, 32 )
+  S_IMM0 = slice( 7, 12 )
+  S_IMM1 = slice( 25, 32 )
 
-    B_IMM0 = slice(8, 12)
-    B_IMM1 = slice(25, 31)
-    B_IMM2 = slice(7, 8)
-    B_IMM3 = slice(31, 32)
+  B_IMM0 = slice( 8, 12 )
+  B_IMM1 = slice( 25, 31 )
+  B_IMM2 = slice( 7, 8 )
+  B_IMM3 = slice( 31, 32 )
 
-    U_IMM = slice(12, 32)
+  U_IMM = slice( 12, 32 )
 
-    J_IMM0 = slice(21, 31)
-    J_IMM1 = slice(20, 21)
-    J_IMM2 = slice(12, 20)
-    J_IMM3 = slice(31, 32)
+  J_IMM0 = slice( 21, 31 )
+  J_IMM1 = slice( 20, 21 )
+  J_IMM2 = slice( 12, 20 )
+  J_IMM3 = slice( 31, 32 )
 
 
 RV64Inst = bit_enum(
@@ -233,24 +233,25 @@ Opcode = bit_enum(
 )
 
 
-class DecodePacket(BitStructDefinition):
-    def __init__(s):
-        s.imm = BitField(DECODED_IMM_LEN)
-        s.inst = BitField(RV64Inst.bits)
-        s.rs1 = BitField(REG_SPEC_LEN)
-        s.rs1_valid = BitField(1)
-        s.rs2 = BitField(REG_SPEC_LEN)
-        s.rs2_valid = BitField(1)
-        s.rd = BitField(REG_SPEC_LEN)
-        s.rd_valid = BitField(1)
+class DecodePacket( BitStructDefinition ):
 
-        s.csr = BitField(CSR_SPEC_LEN)
-        s.csr_valid = BitField(1)
+  def __init__( s ):
+    s.imm = BitField( DECODED_IMM_LEN )
+    s.inst = BitField( RV64Inst.bits )
+    s.rs1 = BitField( REG_SPEC_LEN )
+    s.rs1_valid = BitField( 1 )
+    s.rs2 = BitField( REG_SPEC_LEN )
+    s.rs2_valid = BitField( 1 )
+    s.rd = BitField( REG_SPEC_LEN )
+    s.rd_valid = BitField( 1 )
 
-        s.pc = BitField(XLEN)
-        s.tag = BitField(INST_TAG_LEN)
+    s.csr = BitField( CSR_SPEC_LEN )
+    s.csr_valid = BitField( 1 )
 
-    def __str__(s):
-        return 'imm:{} inst:{: <5} rs1:{} v:{} rs2:{} v:{} rd:{} v:{}'.format(
-            s.imm, RV64Inst.name(s.inst), s.rs1, s.rs1_valid, s.rs2,
-            s.rs2_valid, s.rd, s.rd_valid)
+    s.pc = BitField( XLEN )
+    s.tag = BitField( INST_TAG_LEN )
+
+  def __str__( s ):
+    return 'imm:{} inst:{: <5} rs1:{} v:{} rs2:{} v:{} rd:{} v:{}'.format(
+        s.imm, RV64Inst.name( s.inst ), s.rs1, s.rs1_valid, s.rs2, s.rs2_valid,
+        s.rd, s.rd_valid )

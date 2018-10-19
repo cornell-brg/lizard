@@ -8,162 +8,163 @@ from pclib.fl import InValRdyQueueAdapterFL, OutValRdyQueueAdapterFL
 from config.general import *
 
 
-class DispatchFL(Model):
-    def __init__(s, controlflow):
-        s.instr = InValRdyBundle(FetchPacket())
-        s.decoded = OutValRdyBundle(DecodePacket())
+class DispatchFL( Model ):
 
-        s.instr_q = InValRdyQueueAdapterFL(s.instr)
-        s.decoded_q = OutValRdyQueueAdapterFL(s.decoded)
+  def __init__( s, controlflow ):
+    s.instr = InValRdyBundle( FetchPacket() )
+    s.decoded = OutValRdyBundle( DecodePacket() )
 
-        s.result = None
-        s.controlflow = controlflow
+    s.instr_q = InValRdyQueueAdapterFL( s.instr )
+    s.decoded_q = OutValRdyQueueAdapterFL( s.decoded )
 
-        @s.tick_fl
-        def tick():
-            s.result = None
-            decoded = s.instr_q.popleft()
+    s.result = None
+    s.controlflow = controlflow
 
-            # verify instruction still alive
-            creq = TagValidRequest()
-            creq.tag = decoded.tag
-            cresp = s.controlflow.tag_valid(creq)
-            if not cresp.valid:
-                return
+    @s.tick_fl
+    def tick():
+      s.result = None
+      decoded = s.instr_q.popleft()
 
-            inst = decoded.instr
-            # Decode it and create packet
-            opmap = {
-                int(Opcode.OP_IMM): s.dec_op_imm,
-                int(Opcode.OP): s.dec_op,
-                int(Opcode.SYSTEM): s.dec_system,
-                int(Opcode.BRANCH): s.dec_branch,
-            }
-            try:
-                opcode = inst[RVInstMask.OPCODE]
-                s.result = opmap[opcode.uint()](inst)
-                s.result.pc = decoded.pc
-                s.result.tag = decoded.tag
-            except KeyError:
-                raise NotImplementedError('Not implemented so sad: ' +
-                                          Opcode.name(opcode))
+      # verify instruction still alive
+      creq = TagValidRequest()
+      creq.tag = decoded.tag
+      cresp = s.controlflow.tag_valid( creq )
+      if not cresp.valid:
+        return
 
-            s.decoded_q.append(s.result)
+      inst = decoded.instr
+      # Decode it and create packet
+      opmap = {
+          int( Opcode.OP_IMM ): s.dec_op_imm,
+          int( Opcode.OP ): s.dec_op,
+          int( Opcode.SYSTEM ): s.dec_system,
+          int( Opcode.BRANCH ): s.dec_branch,
+      }
+      try:
+        opcode = inst[ RVInstMask.OPCODE ]
+        s.result = opmap[ opcode.uint() ]( inst )
+        s.result.pc = decoded.pc
+        s.result.tag = decoded.tag
+      except KeyError:
+        raise NotImplementedError( 'Not implemented so sad: ' +
+                                   Opcode.name( opcode ) )
 
-    def dec_op_imm(s, inst):
-        res = DecodePacket()
-        res.rs1 = inst[RVInstMask.RS1]
-        res.rs1_valid = 1
-        res.rs2_valid = 0
-        res.rd = inst[RVInstMask.RD]
-        res.rd_valid = 1
-        # Mapping from func3 to map of func7 to shamt instruction
-        shamts = {
-            0b001: {
-                0b0000000: RV64Inst.SLLI,
-            },
-            0b101: {
-                0b0000000: RV64Inst.SRLI,
-                0b0100000: RV64Inst.SRAI,
-            },
-        }
+      s.decoded_q.append( s.result )
 
-        nshamts = {
-            0b000: RV64Inst.ADDI,
-            0b010: RV64Inst.SLTI,
-            0b011: RV64Inst.SLTIU,
-            0b100: RV64Inst.XORI,
-            0b110: RV64Inst.ORI,
-            0b111: RV64Inst.ANDI,
-        }
-        func3 = inst[RVInstMask.FUNCT3].uint()
-        func7 = inst[RVInstMask.FUNCT7].uint()
-        if (inst[RVInstMask.FUNCT3].uint() in shamts):
-            res.inst = shamts[func3][func7]
-            res.imm = zext(inst[RVInstMask.SHAMT], DECODED_IMM_LEN)
-        else:
-            res.inst = nshamts[func3]
-            res.imm = sext(inst[RVInstMask.I_IMM], DECODED_IMM_LEN)
+  def dec_op_imm( s, inst ):
+    res = DecodePacket()
+    res.rs1 = inst[ RVInstMask.RS1 ]
+    res.rs1_valid = 1
+    res.rs2_valid = 0
+    res.rd = inst[ RVInstMask.RD ]
+    res.rd_valid = 1
+    # Mapping from func3 to map of func7 to shamt instruction
+    shamts = {
+        0b001: {
+            0b0000000: RV64Inst.SLLI,
+        },
+        0b101: {
+            0b0000000: RV64Inst.SRLI,
+            0b0100000: RV64Inst.SRAI,
+        },
+    }
 
-        return res
+    nshamts = {
+        0b000: RV64Inst.ADDI,
+        0b010: RV64Inst.SLTI,
+        0b011: RV64Inst.SLTIU,
+        0b100: RV64Inst.XORI,
+        0b110: RV64Inst.ORI,
+        0b111: RV64Inst.ANDI,
+    }
+    func3 = inst[ RVInstMask.FUNCT3 ].uint()
+    func7 = inst[ RVInstMask.FUNCT7 ].uint()
+    if ( inst[ RVInstMask.FUNCT3 ].uint() in shamts ):
+      res.inst = shamts[ func3 ][ func7 ]
+      res.imm = zext( inst[ RVInstMask.SHAMT ], DECODED_IMM_LEN )
+    else:
+      res.inst = nshamts[ func3 ]
+      res.imm = sext( inst[ RVInstMask.I_IMM ], DECODED_IMM_LEN )
 
-    def dec_op(s, inst):
-        res = DecodePacket()
-        res.rs1 = inst[RVInstMask.RS1]
-        res.rs2 = inst[RVInstMask.RS2]
-        res.rd = inst[RVInstMask.RD]
-        res.imm = 0
+    return res
 
-        func3 = inst[RVInstMask.FUNCT3.uint()]
-        func7 = inst[RVInstMask.FUNCT7.uint()]
-        insts = {
-            (0b000, 0b0000000): RV64Inst.ADD,
-            (0b000, 0b0100000): RV64Inst.SUB,
-            (0b001, 0b0000000): RV64Inst.SLL,
-            (0b010, 0b0000000): RV64Inst.SLT,
-            (0b011, 0b0000000): RV64Inst.SLTU,
-            (0b100, 0b0000000): RV64Inst.XOR,
-            (0b101, 0b0000000): RV64Inst.SRL,
-            (0b101, 0b0100000): RV64Inst.SRA,
-            (0b110, 0b0000000): RV64Inst.OR,
-            (0b111, 0b0000000): RV64Inst.AND,
-        }
-        res.inst = insts[(func3, func7)]
+  def dec_op( s, inst ):
+    res = DecodePacket()
+    res.rs1 = inst[ RVInstMask.RS1 ]
+    res.rs2 = inst[ RVInstMask.RS2 ]
+    res.rd = inst[ RVInstMask.RD ]
+    res.imm = 0
 
-        return res
+    func3 = inst[ RVInstMask.FUNCT3.uint() ]
+    func7 = inst[ RVInstMask.FUNCT7.uint() ]
+    insts = {
+        ( 0b000, 0b0000000 ): RV64Inst.ADD,
+        ( 0b000, 0b0100000 ): RV64Inst.SUB,
+        ( 0b001, 0b0000000 ): RV64Inst.SLL,
+        ( 0b010, 0b0000000 ): RV64Inst.SLT,
+        ( 0b011, 0b0000000 ): RV64Inst.SLTU,
+        ( 0b100, 0b0000000 ): RV64Inst.XOR,
+        ( 0b101, 0b0000000 ): RV64Inst.SRL,
+        ( 0b101, 0b0100000 ): RV64Inst.SRA,
+        ( 0b110, 0b0000000 ): RV64Inst.OR,
+        ( 0b111, 0b0000000 ): RV64Inst.AND,
+    }
+    res.inst = insts[( func3, func7 ) ]
 
-    def dec_system(s, inst):
-        res = DecodePacket()
+    return res
 
-        func3 = int(inst[RVInstMask.FUNCT3])
-        insts = {
-            0b001: RV64Inst.CSRRW,
-            0b010: RV64Inst.CSRRS,
-            0b011: RV64Inst.CSRRC,
-        }
+  def dec_system( s, inst ):
+    res = DecodePacket()
 
-        res.inst = insts[func3]
-        res.rs1 = inst[RVInstMask.RS1]
-        res.rs1_valid = 1
-        res.rs2_vallid = 0
-        res.rd = inst[RVInstMask.RD]
-        res.rd_valid = 1
+    func3 = int( inst[ RVInstMask.FUNCT3 ] )
+    insts = {
+        0b001: RV64Inst.CSRRW,
+        0b010: RV64Inst.CSRRS,
+        0b011: RV64Inst.CSRRC,
+    }
 
-        res.csr = inst[RVInstMask.CSRNUM]
-        res.csr_valid = 1
+    res.inst = insts[ func3 ]
+    res.rs1 = inst[ RVInstMask.RS1 ]
+    res.rs1_valid = 1
+    res.rs2_vallid = 0
+    res.rd = inst[ RVInstMask.RD ]
+    res.rd_valid = 1
 
-        return res
+    res.csr = inst[ RVInstMask.CSRNUM ]
+    res.csr_valid = 1
 
-    def dec_branch(s, inst):
-        res = DecodePacket()
-        func3 = int(inst[RVInstMask.FUNCT3])
-        insts = {
-            0b000: RV64Inst.BEQ,
-            0b001: RV64Inst.BNE,
-            0b100: RV64Inst.BLT,
-            0b101: RV64Inst.BGE,
-            0b110: RV64Inst.BLTU,
-            0b111: RV64Inst.BGEU,
-        }
+    return res
 
-        res.inst = insts[func3]
+  def dec_branch( s, inst ):
+    res = DecodePacket()
+    func3 = int( inst[ RVInstMask.FUNCT3 ] )
+    insts = {
+        0b000: RV64Inst.BEQ,
+        0b001: RV64Inst.BNE,
+        0b100: RV64Inst.BLT,
+        0b101: RV64Inst.BGE,
+        0b110: RV64Inst.BLTU,
+        0b111: RV64Inst.BGEU,
+    }
 
-        res.rs1 = inst[RVInstMask.RS1]
-        res.rs1_valid = 1
-        res.rs2 = inst[RVInstMask.RS2]
-        res.rs2_valid = 1
-        res.rd_valid = 0
+    res.inst = insts[ func3 ]
 
-        imm = concat(inst[RVInstMask.B_IMM3], inst[RVInstMask.B_IMM2],
-                     inst[RVInstMask.B_IMM1], inst[RVInstMask.B_IMM0],
-                     Bits(1, 0))
-        res.imm = sext(imm, DECODED_IMM_LEN)
+    res.rs1 = inst[ RVInstMask.RS1 ]
+    res.rs1_valid = 1
+    res.rs2 = inst[ RVInstMask.RS2 ]
+    res.rs2_valid = 1
+    res.rd_valid = 0
 
-        return res
+    imm = concat( inst[ RVInstMask.B_IMM3 ], inst[ RVInstMask.B_IMM2 ],
+                  inst[ RVInstMask.B_IMM1 ], inst[ RVInstMask.B_IMM0 ],
+                  Bits( 1, 0 ) )
+    res.imm = sext( imm, DECODED_IMM_LEN )
 
-    def line_trace(s):
-        bogus = ' ' * len(str(DecodePacket()))
-        if s.result is None:
-            return bogus
-        else:
-            return str(s.result)
+    return res
+
+  def line_trace( s ):
+    bogus = ' ' * len( str( DecodePacket() ) )
+    if s.result is None:
+      return bogus
+    else:
+      return str( s.result )

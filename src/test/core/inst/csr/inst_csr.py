@@ -13,7 +13,7 @@ from test.core.inst_utils import *
 
 
 def gen_basic_test():
-    return """
+  return """
     csrr x2, mngr2proc   < 1
     nop
     nop
@@ -39,7 +39,7 @@ def gen_basic_test():
 
 
 def gen_bypass_test():
-    return """
+  return """
     csrr x2, mngr2proc   < 0xdeadbeef
     {nops_3}
     csrw proc2mngr, x2   > 0xdeadbeef
@@ -61,7 +61,7 @@ def gen_bypass_test():
     csrr x1, mngr2proc   < 0xcafecafe
     csrw proc2mngr, x1   > 0xcafecafe
   """.format(
-        nops_3=gen_nops(3), nops_2=gen_nops(2), nops_1=gen_nops(1))
+      nops_3=gen_nops( 3 ), nops_2=gen_nops( 2 ), nops_1=gen_nops( 1 ) )
 
 
 #-------------------------------------------------------------------------
@@ -70,7 +70,7 @@ def gen_bypass_test():
 
 
 def gen_value_test():
-    return """
+  return """
     csrw proc2mngr, x0   > 0x00000000 # test r0 is always 0
     csrr x0, mngr2proc   < 0xabcabcff # even if we try to write r0
     csrw proc2mngr, x0   > 0x00000000
@@ -84,17 +84,17 @@ def gen_value_test():
 
 def gen_random_test():
 
-    asm_code = []
-    for i in xrange(100):
-        value = random.randint(0, 0xffffffff)
-        asm_code.append("""
+  asm_code = []
+  for i in xrange( 100 ):
+    value = random.randint( 0, 0xffffffff )
+    asm_code.append( """
 
       csrr x1, mngr2proc   < {value}
       csrw proc2mngr, x1   > {value}
 
-    """.format(**locals()))
+    """.format(**locals() ) )
 
-    return asm_code
+  return asm_code
 
 
 #-------------------------------------------------------------------------
@@ -103,7 +103,7 @@ def gen_random_test():
 
 
 def gen_core_stats_test():
-    return """
+  return """
 
     # Turn on stats here
     addi x1, x0, 1
