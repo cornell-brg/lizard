@@ -53,8 +53,7 @@ class IssueFL( Model ):
       # if the instruction has potential to redirect early (before commit)
       # must declare instruction to controlflow
       # (essentialy creates a rename table snapshot)
-      # TODO: support more than BEQ
-      if not s.marked_speculative and s.current_d.inst == RV64Inst.BEQ:
+      if not s.marked_speculative and s.current_d.is_branch:
         creq = MarkSpeculativeRequest()
         creq.tag = s.current_d.tag
         cresp = s.controlflow.mark_speculative( creq )
@@ -100,6 +99,7 @@ class IssueFL( Model ):
         s.current_i.csr_valid = s.current_d.csr_valid
         s.current_i.pc = s.current_d.pc
         s.current_i.tag = s.current_d.tag
+        s.current_i.is_branch = s.current_d.is_branch
         s.issued_q.append( s.current_i )
         s.current_d = None
 
