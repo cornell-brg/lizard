@@ -90,6 +90,9 @@ class DataFlowUnitFL(Model):
             preg.value = value
             preg.ready = 1
 
+    def free_tag(s, tag):
+        s.free_regs.free(tag)
+
     def commit_tag(s, tag, initial=False):
         if tag != s.zero_tag:
             preg = s.preg_file[tag]

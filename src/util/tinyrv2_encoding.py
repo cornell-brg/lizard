@@ -662,7 +662,7 @@ def assemble(asm_code):
     # First pass to create symbol table. This is obviously very simplistic.
     # We can maybe make it more robust in the future.
 
-    addr = RESET_VECTOR
+    addr = int(RESET_VECTOR)
     sym = {}
     for line in asm_list:
         line = line.partition('#')[0]
@@ -683,12 +683,12 @@ def assemble(asm_code):
             if sep != "":
                 sym[label.strip()] = addr
             else:
-                addr += 4
+                addr += ILEN_BYTES
 
     # Second pass to assemble text section
 
     asm_list_idx = 0
-    addr = RESET_VECTOR
+    addr = int(RESET_VECTOR)
     text_bytes = bytearray()
     mngr2proc_bytes = bytearray()
     proc2mngr_bytes = bytearray()

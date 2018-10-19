@@ -1,13 +1,14 @@
 from pymtl import *
 from msg.decode import *
 from msg.issue import *
+from msg.control import *
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 from pclib.fl import InValRdyQueueAdapterFL, OutValRdyQueueAdapterFL
 from config.general import XLEN, ILEN, ILEN_BYTES, RESET_VECTOR, REG_COUNT
 
 
 class IssueFL(Model):
-    def __init__(s, dataflow):
+    def __init__(s, dataflow, controlflow):
         s.decoded = InValRdyBundle(DecodePacket())
         s.issued = OutValRdyBundle(IssuePacket())
 
@@ -15,6 +16,7 @@ class IssueFL(Model):
         s.issued_q = OutValRdyQueueAdapterFL(s.issued)
 
         s.dataflow = dataflow
+        s.controlflow = controlflow
 
         s.current_i = IssuePacket()
 
@@ -22,12 +24,46 @@ class IssueFL(Model):
         def tick():
             if s.reset:
                 s.current_d = None
-                s.current_rs1 = None
-                s.current_rs2 = None
 
             if s.current_d is None:
                 s.current_d = s.decoded_q.popleft()
                 s.current_i = IssuePacket()
+                s.current_rs1 = None
+                s.current_rs2 = None
+                s.marked_speculative = False
+
+            # verify instruction still alive
+            creq = TagValidRequest()
+            creq.tag = s.current_d.tag
+            cresp = s.controlflow.tag_valid(creq)
+            if not cresp.valid:
+                # if we allocated a destination register for this instruction,
+                # we must free it
+                if s.current_i.rd_valid:
+                    s.dataflow.free_tag(c.current_i.rd)
+                # retire instruction from controlflow
+                creq = RetireRequest()
+                creq.tag = s.current_d.tag
+                s.controlflow.retire(creq)
+
+                s.current_d = None
+                return
+
+            # if the instruction has potential to redirect early (before commit)
+            # must declare instruction to controlflow
+            # (essentialy creates a rename table snapshot)
+            # TODO: support more than BEQ
+            if not s.marked_speculative and s.current_d.inst == RV64Inst.BEQ:
+                creq = MarkSpeculativeRequest()
+                creq.tag = s.current_d.tag
+                cresp = s.controlflow.mark_speculative(creq)
+                if cresp.success:
+                    s.marked_speculative = True
+                else:
+                    # if we failed to mark it speculative
+                    # (likely because we are too deeply in speculation right now)
+                    # must stall
+                    return
 
             if s.current_d.rs1_valid and s.current_rs1 is None:
                 src = s.dataflow.get_src(s.current_d.rs1)
@@ -62,10 +98,9 @@ class IssueFL(Model):
                 s.current_i.csr = s.current_d.csr
                 s.current_i.csr_valid = s.current_d.csr_valid
                 s.current_i.pc = s.current_d.pc
+                s.current_i.tag = s.current_d.tag
                 s.issued_q.append(s.current_i)
                 s.current_d = None
-                s.current_rs1 = None
-                s.current_rs2 = None
 
     def line_trace(s):
         return s.current_i

@@ -14,3 +14,4 @@ class ResultPacket(BitStructDefinition):
         s.csr_valid = BitField(1)
 
         s.pc = BitField(XLEN)
+        s.tag = BitField(INST_TAG_LEN)
