@@ -13,7 +13,7 @@ from test.core.inst_utils import *
 
 
 def gen_deep_loop_test():
-    return """
+  return """
     addi x1, x0, 0 # accumulator
     addi x2, x0, 1
     addi x3, x0, 4
@@ -78,7 +78,7 @@ def gen_deep_loop_test():
 
 
 def gen_less_deep_loop_test():
-    return """
+  return """
     addi x1, x0, 0 # accumulator
     addi x2, x0, 1
     addi x3, x0, 8
@@ -125,7 +125,7 @@ def gen_less_deep_loop_test():
 
 
 def gen_branch_diff_controls_test():
-    return """
+  return """
     addi x1, x0, 5         # 0x200
     addi x4, x0, 100        # 0x204
     addi x3, x0, 0x200        # 0x208
@@ -153,7 +153,7 @@ def gen_branch_diff_controls_test():
 
 
 def gen_deep_loop_with_jalr_test():
-    return """
+  return """
     addi x1, x0, 0 # accumulator
     addi x2, x0, 1
     addi x29, x0, 4
@@ -235,7 +235,7 @@ def gen_deep_loop_with_jalr_test():
 
 
 def gen_branch_collision_test():
-    return """
+  return """
     addi x1, x0, 20
     addi x4, x0, 0
 
@@ -260,4 +260,4 @@ def gen_branch_collision_test():
 
     csrw proc2mngr, x4 > 40
   """.format(
-        nop_gen=gen_nops(59), )
+      nop_gen=gen_nops( 59 ),)

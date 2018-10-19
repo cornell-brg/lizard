@@ -5,7 +5,7 @@ from test.core.inst_utils import *
 
 
 def gen_test():
-    return """
+  return """
         addi x5, x0, 6
         addi x6, x0, 7
         addi x2, x0, 0
@@ -23,7 +23,7 @@ def gen_test():
 
 
 def gen_write_x0_test():
-    return """
+  return """
     addi x0, x0, 1
     csrw proc2mngr, x0 > 0
     """

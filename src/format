@@ -4,20 +4,20 @@ import os
 import argparse
 import sys
 
-DIR = os.path.dirname(os.path.realpath(__file__))
+DIR = os.path.dirname( os.path.realpath( __file__ ) )
 
 
-def format(diff):
-    command = ['yapf', '-r', '-d' if diff else '-i', DIR]
-    return subprocess.call(command)
+def format( diff ):
+  command = [ 'yapf', '-r', '-d' if diff else '-i', DIR ]
+  return subprocess.call( command )
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Format source code')
-    parser.add_argument('-d', '--diff', action='store_true')
-    args = parser.parse_args()
-    sys.exit(format(args.diff))
+  parser = argparse.ArgumentParser( description='Format source code' )
+  parser.add_argument( '-d', '--diff', action='store_true' )
+  args = parser.parse_args()
+  sys.exit( format( args.diff ) )
 
 
 if __name__ == '__main__':
-    main()
+  main()

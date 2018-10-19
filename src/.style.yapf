@@ -1,0 +1,4 @@
+[style]
+based_on_style = chromium
+SPACE_BEFORE_OPENING_BRACKETS = true
+SPACE_BEFORE_CLOSING_BRACKETS = true

@@ -5,23 +5,23 @@ from bitutil import clog2, bit_enum
 MemMsgType = bit_enum(
     'MemMsgType',
     None,
-    ('READ', 'rd'),
-    ('WRITE', 'wr'),
-    ('WRITE_INIT', 'in'),
-    ('AMO_ADD', 'ad'),
-    ('AMO_AND', 'an'),
-    ('AMO_OR', 'or'),
-    ('AMO_XCHG', 'xg'),
-    ('AMO_MIN', 'mn'),
-    ('AMO_MAX', 'mx'),
+    ( 'READ', 'rd' ),
+    ( 'WRITE', 'wr' ),
+    ( 'WRITE_INIT', 'in' ),
+    ( 'AMO_ADD', 'ad' ),
+    ( 'AMO_AND', 'an' ),
+    ( 'AMO_OR', 'or' ),
+    ( 'AMO_XCHG', 'xg' ),
+    ( 'AMO_MIN', 'mn' ),
+    ( 'AMO_MAX', 'mx' ),
 )
 
 MemMsgStatus = bit_enum(
     'MemMsgStatus',
     None,
-    ('OK', 'ok'),
-    ('ADDRESS_MISALIGNED', 'ma'),
-    ('ACCESS_FAULT', 'fa'),
+    ( 'OK', 'ok' ),
+    ( 'ADDRESS_MISALIGNED', 'ma' ),
+    ( 'ACCESS_FAULT', 'fa' ),
 )
 
 #-------------------------------------------------------------------------
@@ -49,47 +49,48 @@ MemMsgStatus = bit_enum(
 # data field.
 
 
-class MemReqMsg(BitStructDefinition):
-    def __init__(s, opaque_nbits, addr_nbits, data_nbits):
-        s.type_ = BitField(MemMsgType.bits)
-        s.opaque = BitField(opaque_nbits)
-        s.addr = BitField(addr_nbits)
-        s.len = BitField(clog2(data_nbits / 8))
-        s.data = BitField(data_nbits)
+class MemReqMsg( BitStructDefinition ):
 
-    def mk_rd(s, opaque, addr, len_):
-        msg = s()
-        msg.type_ = MemMsgType.READ
-        msg.opaque = opaque
-        msg.addr = addr
-        msg.len = len_
-        msg.data = 0
+  def __init__( s, opaque_nbits, addr_nbits, data_nbits ):
+    s.type_ = BitField( MemMsgType.bits )
+    s.opaque = BitField( opaque_nbits )
+    s.addr = BitField( addr_nbits )
+    s.len = BitField( clog2( data_nbits / 8 ) )
+    s.data = BitField( data_nbits )
 
-        return msg
+  def mk_rd( s, opaque, addr, len_ ):
+    msg = s()
+    msg.type_ = MemMsgType.READ
+    msg.opaque = opaque
+    msg.addr = addr
+    msg.len = len_
+    msg.data = 0
 
-    def mk_wr(s, opaque, addr, len_, data):
-        msg = s()
-        msg.type_ = MemMsgType.WRITE
-        msg.opaque = opaque
-        msg.addr = addr
-        msg.len = len_
-        msg.data = data
+    return msg
 
-        return msg
+  def mk_wr( s, opaque, addr, len_, data ):
+    msg = s()
+    msg.type_ = MemMsgType.WRITE
+    msg.opaque = opaque
+    msg.addr = addr
+    msg.len = len_
+    msg.data = data
 
-    def mk_msg(s, type_, opaque, addr, len_, data):
-        msg = s()
-        msg.type_ = type_
-        msg.opaque = opaque
-        msg.addr = addr
-        msg.len = len_
-        msg.data = data
+    return msg
 
-        return msg
+  def mk_msg( s, type_, opaque, addr, len_, data ):
+    msg = s()
+    msg.type_ = type_
+    msg.opaque = opaque
+    msg.addr = addr
+    msg.len = len_
+    msg.data = data
 
-    def __str__(s):
-        return "{}:{}:{}:{}".format(
-            MemMsgType.short(s.type_), s.opaque, s.addr, s.data)
+    return msg
+
+  def __str__( s ):
+    return "{}:{}:{}:{}".format(
+        MemMsgType.short( s.type_ ), s.opaque, s.addr, s.data )
 
 
 #-------------------------------------------------------------------------
@@ -121,51 +122,52 @@ class MemReqMsg(BitStructDefinition):
 # request is a cache hit or miss for testing purposes.
 
 
-class MemRespMsg(BitStructDefinition):
-    def __init__(s, opaque_nbits, data_nbits):
-        s.type_ = BitField(MemMsgType.bits)
-        s.opaque = BitField(opaque_nbits)
-        s.test = BitField(2)
-        s.stat = BitField(MemMsgStatus.bits)
-        s.len = BitField(clog2(data_nbits / 8))
-        s.data = BitField(data_nbits)
+class MemRespMsg( BitStructDefinition ):
 
-    def mk_rd(s, opaque, len_, data):
-        msg = s()
-        msg.type_ = MemMsgType.READ
-        msg.opaque = opaque
-        msg.test = 0
-        msg.stat = 0  # stat
-        msg.len = len_
-        msg.data = data
+  def __init__( s, opaque_nbits, data_nbits ):
+    s.type_ = BitField( MemMsgType.bits )
+    s.opaque = BitField( opaque_nbits )
+    s.test = BitField( 2 )
+    s.stat = BitField( MemMsgStatus.bits )
+    s.len = BitField( clog2( data_nbits / 8 ) )
+    s.data = BitField( data_nbits )
 
-        return msg
+  def mk_rd( s, opaque, len_, data ):
+    msg = s()
+    msg.type_ = MemMsgType.READ
+    msg.opaque = opaque
+    msg.test = 0
+    msg.stat = 0  # stat
+    msg.len = len_
+    msg.data = data
 
-    def mk_wr(s, opaque, stat, len_):
-        msg = s()
-        msg.type_ = MemMsgType.WRITE
-        msg.opaque = opaque
-        msg.test = 0
-        msg.stat = stat
-        msg.len = len_
-        msg.data = 0
+    return msg
 
-        return msg
+  def mk_wr( s, opaque, stat, len_ ):
+    msg = s()
+    msg.type_ = MemMsgType.WRITE
+    msg.opaque = opaque
+    msg.test = 0
+    msg.stat = stat
+    msg.len = len_
+    msg.data = 0
 
-    def mk_msg(s, type_, opaque, stat, len_, data):
-        msg = s()
-        msg.type_ = type_
-        msg.opaque = opaque
-        msg.test = 0
-        msg.stat = stat
-        msg.len = len_
-        msg.data = data
+    return msg
 
-        return msg
+  def mk_msg( s, type_, opaque, stat, len_, data ):
+    msg = s()
+    msg.type_ = type_
+    msg.opaque = opaque
+    msg.test = 0
+    msg.stat = stat
+    msg.len = len_
+    msg.data = data
 
-    def __str__(s):
-        return "{}:{}:{}:{}".format(
-            MemMsgType.short(s.type_), s.test, s.stat, s.data)
+    return msg
+
+  def __str__( s ):
+    return "{}:{}:{}:{}".format(
+        MemMsgType.short( s.type_ ), s.test, s.stat, s.data )
 
 
 #-------------------------------------------------------------------------
@@ -177,7 +179,8 @@ class MemRespMsg(BitStructDefinition):
 # and (2) we can pass a single object into the parameterized model.
 
 
-class MemMsg(object):
-    def __init__(s, opaque_nbits, addr_nbits, data_nbits):
-        s.req = MemReqMsg(opaque_nbits, addr_nbits, data_nbits)
-        s.resp = MemRespMsg(opaque_nbits, data_nbits)
+class MemMsg( object ):
+
+  def __init__( s, opaque_nbits, addr_nbits, data_nbits ):
+    s.req = MemReqMsg( opaque_nbits, addr_nbits, data_nbits )
+    s.resp = MemRespMsg( opaque_nbits, data_nbits )

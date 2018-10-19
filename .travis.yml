@@ -14,7 +14,7 @@ install:
  # Install PyMTL
  - pip -q install git+https://github.com/cornell-brg/pymtl.git
  # Install YAPF formatter
- - pip -q install yapf
+ - pip -q install git+https://github.com/orangeturtle739/yapf.git
  - pip list
 
 before_script:

@@ -8,48 +8,49 @@ from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 from pclib.fl import InValRdyQueueAdapterFL, OutValRdyQueueAdapterFL
 
 
-class ResultFL(Model):
-    def __init__(s, dataflow, controlflow):
-        s.result_in = InValRdyBundle(FunctionalPacket())
-        s.result_out = OutValRdyBundle(ResultPacket())
+class ResultFL( Model ):
 
-        s.result_in_q = InValRdyQueueAdapterFL(s.result_in)
-        s.result_out_q = OutValRdyQueueAdapterFL(s.result_out)
+  def __init__( s, dataflow, controlflow ):
+    s.result_in = InValRdyBundle( FunctionalPacket() )
+    s.result_out = OutValRdyBundle( ResultPacket() )
 
-        s.dataflow = dataflow
-        s.controlflow = controlflow
+    s.result_in_q = InValRdyQueueAdapterFL( s.result_in )
+    s.result_out_q = OutValRdyQueueAdapterFL( s.result_out )
 
-        @s.tick_fl
-        def tick():
-            p = s.result_in_q.popleft()
+    s.dataflow = dataflow
+    s.controlflow = controlflow
 
-            # verify instruction still alive
-            creq = TagValidRequest()
-            creq.tag = p.tag
-            cresp = s.controlflow.tag_valid(creq)
-            if not cresp.valid:
-                # if we allocated a destination register for this instruction,
-                # we must free it
-                if p.rd_valid:
-                    s.dataflow.free_tag(p.rd)
-                # retire instruction from controlflow
-                creq = RetireRequest()
-                creq.tag = p.tag
-                s.controlflow.retire(creq)
-                return
+    @s.tick_fl
+    def tick():
+      p = s.result_in_q.popleft()
 
-            if p.rd_valid:
-                dataflow.write_tag(p.rd, p.result)
+      # verify instruction still alive
+      creq = TagValidRequest()
+      creq.tag = p.tag
+      cresp = s.controlflow.tag_valid( creq )
+      if not cresp.valid:
+        # if we allocated a destination register for this instruction,
+        # we must free it
+        if p.rd_valid:
+          s.dataflow.free_tag( p.rd )
+        # retire instruction from controlflow
+        creq = RetireRequest()
+        creq.tag = p.tag
+        s.controlflow.retire( creq )
+        return
 
-            out = ResultPacket()
-            out.inst = p.inst
-            out.rd_valid = p.rd_valid
-            out.result.rd = p.rd
-            out.result = p.result
-            out.pc = p.pc
-            out.tag = p.tag
+      if p.rd_valid:
+        dataflow.write_tag( p.rd, p.result )
 
-            s.result_out_q.append(out)
+      out = ResultPacket()
+      out.inst = p.inst
+      out.rd_valid = p.rd_valid
+      out.result.rd = p.rd
+      out.result = p.result
+      out.pc = p.pc
+      out.tag = p.tag
 
-    def line_trace(s):
-        return "No line trace for you!"
+      s.result_out_q.append( out )
+
+  def line_trace( s ):
+    return "No line trace for you!"

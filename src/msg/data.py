@@ -5,64 +5,74 @@ from config.general import XLEN, REG_SPEC_LEN, REG_TAG_LEN
 
 # Gets the physical register specifier for a given
 # architectural register specifier
-class GetSrcRequest(BitStructDefinition):
-    def __init__(s):
-        s.reg = BitField(REG_SPEC_LEN)
+class GetSrcRequest( BitStructDefinition ):
+
+  def __init__( s ):
+    s.reg = BitField( REG_SPEC_LEN )
 
 
-class GetSrcResponse(BitStructDefinition):
-    def __init__(s):
-        s.ready = BitField(1)
-        s.tag = BitField(REG_TAG_LEN)
+class GetSrcResponse( BitStructDefinition ):
+
+  def __init__( s ):
+    s.ready = BitField( 1 )
+    s.tag = BitField( REG_TAG_LEN )
 
 
 # Allocates a new physical register for a given
 # architectural register
-class GetDstRequest(BitStructDefinition):
-    def __init__(s):
-        s.reg = BitField(REG_SPEC_LEN)
+class GetDstRequest( BitStructDefinition ):
+
+  def __init__( s ):
+    s.reg = BitField( REG_SPEC_LEN )
 
 
-class GetDstResponse(BitStructDefinition):
-    def __init__(s):
-        s.success = BitField(1)
-        s.tag = BitField(REG_TAG_LEN)
+class GetDstResponse( BitStructDefinition ):
+
+  def __init__( s ):
+    s.success = BitField( 1 )
+    s.tag = BitField( REG_TAG_LEN )
 
 
 # Reads the value from a physical register
-class ReadTagRequest(BitStructDefinition):
-    def __init__(s):
-        s.tag = BitField(REG_TAG_LEN)
+class ReadTagRequest( BitStructDefinition ):
+
+  def __init__( s ):
+    s.tag = BitField( REG_TAG_LEN )
 
 
-class ReadTagResponse(BitStructDefinition):
-    def __init__(s):
-        s.ready = BitField(1)
-        s.value = BitField(XLEN)
+class ReadTagResponse( BitStructDefinition ):
+
+  def __init__( s ):
+    s.ready = BitField( 1 )
+    s.value = BitField( XLEN )
 
 
 # Writes to a physical register
-class WriteTagRequest(BitStructDefinition):
-    def __init__(s):
-        s.tag = BitField(REG_TAG_LEN)
-        s.value = BitField(XLEN)
+class WriteTagRequest( BitStructDefinition ):
+
+  def __init__( s ):
+    s.tag = BitField( REG_TAG_LEN )
+    s.value = BitField( XLEN )
 
 
-class WriteTagResponse(BitStructDefinition):
-    def __init__(s):
-        pass
+class WriteTagResponse( BitStructDefinition ):
+
+  def __init__( s ):
+    pass
 
 
 # Commits a the value currently in a tag to the corresponding
 # architectural register
-class CommitTagRequest(BitStructDefinition):
-    def __init__(s):
-        s.tag = BitField(REG_TAG_LEN)
+class CommitTagRequest( BitStructDefinition ):
+
+  def __init__( s ):
+    s.tag = BitField( REG_TAG_LEN )
 
 
-class CommitTagResponse(BitStructDefinition):
-    def __init__(s):
-        pass
+class CommitTagResponse( BitStructDefinition ):
+
+  def __init__( s ):
+    pass
 
 
 # There should never be any need to "free" a tag. If a tag doesn't get committed,
