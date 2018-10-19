@@ -7,11 +7,10 @@ import random
 from pymtl import *
 from test.core.inst_utils import *
 
+
 #-------------------------------------------------------------------------
 # gen_basic_test
 #-------------------------------------------------------------------------
-
-
 def gen_basic_test():
   return """
 
