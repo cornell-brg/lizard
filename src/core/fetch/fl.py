@@ -28,10 +28,11 @@ class FetchFL(Model):
         def tick():
             if s.reset:
                 s.bad.next = 1
+                s.epoch.next = 0
             else:
                 if s.bad:
                     req = GetEpochStartRequest()
-                    req.epoch = 0
+                    req.epoch = s.epoch.value
                     resp = s.controlflow.get_epoch_start(req)
                     if resp.valid:
                         s.pc.next = resp.pc
@@ -60,4 +61,4 @@ class FetchFL(Model):
                     s.bad.next = not resp.valid
 
     def line_trace(s):
-        return str(s.pc)
+        return 'b: {} pc: {}'.format(s.bad, s.pc)

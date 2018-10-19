@@ -248,6 +248,7 @@ class DecodePacket(BitStructDefinition):
         s.csr_valid = BitField(1)
 
         s.pc = BitField(XLEN)
+        s.tag = BitField(INST_TAG_LEN)
 
     def __str__(s):
         return 'imm:{} inst:{: <5} rs1:{} v:{} rs2:{} v:{} rd:{} v:{}'.format(

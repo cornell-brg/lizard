@@ -2,13 +2,14 @@ from pymtl import *
 from msg import MemMsg4B
 from msg.fetch import FetchPacket
 from msg.decode import *
+from msg.control import *
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 from pclib.fl import InValRdyQueueAdapterFL, OutValRdyQueueAdapterFL
-from config.general import XLEN, ILEN, ILEN_BYTES, RESET_VECTOR
+from config.general import *
 
 
 class DispatchFL(Model):
-    def __init__(s):
+    def __init__(s, controlflow):
         s.instr = InValRdyBundle(FetchPacket())
         s.decoded = OutValRdyBundle(DecodePacket())
 
@@ -16,22 +17,33 @@ class DispatchFL(Model):
         s.decoded_q = OutValRdyQueueAdapterFL(s.decoded)
 
         s.result = None
+        s.controlflow = controlflow
 
         @s.tick_fl
         def tick():
             s.result = None
             decoded = s.instr_q.popleft()
+
+            # verify instruction still alive
+            creq = TagValidRequest()
+            creq.tag = decoded.tag
+            cresp = s.controlflow.tag_valid(creq)
+            if not cresp.valid:
+                return
+
             inst = decoded.instr
             # Decode it and create packet
             opmap = {
                 int(Opcode.OP_IMM): s.dec_op_imm,
                 int(Opcode.OP): s.dec_op,
                 int(Opcode.SYSTEM): s.dec_system,
+                int(Opcode.BRANCH): s.dec_branch,
             }
             try:
                 opcode = inst[RVInstMask.OPCODE]
                 s.result = opmap[opcode.uint()](inst)
                 s.result.pc = decoded.pc
+                s.result.tag = decoded.tag
             except KeyError:
                 raise NotImplementedError('Not implemented so sad: ' +
                                           Opcode.name(opcode))
@@ -68,10 +80,10 @@ class DispatchFL(Model):
         func7 = inst[RVInstMask.FUNCT7].uint()
         if (inst[RVInstMask.FUNCT3].uint() in shamts):
             res.inst = shamts[func3][func7]
-            res.imm = zext(inst[RVInstMask.SHAMT], 32)
+            res.imm = zext(inst[RVInstMask.SHAMT], DECODED_IMM_LEN)
         else:
             res.inst = nshamts[func3]
-            res.imm = sext(inst[RVInstMask.I_IMM], 32)
+            res.imm = sext(inst[RVInstMask.I_IMM], DECODED_IMM_LEN)
 
         return res
 
@@ -119,6 +131,33 @@ class DispatchFL(Model):
 
         res.csr = inst[RVInstMask.CSRNUM]
         res.csr_valid = 1
+
+        return res
+
+    def dec_branch(s, inst):
+        res = DecodePacket()
+        func3 = int(inst[RVInstMask.FUNCT3])
+        insts = {
+            0b000: RV64Inst.BEQ,
+            0b001: RV64Inst.BNE,
+            0b100: RV64Inst.BLT,
+            0b101: RV64Inst.BGE,
+            0b110: RV64Inst.BLTU,
+            0b111: RV64Inst.BGEU,
+        }
+
+        res.inst = insts[func3]
+
+        res.rs1 = inst[RVInstMask.RS1]
+        res.rs1_valid = 1
+        res.rs2 = inst[RVInstMask.RS2]
+        res.rs2_valid = 1
+        res.rd_valid = 0
+
+        imm = concat(inst[RVInstMask.B_IMM3], inst[RVInstMask.B_IMM2],
+                     inst[RVInstMask.B_IMM1], inst[RVInstMask.B_IMM0],
+                     Bits(1, 0))
+        res.imm = sext(imm, DECODED_IMM_LEN)
 
         return res
 

@@ -13,13 +13,32 @@ class InstrState:
         s.in_flight = Bits(1)
         s.rename_table = None
 
+    def __str__(s):
+        return 'spc: {} v: {} f: {} s: {}'.format(
+            s.succesor_pc, s.valid, s.in_flight,
+            0 if s.rename_table is None else 1)
+
+    def __repr__(s):
+        return str(s)
+
+
+class BitDict(dict):
+    def __init__(self, *args, **kwargs):
+        dict.__init__(self, args, **kwargs)
+
+    def __getitem__(self, key):
+        return dict.__getitem__(self, int(key))
+
+    def __setitem__(self, key, val):
+        dict.__setitem__(self, int(key), val)
+
 
 class ControlFlowUnitFL(Model):
     def __init__(s, dataflow):
         s.seq = Bits(INST_TAG_LEN)
         s.head = Bits(INST_TAG_LEN)
         s.epoch = Bits(INST_TAG_LEN)
-        s.in_flight = {}
+        s.in_flight = BitDict()
         s.epoch_start = Bits(XLEN)
         s.spec_depth = Bits(MAX_SPEC_DEPTH_LEN)
 
@@ -29,7 +48,7 @@ class ControlFlowUnitFL(Model):
         s.seq = 0
         s.head = 0
         s.epoch = 0
-        s.in_flight = {}
+        s.in_flight = BitDict()
         s.epoch_start = RESET_VECTOR
         s.spec_depth = 0
 
@@ -66,7 +85,10 @@ class ControlFlowUnitFL(Model):
             # increase the speculation depth, and store the rename table
             # from this point
             s.spec_depth += 1
-            s.in_flight[request.tag].rename_table = dataflow.get_rename_table()
+            s.in_flight[request.
+                        tag].rename_table = s.dataflow.get_rename_table()
+            resp.success = 1
+        return resp
 
     def request_redirect(s, request):
         # if not at commit, and not speculative, error
@@ -75,12 +97,12 @@ class ControlFlowUnitFL(Model):
         # the instruction must be valid
         assert s.in_flight[request.source_tag].valid
 
-        if s.in_flight[request.source_tag] == request.target_pc:
+        if s.in_flight[request.source_tag].succesor_pc == request.target_pc:
             return
 
         # invalidate all later instructions
         for tag, state in s.in_flight.iteritems():
-            if tag > request.tag:
+            if tag > request.source_tag:
                 state.valid = 0
                 # if the instruction was speculative free it
                 if state.rename_table is not None:
@@ -91,6 +113,7 @@ class ControlFlowUnitFL(Model):
         # all new instructions must fall sequentially "into the shadow"
         # of this one
         s.epoch += 1
+        s.epoch_start = request.target_pc
 
         if request.at_commit:
             s.dataflow.rollback_to_arch_state()
@@ -99,7 +122,9 @@ class ControlFlowUnitFL(Model):
                 s.in_flight[request.source_tag].rename_table)
 
     def tag_valid(s, request):
-        return s.in_flight[request.tag].valid
+        resp = TagValidResponse()
+        resp.valid = s.in_flight[request.tag].valid
+        return resp
 
     def retire(s, request):
         s.in_flight[request.tag].in_flight = 0
@@ -108,6 +133,6 @@ class ControlFlowUnitFL(Model):
             s.in_flight[request.tag].rename_table = None
             s.spec_depth -= 1
 
-        while s.in_flight[s.head].in_flight == 0:
+        while s.head < s.seq and s.in_flight[s.head].in_flight == 0:
             del s.in_flight[s.head]
             s.head += 1
