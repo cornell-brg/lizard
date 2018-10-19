@@ -7,7 +7,6 @@ class RVInstMask( object ):
   OPCODE = slice( 0, 7 )
   FUNCT3 = slice( 12, 15 )
   FUNCT7 = slice( 25, 32 )
-
   RD = slice( 7, 12 )
   RS1 = slice( 15, 20 )
   RS2 = slice( 20, 25 )
@@ -250,6 +249,8 @@ class DecodePacket( BitStructDefinition ):
 
     s.pc = BitField( XLEN )
     s.tag = BitField( INST_TAG_LEN )
+
+    s.is_branch = BitField( 1 )
 
   def __str__( s ):
     return 'imm:{} inst:{: <5} rs1:{} v:{} rs2:{} v:{} rd:{} v:{}'.format(

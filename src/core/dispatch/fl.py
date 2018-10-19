@@ -95,8 +95,8 @@ class DispatchFL( Model ):
     res.rd = inst[ RVInstMask.RD ]
     res.imm = 0
 
-    func3 = inst[ RVInstMask.FUNCT3.uint() ]
-    func7 = inst[ RVInstMask.FUNCT7.uint() ]
+    func3 = int( inst[ RVInstMask.FUNCT3 ] )
+    func7 = int( inst[ RVInstMask.FUNCT7 ] )
     insts = {
         ( 0b000, 0b0000000 ): RV64Inst.ADD,
         ( 0b000, 0b0100000 ): RV64Inst.SUB,
@@ -159,6 +159,7 @@ class DispatchFL( Model ):
                   inst[ RVInstMask.B_IMM1 ], inst[ RVInstMask.B_IMM0 ],
                   Bits( 1, 0 ) )
     res.imm = sext( imm, DECODED_IMM_LEN )
+    res.is_branch = 1
 
     return res
 

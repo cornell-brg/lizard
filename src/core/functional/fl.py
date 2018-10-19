@@ -67,12 +67,27 @@ class FunctionalFL( Model ):
         out.result = Bits( XLEN, p.rs1.uint() >> p.imm.uint(), trunc=True )
       elif p.inst == RV64Inst.SRAI:
         out.result = Bits( XLEN, p.rs1.int() >> p.imm.uint(), trunc=True )
-      elif p.inst == RV64Inst.BEQ:
-        if p.rs1 == p.rs2:
+      elif p.is_branch:
+        taken = False
+        if p.inst == RV64Inst.BEQ:
+          taken = p.rs1 == p.rs2
+        elif p.inst == RV64Inst.BNE:
+          taken = p.rs1 != p.rs2
+        elif p.inst == RV64Inst.BLT:
+          taken = p.rs1.int() < p.rs2.int()
+        elif p.inst == RV64Inst.BGE:
+          taken = p.rs1.int() >= p.rs2.int()
+        elif p.inst == RV64Inst.BLTU:
+          taken = p.rs1.uint() < p.rs2.uint()
+        elif p.inst == RV64Inst.BGEU:
+          taken = p.rs1.uint() >= p.rs2.uint()
+        else:
+          assert False, "invalid branch: {}".format( p.inst )
+
+        if taken:
           target_pc = p.pc + sext( p.imm, XLEN )
         else:
           target_pc = p.pc + ILEN_BYTES
-
         # note that we request a redirect no matter which way the branch went
         # this is because who knows how the branch was predicted
         # the control flow unit maintains information about which way

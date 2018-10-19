@@ -6,6 +6,7 @@ import random
 
 from pymtl import *
 from test.core.inst_utils import *
+from config.general import *
 
 #-------------------------------------------------------------------------
 # gen_basic_test
@@ -151,10 +152,11 @@ def gen_value_test():
       gen_br2_value_test( "bge", 1, -1, True ),
       gen_br2_value_test( "bge", 1, 0, True ),
       gen_br2_value_test( "bge", 1, 1, True ),
-      gen_br2_value_test( "bge", 0xfffffff7, 0xfffffff7, True ),
-      gen_br2_value_test( "bge", 0x7fffffff, 0x7fffffff, True ),
-      gen_br2_value_test( "bge", 0xfffffff7, 0x7fffffff, False ),
-      gen_br2_value_test( "bge", 0x7fffffff, 0xfffffff7, True ),
+      gen_br2_value_test( "bge", 0xfffffffffffffff7, 0xfffffffffffffff7, True ),
+      gen_br2_value_test( "bge", 0x7fffffffffffffff, 0x7fffffffffffffff, True ),
+      gen_br2_value_test( "bge", 0xfffffffffffffff7, 0x7fffffffffffffff,
+                          False ),
+      gen_br2_value_test( "bge", 0x7fffffffffffffff, 0xfffffffffffffff7, True ),
   ]
 
 
@@ -167,16 +169,17 @@ def gen_random_test():
   asm_code = []
   for i in xrange( 25 ):
     taken = random.choice([ True, False ] )
-    src0 = Bits( 32, random.randint( 0, 0xffffffff ) )
+    src0 = Bits( XLEN, random.randint( 0, 0xffffffffffffffff ) )
     if taken:
       # Branch taken, src0 >= src1
       if src0.int() < 0:
-        src1 = Bits( 32, random.randint(-0x7fffffff, src0.int() + 1 ) )
+        src1 = Bits( XLEN, random.randint(-0x7fffffffffffffff,
+                                          src0.int() + 1 ) )
       else:
-        src1 = Bits( 32, random.randint( 0, src0.uint() + 1 ) )
+        src1 = Bits( XLEN, random.randint( 0, src0.uint() + 1 ) )
     else:
       # Branch not taken, src0 < src1
-      src1 = Bits( 32, random.randint( src0.int() + 1, 0x7fffffff ) )
+      src1 = Bits( XLEN, random.randint( src0.int() + 1, 0x7fffffffffffffff ) )
     asm_code.append(
         gen_br2_value_test( "bge", src0.uint(), src1.uint(), taken ) )
   return asm_code
