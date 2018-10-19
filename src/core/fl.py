@@ -4,6 +4,7 @@ from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 from pclib.fl import InValRdyQueueAdapterFL, OutValRdyQueueAdapterFL
 from config.general import *
 from core.dataflow.fl import DataFlowUnitFL
+from core.controlflow.fl import ControlFlowUnitFL
 from core.fetch.fl import FetchFL
 from core.dispatch.fl import DispatchFL
 from core.issue.fl import IssueFL
@@ -23,7 +24,8 @@ class CoreFL(Model):
         s.stats_en = Bits(1, 0)
 
         s.dataflow = DataFlowUnitFL()
-        s.fetch = FetchFL()
+        s.controlflow = ControlFlowUnitFL(s.dataflow)
+        s.fetch = FetchFL(s.controlflow)
         s.dispatch = DispatchFL()
         s.issue = IssueFL(s.dataflow)
         s.functional = FunctionalFL(s.dataflow)
@@ -45,6 +47,7 @@ class CoreFL(Model):
         def tick():
             if s.reset:
                 s.dataflow.fl_reset()
+                s.controlflow.fl_reset()
 
     def line_trace(s):
         return 'DF: {} F: {} D: {} I: {} E: {} W: {} C: {}'.format(

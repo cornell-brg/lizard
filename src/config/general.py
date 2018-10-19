@@ -20,6 +20,9 @@ REG_TAG_COUNT = 64
 REG_TAG_LEN = clog2(REG_TAG_COUNT)
 INST_TAG_LEN = 64
 
+MAX_SPEC_DEPTH = 4
+MAX_SPEC_DEPTH_LEN = clog2(MAX_SPEC_DEPTH)
+
 CsrRegisters = bit_enum(
     'CsrRegisters',
     bits=12,

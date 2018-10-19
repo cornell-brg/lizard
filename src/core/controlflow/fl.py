@@ -6,20 +6,24 @@ from pclib.fl import InValRdyQueueAdapterFL, OutValRdyQueueAdapterFL
 from config.general import *
 
 
-class InstrState(BitStructDefinition):
+class InstrState:
     def __init__(s):
-        s.succesor_pc = BitField(XLEN)
-        s.valid = BitField(1)
-        s.in_flight = BitField(1)
+        s.succesor_pc = Bits(XLEN)
+        s.valid = Bits(1)
+        s.in_flight = Bits(1)
+        s.rename_table = None
 
 
 class ControlFlowUnitFL(Model):
-    def __init__(s):
+    def __init__(s, dataflow):
         s.seq = Bits(INST_TAG_LEN)
         s.head = Bits(INST_TAG_LEN)
         s.epoch = Bits(INST_TAG_LEN)
         s.in_flight = {}
         s.epoch_start = Bits(XLEN)
+        s.spec_depth = Bits(MAX_SPEC_DEPTH_LEN)
+
+        s.dataflow = dataflow
 
     def fl_reset(s):
         s.seq = 0
@@ -27,9 +31,10 @@ class ControlFlowUnitFL(Model):
         s.epoch = 0
         s.in_flight = {}
         s.epoch_start = RESET_VECTOR
+        s.spec_depth = 0
 
     def get_epoch_start(s, request):
-        resp = GetEpochStartRespose()
+        resp = GetEpochStartResponse()
         resp.current_epoch = s.epoch
         # Only a valid register if issued under a consistent epoch
         resp.valid = (request.epoch == s.epoch)
@@ -49,31 +54,59 @@ class ControlFlowUnitFL(Model):
             state.succesor_pc = request.succesor_pc
             state.valid = 1
             state.in_flight = 1
+            state.spec_depth = s.spec_depth
             s.in_flight[resp.tag] = state
         return resp
 
-    def request_redirect(s, request):
-        if s.in_flight[request.source_tag] == request.target_pc:
-            return
+    def mark_speculative(s, request):
+        resp = MarkSpeculativeResponse()
+        if s.spec_depth == MAX_SPEC_DEPTH - 1:
+            resp.success = 0
+        else:
+            # increase the speculation depth, and store the rename table
+            # from this point
+            s.spec_depth += 1
+            s.in_flight[request.tag].rename_table = dataflow.get_rename_table()
 
-        if not s.in_flight[request.source_tag].valid:
+    def request_redirect(s, request):
+        # if not at commit, and not speculative, error
+        assert request.at_commit or s.in_flight[
+            request.source_tag].rename_table is not None
+        # the instruction must be valid
+        assert s.in_flight[request.source_tag].valid
+
+        if s.in_flight[request.source_tag] == request.target_pc:
             return
 
         # invalidate all later instructions
         for tag, state in s.in_flight.iteritems():
             if tag > request.tag:
                 state.valid = 0
+                # if the instruction was speculative free it
+                if state.rename_table is not None:
+                    s.spec_depth -= 1
+                    state.rename_table = None
 
         # set a new epoch
         # all new instructions must fall sequentially "into the shadow"
         # of this one
         s.epoch += 1
 
+        if request.at_commit:
+            s.dataflow.rollback_to_arch_state()
+        else:
+            s.dataflow.set_rename_table(
+                s.in_flight[request.source_tag].rename_table)
+
     def tag_valid(s, request):
         return s.in_flight[request.tag].valid
 
     def retire(s, request):
         s.in_flight[request.tag].in_flight = 0
+
+        if s.in_flight[request.tag].rename_table is not None:
+            s.in_flight[request.tag].rename_table = None
+            s.spec_depth -= 1
 
         while s.in_flight[s.head].in_flight == 0:
             del s.in_flight[s.head]

@@ -36,6 +36,15 @@ class DataFlowUnitFL(Model):
 
         s.csr_file = {}
 
+    def get_rename_table(s):
+        return list(s.rename_table)
+
+    def set_rename_table(s, rename_table):
+        s.rename_table = list(rename_table)
+
+    def rollback_to_arch_state(s):
+        s.rename_table = list(s.areg_file)
+
     def get_src(s, areg):
         resp = GetSrcResponse()
         if areg != 0:
