@@ -127,4 +127,4 @@ class FunctionalFL( Model ):
       s.result_q.append( out )
 
   def line_trace( s ):
-    return "No line trace for you!"
+    return "hh"

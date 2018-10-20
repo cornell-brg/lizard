@@ -62,4 +62,4 @@ class FetchFL( Model ):
           s.bad.next = not resp.valid
 
   def line_trace( s ):
-    return 'b: {} pc: {}'.format( s.bad, s.pc )
+    return 'pc: {}'.format( s.pc )

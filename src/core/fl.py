@@ -12,6 +12,7 @@ from core.functional.fl import FunctionalFL
 from core.result.fl import ResultFL
 from core.commit.fl import CommitFL
 from util import line_block
+from util.line_block import Divider
 
 
 class CoreFL( Model ):
@@ -54,10 +55,15 @@ class CoreFL( Model ):
   def line_trace( s ):
     return line_block.join([
         'F: ',
-        s.fetch.line_trace(), 'D: ',
-        s.dispatch.line_trace(), 'I: ',
-        s.issue.line_trace(), 'E: ',
-        s.functional.line_trace(), 'R: ',
-        s.result.line_trace(), 'C: ',
+        s.fetch.line_trace(),
+        Divider( ' | ' ), 'D: ',
+        s.dispatch.line_trace(),
+        Divider( ' | ' ), 'I: ',
+        s.issue.line_trace(),
+        Divider( ' | ' ), 'E: ',
+        s.functional.line_trace(),
+        Divider( ' | ' ), 'R: ',
+        s.result.line_trace(),
+        Divider( ' | ' ), 'C: ',
         s.commit.line_trace()
     ] )

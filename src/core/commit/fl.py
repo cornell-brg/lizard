@@ -45,4 +45,4 @@ class CommitFL( Model ):
       s.controlflow.retire( creq )
 
   def line_trace( s ):
-    return "No line trace for you!"
+    return "bb"
