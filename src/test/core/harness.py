@@ -216,7 +216,7 @@ def run_test( ProcModel,
 
   # Run the simulation
 
-  print()
+  print( '' )
 
   def print_line_trace():
     print(

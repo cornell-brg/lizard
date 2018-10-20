@@ -198,8 +198,9 @@ class DispatchFL( Model ):
     bogus = s.result or DecodePacket()
 
     return LineBlock([
-        "{: <8} rd({}): {} imm: {}".format(
-            RV64Inst.name( bogus.inst ), bogus.rd_valid, bogus.rd,
-            bogus.imm ), "rs1({}): {}".format( bogus.rs1_valid, bogus.rs1 ),
-        "rs2({}): {}".format( bogus.rs2_valid, bogus.rs2 )
+        "{: <8} rd({}): {}".format(
+            RV64Inst.name( bogus.inst ), bogus.rd_valid, bogus.rd ),
+        "imm: {}".format( bogus.imm ), "rs1({}): {}".format(
+            bogus.rs1_valid, bogus.rs1 ), "rs2({}): {}".format(
+                bogus.rs2_valid, bogus.rs2 )
     ] )

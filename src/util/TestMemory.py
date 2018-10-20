@@ -12,6 +12,7 @@ from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 from pclib.cl import InValRdyRandStallAdapter
 from pclib.cl import OutValRdyInelasticPipeAdapter
 from util.line_block import LineBlock
+from msg.mem import MemMsgType
 
 #-------------------------------------------------------------------------
 # TestMemory
@@ -160,9 +161,9 @@ class TestMemory( Model ):
   #-----------------------------------------------------------------------
 
   def line_trace( s ):
-    result = [ 'mem' ]
+    result = []
     for req, resp_q, resp in zip( s.reqs, s.resps_q, s.resps ):
-      result += [ 'req: {}'.format( req ), 'resp: {}'.format( resp ) ]
+      result += [ '> {}'.format( req ), '< {}'.format( resp ) ]
       # trace_str += "{}({}){} ".format( req, resp_q, resp )
 
     return LineBlock( result )
