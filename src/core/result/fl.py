@@ -40,6 +40,7 @@ class ResultFL( Model ):
         return
 
       if p.rd_valid:
+        print( 'writing tag: R[{}] = {}'.format( p.rd, p.result ) )
         dataflow.write_tag( p.rd, p.result )
 
       out = ResultPacket()

@@ -50,21 +50,6 @@ class IssueFL( Model ):
         s.current_d = None
         return
 
-      # if the instruction has potential to redirect early (before commit)
-      # must declare instruction to controlflow
-      # (essentialy creates a rename table snapshot)
-      if not s.marked_speculative and s.current_d.is_branch:
-        creq = MarkSpeculativeRequest()
-        creq.tag = s.current_d.tag
-        cresp = s.controlflow.mark_speculative( creq )
-        if cresp.success:
-          s.marked_speculative = True
-        else:
-          # if we failed to mark it speculative
-          # (likely because we are too deeply in speculation right now)
-          # must stall
-          return
-
       if s.current_d.rs1_valid and s.current_rs1 is None:
         src = s.dataflow.get_src( s.current_d.rs1 )
         s.current_rs1 = src.tag
@@ -93,6 +78,23 @@ class IssueFL( Model ):
 
       # Done if all fields are as they should be
       if s.current_d.rd_valid == s.current_i.rd_valid and s.current_d.rs1_valid == s.current_i.rs1_valid and s.current_d.rs2_valid == s.current_i.rs2_valid:
+        # if the instruction has potential to redirect early (before commit)
+        # must declare instruction to controlflow
+        # (essentialy creates a rename table snapshot)
+        # note this happens after everything else is set -- this instruction
+        # must be part of the snapshot
+        if not s.marked_speculative and s.current_d.is_branch:
+          creq = MarkSpeculativeRequest()
+          creq.tag = s.current_d.tag
+          cresp = s.controlflow.mark_speculative( creq )
+          if cresp.success:
+            s.marked_speculative = True
+          else:
+            # if we failed to mark it speculative
+            # (likely because we are too deeply in speculation right now)
+            # must stall
+            return
+
         s.current_i.imm = s.current_d.imm
         s.current_i.inst = s.current_d.inst
         s.current_i.csr = s.current_d.csr
