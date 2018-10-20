@@ -6,6 +6,7 @@ from msg.control import *
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 from pclib.fl import InValRdyQueueAdapterFL, OutValRdyQueueAdapterFL
 from config.general import *
+from util.line_block import LineBlock
 
 
 class DispatchFL( Model ):
@@ -194,8 +195,11 @@ class DispatchFL( Model ):
     return res
 
   def line_trace( s ):
-    bogus = ' ' * len( str( DecodePacket() ) )
-    if s.result is None:
-      return bogus
-    else:
-      return str( s.result )
+    bogus = s.result or DecodePacket()
+
+    return LineBlock([
+        "{: <8} rd({}): {} imm: {}".format(
+            RV64Inst.name( bogus.inst ), bogus.rd_valid, bogus.rd,
+            bogus.imm ), "rs1({}): {}".format( bogus.rs1_valid, bogus.rs1 ),
+        "rs2({}): {}".format( bogus.rs2_valid, bogus.rs2 )
+    ] )

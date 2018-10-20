@@ -16,6 +16,7 @@ from pclib.test import TestMemory
 from util.tinyrv2_encoding import assemble, DATA_PACK_DIRECTIVE
 
 from config.general import *
+from util import line_block
 
 #=========================================================================
 # TestHarness
@@ -158,11 +159,12 @@ class TestHarness( Model ):
   #-----------------------------------------------------------------------
 
   def line_trace( s ):
-    return s.src.line_trace()  + " >" + \
-           ("- " if s.proc.stats_en else "  ") + \
-           s.proc.line_trace() + "|" + \
-           s.mem.line_trace()  + " > " + \
-           s.sink.line_trace()
+    return line_block.join([
+        s.src.line_trace(), " >", ( "- " if s.proc.stats_en else "  " ),
+        s.proc.line_trace(), "|",
+        s.mem.line_trace(), " > ",
+        s.sink.line_trace()
+    ] )
 
 
 #=========================================================================
@@ -214,14 +216,19 @@ def run_test( ProcModel,
 
   print()
 
+  def print_line_trace():
+    print(
+        line_block.join(
+            [ '{:>3} '.format( sim.ncycles ),
+              sim.model.line_trace() ] ) )
+
   sim.reset()
   while not model.done() and sim.ncycles < max_cycles:
-    sim.print_line_trace()
+    print_line_trace()
     sim.cycle()
 
   # print the very last line trace after the last tick
-
-  sim.print_line_trace()
+  print_line_trace()
 
   # Force a test failure if we timed out
 
