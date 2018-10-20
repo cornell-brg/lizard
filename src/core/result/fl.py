@@ -53,4 +53,4 @@ class ResultFL( Model ):
       s.result_out_q.append( out )
 
   def line_trace( s ):
-    return "No line trace for you!"
+    return "cq"

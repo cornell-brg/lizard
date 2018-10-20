@@ -11,12 +11,13 @@ from pymtl import *
 
 from msg import MemMsg4B
 from pclib.test import TestSource, TestSink
-from pclib.test import TestMemory
+from util.TestMemory import TestMemory
 
 from util.tinyrv2_encoding import assemble, DATA_PACK_DIRECTIVE
 
 from config.general import *
 from util import line_block
+from util.line_block import Divider
 
 #=========================================================================
 # TestHarness
@@ -161,7 +162,8 @@ class TestHarness( Model ):
   def line_trace( s ):
     return line_block.join([
         s.src.line_trace(), " >", ( "- " if s.proc.stats_en else "  " ),
-        s.proc.line_trace(), "|",
+        s.proc.line_trace(),
+        Divider( " | " ),
         s.mem.line_trace(), " > ",
         s.sink.line_trace()
     ] )
@@ -221,6 +223,7 @@ def run_test( ProcModel,
         line_block.join(
             [ '{:>3} '.format( sim.ncycles ),
               sim.model.line_trace() ] ) )
+    print( '\n' )
 
   sim.reset()
   while not model.done() and sim.ncycles < max_cycles:
