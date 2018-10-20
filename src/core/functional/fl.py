@@ -69,6 +69,7 @@ class FunctionalFL( Model ):
         out.result = Bits( XLEN, p.rs1.int() >> p.imm.uint(), trunc=True )
       elif p.is_branch:
         taken = False
+        base = p.pc
         if p.inst == RV64Inst.BEQ:
           taken = p.rs1 == p.rs2
         elif p.inst == RV64Inst.BNE:
@@ -81,11 +82,19 @@ class FunctionalFL( Model ):
           taken = p.rs1.uint() < p.rs2.uint()
         elif p.inst == RV64Inst.BGEU:
           taken = p.rs1.uint() >= p.rs2.uint()
+        elif p.inst == RV64Inst.JAL:
+          print( 'hi: {}'.format( p.pc + ILEN_BYTES ) )
+          out.result = p.pc + ILEN_BYTES
+          taken = True
+        elif p.inst == RV64Inst.JALR:
+          out.result = p.pc + ILEN_BYTES
+          taken = True
+          base = p.rs1
         else:
-          assert False, "invalid branch: {}".format( p.inst )
+          assert False, "invalid branch: {}".format( RV64Inst.name( p.inst ) )
 
         if taken:
-          target_pc = p.pc + sext( p.imm, XLEN )
+          target_pc = base + sext( p.imm, XLEN )
         else:
           target_pc = p.pc + ILEN_BYTES
         # note that we request a redirect no matter which way the branch went
