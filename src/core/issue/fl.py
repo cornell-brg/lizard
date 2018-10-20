@@ -5,6 +5,7 @@ from msg.control import *
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 from pclib.fl import InValRdyQueueAdapterFL, OutValRdyQueueAdapterFL
 from config.general import XLEN, ILEN, ILEN_BYTES, RESET_VECTOR, REG_COUNT
+from util.line_block import LineBlock
 
 
 class IssueFL( Model ):
@@ -106,4 +107,10 @@ class IssueFL( Model ):
         s.current_d = None
 
   def line_trace( s ):
-    return s.current_i
+    return LineBlock([
+        "{: <8} rd({}): {} imm: {}".format(
+            RV64Inst.name( s.current_i.inst ), s.current_i.rd_valid,
+            s.current_i.rd, s.current_i.imm ), "rs1({}): {}".format(
+                s.current_i.rs1_valid, s.current_i.rs1 ), "rs2({}): {}".format(
+                    s.current_i.rs2_valid, s.current_i.rs2 )
+    ] )

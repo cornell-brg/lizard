@@ -11,6 +11,7 @@ from core.issue.fl import IssueFL
 from core.functional.fl import FunctionalFL
 from core.result.fl import ResultFL
 from core.commit.fl import CommitFL
+from util import line_block
 
 
 class CoreFL( Model ):
@@ -51,7 +52,12 @@ class CoreFL( Model ):
         s.controlflow.fl_reset()
 
   def line_trace( s ):
-    return 'DF: {} F: {} D: {} I: {} E: {} W: {} C: {}'.format(
-        s.dataflow.line_trace(), s.fetch.line_trace(), s.dispatch.line_trace(),
-        s.issue.line_trace(), s.functional.line_trace(), s.result.line_trace(),
-        s.commit.line_trace() )
+    return line_block.join([
+        'F: ',
+        s.fetch.line_trace(), 'D: ',
+        s.dispatch.line_trace(), 'I: ',
+        s.issue.line_trace(), 'E: ',
+        s.functional.line_trace(), 'R: ',
+        s.result.line_trace(), 'C: ',
+        s.commit.line_trace()
+    ] )
