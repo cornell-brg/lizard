@@ -6,6 +6,7 @@ from msg.result import *
 from msg.control import *
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 from pclib.fl import InValRdyQueueAdapterFL, OutValRdyQueueAdapterFL
+from util.line_block import LineBlock
 
 
 class CommitFL( Model ):
@@ -16,6 +17,7 @@ class CommitFL( Model ):
 
     s.dataflow = dataflow
     s.controlflow = controlflow
+    s.committed = Bits( INST_TAG_LEN )
 
     @s.tick_fl
     def tick():
@@ -43,6 +45,7 @@ class CommitFL( Model ):
       creq = RetireRequest()
       creq.tag = p.tag
       s.controlflow.retire( creq )
+      s.committed = p.tag
 
   def line_trace( s ):
-    return "bb"
+    return "{}".format( s.committed )

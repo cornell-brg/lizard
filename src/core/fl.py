@@ -56,14 +56,14 @@ class CoreFL( Model ):
     return line_block.join([
         'F: ',
         s.fetch.line_trace(),
-        Divider( ' | ' ), 'D: ',
+        Divider( ' | ' ),
         s.dispatch.line_trace(),
-        Divider( ' | ' ), 'I: ',
+        Divider( ' | ' ),
         s.issue.line_trace(),
-        Divider( ' | ' ), 'E: ',
+        Divider( ' | ' ),
         s.functional.line_trace(),
-        Divider( ' | ' ), 'R: ',
+        Divider( ' | ' ),
         s.result.line_trace(),
-        Divider( ' | ' ), 'C: ',
+        Divider( ' | ' ),
         s.commit.line_trace()
     ] )

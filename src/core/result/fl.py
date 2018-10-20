@@ -6,6 +6,7 @@ from msg.result import *
 from msg.control import *
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 from pclib.fl import InValRdyQueueAdapterFL, OutValRdyQueueAdapterFL
+from util.line_block import LineBlock
 
 
 class ResultFL( Model ):
@@ -19,6 +20,8 @@ class ResultFL( Model ):
 
     s.dataflow = dataflow
     s.controlflow = controlflow
+
+    s.out = ResultPacket()
 
     @s.tick_fl
     def tick():
@@ -42,15 +45,19 @@ class ResultFL( Model ):
       if p.rd_valid:
         dataflow.write_tag( p.rd, p.result )
 
-      out = ResultPacket()
-      out.inst = p.inst
-      out.rd_valid = p.rd_valid
-      out.result.rd = p.rd
-      out.result = p.result
-      out.pc = p.pc
-      out.tag = p.tag
+      s.out = ResultPacket()
+      s.out.inst = p.inst
+      s.out.rd_valid = p.rd_valid
+      s.out.result.rd = p.rd
+      s.out.result = p.result
+      s.out.pc = p.pc
+      s.out.tag = p.tag
 
-      s.result_out_q.append( out )
+      s.result_out_q.append( s.out )
 
   def line_trace( s ):
-    return "cq"
+    return LineBlock([
+        "{: <8} rd({}): {}".format(
+            RV64Inst.name( s.out.inst ), s.out.rd_valid, s.out.rd ),
+        "res: {}".format( s.out.result )
+    ] )
