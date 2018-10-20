@@ -45,7 +45,7 @@ class FunctionalFL( Model ):
       s.out.inst = p.inst
       s.out.rd_valid = p.rd_valid
       s.out.rd = p.rd
-
+      # IMMs
       if p.inst == RV64Inst.ADDI:
         s.out.result = p.rs1 + sext( p.imm, XLEN )
       elif p.inst == RV64Inst.SLTI:
@@ -70,6 +70,28 @@ class FunctionalFL( Model ):
         s.out.result = Bits( XLEN, p.rs1.uint() >> p.imm.uint(), trunc=True )
       elif p.inst == RV64Inst.SRAI:
         s.out.result = Bits( XLEN, p.rs1.int() >> p.imm.uint(), trunc=True )
+      # Register register insts
+      elif p.inst == RV64Inst.ADD:
+        s.out.result = p.rs1 + p.rs2
+      elif p.inst == RV64Inst.SUB:
+        s.out.result = p.rs1 - p.rs2
+      elif p.inst == RV64Inst.SLL:
+        s.out.result = p.rs1 << p.rs2
+      elif p.inst == RV64Inst.SRL:
+        s.out.result = p.rs1 >> p.rs2
+      elif p.inst == RV64Inst.SLT:
+        s.out.result = int(p.rs1.int() < p.rs2.int())
+      elif p.inst == RV64Inst.SLTU:
+        s.out.result = int(p.rs1.uint() < p.rs2.uint())
+      elif p.inst == RV64Inst.XOR:
+        s.out.result = p.rs1 ^ p.rs2
+      elif p.inst == RV64Inst.OR:
+        s.out.result = p.rs1 | p.rs2
+      elif p.inst == RV64Inst.AND:
+        s.out.result = p.rs1 & p.rs2
+      elif p.inst == RV64Inst.SRA:
+        s.out.result = Bits( XLEN, p.rs1.int() >> p.rs2.uint(), trunc=True )
+      # Branches
       elif p.is_branch:
         taken = False
         base = p.pc
