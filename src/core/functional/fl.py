@@ -102,9 +102,9 @@ class FunctionalFL( Model ):
     elif s.p.inst == RV64Inst.SRL:
       s.out.result = s.p.rs1 >> s.p.rs2
     elif s.p.inst == RV64Inst.SLT:
-      s.out.result = int(s.p.rs1.int() < s.p.rs2.int())
+      s.out.result = int( s.p.rs1.int() < s.p.rs2.int() )
     elif s.p.inst == RV64Inst.SLTU:
-      s.out.result = int(s.p.rs1.uint() < s.p.rs2.uint())
+      s.out.result = int( s.p.rs1.uint() < s.p.rs2.uint() )
     elif s.p.inst == RV64Inst.XOR:
       s.out.result = s.p.rs1 ^ s.p.rs2
     elif s.p.inst == RV64Inst.OR:
