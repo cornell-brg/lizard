@@ -92,6 +92,27 @@ class FunctionalFL( Model ):
     elif s.p.inst == RV64Inst.SRAI:
       s.out.next.result = Bits(
           XLEN, s.p.rs1.int() >> s.p.imm.uint(), trunc=True )
+    # Register register insts
+    elif s.p.inst == RV64Inst.ADD:
+      s.out.result = s.p.rs1 + s.p.rs2
+    elif s.p.inst == RV64Inst.SUB:
+      s.out.result = s.p.rs1 - s.p.rs2
+    elif s.p.inst == RV64Inst.SLL:
+      s.out.result = s.p.rs1 << s.p.rs2
+    elif s.p.inst == RV64Inst.SRL:
+      s.out.result = s.p.rs1 >> s.p.rs2
+    elif s.p.inst == RV64Inst.SLT:
+      s.out.result = int(s.p.rs1.int() < s.p.rs2.int())
+    elif s.p.inst == RV64Inst.SLTU:
+      s.out.result = int(s.p.rs1.uint() < s.p.rs2.uint())
+    elif s.p.inst == RV64Inst.XOR:
+      s.out.result = s.p.rs1 ^ s.p.rs2
+    elif s.p.inst == RV64Inst.OR:
+      s.out.result = s.p.rs1 | s.p.rs2
+    elif s.p.inst == RV64Inst.AND:
+      s.out.result = s.p.rs1 & s.p.rs2
+    elif s.p.inst == RV64Inst.SRA:
+      s.out.result = Bits( XLEN, s.p.rs1.int() >> s.p.rs2.uint(), trunc=True )
     elif s.p.is_branch:
       taken = False
       base = s.p.pc
