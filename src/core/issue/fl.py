@@ -3,7 +3,7 @@ from msg.decode import *
 from msg.issue import *
 from msg.control import *
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
-from pclib.cl import InValRdyQueueAdapter, OutValRdyQueueAdapter
+from util.cl.adapters import UnbufferedInValRdyQueueAdapter, UnbufferedOutValRdyQueueAdapter
 from config.general import XLEN, ILEN, ILEN_BYTES, RESET_VECTOR, REG_COUNT
 from util.line_block import LineBlock
 from copy import deepcopy
@@ -15,8 +15,8 @@ class IssueFL( Model ):
     s.decoded = InValRdyBundle( DecodePacket() )
     s.issued = OutValRdyBundle( IssuePacket() )
 
-    s.decoded_q = InValRdyQueueAdapter( s.decoded )
-    s.issued_q = OutValRdyQueueAdapter( s.issued )
+    s.decoded_q = UnbufferedInValRdyQueueAdapter( s.decoded )
+    s.issued_q = UnbufferedOutValRdyQueueAdapter( s.issued )
 
     s.dataflow = dataflow
     s.controlflow = controlflow
@@ -124,7 +124,7 @@ class IssueFL( Model ):
 
   def line_trace( s ):
     return LineBlock([
-        "{: <8} rd({}): {}".format(
+        "{}".format( s.out.tag ), "{: <8} rd({}): {}".format(
             RV64Inst.name( s.out.inst ), s.out.rd_valid, s.out.rd ),
         "imm: {}".format( s.out.imm ), "rs1({}): {}".format(
             s.out.rs1_valid, s.out.rs1 ), "rs2({}): {}".format(

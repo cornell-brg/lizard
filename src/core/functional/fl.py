@@ -4,7 +4,7 @@ from msg.issue import *
 from msg.functional import *
 from msg.control import *
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
-from pclib.cl import InValRdyQueueAdapter, OutValRdyQueueAdapter
+from util.cl.adapters import UnbufferedInValRdyQueueAdapter, UnbufferedOutValRdyQueueAdapter
 from util.line_block import LineBlock
 from copy import deepcopy
 
@@ -15,8 +15,8 @@ class FunctionalFL( Model ):
     s.issued = InValRdyBundle( IssuePacket() )
     s.result = OutValRdyBundle( FunctionalPacket() )
 
-    s.issued_q = InValRdyQueueAdapter( s.issued )
-    s.result_q = OutValRdyQueueAdapter( s.result )
+    s.issued_q = UnbufferedInValRdyQueueAdapter( s.issued )
+    s.result_q = UnbufferedOutValRdyQueueAdapter( s.result )
 
     s.dataflow = dataflow
     s.controlflow = controlflow
@@ -182,7 +182,7 @@ class FunctionalFL( Model ):
 
   def line_trace( s ):
     return LineBlock([
-        "{: <8} rd({}): {}".format(
+        "{}".format( s.out.tag ), "{: <8} rd({}): {}".format(
             RV64Inst.name( s.out.inst ), s.out.rd_valid, s.out.rd ),
         "res: {}".format( s.out.result )
     ] ).validate( s.out_valid )

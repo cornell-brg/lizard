@@ -5,7 +5,7 @@ from msg.functional import *
 from msg.result import *
 from msg.control import *
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
-from pclib.cl import InValRdyQueueAdapter, OutValRdyQueueAdapter
+from util.cl.adapters import UnbufferedInValRdyQueueAdapter, UnbufferedOutValRdyQueueAdapter
 from util.line_block import LineBlock
 from copy import deepcopy
 
@@ -14,7 +14,7 @@ class CommitFL( Model ):
 
   def __init__( s, dataflow, controlflow ):
     s.result_in = InValRdyBundle( ResultPacket() )
-    s.result_in_q = InValRdyQueueAdapter( s.result_in )
+    s.result_in_q = UnbufferedInValRdyQueueAdapter( s.result_in )
 
     s.dataflow = dataflow
     s.controlflow = controlflow

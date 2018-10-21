@@ -32,7 +32,7 @@ class LineBlock:
                   width=None,
                   height=None,
                   h_align=Alignment.LEFT,
-                  v_align=Alignment.CENTER,
+                  v_align=Alignment.TOP,
                   top='',
                   bottom='',
                   left='',
@@ -86,10 +86,7 @@ class Divider:
     s.divider = divider
 
 
-def join( items,
-          height=None,
-          h_align=Alignment.LEFT,
-          v_align=Alignment.CENTER ):
+def join( items, height=None, h_align=Alignment.LEFT, v_align=Alignment.TOP ):
 
   def block_height( x ):
     if isinstance( x, LineBlock ):

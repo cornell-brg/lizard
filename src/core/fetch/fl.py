@@ -3,6 +3,7 @@ from msg import MemMsg4B
 from msg.fetch import FetchPacket
 from msg.control import *
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
+from util.cl.adapters import UnbufferedInValRdyQueueAdapter, UnbufferedOutValRdyQueueAdapter
 from pclib.cl import InValRdyQueueAdapter, OutValRdyQueueAdapter
 from config.general import *
 from util.line_block import LineBlock
@@ -19,7 +20,7 @@ class FetchFL( Model ):
     s.req_q = OutValRdyQueueAdapter( s.mem_req )
     s.resp_q = InValRdyQueueAdapter( s.mem_resp )
     # output
-    s.instrs_q = OutValRdyQueueAdapter( s.instrs )
+    s.instrs_q = UnbufferedOutValRdyQueueAdapter( s.instrs )
 
     s.pc = Wire( XLEN )
     s.bad = Wire( 1 )
@@ -97,4 +98,6 @@ class FetchFL( Model ):
         s.in_flight.next = 1
 
   def line_trace( s ):
-    return LineBlock( 'pc: {}'.format( s.out.pc ) ).validate( s.out_valid )
+    return LineBlock(
+        [ 'epoch: {}'.format( s.epoch ),
+          'pc: {}'.format( s.out.pc ) ] ).validate( s.out_valid )

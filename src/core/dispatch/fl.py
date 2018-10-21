@@ -4,7 +4,7 @@ from msg.fetch import FetchPacket
 from msg.decode import *
 from msg.control import *
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
-from pclib.cl import InValRdyQueueAdapter, OutValRdyQueueAdapter
+from util.cl.adapters import UnbufferedInValRdyQueueAdapter, UnbufferedOutValRdyQueueAdapter
 from config.general import *
 from util.line_block import LineBlock
 from copy import deepcopy
@@ -16,8 +16,8 @@ class DispatchFL( Model ):
     s.instr = InValRdyBundle( FetchPacket() )
     s.decoded = OutValRdyBundle( DecodePacket() )
 
-    s.instr_q = InValRdyQueueAdapter( s.instr )
-    s.decoded_q = OutValRdyQueueAdapter( s.decoded )
+    s.instr_q = UnbufferedInValRdyQueueAdapter( s.instr )
+    s.decoded_q = UnbufferedOutValRdyQueueAdapter( s.decoded )
 
     s.out = Wire( DecodePacket() )
     s.out_valid = Wire( 1 )
@@ -217,12 +217,11 @@ class DispatchFL( Model ):
     return res
 
   def line_trace( s ):
-    bogus = s.out or DecodePacket()
-
     return LineBlock([
+        "{}".format( s.out.tag ), "{}".format( s.out.pc ),
         "{: <8} rd({}): {}".format(
-            RV64Inst.name( bogus.inst ), bogus.rd_valid, bogus.rd ),
-        "imm: {}".format( bogus.imm ), "rs1({}): {}".format(
-            bogus.rs1_valid, bogus.rs1 ), "rs2({}): {}".format(
-                bogus.rs2_valid, bogus.rs2 )
+            RV64Inst.name( s.out.inst ), s.out.rd_valid,
+            s.out.rd ), "imm: {}".format( s.out.imm ), "rs1({}): {}".format(
+                s.out.rs1_valid, s.out.rs1 ), "rs2({}): {}".format(
+                    s.out.rs2_valid, s.out.rs2 )
     ] ).validate( s.out_valid )

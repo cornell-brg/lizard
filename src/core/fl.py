@@ -1,7 +1,7 @@
 from pymtl import *
 from msg import MemMsg4B
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
-from pclib.cl import InValRdyQueueAdapter, OutValRdyQueueAdapter
+from util.cl.adapters import UnbufferedInValRdyQueueAdapter, UnbufferedOutValRdyQueueAdapter
 from config.general import *
 from core.dataflow.fl import DataFlowUnitFL
 from core.controlflow.fl import ControlFlowUnitFL
