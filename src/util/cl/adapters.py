@@ -20,15 +20,16 @@ class UnbufferedInValRdyQueueAdapter( object ):
 
   def __init__( s, in_ ):
     s.in_ = in_
-    s.took = Bits( 1, 0 )
 
   def empty( s ):
-    return not s.in_.val
+    return not s.in_.val or not s.in_.rdy
+
+  def assert_rdy( s ):
+    s.in_.rdy.next = 1
 
   def deq( s ):
-    assert s.in_.val
+    assert s.in_.val and s.in_.rdy
     item = deepcopy( s.in_.msg )
-    s.in_.rdy.next = 1
     return item
 
   def xtick( s ):
@@ -49,6 +50,12 @@ class UnbufferedOutValRdyQueueAdapter( object ):
   def full( s ):
     return s.data is not None
 
+  def val( s ):
+    return s.out.val
+
+  def msg( s ):
+    return s.out.msg
+
   def enq( s, item ):
     assert not s.full()
     s.data = deepcopy( item )
@@ -56,6 +63,6 @@ class UnbufferedOutValRdyQueueAdapter( object ):
     s.out.val.next = 1
 
   def xtick( s ):
-    if s.out.rdy.next and s.full():
+    if s.out.rdy and s.out.val:
       s.data = None
-    s.out.val.next = s.full()
+    s.out.val.next = s.data is not None

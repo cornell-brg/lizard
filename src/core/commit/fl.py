@@ -33,6 +33,7 @@ class CommitFL( Model ):
       s.valid.next = 0
 
     if s.result_in_q.empty():
+      s.result_in_q.assert_rdy()
       return
 
     p = s.result_in_q.deq()
@@ -63,4 +64,6 @@ class CommitFL( Model ):
     s.valid.next = 1
 
   def line_trace( s ):
-    return LineBlock( "{}".format( s.committed ) ).validate( s.valid )
+    return LineBlock([
+        "{}".format( s.committed ),
+    ] ).validate( s.valid )
