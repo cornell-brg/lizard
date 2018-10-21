@@ -6,7 +6,7 @@ from pymtl import *
 from msg import MemMsg4B
 from msg.decode import DecodePacket
 from pclib.test import TestSource, TestSink
-from pclib.fl import InValRdyQueueAdapterFL, OutValRdyQueueAdapterFL
+from pclib.cl import InValRdyQueueAdapter, OutValRdyQueueAdapter
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 from msg.fetch import FetchPacket
 

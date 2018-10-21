@@ -1,7 +1,7 @@
 from pymtl import *
 from msg import MemMsg4B
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
-from pclib.fl import InValRdyQueueAdapterFL, OutValRdyQueueAdapterFL
+from pclib.cl import InValRdyQueueAdapter, OutValRdyQueueAdapter
 from config.general import *
 from core.dataflow.fl import DataFlowUnitFL
 from core.controlflow.fl import ControlFlowUnitFL
@@ -46,11 +46,18 @@ class CoreFL( Model ):
     s.connect( s.functional.result, s.result.result_in )
     s.connect( s.result.result_out, s.commit.result_in )
 
-    @s.tick_fl
+    @s.tick_cl
     def tick():
       if s.reset:
         s.dataflow.fl_reset()
         s.controlflow.fl_reset()
+      s.dataflow.xtick()
+      s.commit.xtick()
+      s.result.xtick()
+      s.functional.xtick()
+      s.issue.xtick()
+      s.dispatch.xtick()
+      s.fetch.xtick()
 
   def line_trace( s ):
     return line_block.join([

@@ -9,6 +9,8 @@ class Alignment:
 class LineBlock:
 
   def __init__( s, blocks ):
+    if isinstance( blocks, str ):
+      blocks = [ blocks ]
     s.blocks = blocks
 
   def width( s ):
@@ -16,6 +18,15 @@ class LineBlock:
 
   def height( s ):
     return len( s.blocks )
+
+  def null( s ):
+    return LineBlock([ ' ' * s.width() ] * s.height() )
+
+  def validate( s, good ):
+    if good:
+      return s
+    else:
+      return s.null()
 
   def normalized( s,
                   width=None,
