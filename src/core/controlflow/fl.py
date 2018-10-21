@@ -2,7 +2,7 @@ from pymtl import *
 from msg.data import *
 from msg.control import *
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
-from pclib.fl import InValRdyQueueAdapterFL, OutValRdyQueueAdapterFL
+from pclib.cl import InValRdyQueueAdapter, OutValRdyQueueAdapter
 from config.general import *
 
 

@@ -4,9 +4,10 @@ from msg.fetch import FetchPacket
 from msg.decode import *
 from msg.control import *
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
-from pclib.fl import InValRdyQueueAdapterFL, OutValRdyQueueAdapterFL
+from pclib.cl import InValRdyQueueAdapter, OutValRdyQueueAdapter
 from config.general import *
 from util.line_block import LineBlock
+from copy import deepcopy
 
 
 class DispatchFL( Model ):
@@ -15,44 +16,62 @@ class DispatchFL( Model ):
     s.instr = InValRdyBundle( FetchPacket() )
     s.decoded = OutValRdyBundle( DecodePacket() )
 
-    s.instr_q = InValRdyQueueAdapterFL( s.instr )
-    s.decoded_q = OutValRdyQueueAdapterFL( s.decoded )
+    s.instr_q = InValRdyQueueAdapter( s.instr )
+    s.decoded_q = OutValRdyQueueAdapter( s.decoded )
 
-    s.result = None
+    s.out = Wire( DecodePacket() )
+    s.out_valid = Wire( 1 )
+
     s.controlflow = controlflow
 
-    @s.tick_fl
-    def tick():
-      s.result = None
-      decoded = s.instr_q.popleft()
+  def xtick( s ):
+    s.instr_q.xtick()
+    s.decoded_q.xtick()
 
-      # verify instruction still alive
-      creq = TagValidRequest()
-      creq.tag = decoded.tag
-      cresp = s.controlflow.tag_valid( creq )
-      if not cresp.valid:
+    if s.reset:
+      s.out_valid.next = 0
+      return
+
+    if s.out_valid.value:
+      if not s.decoded_q.full():
+        s.decoded_q.enq( deepcopy( s.out ) )
+        s.out_valid.next = 0
+      else:
         return
 
-      inst = decoded.instr
-      # Decode it and create packet
-      opmap = {
-          int( Opcode.OP_IMM ): s.dec_op_imm,
-          int( Opcode.OP ): s.dec_op,
-          int( Opcode.SYSTEM ): s.dec_system,
-          int( Opcode.BRANCH ): s.dec_branch,
-          int( Opcode.JAL ): s.dec_jal,
-          int( Opcode.JALR ): s.dec_jalr,
-      }
-      try:
-        opcode = inst[ RVInstMask.OPCODE ]
-        s.result = opmap[ opcode.uint() ]( inst )
-        s.result.pc = decoded.pc
-        s.result.tag = decoded.tag
-      except KeyError:
-        raise NotImplementedError( 'Not implemented so sad: ' +
-                                   Opcode.name( opcode ) )
+    if s.instr_q.empty():
+      return
 
-      s.decoded_q.append( s.result )
+    decoded = s.instr_q.deq()
+
+    # verify instruction still alive
+    creq = TagValidRequest()
+    creq.tag = decoded.tag
+    cresp = s.controlflow.tag_valid( creq )
+    if not cresp.valid:
+      return
+
+    inst = decoded.instr
+    # Decode it and create packet
+    opmap = {
+        int( Opcode.OP_IMM ): s.dec_op_imm,
+        int( Opcode.OP ): s.dec_op,
+        int( Opcode.SYSTEM ): s.dec_system,
+        int( Opcode.BRANCH ): s.dec_branch,
+        int( Opcode.JAL ): s.dec_jal,
+        int( Opcode.JALR ): s.dec_jalr,
+    }
+    try:
+      opcode = inst[ RVInstMask.OPCODE ]
+      s.out.next = opmap[ opcode.uint() ]( inst )
+      s.out.next.pc = decoded.pc
+      s.out.next.tag = decoded.tag
+    except KeyError:
+      return
+      # TODO: illegal instruction exception
+      #raise NotImplementedError( 'Not implemented so sad: ' +
+      #                           Opcode.name( opcode ) )
+    s.out_valid.next = 1
 
   def dec_op_imm( s, inst ):
     res = DecodePacket()
@@ -195,7 +214,7 @@ class DispatchFL( Model ):
     return res
 
   def line_trace( s ):
-    bogus = s.result or DecodePacket()
+    bogus = s.out or DecodePacket()
 
     return LineBlock([
         "{: <8} rd({}): {}".format(
@@ -203,4 +222,4 @@ class DispatchFL( Model ):
         "imm: {}".format( bogus.imm ), "rs1({}): {}".format(
             bogus.rs1_valid, bogus.rs1 ), "rs2({}): {}".format(
                 bogus.rs2_valid, bogus.rs2 )
-    ] )
+    ] ).validate( s.out_valid )

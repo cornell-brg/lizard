@@ -1,6 +1,6 @@
 from msg.data import *
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
-from pclib.fl import InValRdyQueueAdapterFL, OutValRdyQueueAdapterFL
+from pclib.cl import InValRdyQueueAdapter, OutValRdyQueueAdapter
 from config.general import *
 from util.freelist.fl import FreeListFL
 
@@ -26,8 +26,9 @@ class DataFlowUnitFL( Model ):
     s.mngr2proc = InValRdyBundle( Bits( XLEN ) )
     s.proc2mngr = OutValRdyBundle( Bits( XLEN ) )
 
-    s.mngr2proc_q = InValRdyQueueAdapterFL( s.mngr2proc )
-    s.proc2mngr_q = OutValRdyQueueAdapterFL( s.proc2mngr )
+    # size of None means it can grow arbitraily large
+    s.mngr2proc_q = InValRdyQueueAdapter( s.mngr2proc, size=None )
+    s.proc2mngr_q = OutValRdyQueueAdapter( s.proc2mngr, size=None )
 
   def fl_reset( s ):
     s.free_regs.fl_reset()
@@ -37,6 +38,10 @@ class DataFlowUnitFL( Model ):
       s.commit_tag( tag, True )
 
     s.csr_file = {}
+
+  def xtick( s ):
+    s.mngr2proc_q.xtick()
+    s.proc2mngr_q.xtick()
 
   def get_rename_table( s ):
     return list( s.rename_table )
@@ -104,14 +109,21 @@ class DataFlowUnitFL( Model ):
       s.areg_file[ preg.areg ] = tag
 
   def read_csr( s, csr_num ):
+    if not hasattr( s, 'cow' ):
+      s.cow = 0
     if csr_num == CsrRegisters.mngr2proc:
-      return s.mngr2proc_q.popleft()
+      s.cow += 1
+      if s.mngr2proc_q.empty():
+        return None, False
+      else:
+        return s.mngr2proc_q.deq(), True
     else:
-      return s.csr_file.get( int( csr_num ), Bits( XLEN, 0 ) )
+      return s.csr_file.get( int( csr_num ), Bits( XLEN, 0 ) ), True
 
   def write_csr( s, csr_num, value ):
     if csr_num == CsrRegisters.proc2mngr:
-      s.proc2mngr_q.append( value )
+      # can grow forever, so enq will always work
+      s.proc2mngr_q.enq( value )
     else:
       s.csr_file[ int( csr_num ) ] = value
 
