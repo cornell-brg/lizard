@@ -21,28 +21,20 @@ class IssueFL( Model ):
     s.dataflow = dataflow
     s.controlflow = controlflow
 
-    s.out = Wire( IssuePacket() )
-    s.out_valid = Wire( 1 )
-
   def xtick( s ):
     s.decoded_q.xtick()
     s.issued_q.xtick()
 
     if s.reset:
       s.current_d = None
-      s.out_valid.next = 0
       return
 
-    if s.out_valid:
-      if not s.issued_q.full():
-        s.issued_q.enq( deepcopy( s.out ) )
-        s.out_valid.next = 0
-        s.current_d = None
-      else:
-        return
+    if s.issued_q.full():
+      return
 
     if s.current_d is None:
       if s.decoded_q.empty():
+        s.decoded_q.assert_rdy()
         return
       s.current_d = s.decoded_q.deq()
       s.work = IssuePacket()
@@ -119,14 +111,19 @@ class IssueFL( Model ):
       s.work.pc = s.current_d.pc
       s.work.tag = s.current_d.tag
       s.work.is_branch = s.current_d.is_branch
-      s.out.next = s.work
-      s.out_valid.next = 1
+      s.issued_q.enq( s.work )
+      s.current_d = None
 
   def line_trace( s ):
     return LineBlock([
-        "{}".format( s.out.tag ), "{: <8} rd({}): {}".format(
-            RV64Inst.name( s.out.inst ), s.out.rd_valid, s.out.rd ),
-        "imm: {}".format( s.out.imm ), "rs1({}): {}".format(
-            s.out.rs1_valid, s.out.rs1 ), "rs2({}): {}".format(
-                s.out.rs2_valid, s.out.rs2 )
-    ] ).validate( s.out_valid )
+        "{}".format( s.issued_q.msg().tag ),
+        "{: <8} rd({}): {}".format(
+            RV64Inst.name( s.issued_q.msg().inst ),
+            s.issued_q.msg().rd_valid,
+            s.issued_q.msg().rd ),
+        "imm: {}".format( s.issued_q.msg().imm ),
+        "rs1({}): {}".format( s.issued_q.msg().rs1_valid,
+                              s.issued_q.msg().rs1 ),
+        "rs2({}): {}".format( s.issued_q.msg().rs2_valid,
+                              s.issued_q.msg().rs2 ),
+    ] ).validate( s.issued_q.val() )

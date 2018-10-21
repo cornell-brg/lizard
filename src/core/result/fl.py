@@ -22,25 +22,18 @@ class ResultFL( Model ):
     s.dataflow = dataflow
     s.controlflow = controlflow
 
-    s.out = Wire( ResultPacket() )
-    s.out_valid = Wire( 1 )
-
   def xtick( s ):
     s.result_in_q.xtick()
     s.result_out_q.xtick()
 
     if s.reset:
-      s.out_valid.next = 0
       return
 
-    if s.out_valid:
-      if not s.result_out_q.full():
-        s.result_out_q.enq( deepcopy( s.out ) )
-        s.out_valid.next = 0
-      else:
-        return
+    if s.result_out_q.full():
+      return
 
     if s.result_in_q.empty():
+      s.result_in_q.assert_rdy()
       return
 
     p = s.result_in_q.deq()
@@ -63,18 +56,21 @@ class ResultFL( Model ):
     if p.rd_valid:
       s.dataflow.write_tag( p.rd, p.result )
 
-    s.out.next = ResultPacket()
-    s.out.next.inst = p.inst
-    s.out.next.rd_valid = p.rd_valid
-    s.out.next.rd = p.rd
-    s.out.next.result = p.result
-    s.out.next.pc = p.pc
-    s.out.next.tag = p.tag
-    s.out_valid.next = 1
+    out = ResultPacket()
+    out.inst = p.inst
+    out.rd_valid = p.rd_valid
+    out.rd = p.rd
+    out.result = p.result
+    out.pc = p.pc
+    out.tag = p.tag
+    s.result_out_q.enq( out )
 
   def line_trace( s ):
     return LineBlock([
-        "{}".format( s.out.tag ), "{: <8} rd({}): {}".format(
-            RV64Inst.name( s.out.inst ), s.out.rd_valid, s.out.rd ),
-        "res: {}".format( s.out.result )
-    ] ).validate( s.out_valid )
+        "{}".format( s.result_out_q.msg().tag ),
+        "{: <8} rd({}): {}".format(
+            RV64Inst.name( s.result_out_q.msg().inst ),
+            s.result_out_q.msg().rd_valid,
+            s.result_out_q.msg().rd ),
+        "res: {}".format( s.result_out_q.msg().result ),
+    ] ).validate( s.result_out_q.val() )

@@ -19,9 +19,6 @@ class DispatchFL( Model ):
     s.instr_q = UnbufferedInValRdyQueueAdapter( s.instr )
     s.decoded_q = UnbufferedOutValRdyQueueAdapter( s.decoded )
 
-    s.out = Wire( DecodePacket() )
-    s.out_valid = Wire( 1 )
-
     s.controlflow = controlflow
 
   def xtick( s ):
@@ -29,17 +26,13 @@ class DispatchFL( Model ):
     s.decoded_q.xtick()
 
     if s.reset:
-      s.out_valid.next = 0
       return
 
-    if s.out_valid.value:
-      if not s.decoded_q.full():
-        s.decoded_q.enq( deepcopy( s.out ) )
-        s.out_valid.next = 0
-      else:
-        return
+    if s.decoded_q.full():
+      return
 
     if s.instr_q.empty():
+      s.instr_q.assert_rdy()
       return
 
     decoded = s.instr_q.deq()
@@ -63,15 +56,15 @@ class DispatchFL( Model ):
     }
     try:
       opcode = inst[ RVInstMask.OPCODE ]
-      s.out.next = opmap[ opcode.uint() ]( inst )
-      s.out.next.pc = decoded.pc
-      s.out.next.tag = decoded.tag
+      out = opmap[ opcode.uint() ]( inst )
+      out.pc = decoded.pc
+      out.tag = decoded.tag
     except KeyError:
       return
       # TODO: illegal instruction exception
       #raise NotImplementedError( 'Not implemented so sad: ' +
       #                           Opcode.name( opcode ) )
-    s.out_valid.next = 1
+    s.decoded_q.enq( out )
 
   def dec_op_imm( s, inst ):
     res = DecodePacket()
@@ -218,10 +211,15 @@ class DispatchFL( Model ):
 
   def line_trace( s ):
     return LineBlock([
-        "{}".format( s.out.tag ), "{}".format( s.out.pc ),
+        "{}".format( s.decoded_q.msg().tag ),
+        "{}".format( s.decoded_q.msg().pc ),
         "{: <8} rd({}): {}".format(
-            RV64Inst.name( s.out.inst ), s.out.rd_valid,
-            s.out.rd ), "imm: {}".format( s.out.imm ), "rs1({}): {}".format(
-                s.out.rs1_valid, s.out.rs1 ), "rs2({}): {}".format(
-                    s.out.rs2_valid, s.out.rs2 )
-    ] ).validate( s.out_valid )
+            RV64Inst.name( s.decoded_q.msg().inst ),
+            s.decoded_q.msg().rd_valid,
+            s.decoded_q.msg().rd ),
+        "imm: {}".format( s.decoded_q.msg().imm ),
+        "rs1({}): {}".format( s.decoded_q.msg().rs1_valid,
+                              s.decoded_q.msg().rs1 ),
+        "rs2({}): {}".format( s.decoded_q.msg().rs2_valid,
+                              s.decoded_q.msg().rs2 ),
+    ] ).validate( s.decoded_q.val() )

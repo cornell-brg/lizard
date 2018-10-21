@@ -25,8 +25,6 @@ class FetchFL( Model ):
     s.pc = Wire( XLEN )
     s.bad = Wire( 1 )
     s.epoch = Wire( INST_TAG_LEN )
-    s.out = Wire( FetchPacket() )
-    s.out_valid = Wire( 1 )
     s.in_flight = Wire( 1 )
     s.pc_in_flight = Wire( XLEN )
     s.pc_in_flight_successor = Wire( XLEN )
@@ -41,16 +39,11 @@ class FetchFL( Model ):
     if s.reset:
       s.bad.next = 1
       s.epoch.next = 0
-      s.out_valid.next = 0
       s.in_flight.next = 0
       return
 
-    if s.out_valid.value:
-      if not s.instrs_q.full():
-        s.instrs_q.enq( deepcopy( s.out ) )
-        s.out_valid.next = 0
-      else:
-        return
+    if s.instrs_q.full():
+      return
 
     if s.bad.value:
       req = GetEpochStartRequest()
@@ -74,19 +67,17 @@ class FetchFL( Model ):
       if s.in_flight.value and not s.resp_q.empty():
         mem_resp = s.resp_q.deq()
         s.in_flight.next = 0
-        s.out.next = FetchPacket()
-        s.out.next.instr = mem_resp.data
-        s.out.next.pc = s.pc_in_flight.value
+        out = FetchPacket()
+        out.instr = mem_resp.data
+        out.pc = s.pc_in_flight.value
 
         req = RegisterInstrRequest()
         req.succesor_pc = s.pc_in_flight_successor.value
         req.epoch = s.epoch.value
         resp = s.controlflow.register( req )
         if resp.valid:
-          s.out.next.tag = resp.tag
-          s.out_valid.next = 1
-        else:
-          s.out_valid.next = 0
+          out.tag = resp.tag
+          s.instrs_q.enq( out )
         s.epoch.next = resp.current_epoch
         s.bad.next = not resp.valid
 
@@ -98,6 +89,7 @@ class FetchFL( Model ):
         s.in_flight.next = 1
 
   def line_trace( s ):
-    return LineBlock(
-        [ 'epoch: {}'.format( s.epoch ),
-          'pc: {}'.format( s.out.pc ) ] ).validate( s.out_valid )
+    return LineBlock([
+        'epoch: {}'.format( s.epoch ),
+        'pc: {}'.format( s.instrs_q.msg().pc ),
+    ] ).validate( s.instrs_q.val() )
