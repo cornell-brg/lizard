@@ -116,6 +116,9 @@ class DispatchFL( Model ):
     res.rs2 = inst[ RVInstMask.RS2 ]
     res.rd = inst[ RVInstMask.RD ]
     res.imm = 0
+    res.rs1_valid = 1
+    res.rs2_valid = 1
+    res.rd_valid = 1
 
     func3 = int( inst[ RVInstMask.FUNCT3 ] )
     func7 = int( inst[ RVInstMask.FUNCT7 ] )
