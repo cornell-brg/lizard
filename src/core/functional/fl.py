@@ -132,6 +132,9 @@ class FunctionalFL( Model ):
 
       if taken:
         target_pc = base + sext( s.current.imm, XLEN )
+
+        # if JALR force last bit to 0
+        target_pc[ 0 ] = 0
       else:
         target_pc = s.current.pc + ILEN_BYTES
       # note that we request a redirect no matter which way the branch went
