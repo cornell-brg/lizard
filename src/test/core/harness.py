@@ -12,6 +12,7 @@ from pymtl import *
 from msg import MemMsg4B
 from pclib.test import TestSource, TestSink
 from util.TestMemory import TestMemory
+from util.cl.ports import InValRdyCLPort, OutValRdyCLPort, cl_connect
 
 from util.tinyrv2_encoding import assemble, DATA_PACK_DIRECTIVE
 
@@ -88,7 +89,12 @@ class TestHarness( Model ):
     s.src = TestSource( XLEN, [], src_delay )
     s.sink = TestSink( XLEN, [], sink_delay )
     s.proc = ProcModel()
-    s.mem = TestMemory( MemMsg4B, 1, mem_stall_prob, mem_latency )
+    s.mem = TestMemory( MemMsg4B, 1 )
+
+    @s.tick_cl
+    def tick():
+      s.proc.xtick()
+      s.mem.xtick()
 
     # Dump VCD
 
@@ -102,8 +108,8 @@ class TestHarness( Model ):
 
     # Processor <-> Memory
 
-    s.connect( s.proc.mem_req, s.mem.reqs[ 0 ] )
-    s.connect( s.proc.mem_resp, s.mem.resps[ 0 ] )
+    cl_connect( s.proc.mem_req, s.mem.reqs_q[ 0 ] )
+    cl_connect( s.proc.mem_resp, s.mem.resps_q[ 0 ] )
 
   #-----------------------------------------------------------------------
   # load

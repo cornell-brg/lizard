@@ -3,8 +3,7 @@ from msg.decode import *
 from msg.issue import *
 from msg.functional import *
 from msg.control import *
-from pclib.ifcs import InValRdyBundle, OutValRdyBundle
-from util.cl.adapters import UnbufferedInValRdyQueueAdapter, UnbufferedOutValRdyQueueAdapter
+from util.cl.ports import InValRdyCLPort, OutValRdyCLPort
 from util.line_block import LineBlock
 from copy import deepcopy
 
@@ -12,11 +11,8 @@ from copy import deepcopy
 class FunctionalFL( Model ):
 
   def __init__( s, dataflow, controlflow ):
-    s.issued = InValRdyBundle( IssuePacket() )
-    s.result = OutValRdyBundle( FunctionalPacket() )
-
-    s.issued_q = UnbufferedInValRdyQueueAdapter( s.issued )
-    s.result_q = UnbufferedOutValRdyQueueAdapter( s.result )
+    s.issued_q = InValRdyCLPort( IssuePacket() )
+    s.result_q = OutValRdyCLPort( FunctionalPacket() )
 
     s.dataflow = dataflow
     s.controlflow = controlflow
@@ -24,9 +20,6 @@ class FunctionalFL( Model ):
     s.done = Wire( 1 )
 
   def xtick( s ):
-    s.issued_q.xtick()
-    s.result_q.xtick()
-
     if s.reset:
       s.done.next = 1
       return
@@ -36,7 +29,6 @@ class FunctionalFL( Model ):
 
     if s.done:
       if s.issued_q.empty():
-        s.issued_q.assert_rdy()
         return
       s.current = s.issued_q.deq()
 
