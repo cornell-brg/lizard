@@ -2,8 +2,7 @@ from pymtl import *
 from msg.decode import *
 from msg.issue import *
 from msg.control import *
-from pclib.ifcs import InValRdyBundle, OutValRdyBundle
-from util.cl.adapters import UnbufferedInValRdyQueueAdapter, UnbufferedOutValRdyQueueAdapter
+from util.cl.ports import InValRdyCLPort, OutValRdyCLPort
 from config.general import XLEN, ILEN, ILEN_BYTES, RESET_VECTOR, REG_COUNT
 from util.line_block import LineBlock
 from copy import deepcopy
@@ -12,19 +11,13 @@ from copy import deepcopy
 class IssueFL( Model ):
 
   def __init__( s, dataflow, controlflow ):
-    s.decoded = InValRdyBundle( DecodePacket() )
-    s.issued = OutValRdyBundle( IssuePacket() )
-
-    s.decoded_q = UnbufferedInValRdyQueueAdapter( s.decoded )
-    s.issued_q = UnbufferedOutValRdyQueueAdapter( s.issued )
+    s.decoded_q = InValRdyCLPort( DecodePacket() )
+    s.issued_q = OutValRdyCLPort( IssuePacket() )
 
     s.dataflow = dataflow
     s.controlflow = controlflow
 
   def xtick( s ):
-    s.decoded_q.xtick()
-    s.issued_q.xtick()
-
     if s.reset:
       s.current_d = None
       return
@@ -34,7 +27,6 @@ class IssueFL( Model ):
 
     if s.current_d is None:
       if s.decoded_q.empty():
-        s.decoded_q.assert_rdy()
         return
       s.current_d = s.decoded_q.deq()
       s.work = IssuePacket()

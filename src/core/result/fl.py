@@ -4,8 +4,7 @@ from msg.issue import *
 from msg.functional import *
 from msg.result import *
 from msg.control import *
-from pclib.ifcs import InValRdyBundle, OutValRdyBundle
-from util.cl.adapters import UnbufferedInValRdyQueueAdapter, UnbufferedOutValRdyQueueAdapter
+from util.cl.ports import InValRdyCLPort, OutValRdyCLPort
 from util.line_block import LineBlock
 from copy import deepcopy
 
@@ -13,19 +12,13 @@ from copy import deepcopy
 class ResultFL( Model ):
 
   def __init__( s, dataflow, controlflow ):
-    s.result_in = InValRdyBundle( FunctionalPacket() )
-    s.result_out = OutValRdyBundle( ResultPacket() )
-
-    s.result_in_q = UnbufferedInValRdyQueueAdapter( s.result_in )
-    s.result_out_q = UnbufferedOutValRdyQueueAdapter( s.result_out )
+    s.result_in_q = InValRdyCLPort( FunctionalPacket() )
+    s.result_out_q = OutValRdyCLPort( ResultPacket() )
 
     s.dataflow = dataflow
     s.controlflow = controlflow
 
   def xtick( s ):
-    s.result_in_q.xtick()
-    s.result_out_q.xtick()
-
     if s.reset:
       return
 
@@ -33,7 +26,6 @@ class ResultFL( Model ):
       return
 
     if s.result_in_q.empty():
-      s.result_in_q.assert_rdy()
       return
 
     p = s.result_in_q.deq()

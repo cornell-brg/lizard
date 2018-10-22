@@ -60,8 +60,7 @@ class ControlFlowUnitFL( Model ):
     resp.current_epoch = s.epoch
     # Only a valid register if issued under a consistent epoch
     resp.valid = ( request.epoch == s.epoch )
-    if resp.valid:
-      resp.pc = s.epoch_start
+    resp.pc = s.epoch_start
     return resp
 
   def register( s, request ):

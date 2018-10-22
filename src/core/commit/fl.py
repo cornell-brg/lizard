@@ -4,8 +4,7 @@ from msg.issue import *
 from msg.functional import *
 from msg.result import *
 from msg.control import *
-from pclib.ifcs import InValRdyBundle, OutValRdyBundle
-from util.cl.adapters import UnbufferedInValRdyQueueAdapter, UnbufferedOutValRdyQueueAdapter
+from util.cl.ports import InValRdyCLPort, OutValRdyCLPort
 from util.line_block import LineBlock
 from copy import deepcopy
 
@@ -13,8 +12,7 @@ from copy import deepcopy
 class CommitFL( Model ):
 
   def __init__( s, dataflow, controlflow ):
-    s.result_in = InValRdyBundle( ResultPacket() )
-    s.result_in_q = UnbufferedInValRdyQueueAdapter( s.result_in )
+    s.result_in_q = InValRdyCLPort( ResultPacket() )
 
     s.dataflow = dataflow
     s.controlflow = controlflow
@@ -23,8 +21,6 @@ class CommitFL( Model ):
     s.valid = Wire( 1 )
 
   def xtick( s ):
-    s.result_in_q.xtick()
-
     if s.reset:
       s.valid.next = 0
       return
@@ -33,7 +29,6 @@ class CommitFL( Model ):
       s.valid.next = 0
 
     if s.result_in_q.empty():
-      s.result_in_q.assert_rdy()
       return
 
     p = s.result_in_q.deq()

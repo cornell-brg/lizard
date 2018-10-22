@@ -3,8 +3,7 @@ from msg import MemMsg4B
 from msg.fetch import FetchPacket
 from msg.decode import *
 from msg.control import *
-from pclib.ifcs import InValRdyBundle, OutValRdyBundle
-from util.cl.adapters import UnbufferedInValRdyQueueAdapter, UnbufferedOutValRdyQueueAdapter
+from util.cl.ports import InValRdyCLPort, OutValRdyCLPort
 from config.general import *
 from util.line_block import LineBlock
 from copy import deepcopy
@@ -13,18 +12,12 @@ from copy import deepcopy
 class DispatchFL( Model ):
 
   def __init__( s, controlflow ):
-    s.instr = InValRdyBundle( FetchPacket() )
-    s.decoded = OutValRdyBundle( DecodePacket() )
-
-    s.instr_q = UnbufferedInValRdyQueueAdapter( s.instr )
-    s.decoded_q = UnbufferedOutValRdyQueueAdapter( s.decoded )
+    s.instr_q = InValRdyCLPort( FetchPacket() )
+    s.decoded_q = OutValRdyCLPort( DecodePacket() )
 
     s.controlflow = controlflow
 
   def xtick( s ):
-    s.instr_q.xtick()
-    s.decoded_q.xtick()
-
     if s.reset:
       return
 
@@ -32,7 +25,6 @@ class DispatchFL( Model ):
       return
 
     if s.instr_q.empty():
-      s.instr_q.assert_rdy()
       return
 
     decoded = s.instr_q.deq()

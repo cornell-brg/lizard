@@ -2,6 +2,7 @@ from pymtl import *
 from msg import MemMsg4B
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 from util.cl.adapters import UnbufferedInValRdyQueueAdapter, UnbufferedOutValRdyQueueAdapter
+from util.cl.ports import InValRdyCLPort, OutValRdyCLPort, cl_connect
 from config.general import *
 from core.dataflow.fl import DataFlowUnitFL
 from core.controlflow.fl import ControlFlowUnitFL
@@ -18,8 +19,8 @@ from util.line_block import Divider
 class CoreFL( Model ):
 
   def __init__( s ):
-    s.mem_req = OutValRdyBundle( MemMsg4B.req )
-    s.mem_resp = InValRdyBundle( MemMsg4B.resp )
+    s.mem_req = OutValRdyCLPort( MemMsg4B.req )
+    s.mem_resp = InValRdyCLPort( MemMsg4B.resp )
 
     s.mngr2proc = InValRdyBundle( Bits( XLEN ) )
     s.proc2mngr = OutValRdyBundle( Bits( XLEN ) )
@@ -38,26 +39,25 @@ class CoreFL( Model ):
     s.connect( s.mngr2proc, s.dataflow.mngr2proc )
     s.connect( s.proc2mngr, s.dataflow.proc2mngr )
 
-    s.connect( s.mem_req, s.fetch.mem_req )
-    s.connect( s.mem_resp, s.fetch.mem_resp )
-    s.connect( s.fetch.instrs, s.dispatch.instr )
-    s.connect( s.dispatch.decoded, s.issue.decoded )
-    s.connect( s.issue.issued, s.functional.issued )
-    s.connect( s.functional.result, s.result.result_in )
-    s.connect( s.result.result_out, s.commit.result_in )
+    cl_connect( s.mem_req, s.fetch.req_q )
+    cl_connect( s.mem_resp, s.fetch.resp_q )
+    cl_connect( s.fetch.instrs_q, s.dispatch.instr_q )
+    cl_connect( s.dispatch.decoded_q, s.issue.decoded_q )
+    cl_connect( s.issue.issued_q, s.functional.issued_q )
+    cl_connect( s.functional.result_q, s.result.result_in_q )
+    cl_connect( s.result.result_out_q, s.commit.result_in_q )
 
-    @s.tick_cl
-    def tick():
-      if s.reset:
-        s.dataflow.fl_reset()
-        s.controlflow.fl_reset()
-      s.dataflow.xtick()
-      s.commit.xtick()
-      s.result.xtick()
-      s.functional.xtick()
-      s.issue.xtick()
-      s.dispatch.xtick()
-      s.fetch.xtick()
+  def xtick( s ):
+    if s.reset:
+      s.dataflow.fl_reset()
+      s.controlflow.fl_reset()
+    s.dataflow.xtick()
+    s.commit.xtick()
+    s.result.xtick()
+    s.functional.xtick()
+    s.issue.xtick()
+    s.dispatch.xtick()
+    s.fetch.xtick()
 
   def line_trace( s ):
     return line_block.join([

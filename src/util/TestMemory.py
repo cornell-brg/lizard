@@ -8,9 +8,7 @@
 
 from pymtl import *
 from pclib.ifcs import MemMsg, MemReqMsg, MemRespMsg, MemMsg4B
-from pclib.ifcs import InValRdyBundle, OutValRdyBundle
-from pclib.cl import InValRdyRandStallAdapter
-from pclib.cl import OutValRdyInelasticPipeAdapter
+from util.cl.ports import InValRdyCLPort, OutValRdyCLPort
 from util.line_block import LineBlock
 from msg.mem import MemMsgType
 
@@ -21,39 +19,20 @@ from msg.mem import MemMsgType
 
 class TestMemory( Model ):
 
-  def __init__( s,
-                mem_ifc_dtypes=MemMsg4B(),
-                nports=1,
-                stall_prob=0,
-                latency=0,
-                mem_nbytes=2**20 ):
+  def __init__( s, mem_ifc_dtypes=MemMsg4B(), nports=1, mem_nbytes=2**20 ):
 
     # Interface
 
     xr = range
-    s.reqs = [ InValRdyBundle( mem_ifc_dtypes.req ) for _ in xr( nports ) ]
-    s.resps = [ OutValRdyBundle( mem_ifc_dtypes.resp ) for _ in xr( nports ) ]
+    s.reqs_q = [ InValRdyCLPort( mem_ifc_dtypes.req ) for _ in xr( nports ) ]
+    s.resps_q = [ OutValRdyCLPort( mem_ifc_dtypes.resp ) for _ in xr( nports ) ]
 
     # Checks
 
     assert mem_ifc_dtypes.req.data.nbits % 8 == 0
     assert mem_ifc_dtypes.resp.data.nbits % 8 == 0
 
-    # Buffers to hold memory request/response messages
-
-    s.reqs_q = []
-    for req in s.reqs:
-      s.reqs_q.append( InValRdyRandStallAdapter( req, stall_prob ) )
-
-    s.resps_q = []
-    for resp in s.resps:
-      s.resps_q.append( OutValRdyInelasticPipeAdapter( resp, latency ) )
-
-    # Actual memory
-
     s.mem = bytearray( mem_nbytes )
-
-    # Local constants
 
     s.mk_rd_resp = mem_ifc_dtypes.resp.mk_rd
     s.mk_wr_resp = mem_ifc_dtypes.resp.mk_wr
@@ -64,103 +43,67 @@ class TestMemory( Model ):
     #---------------------------------------------------------------------
     # Tick
     #---------------------------------------------------------------------
+  def xtick( s ):
+    for req_q, resp_q in zip( s.reqs_q, s.resps_q ):
+      if resp_q.full():
+        continue
 
-    @s.tick_cl
-    def tick():
+      if not req_q.empty():
+        memreq = req_q.deq()
 
-      # Tick adapters
+        # When len is zero, then we use all of the data
+        nbytes = memreq.len
+        if memreq.len == 0:
+          nbytes = s.data_nbits / 8
 
-      for req_q, resp_q in zip( s.reqs_q, s.resps_q ):
-        req_q.xtick()
-        resp_q.xtick()
+        if memreq.type_ == MemReqMsg.TYPE_READ:
 
-      # Iterate over input/output queues
+          # Copy the bytes from the bytearray into read data bits
+          read_data = Bits( s.data_nbits )
+          for j in range( nbytes ):
+            read_data[ j * 8:j * 8 + 8 ] = s.mem[ memreq.addr + j ]
 
-      for req_q, resp_q in zip( s.reqs_q, s.resps_q ):
+          resp_q.enq( s.mk_rd_resp( memreq.opaque, memreq.len, read_data ) )
+        elif memreq.type_ == MemReqMsg.TYPE_WRITE:
+          # Copy write data bits into bytearray
+          write_data = memreq.data
+          for j in range( nbytes ):
+            s.mem[ memreq.addr + j ] = write_data[ j * 8:j * 8 + 8 ].uint()
 
-        if not req_q.empty() and not resp_q.full():
+          resp_q.enq( s.mk_wr_resp( memreq.opaque, 0 ) )
+        elif ( memreq.type_ == MemReqMsg.TYPE_AMO_ADD or
+               memreq.type_ == MemReqMsg.TYPE_AMO_AND or
+               memreq.type_ == MemReqMsg.TYPE_AMO_OR or
+               memreq.type_ == MemReqMsg.TYPE_AMO_XCHG or
+               memreq.type_ == MemReqMsg.TYPE_AMO_MIN ):
+          req_data = memreq.data
 
-          # Dequeue memory request message
+          # Copy the bytes from the bytearray into read data bits
+          read_data = Bits( s.data_nbits )
+          for j in range( nbytes ):
+            read_data[ j * 8:j * 8 + 8 ] = s.mem[ memreq.addr + j ]
 
-          memreq = req_q.deq()
+          write_data = AMO_FUNS[ memreq.type_.uint() ]( read_data, req_data )
 
-          # When len is zero, then we use all of the data
+          # Copy write data bits into bytearray
+          for j in range( nbytes ):
+            s.mem[ memreq.addr + j ] = write_data[ j * 8:j * 8 + 8 ].uint()
 
-          nbytes = memreq.len
-          if memreq.len == 0:
-            nbytes = s.data_nbits / 8
-
-          # Handle a read request
-
-          if memreq.type_ == MemReqMsg.TYPE_READ:
-
-            # Copy the bytes from the bytearray into read data bits
-
-            read_data = Bits( s.data_nbits )
-            for j in range( nbytes ):
-              read_data[ j * 8:j * 8 + 8 ] = s.mem[ memreq.addr + j ]
-
-            # Create and enqueue response message
-
-            resp_q.enq( s.mk_rd_resp( memreq.opaque, memreq.len, read_data ) )
-
-          # Handle a write request
-
-          elif memreq.type_ == MemReqMsg.TYPE_WRITE:
-
-            # Copy write data bits into bytearray
-
-            write_data = memreq.data
-            for j in range( nbytes ):
-              s.mem[ memreq.addr + j ] = write_data[ j * 8:j * 8 + 8 ].uint()
-
-            # Create and enqueu response message
-
-            resp_q.enq( s.mk_wr_resp( memreq.opaque, 0 ) )
-
-          # AMOS
-
-          elif ( memreq.type_ == MemReqMsg.TYPE_AMO_ADD or
-                 memreq.type_ == MemReqMsg.TYPE_AMO_AND or
-                 memreq.type_ == MemReqMsg.TYPE_AMO_OR or
-                 memreq.type_ == MemReqMsg.TYPE_AMO_XCHG or
-                 memreq.type_ == MemReqMsg.TYPE_AMO_MIN ):
-
-            req_data = memreq.data
-
-            # Copy the bytes from the bytearray into read data bits
-
-            read_data = Bits( s.data_nbits )
-            for j in range( nbytes ):
-              read_data[ j * 8:j * 8 + 8 ] = s.mem[ memreq.addr + j ]
-
-            # compute the data to be written
-
-            write_data = AMO_FUNS[ memreq.type_.uint() ]( read_data, req_data )
-
-            # Copy write data bits into bytearray
-
-            for j in range( nbytes ):
-              s.mem[ memreq.addr + j ] = write_data[ j * 8:j * 8 + 8 ].uint()
-
-            # Create and enqueue response message
-
-            resp_q.enq(
-                s.mk_misc_resp( memreq.type_, memreq.opaque, memreq.len,
-                                read_data ) )
-
-          # Unknown message type -- throw an exception
-
-          else:
-            raise Exception(
-                "TestMemory doesn't know how to handle message type {}".format(
-                    memreq.type_ ) )
+          resp_q.enq(
+              s.mk_misc_resp( memreq.type_, memreq.opaque, memreq.len,
+                              read_data ) )
+        # Unknown message type -- throw an exception
+        else:
+          raise Exception(
+              "TestMemory doesn't know how to handle message type {}".format(
+                  memreq.type_ ) )
 
   #-----------------------------------------------------------------------
   # line_trace
   #-----------------------------------------------------------------------
 
   def line_trace( s ):
+    return "TM"
     result = []
     for req, resp_q, resp in zip( s.reqs, s.resps_q, s.resps ):
       result += [ '> {}'.format( req ), '< {}'.format( resp ) ]
