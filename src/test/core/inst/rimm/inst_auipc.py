@@ -6,6 +6,7 @@ import random
 
 from pymtl import *
 from test.core.inst_utils import *
+from config.general import *
 
 #-------------------------------------------------------------------------
 # gen_basic_test
@@ -73,10 +74,10 @@ def gen_dest_dep_test():
 
 def gen_value_test():
   return [
-      gen_imm_value_test( "auipc", 0xfffff, 0xfffff200 ),
-      gen_imm_value_test( "auipc", 0x00000, 0x00000208 ),
-      gen_imm_value_test( "auipc", 0x0000f, 0x0000f210 ),
-      gen_imm_value_test( "auipc", 0xf0000, 0xf0000218 ),
+      gen_imm_value_test( "auipc", 0xfffff, 0xfffffffffffff200 ),
+      gen_imm_value_test( "auipc", 0x00000, 0x0000000000000208 ),
+      gen_imm_value_test( "auipc", 0x0000f, 0x000000000000f210 ),
+      gen_imm_value_test( "auipc", 0xf0000, 0xfffffffff0000218 ),
   ]
 
 
@@ -89,6 +90,6 @@ def gen_random_test():
   asm_code = []
   for i in xrange( 100 ):
     imm = Bits( 20, random.randint( 0, 0xfffff ) )
-    dest = Bits( 32, 0x200 + i * 8 + ( imm.uint() << 12 ) )
+    dest = Bits( XLEN, 0x200 + i * 8 + ( imm.int() << 12 ) )
     asm_code.append( gen_imm_value_test( "auipc", imm.uint(), dest.uint() ) )
   return asm_code

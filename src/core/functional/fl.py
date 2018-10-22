@@ -52,7 +52,11 @@ class FunctionalFL( Model ):
     s.work.rd_valid = s.current.rd_valid
     s.work.rd = s.current.rd
 
-    if s.current.inst == RV64Inst.ADDI:
+    if s.current.inst == RV64Inst.LUI:
+      s.work.result = sext( s.current.imm, XLEN )
+    elif s.current.inst == RV64Inst.AUIPC:
+      s.work.result = s.current.pc + sext( s.current.imm, XLEN )
+    elif s.current.inst == RV64Inst.ADDI:
       s.work.result = s.current.rs1 + sext( s.current.imm, XLEN )
     elif s.current.inst == RV64Inst.SLTI:
       if s.current.rs1.int() < s.current.imm.int():
