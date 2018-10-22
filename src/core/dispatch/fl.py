@@ -45,6 +45,8 @@ class DispatchFL( Model ):
         int( Opcode.BRANCH ): s.dec_branch,
         int( Opcode.JAL ): s.dec_jal,
         int( Opcode.JALR ): s.dec_jalr,
+        int( Opcode.LUI ): s.dec_lui,
+        int( Opcode.AUIPC ): s.dec_auipc,
     }
     try:
       opcode = inst[ RVInstMask.OPCODE ]
@@ -198,6 +200,28 @@ class DispatchFL( Model ):
     imm = inst[ RVInstMask.I_IMM ]
     res.imm = sext( imm, DECODED_IMM_LEN )
     res.is_branch = 1
+
+    return res
+
+  def dec_lui( s, inst ):
+    res = DecodePacket()
+
+    res.inst = RV64Inst.LUI
+    res.rd = inst[ RVInstMask.RD ]
+    res.rd_valid = 1
+    imm = concat( inst[ RVInstMask.U_IMM ], Bits( 12, 0 ) )
+    res.imm = sext( imm, DECODED_IMM_LEN )
+
+    return res
+
+  def dec_auipc( s, inst ):
+    res = DecodePacket()
+
+    res.inst = RV64Inst.AUIPC
+    res.rd = inst[ RVInstMask.RD ]
+    res.rd_valid = 1
+    imm = concat( inst[ RVInstMask.U_IMM ], Bits( 12, 0 ) )
+    res.imm = sext( imm, DECODED_IMM_LEN )
 
     return res
 
