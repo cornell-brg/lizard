@@ -135,15 +135,15 @@ def gen_value_test():
       gen_rr_value_test( "add", 0x00000003, 0x00000007, 0x0000000a ),
       gen_rr_value_test( "add", 0x00000000, 0xffff8000, 0xffff8000 ),
       gen_rr_value_test( "add", 0x80000000, 0x00000000, 0x80000000 ),
-      gen_rr_value_test( "add", 0x80000000, 0xffff8000, 0x7fff8000 ),
+      gen_rr_value_test( "add", 0x80000000, 0xffff8000, 0x17fff8000 ),
       gen_rr_value_test( "add", 0x00000000, 0x00007fff, 0x00007fff ),
       gen_rr_value_test( "add", 0x7fffffff, 0x00000000, 0x7fffffff ),
       gen_rr_value_test( "add", 0x7fffffff, 0x00007fff, 0x80007ffe ),
       gen_rr_value_test( "add", 0x80000000, 0x00007fff, 0x80007fff ),
-      gen_rr_value_test( "add", 0x7fffffff, 0xffff8000, 0x7fff7fff ),
+      gen_rr_value_test( "add", 0x7fffffff, 0xffff8000, 0x17fff7fff ),
       gen_rr_value_test( "add", 0x00000000, 0xffffffff, 0xffffffff ),
-      gen_rr_value_test( "add", 0xffffffff, 0x00000001, 0x00000000 ),
-      gen_rr_value_test( "add", 0xffffffff, 0xffffffff, 0xfffffffe ),
+      gen_rr_value_test( "add", 0xffffffff, 0x00000001, 0x100000000 ),
+      gen_rr_value_test( "add", 0xffffffff, 0xffffffff, 0x1fffffffe ),
   ]
 
 
