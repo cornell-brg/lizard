@@ -66,7 +66,7 @@ class DataFlowUnitFL( Model ):
     resp = GetDstResponse()
     if areg != 0:
       preg = s.free_regs.alloc()
-      if not preg:
+      if preg is None:
         resp.success = 0
       else:
         s.rename_table[ areg ] = preg
@@ -98,7 +98,8 @@ class DataFlowUnitFL( Model ):
       preg.ready = 1
 
   def free_tag( s, tag ):
-    s.free_regs.free( tag )
+    if tag != s.zero_tag:
+      s.free_regs.free( tag )
 
   def commit_tag( s, tag, initial=False ):
     if tag != s.zero_tag:
@@ -109,10 +110,7 @@ class DataFlowUnitFL( Model ):
       s.areg_file[ preg.areg ] = tag
 
   def read_csr( s, csr_num ):
-    if not hasattr( s, 'cow' ):
-      s.cow = 0
     if csr_num == CsrRegisters.mngr2proc:
-      s.cow += 1
       if s.mngr2proc_q.empty():
         return None, False
       else:

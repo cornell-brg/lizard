@@ -104,6 +104,9 @@ class FunctionalFL( Model ):
     elif s.current.inst == RV64Inst.SRA:
       s.work.result = Bits(
           XLEN, s.current.rs1.int() >> s.current.rs2.uint(), trunc=True )
+    elif s.current.inst == RV64Inst.MUL:
+      s.work.result = Bits(
+          XLEN, s.current.rs1.int() * s.current.rs2.int(), trunc=True )
     elif s.current.is_branch:
       taken = False
       base = s.current.pc
