@@ -19,6 +19,8 @@ from util.tinyrv2_encoding import assemble, DATA_PACK_DIRECTIVE
 from config.general import *
 from util import line_block
 from util.line_block import Divider
+import time
+import sys
 
 #=========================================================================
 # TestHarness
@@ -187,7 +189,7 @@ def run_test( ProcModel,
               sink_delay=0,
               mem_stall_prob=0,
               mem_latency=0,
-              max_cycles=20000,
+              max_cycles=50000000,
               extra_cycles=3 ):
 
   # Instantiate and elaborate the model
@@ -232,6 +234,7 @@ def run_test( ProcModel,
     print( '\n' )
 
   sim.reset()
+  last = time.time()
   while not model.done() and sim.ncycles < max_cycles:
     print_line_trace()
     sim.cycle()

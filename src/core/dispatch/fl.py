@@ -34,6 +34,11 @@ class DispatchFL( Model ):
     creq.tag = decoded.tag
     cresp = s.controlflow.tag_valid( creq )
     if not cresp.valid:
+      # retire instruction from controlflow
+      creq = RetireRequest()
+      creq.tag = decoded.tag
+      s.controlflow.retire( creq )
+
       return
 
     inst = decoded.instr
@@ -56,8 +61,8 @@ class DispatchFL( Model ):
     except KeyError:
       return
       # TODO: illegal instruction exception
-      #raise NotImplementedError( 'Not implemented so sad: ' +
-      #                           Opcode.name( opcode ) )
+      raise NotImplementedError( 'Not implemented so sad: ' +
+                                 Opcode.name( opcode ) )
     s.decoded_q.enq( out )
 
   def dec_op_imm( s, inst ):
@@ -120,6 +125,7 @@ class DispatchFL( Model ):
         ( 0b101, 0b0100000 ): RV64Inst.SRA,
         ( 0b110, 0b0000000 ): RV64Inst.OR,
         ( 0b111, 0b0000000 ): RV64Inst.AND,
+        ( 0b000, 0b0000001 ): RV64Inst.MUL,
     }
     res.inst = insts[( func3, func7 ) ]
 
