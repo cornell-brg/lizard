@@ -6,6 +6,7 @@ import random
 
 from pymtl import *
 from test.core.inst_utils import *
+from config.general import XLEN
 
 #-------------------------------------------------------------------------
 # gen_basic_test
@@ -33,7 +34,7 @@ def gen_basic_test():
     nop
     nop
     nop
-    csrw proc2mngr, x3 > 0x00040000
+    csrw proc2mngr, x3 > 0x400040000
     nop
     nop
     nop
@@ -57,7 +58,7 @@ def gen_basic_test():
 def gen_dest_dep_test():
   return [
       gen_rr_dest_dep_test( i, "sll", 3 - i, i,
-                            Bits( 32, ( 3 - i ) << i ).uint() )
+                            Bits( XLEN, ( 3 - i ) << i ).uint() )
       for i in range( 0, 6 )
   ]
 
@@ -70,7 +71,7 @@ def gen_dest_dep_test():
 def gen_src0_dep_test():
   return [
       gen_rr_src0_dep_test( i, "sll", 7 + i, 1,
-                            Bits( 32, ( 7 + i ) << 1 ).uint() )
+                            Bits( XLEN, ( 7 + i ) << 1 ).uint() )
       for i in range( 0, 6 )
   ]
 
@@ -83,7 +84,7 @@ def gen_src0_dep_test():
 def gen_src1_dep_test():
   return [
       gen_rr_src1_dep_test( i, "sll", 3 - i, i,
-                            Bits( 32, ( 3 - i ) << i ).uint() )
+                            Bits( XLEN, ( 3 - i ) << i ).uint() )
       for i in range( 0, 6 )
   ]
 
@@ -96,7 +97,7 @@ def gen_src1_dep_test():
 def gen_srcs_dep_test():
   return [
       gen_rr_srcs_dep_test( i, "sll", 3 - i, i,
-                            Bits( 32, ( 3 - i ) << i ).uint() )
+                            Bits( XLEN, ( 3 - i ) << i ).uint() )
       for i in range( 0, 6 )
   ]
 
@@ -122,10 +123,10 @@ def gen_srcs_dest_test():
 
 def gen_value_test():
   return [
-      gen_rr_value_test( "sll", 0xff00ff00, 0xf0f, 0x7f800000 ),
-      gen_rr_value_test( "sll", 0x0ff00ff0, 0x0f0, 0x0ff00000 ),
-      gen_rr_value_test( "sll", 0x00ff00ff, 0x00f, 0x807f8000 ),
-      gen_rr_value_test( "sll", 0xf00ff00f, 0xff0, 0xf00f0000 ),
+      gen_rr_value_test( "sll", 0xff00ff00, 0xf0f, 0x00007f807f800000 ),
+      gen_rr_value_test( "sll", 0x0ff00ff0, 0x0f0, 0x00000ff00ff00000 ),
+      gen_rr_value_test( "sll", 0x00ff00ff, 0x00f, 0x0000007f807f8000 ),
+      gen_rr_value_test( "sll", 0xf00ff00f, 0xff0, 0x0000f00ff00f0000 ),
   ]
 
 
@@ -137,10 +138,10 @@ def gen_value_test():
 def gen_random_test():
   asm_code = []
   for i in xrange( 100 ):
-    src0 = Bits( 32, random.randint( 0, 0xffffffff ) )
-    src1 = Bits( 32, random.randint( 0, 0xffffffff ) )
+    src0 = Bits( XLEN, random.randint( 0, 0xffffffff ) )
+    src1 = Bits( XLEN, random.randint( 0, 0xffffffff ) )
     temp = src0 << src1[:5 ]
-    dest = Bits( 32, temp, trunc=True )
+    dest = Bits( XLEN, temp, trunc=True )
     asm_code.append(
         gen_rr_value_test( "sll", src0.uint(), src1.uint(), dest.uint() ) )
   return asm_code

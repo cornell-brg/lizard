@@ -6,6 +6,7 @@ import random
 
 from pymtl import *
 from test.core.inst_utils import *
+from config.general import XLEN
 
 #-------------------------------------------------------------------------
 # gen_basic_test
@@ -57,7 +58,7 @@ def gen_basic_test():
 def gen_dest_dep_test():
   return [
       gen_rr_dest_dep_test( i, "sra", 3 - i, i,
-                            Bits( 32, ( 3 - i ) >> i ).uint() )
+                            Bits( XLEN, ( 3 - i ) >> i ).uint() )
       for i in range( 0, 6 )
   ]
 
@@ -70,7 +71,7 @@ def gen_dest_dep_test():
 def gen_src0_dep_test():
   return [
       gen_rr_src0_dep_test( i, "sra", 7 + i, 1,
-                            Bits( 32, ( 7 + i ) >> 1 ).uint() )
+                            Bits( XLEN, ( 7 + i ) >> 1 ).uint() )
       for i in range( 0, 6 )
   ]
 
@@ -83,7 +84,7 @@ def gen_src0_dep_test():
 def gen_src1_dep_test():
   return [
       gen_rr_src1_dep_test( i, "sra", 3 - i, i,
-                            Bits( 32, ( 3 - i ) >> i ).uint() )
+                            Bits( XLEN, ( 3 - i ) >> i ).uint() )
       for i in range( 0, 6 )
   ]
 
@@ -96,7 +97,7 @@ def gen_src1_dep_test():
 def gen_srcs_dep_test():
   return [
       gen_rr_srcs_dep_test( i, "sra", 3 - i, i,
-                            Bits( 32, ( 3 - i ) >> i ).uint() )
+                            Bits( XLEN, ( 3 - i ) >> i ).uint() )
       for i in range( 0, 6 )
   ]
 
@@ -122,10 +123,14 @@ def gen_srcs_dest_test():
 
 def gen_value_test():
   return [
-      gen_rr_value_test( "sra", 0xff00ff00, 0xffffff0f, 0xFFFFFE01 ),
-      gen_rr_value_test( "sra", 0x0ff00ff0, 0x000000f0, 0x00000ff0 ),
-      gen_rr_value_test( "sra", 0x00ff00ff, 0xfffff00f, 0x000001fe ),
-      gen_rr_value_test( "sra", 0xf00ff00f, 0x00000ff0, 0xfffff00f ),
+      gen_rr_value_test( "sra", 0xffffffffff00ff00, 0xffffffffffffff0f,
+                         0xfffffffffffffe01 ),
+      gen_rr_value_test( "sra", 0x000000000ff00ff0, 0x00000000000000f0,
+                         0x0000000000000ff0 ),
+      gen_rr_value_test( "sra", 0x0000000000ff00ff, 0xfffffffffffff00f,
+                         0x00000000000001fe ),
+      gen_rr_value_test( "sra", 0xfffffffff00ff00f, 0x0000000000000ff0,
+                         0xfffffffffffff00f ),
   ]
 
 
@@ -137,10 +142,10 @@ def gen_value_test():
 def gen_random_test():
   asm_code = []
   for i in xrange( 100 ):
-    src0 = Bits( 32, random.randint( 0, 0xffffffff ) )
-    src1 = Bits( 32, random.randint( 0, 0xffffffff ) )
+    src0 = Bits( XLEN, random.randint( 0, 0xffffffff ) )
+    src1 = Bits( XLEN, random.randint( 0, 0xffffffff ) )
     temp = src0.int() >> ( src1.uint() & 0x1F )
-    dest = Bits( 32, temp, trunc=True )
+    dest = Bits( XLEN, temp, trunc=True )
     asm_code.append(
         gen_rr_value_test( "sra", src0.uint(), src1.uint(), dest.uint() ) )
   return asm_code

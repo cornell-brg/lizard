@@ -102,7 +102,9 @@ def gen_random_test():
 #-------------------------------------------------------------------------
 
 
-def gen_core_stats_test():
+# TODO skip this
+#def gen_core_stats_test():
+def foo():
   return """
 
     # Turn on stats here

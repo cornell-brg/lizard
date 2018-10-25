@@ -3,11 +3,12 @@ import random
 
 from pymtl import *
 from harness import *
-from core.fetch.fl import FetchFL
+from core.cl.fetch import FetchUnitCL
 from msg.fetch import FetchPacket
 from config.general import RESET_VECTOR, ILEN
 
 
+@pytest.mark.skip( reason="needs CL test src/sink to test" )
 def test_simple():
   result = FetchPacket()
   result.pc = RESET_VECTOR

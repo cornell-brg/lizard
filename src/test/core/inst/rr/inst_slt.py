@@ -6,6 +6,7 @@ import random
 
 from pymtl import *
 from test.core.inst_utils import *
+from config.general import XLEN
 
 #-------------------------------------------------------------------------
 # gen_basic_test
@@ -118,10 +119,10 @@ def gen_srcs_dest_test():
 
 def gen_value_test():
   return [
-      gen_rr_value_test( "slt", 0xff00ff00, 0x0f0f0f0f, 1 ),
-      gen_rr_value_test( "slt", 0x0ff00ff0, 0xf0f0f0f0, 0 ),
-      gen_rr_value_test( "slt", 0x00ff00ff, 0x0ff00ff0, 1 ),
-      gen_rr_value_test( "slt", 0xf00ff00f, 0xff00ff00, 1 ),
+      gen_rr_value_test( "slt", 0xffffffffff00ff00, 0x000000000f0f0f0f, 1 ),
+      gen_rr_value_test( "slt", 0x000000000ff00ff0, 0xfffffffff0f0f0f0, 0 ),
+      gen_rr_value_test( "slt", 0x0000000000ff00ff, 0x000000000ff00ff0, 1 ),
+      gen_rr_value_test( "slt", 0xfffffffff00ff00f, 0xffffffffff00ff00, 1 ),
   ]
 
 
@@ -133,9 +134,9 @@ def gen_value_test():
 def gen_random_test():
   asm_code = []
   for i in xrange( 100 ):
-    src0 = Bits( 32, random.randint( 0, 0xffffffff ) )
-    src1 = Bits( 32, random.randint( 0, 0xffffffff ) )
-    dest = Bits( 32, 1 if src0.int() < src1.int() else 0 )
+    src0 = Bits( XLEN, random.randint( 0, 0xffffffff ) )
+    src1 = Bits( XLEN, random.randint( 0, 0xffffffff ) )
+    dest = Bits( XLEN, 1 if src0.int() < src1.int() else 0 )
     asm_code.append(
         gen_rr_value_test( "slt", src0.uint(), src1.uint(), dest.uint() ) )
   return asm_code

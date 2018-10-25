@@ -6,6 +6,7 @@ import random
 
 from pymtl import *
 from test.core.inst_utils import *
+from config.general import XLEN
 
 #-------------------------------------------------------------------------
 # gen_basic_test
@@ -118,12 +119,18 @@ def gen_srcs_dest_test():
 
 def gen_value_test():
   return [
-      gen_rr_value_test( "sub", 0x00000000, 0x00000000, 0x00000000 ),
-      gen_rr_value_test( "sub", 0x00000001, 0x00000001, 0x00000000 ),
-      gen_rr_value_test( "sub", 0x00000007, 0x00000003, 0x00000004 ),
-      gen_rr_value_test( "sub", 0x00000000, 0xffffffff, 0x00000001 ),
-      gen_rr_value_test( "sub", 0xffffffff, 0x00000001, 0xfffffffe ),
-      gen_rr_value_test( "sub", 0xffffffff, 0xffffffff, 0x00000000 ),
+      gen_rr_value_test( "sub", 0x0000000000000010, 0x0000000000000000,
+                         0x0000000000000010 ),
+      gen_rr_value_test( "sub", 0x0000000000000001, 0x0000000000000001,
+                         0x0000000000000000 ),
+      gen_rr_value_test( "sub", 0x0000000000000007, 0x0000000000000003,
+                         0x0000000000000004 ),
+      gen_rr_value_test( "sub", 0x0000000000000000, 0xffffffffffffffff,
+                         0x0000000000000001 ),
+      gen_rr_value_test( "sub", 0xffffffffffffffff, 0x0000000000000001,
+                         0xfffffffffffffffe ),
+      gen_rr_value_test( "sub", 0xffffffffffffffff, 0xffffffffffffffff,
+                         0x0000000000000000 ),
   ]
 
 
@@ -135,8 +142,8 @@ def gen_value_test():
 def gen_random_test():
   asm_code = []
   for i in xrange( 100 ):
-    src0 = Bits( 32, random.randint( 0, 0xffffffff ) )
-    src1 = Bits( 32, random.randint( 0, 0xffffffff ) )
+    src0 = Bits( XLEN, random.randint( 0, 0xffffffffffffffff ) )
+    src1 = Bits( XLEN, random.randint( 0, 0xffffffffffffffff ) )
     dest = src0 - src1
     asm_code.append(
         gen_rr_value_test( "sub", src0.uint(), src1.uint(), dest.uint() ) )

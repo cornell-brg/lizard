@@ -3,7 +3,6 @@ import inspect
 
 from pymtl import *
 
-from msg import MemMsg4B
 from msg.decode import DecodePacket
 from pclib.test import TestSource, TestSink
 from pclib.cl import InValRdyQueueAdapter, OutValRdyQueueAdapter
@@ -18,7 +17,7 @@ class Harness( Model ):
     s.src = TestSource( FetchPacket(), src_msgs, 5 )
     s.sink = TestSink( DecodePacket(), sink_msgs, 5 )
 
-    s.dispatch_unit = DispatchModel()
+    s.dispatch_unit = DispatchModel( None )
 
     s.connect( s.src.out, s.dispatch_unit.instr )
     s.connect( s.dispatch_unit.decoded, s.sink.in_ )
