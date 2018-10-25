@@ -3,7 +3,7 @@ from config.general import *
 from msg.decode import *
 
 
-class FunctionalPacket( BitStructDefinition ):
+class WritebackPacket( BitStructDefinition ):
 
   def __init__( s ):
     s.inst = BitField( RV64Inst.bits )
@@ -16,7 +16,3 @@ class FunctionalPacket( BitStructDefinition ):
 
     s.pc = BitField( XLEN )
     s.tag = BitField( INST_TAG_LEN )
-
-  def __str__( s ):
-    return 'inst:{: <5} rd:{} v:{} result: {}'.format(
-        RV64Inst.name( s.inst ), s.rd, s.rd_valid, s.result )

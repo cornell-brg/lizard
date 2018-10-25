@@ -1,8 +1,8 @@
 from pymtl import *
 from msg.decode import *
 from msg.issue import *
-from msg.functional import *
-from msg.result import *
+from msg.execute import *
+from msg.writeback import *
 from msg.control import *
 from util.cl.ports import InValRdyCLPort, OutValRdyCLPort
 from util.line_block import LineBlock
@@ -12,8 +12,8 @@ from copy import deepcopy
 class WritebackUnitCL( Model ):
 
   def __init__( s, dataflow, controlflow ):
-    s.result_in_q = InValRdyCLPort( FunctionalPacket() )
-    s.result_out_q = OutValRdyCLPort( ResultPacket() )
+    s.result_in_q = InValRdyCLPort( ExecutePacket() )
+    s.result_out_q = OutValRdyCLPort( WritebackPacket() )
 
     s.dataflow = dataflow
     s.controlflow = controlflow
@@ -48,7 +48,7 @@ class WritebackUnitCL( Model ):
     if p.rd_valid:
       s.dataflow.write_tag( p.rd, p.result )
 
-    out = ResultPacket()
+    out = WritebackPacket()
     out.inst = p.inst
     out.rd_valid = p.rd_valid
     out.rd = p.rd

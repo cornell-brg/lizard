@@ -1,6 +1,8 @@
 from pymtl import *
 
 from bitutil import clog2, bit_enum
+from config.mem import *
+from config.general import *
 
 MemMsgType = bit_enum(
     'MemMsgType',
@@ -184,3 +186,8 @@ class MemMsg( object ):
   def __init__( s, opaque_nbits, addr_nbits, data_nbits ):
     s.req = MemReqMsg( opaque_nbits, addr_nbits, data_nbits )
     s.resp = MemRespMsg( opaque_nbits, data_nbits )
+
+
+MemMsg4B = MemMsg( OPAQUE_SIZE, XLEN, 32 )
+MemMsg8B = MemMsg( OPAQUE_SIZE, XLEN, 64 )
+MemMsg16B = MemMsg( OPAQUE_SIZE, XLEN, 128 )

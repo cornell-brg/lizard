@@ -1,5 +1,5 @@
 from pymtl import *
-from msg import MemMsg4B
+from msg.mem import MemMsg4B
 from msg.fetch import FetchPacket
 from msg.control import *
 from util.cl.ports import InValRdyCLPort, OutValRdyCLPort

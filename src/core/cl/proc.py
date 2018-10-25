@@ -1,5 +1,5 @@
 from pymtl import *
-from msg import MemMsg4B
+from msg.mem import MemMsg4B
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 from util.cl.adapters import UnbufferedInValRdyQueueAdapter, UnbufferedOutValRdyQueueAdapter
 from util.cl.ports import InValRdyCLPort, OutValRdyCLPort, cl_connect
