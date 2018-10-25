@@ -7,10 +7,10 @@ import random
 
 from pymtl import *
 from harness import *
-from core.fl import CoreFL
+from core.cl.proc import ProcCL
 from inst_modules import inst_modules
 
-procs = [ CoreFL ]
+procs = [ ProcCL ]
 proc_dict = dict([( x.__name__, x ) for x in procs ] )
 
 

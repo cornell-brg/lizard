@@ -9,7 +9,7 @@ from util.line_block import LineBlock
 from copy import deepcopy
 
 
-class CommitFL( Model ):
+class CommitUnitCL( Model ):
 
   def __init__( s, dataflow, controlflow ):
     s.result_in_q = InValRdyCLPort( ResultPacket() )

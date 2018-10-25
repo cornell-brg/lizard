@@ -8,7 +8,7 @@ from util.line_block import LineBlock
 from copy import deepcopy
 
 
-class FetchFL( Model ):
+class FetchUnitCL( Model ):
 
   def __init__( s, controlflow ):
     s.req_q = OutValRdyCLPort( MemMsg4B.req )

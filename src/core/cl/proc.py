@@ -4,19 +4,19 @@ from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 from util.cl.adapters import UnbufferedInValRdyQueueAdapter, UnbufferedOutValRdyQueueAdapter
 from util.cl.ports import InValRdyCLPort, OutValRdyCLPort, cl_connect
 from config.general import *
-from core.dataflow.fl import DataFlowUnitFL
-from core.controlflow.fl import ControlFlowUnitFL
-from core.fetch.fl import FetchFL
-from core.dispatch.fl import DispatchFL
-from core.issue.fl import IssueFL
-from core.functional.fl import FunctionalFL
-from core.result.fl import ResultFL
-from core.commit.fl import CommitFL
+from core.cl.fetch import FetchUnitCL
+from core.cl.decode import DecodeUnitCL
+from core.cl.issue import IssueUnitCL
+from core.cl.execute import ExecuteUnitCL
+from core.cl.writeback import WritebackUnitCL
+from core.cl.commit import CommitUnitCL
+from core.cl.dataflow import DataFlowManagerCL
+from core.cl.controlflow import ControlFlowManagerCL
 from util import line_block
 from util.line_block import Divider
 
 
-class CoreFL( Model ):
+class ProcCL( Model ):
 
   def __init__( s ):
     s.mem_req = OutValRdyCLPort( MemMsg4B.req )
@@ -27,25 +27,25 @@ class CoreFL( Model ):
 
     s.stats_en = Bits( 1, 0 )
 
-    s.dataflow = DataFlowUnitFL()
-    s.controlflow = ControlFlowUnitFL( s.dataflow )
-    s.fetch = FetchFL( s.controlflow )
-    s.dispatch = DispatchFL( s.controlflow )
-    s.issue = IssueFL( s.dataflow, s.controlflow )
-    s.functional = FunctionalFL( s.dataflow, s.controlflow )
-    s.result = ResultFL( s.dataflow, s.controlflow )
-    s.commit = CommitFL( s.dataflow, s.controlflow )
+    s.dataflow = DataFlowManagerCL()
+    s.controlflow = ControlFlowManagerCL( s.dataflow )
+    s.fetch = FetchUnitCL( s.controlflow )
+    s.decode = DecodeUnitCL( s.controlflow )
+    s.issue = IssueUnitCL( s.dataflow, s.controlflow )
+    s.functional = ExecuteUnitCL( s.dataflow, s.controlflow )
+    s.writeback = WritebackUnitCL( s.dataflow, s.controlflow )
+    s.commit = CommitUnitCL( s.dataflow, s.controlflow )
 
     s.connect( s.mngr2proc, s.dataflow.mngr2proc )
     s.connect( s.proc2mngr, s.dataflow.proc2mngr )
 
     cl_connect( s.mem_req, s.fetch.req_q )
     cl_connect( s.mem_resp, s.fetch.resp_q )
-    cl_connect( s.fetch.instrs_q, s.dispatch.instr_q )
-    cl_connect( s.dispatch.decoded_q, s.issue.decoded_q )
+    cl_connect( s.fetch.instrs_q, s.decode.instr_q )
+    cl_connect( s.decode.decoded_q, s.issue.decoded_q )
     cl_connect( s.issue.issued_q, s.functional.issued_q )
-    cl_connect( s.functional.result_q, s.result.result_in_q )
-    cl_connect( s.result.result_out_q, s.commit.result_in_q )
+    cl_connect( s.functional.result_q, s.writeback.result_in_q )
+    cl_connect( s.writeback.result_out_q, s.commit.result_in_q )
 
   def xtick( s ):
     if s.reset:
@@ -53,10 +53,10 @@ class CoreFL( Model ):
       s.controlflow.fl_reset()
     s.dataflow.xtick()
     s.commit.xtick()
-    s.result.xtick()
+    s.writeback.xtick()
     s.functional.xtick()
     s.issue.xtick()
-    s.dispatch.xtick()
+    s.decode.xtick()
     s.fetch.xtick()
 
   def line_trace( s ):
@@ -64,13 +64,13 @@ class CoreFL( Model ):
         'F: ',
         s.fetch.line_trace(),
         Divider( ' | ' ),
-        s.dispatch.line_trace(),
+        s.decode.line_trace(),
         Divider( ' | ' ),
         s.issue.line_trace(),
         Divider( ' | ' ),
         s.functional.line_trace(),
         Divider( ' | ' ),
-        s.result.line_trace(),
+        s.writeback.line_trace(),
         Divider( ' | ' ),
         s.commit.line_trace()
     ] )

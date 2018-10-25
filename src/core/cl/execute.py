@@ -8,7 +8,7 @@ from util.line_block import LineBlock
 from copy import deepcopy
 
 
-class FunctionalFL( Model ):
+class ExecuteUnitCL( Model ):
 
   def __init__( s, dataflow, controlflow ):
     s.issued_q = InValRdyCLPort( IssuePacket() )

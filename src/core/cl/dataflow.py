@@ -13,7 +13,7 @@ class PregState( BitStructDefinition ):
     s.areg = BitField( REG_SPEC_LEN )
 
 
-class DataFlowUnitFL( Model ):
+class DataFlowManagerCL( Model ):
 
   def __init__( s ):
     # Reserve the highest tag for x0
