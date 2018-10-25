@@ -98,11 +98,10 @@ def run_test( TestHarness, gen_test, max_cycles=50000000, extra_cycles=3 ):
   print( '' )
 
   def print_line_trace():
-    print(
-        line_block.join([
-            '{:>3} '.format( sim.ncycles ),
-            sim.model.line_trace(),
-        ] ) )
+    print( line_block.join([
+        '{:>3} '.format( sim.ncycles ),
+        sim.model.line_trace(),
+    ] ) )
     print( '\n' )
 
   sim.reset()
