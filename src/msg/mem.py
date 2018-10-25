@@ -52,6 +52,11 @@ MemMsgStatus = bit_enum(
 
 
 class MemReqMsg( BitStructDefinition ):
+  # TODO: SUPER HACKY TO MAKE pclib/fl/BytesMemPortAdapter.py work
+  # The BytesMemPortAdapter is questionable to begin with, it
+  # can't rely on this
+  TYPE_WRITE = MemMsgType.WRITE
+  TYPE_READ = MemMsgType.READ
 
   def __init__( s, opaque_nbits, addr_nbits, data_nbits ):
     s.type_ = BitField( MemMsgType.bits )
@@ -125,6 +130,8 @@ class MemReqMsg( BitStructDefinition ):
 
 
 class MemRespMsg( BitStructDefinition ):
+  TYPE_WRITE = MemMsgType.WRITE
+  TYPE_READ = MemMsgType.READ
 
   def __init__( s, opaque_nbits, data_nbits ):
     s.type_ = BitField( MemMsgType.bits )
