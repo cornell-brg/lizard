@@ -9,7 +9,7 @@ import inspect
 
 from pymtl import *
 
-from msg import MemMsg4B
+from msg.mem import MemMsg4B
 from pclib.test import TestSource, TestSink
 from util.TestMemory import TestMemory
 from util.cl.ports import InValRdyCLPort, OutValRdyCLPort, cl_connect

@@ -1,7 +1,7 @@
 from pymtl import *
 from msg.decode import *
 from msg.issue import *
-from msg.functional import *
+from msg.execute import *
 from msg.control import *
 from util.cl.ports import InValRdyCLPort, OutValRdyCLPort
 from util.line_block import LineBlock
@@ -12,7 +12,7 @@ class ExecuteUnitCL( Model ):
 
   def __init__( s, dataflow, controlflow ):
     s.issued_q = InValRdyCLPort( IssuePacket() )
-    s.result_q = OutValRdyCLPort( FunctionalPacket() )
+    s.result_q = OutValRdyCLPort( ExecutePacket() )
 
     s.dataflow = dataflow
     s.controlflow = controlflow
@@ -47,7 +47,7 @@ class ExecuteUnitCL( Model ):
       s.controlflow.retire( creq )
       return
 
-    s.work = FunctionalPacket()
+    s.work = ExecutePacket()
     s.work.inst = s.current.inst
     s.work.rd_valid = s.current.rd_valid
     s.work.rd = s.current.rd
