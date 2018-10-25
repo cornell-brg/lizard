@@ -201,11 +201,11 @@ class TinyRV2Semantics( object ):
   #-----------------------------------------------------------------------
 
   def execute_lui( s, inst ):
-    s.R[ inst.rd ] = inst.u_imm
+    s.R[ inst.rd ] = sext( inst.u_imm )
     s.PC += 4
 
   def execute_auipc( s, inst ):
-    s.R[ inst.rd ] = inst.u_imm + s.PC
+    s.R[ inst.rd ] = sext( inst.u_imm ) + s.PC
     s.PC += 4
 
   #-----------------------------------------------------------------------

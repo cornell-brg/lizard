@@ -6,6 +6,7 @@ import random
 
 from pymtl import *
 from test.core.inst_utils import *
+from config.general import *
 
 #-------------------------------------------------------------------------
 # gen_basic_test
@@ -119,9 +120,9 @@ def gen_srcs_dest_test():
 def gen_random_test():
   asm_code = []
   for i in xrange( 100 ):
-    src0 = Bits( 32, random.randint( 0, 0xffffffff ) )
-    src1 = Bits( 32, random.randint( 0, 0xffffffff ) )
-    dest = Bits( 32, src0 * src1, trunc=True )
+    src0 = Bits( XLEN, random.randint( 0, 0xffffffffffffffff ) )
+    src1 = Bits( XLEN, random.randint( 0, 0xffffffffffffffff ) )
+    dest = Bits( XLEN, src0 * src1, trunc=True )
     asm_code.append(
         gen_rr_value_test( "mul", src0.uint(), src1.uint(), dest.uint() ) )
   return asm_code

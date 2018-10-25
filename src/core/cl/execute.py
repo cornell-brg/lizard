@@ -88,9 +88,14 @@ class ExecuteUnitCL( Model ):
     elif s.current.inst == RV64Inst.SUB:
       s.work.result = s.current.rs1 - s.current.rs2
     elif s.current.inst == RV64Inst.SLL:
-      s.work.result = s.current.rs1 << s.current.rs2
+      s.work.result = Bits(
+          XLEN, s.current.rs1 << s.current.rs2[:5 ], trunc=True )
     elif s.current.inst == RV64Inst.SRL:
-      s.work.result = s.current.rs1 >> s.current.rs2
+      s.work.result = Bits(
+          XLEN, s.current.rs1.uint() >> s.current.rs2[:5 ].uint(), trunc=True )
+    elif s.current.inst == RV64Inst.SRA:
+      s.work.result = Bits(
+          XLEN, s.current.rs1.int() >> s.current.rs2[:5 ].uint(), trunc=True )
     elif s.current.inst == RV64Inst.SLT:
       s.work.result = int( s.current.rs1.int() < s.current.rs2.int() )
     elif s.current.inst == RV64Inst.SLTU:
@@ -101,9 +106,6 @@ class ExecuteUnitCL( Model ):
       s.work.result = s.current.rs1 | s.current.rs2
     elif s.current.inst == RV64Inst.AND:
       s.work.result = s.current.rs1 & s.current.rs2
-    elif s.current.inst == RV64Inst.SRA:
-      s.work.result = Bits(
-          XLEN, s.current.rs1.int() >> s.current.rs2.uint(), trunc=True )
     elif s.current.inst == RV64Inst.MUL:
       s.work.result = Bits(
           XLEN, s.current.rs1.int() * s.current.rs2.int(), trunc=True )

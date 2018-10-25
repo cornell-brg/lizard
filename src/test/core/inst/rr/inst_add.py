@@ -6,6 +6,7 @@ import random
 
 from pymtl import *
 from test.core.inst_utils import *
+from config.general import XLEN
 
 #-------------------------------------------------------------------------
 # gen_basic_test
@@ -155,8 +156,8 @@ def gen_value_test():
 def gen_random_test():
   asm_code = []
   for i in xrange( 100 ):
-    src0 = Bits( 32, random.randint( 0, 0xffffffff ) )
-    src1 = Bits( 32, random.randint( 0, 0xffffffff ) )
+    src0 = Bits( XLEN, random.randint( 0, 0xffffffffffffffff ) )
+    src1 = Bits( XLEN, random.randint( 0, 0xffffffffffffffff ) )
     dest = src0 + src1
     asm_code.append(
         gen_rr_value_test( "add", src0.uint(), src1.uint(), dest.uint() ) )
