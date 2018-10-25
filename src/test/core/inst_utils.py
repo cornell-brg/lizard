@@ -674,7 +674,7 @@ def gen_st_base_data_template( num_nops_data, num_nops_dest, reg_base, reg_data,
     {nops_dest}
 
     # Check the result
-    lw   x3, {offset}({reg_base})
+    lwu   x3, {offset}({reg_base})
     csrw proc2mngr, x3 > {data}
 
   """.format(
@@ -697,7 +697,7 @@ def gen_st_data_base_template( num_nops_base, num_nops_dest, reg_base, reg_data,
     {nops_dest}
 
     # Check the result
-    lw   x3, {offset}({reg_base})
+    lwu   x3, {offset}({reg_base})
     csrw proc2mngr, x3 > {data}
 
   """.format(

@@ -70,7 +70,7 @@ class TestMemoryCL( Model ):
           for j in range( nbytes ):
             s.mem[ memreq.addr + j ] = write_data[ j * 8:j * 8 + 8 ].uint()
 
-          resp_q.enq( s.mk_wr_resp( memreq.opaque, 0 ) )
+          resp_q.enq( s.mk_wr_resp( memreq.opaque, 0, 0 ) )
         elif ( memreq.type_ == MemReqMsg.TYPE_AMO_ADD or
                memreq.type_ == MemReqMsg.TYPE_AMO_AND or
                memreq.type_ == MemReqMsg.TYPE_AMO_OR or

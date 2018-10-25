@@ -146,7 +146,7 @@ class MemRespMsg( BitStructDefinition ):
     msg.type_ = MemMsgType.READ
     msg.opaque = opaque
     msg.test = 0
-    msg.stat = 0  # stat
+    msg.stat = 0
     msg.len = len_
     msg.data = data
 

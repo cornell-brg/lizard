@@ -33,7 +33,7 @@ def gen_basic_test():
     nop
     nop
     nop
-    lw   x3, 0(x1)
+    lwu   x3, 0(x1)
     csrw proc2mngr, x3 > 0xdeadbeef
 
     .data

@@ -5,6 +5,7 @@ from msg.execute import *
 from msg.writeback import *
 from msg.control import *
 from util.cl.ports import InValRdyCLPort, OutValRdyCLPort
+from util.cl.port_groups import InValRdyCLPortGroup
 from util.line_block import LineBlock
 from copy import deepcopy
 
@@ -12,7 +13,9 @@ from copy import deepcopy
 class WritebackUnitCL( Model ):
 
   def __init__( s, dataflow, controlflow ):
-    s.result_in_q = InValRdyCLPort( ExecutePacket() )
+    s.execute_q = InValRdyCLPort( ExecutePacket() )
+    s.memory_q = InValRdyCLPort( ExecutePacket() )
+    s.result_in_q = InValRdyCLPortGroup([ s.execute_q, s.memory_q ] )
     s.result_out_q = OutValRdyCLPort( WritebackPacket() )
 
     s.dataflow = dataflow
@@ -28,7 +31,8 @@ class WritebackUnitCL( Model ):
     if s.result_in_q.empty():
       return
 
-    p = s.result_in_q.deq()
+    # drop idx, don't care which port it came out of
+    p, _ = s.result_in_q.deq()
 
     # verify instruction still alive
     creq = TagValidRequest()

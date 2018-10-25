@@ -3,6 +3,7 @@ from msg.decode import *
 from msg.issue import *
 from msg.control import *
 from util.cl.ports import InValRdyCLPort, OutValRdyCLPort
+from util.cl.port_groups import OutValRdyCLPortGroup
 from config.general import *
 from util.line_block import LineBlock
 
@@ -11,7 +12,13 @@ class IssueUnitCL( Model ):
 
   def __init__( s, dataflow, controlflow ):
     s.decoded_q = InValRdyCLPort( DecodePacket() )
-    s.issued_q = OutValRdyCLPort( IssuePacket() )
+
+    s.execute_q = OutValRdyCLPort( IssuePacket() )
+    s.memory_q = OutValRdyCLPort( IssuePacket() )
+
+    s.issued_q = OutValRdyCLPortGroup([ s.execute_q, s.memory_q ] )
+    s.EXECUTE_PORT_IDX = 0
+    s.MEMORY_PORT_IDX = 1
 
     s.dataflow = dataflow
     s.controlflow = controlflow
@@ -83,7 +90,7 @@ class IssueUnitCL( Model ):
       # (essentialy creates a rename table snapshot)
       # note this happens after everything else is set -- this instruction
       # must be part of the snapshot
-      if not s.marked_speculative and s.current_d.is_branch:
+      if not s.marked_speculative and s.current_d.is_control_flow:
         creq = MarkSpeculativeRequest()
         creq.tag = s.current_d.tag
         cresp = s.controlflow.mark_speculative( creq )
@@ -101,8 +108,16 @@ class IssueUnitCL( Model ):
       s.work.csr_valid = s.current_d.csr_valid
       s.work.pc = s.current_d.pc
       s.work.tag = s.current_d.tag
-      s.work.is_branch = s.current_d.is_branch
-      s.issued_q.enq( s.work )
+      s.work.is_control_flow = s.current_d.is_control_flow
+      s.work.funct3 = s.current_d.funct3
+      s.work.opcode = s.current_d.opcode
+
+      # decide which port to issue it on
+      if s.work.opcode == Opcode.LOAD or s.work.opcode == Opcode.STORE:
+        idx = s.MEMORY_PORT_IDX
+      else:
+        idx = s.EXECUTE_PORT_IDX
+      s.issued_q.enq( s.work, idx )
       s.current_d = None
 
   def line_trace( s ):
