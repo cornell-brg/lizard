@@ -9,7 +9,7 @@ from util.line_block import LineBlock
 from copy import deepcopy
 
 
-class DispatchFL( Model ):
+class DecodeUnitCL( Model ):
 
   def __init__( s, controlflow ):
     s.instr_q = InValRdyCLPort( FetchPacket() )

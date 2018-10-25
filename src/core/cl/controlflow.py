@@ -23,7 +23,7 @@ class InstrState:
     return str( s )
 
 
-class ControlFlowUnitFL( Model ):
+class ControlFlowManagerCL( Model ):
 
   def __init__( s, dataflow ):
     s.seq = Bits( INST_TAG_LEN )

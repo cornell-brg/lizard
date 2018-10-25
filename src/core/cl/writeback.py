@@ -9,7 +9,7 @@ from util.line_block import LineBlock
 from copy import deepcopy
 
 
-class ResultFL( Model ):
+class WritebackUnitCL( Model ):
 
   def __init__( s, dataflow, controlflow ):
     s.result_in_q = InValRdyCLPort( FunctionalPacket() )

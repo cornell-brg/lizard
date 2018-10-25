@@ -3,12 +3,11 @@ from msg.decode import *
 from msg.issue import *
 from msg.control import *
 from util.cl.ports import InValRdyCLPort, OutValRdyCLPort
-from config.general import XLEN, ILEN, ILEN_BYTES, RESET_VECTOR, REG_COUNT
+from config.general import *
 from util.line_block import LineBlock
-from copy import deepcopy
 
 
-class IssueFL( Model ):
+class IssueUnitCL( Model ):
 
   def __init__( s, dataflow, controlflow ):
     s.decoded_q = InValRdyCLPort( DecodePacket() )
