@@ -1,7 +1,7 @@
 from pymtl import *
 
 import struct
-from msg.mem import MemMsg4B
+from msg.mem import MemMsg8B
 from pclib.test import TestSource, TestSink
 from core.cl.proc import ProcCL
 from util.cl.testmemory import TestMemoryCL
@@ -20,7 +20,7 @@ class ProcTestHarnessCL( Model ):
     s.src = TestSource( XLEN, [], 0 )
     s.sink = TestSink( XLEN, [], 0 )
     s.proc = ProcCL()
-    s.mem = TestMemoryCL( MemMsg4B, 1 )
+    s.mem = TestMemoryCL( MemMsg8B, 2 )
 
     @s.tick_cl
     def tick():
@@ -30,8 +30,11 @@ class ProcTestHarnessCL( Model ):
     s.connect( s.proc.mngr2proc, s.src.out )
     s.connect( s.proc.proc2mngr, s.sink.in_ )
 
-    cl_connect( s.proc.mem_req, s.mem.reqs_q[ 0 ] )
-    cl_connect( s.proc.mem_resp, s.mem.resps_q[ 0 ] )
+    cl_connect( s.proc.imem_req, s.mem.reqs_q[ 0 ] )
+    cl_connect( s.proc.imem_resp, s.mem.resps_q[ 0 ] )
+
+    cl_connect( s.proc.dmem_req, s.mem.reqs_q[ 1 ] )
+    cl_connect( s.proc.dmem_resp, s.mem.resps_q[ 1 ] )
 
   def load( self, mem_image ):
     sections = mem_image.get_sections()

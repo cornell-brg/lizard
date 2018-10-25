@@ -1,5 +1,5 @@
 from pymtl import *
-from msg.mem import MemMsg4B
+from msg.mem import MemMsg8B
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 from util.cl.adapters import UnbufferedInValRdyQueueAdapter, UnbufferedOutValRdyQueueAdapter
 from util.cl.ports import InValRdyCLPort, OutValRdyCLPort, cl_connect
@@ -8,6 +8,7 @@ from core.cl.fetch import FetchUnitCL
 from core.cl.decode import DecodeUnitCL
 from core.cl.issue import IssueUnitCL
 from core.cl.execute import ExecuteUnitCL
+from core.cl.memory import MemoryUnitCL
 from core.cl.writeback import WritebackUnitCL
 from core.cl.commit import CommitUnitCL
 from core.cl.dataflow import DataFlowManagerCL
@@ -19,8 +20,11 @@ from util.line_block import Divider
 class ProcCL( Model ):
 
   def __init__( s ):
-    s.mem_req = OutValRdyCLPort( MemMsg4B.req )
-    s.mem_resp = InValRdyCLPort( MemMsg4B.resp )
+    s.imem_req = OutValRdyCLPort( MemMsg8B.req )
+    s.imem_resp = InValRdyCLPort( MemMsg8B.resp )
+
+    s.dmem_req = OutValRdyCLPort( MemMsg8B.req )
+    s.dmem_resp = InValRdyCLPort( MemMsg8B.resp )
 
     s.mngr2proc = InValRdyBundle( Bits( XLEN ) )
     s.proc2mngr = OutValRdyBundle( Bits( XLEN ) )
@@ -32,19 +36,25 @@ class ProcCL( Model ):
     s.fetch = FetchUnitCL( s.controlflow )
     s.decode = DecodeUnitCL( s.controlflow )
     s.issue = IssueUnitCL( s.dataflow, s.controlflow )
-    s.functional = ExecuteUnitCL( s.dataflow, s.controlflow )
+    s.execute = ExecuteUnitCL( s.dataflow, s.controlflow )
+    s.memory = MemoryUnitCL( s.dataflow, s.controlflow )
     s.writeback = WritebackUnitCL( s.dataflow, s.controlflow )
     s.commit = CommitUnitCL( s.dataflow, s.controlflow )
 
     s.connect( s.mngr2proc, s.dataflow.mngr2proc )
     s.connect( s.proc2mngr, s.dataflow.proc2mngr )
 
-    cl_connect( s.mem_req, s.fetch.req_q )
-    cl_connect( s.mem_resp, s.fetch.resp_q )
+    cl_connect( s.imem_req, s.fetch.req_q )
+    cl_connect( s.imem_resp, s.fetch.resp_q )
+    cl_connect( s.dmem_req, s.memory.mem_req_q )
+    cl_connect( s.dmem_resp, s.memory.mem_resp_q )
+
     cl_connect( s.fetch.instrs_q, s.decode.instr_q )
     cl_connect( s.decode.decoded_q, s.issue.decoded_q )
-    cl_connect( s.issue.issued_q, s.functional.issued_q )
-    cl_connect( s.functional.result_q, s.writeback.result_in_q )
+    cl_connect( s.issue.execute_q, s.execute.issued_q )
+    cl_connect( s.issue.memory_q, s.memory.issued_q )
+    cl_connect( s.execute.result_q, s.writeback.execute_q )
+    cl_connect( s.memory.result_q, s.writeback.memory_q )
     cl_connect( s.writeback.result_out_q, s.commit.result_in_q )
 
   def xtick( s ):
@@ -54,7 +64,8 @@ class ProcCL( Model ):
     s.dataflow.xtick()
     s.commit.xtick()
     s.writeback.xtick()
-    s.functional.xtick()
+    s.execute.xtick()
+    s.memory.xtick()
     s.issue.xtick()
     s.decode.xtick()
     s.fetch.xtick()
@@ -68,7 +79,7 @@ class ProcCL( Model ):
         Divider( ' | ' ),
         s.issue.line_trace(),
         Divider( ' | ' ),
-        s.functional.line_trace(),
+        s.execute.line_trace(),
         Divider( ' | ' ),
         s.writeback.line_trace(),
         Divider( ' | ' ),

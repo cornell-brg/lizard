@@ -9,13 +9,7 @@ from pymtl import *
 
 from pclib.cl import InValRdyQueueAdapter, OutValRdyQueueAdapter
 
-#UnbufferedInValRdyQueueAdapter = InValRdyQueueAdapter
-#UnbufferedOutValRdyQueueAdapter = OutValRdyQueueAdapter
 
-
-#-------------------------------------------------------------------------
-# UnbufferedInValRdyQueueAdapter
-#-------------------------------------------------------------------------
 class UnbufferedInValRdyQueueAdapter( object ):
 
   def __init__( s, in_ ):
@@ -34,11 +28,6 @@ class UnbufferedInValRdyQueueAdapter( object ):
 
   def xtick( s ):
     s.in_.rdy.next = 0
-
-
-#-------------------------------------------------------------------------
-# UnbufferedOutValRdyQueueAdapter
-#-------------------------------------------------------------------------
 
 
 class UnbufferedOutValRdyQueueAdapter( object ):

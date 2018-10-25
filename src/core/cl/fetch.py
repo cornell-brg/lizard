@@ -1,5 +1,5 @@
 from pymtl import *
-from msg.mem import MemMsg4B
+from msg.mem import MemMsg8B
 from msg.fetch import FetchPacket
 from msg.control import *
 from util.cl.ports import InValRdyCLPort, OutValRdyCLPort
@@ -11,8 +11,8 @@ from copy import deepcopy
 class FetchUnitCL( Model ):
 
   def __init__( s, controlflow ):
-    s.req_q = OutValRdyCLPort( MemMsg4B.req )
-    s.resp_q = InValRdyCLPort( MemMsg4B.resp )
+    s.req_q = OutValRdyCLPort( MemMsg8B.req )
+    s.resp_q = InValRdyCLPort( MemMsg8B.resp )
     s.instrs_q = OutValRdyCLPort( FetchPacket() )
 
     s.in_flight = Wire( 1 )
@@ -65,7 +65,7 @@ class FetchUnitCL( Model ):
         fetch_pc = resp.pc
         s.epoch.next = resp.current_epoch
 
-      s.req_q.enq( MemMsg4B.req.mk_rd( 0, fetch_pc, 0 ) )
+      s.req_q.enq( MemMsg8B.req.mk_rd( 0, fetch_pc, ILEN_BYTES ) )
       s.pc_in_flight.next = fetch_pc
       s.epoch_in_flight = resp.current_epoch
       s.pc_in_flight_successor.next = fetch_pc + ILEN_BYTES

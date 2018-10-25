@@ -52,13 +52,16 @@ class DecodeUnitCL( Model ):
         int( Opcode.JALR ): s.dec_jalr,
         int( Opcode.LUI ): s.dec_lui,
         int( Opcode.AUIPC ): s.dec_auipc,
+        int( Opcode.LOAD ): s.dec_load,
+        int( Opcode.STORE ): s.dec_store,
     }
     try:
       opcode = inst[ RVInstMask.OPCODE ]
       out = opmap[ opcode.uint() ]( inst )
+      out.opcode = opcode
       out.pc = decoded.pc
       out.tag = decoded.tag
-    except KeyError:
+    except KeyError as e:
       return
       # TODO: illegal instruction exception
       raise NotImplementedError( 'Not implemented so sad: ' +
@@ -177,7 +180,8 @@ class DecodeUnitCL( Model ):
                   inst[ RVInstMask.B_IMM1 ], inst[ RVInstMask.B_IMM0 ],
                   Bits( 1, 0 ) )
     res.imm = sext( imm, DECODED_IMM_LEN )
-    res.is_branch = 1
+
+    res.is_control_flow = 1
 
     return res
 
@@ -191,7 +195,8 @@ class DecodeUnitCL( Model ):
                   inst[ RVInstMask.J_IMM1 ], inst[ RVInstMask.J_IMM0 ],
                   Bits( 1, 0 ) )
     res.imm = sext( imm, DECODED_IMM_LEN )
-    res.is_branch = 1
+
+    res.is_control_flow = 1
 
     return res
 
@@ -205,7 +210,8 @@ class DecodeUnitCL( Model ):
     res.rd_valid = 1
     imm = inst[ RVInstMask.I_IMM ]
     res.imm = sext( imm, DECODED_IMM_LEN )
-    res.is_branch = 1
+
+    res.is_control_flow = 1
 
     return res
 
@@ -228,6 +234,55 @@ class DecodeUnitCL( Model ):
     res.rd_valid = 1
     imm = concat( inst[ RVInstMask.U_IMM ], Bits( 12, 0 ) )
     res.imm = sext( imm, DECODED_IMM_LEN )
+
+    return res
+
+  def dec_load( s, inst ):
+    res = DecodePacket()
+
+    funct3 = int( inst[ RVInstMask.FUNCT3 ] )
+    insts = {
+        0b000: RV64Inst.LB,
+        0b001: RV64Inst.LH,
+        0b010: RV64Inst.LW,
+        0b011: RV64Inst.LD,
+        0b100: RV64Inst.LBU,
+        0b101: RV64Inst.LHU,
+        0b110: RV64Inst.LWU,
+    }
+    res.inst = insts[ funct3 ]
+    res.funct3 = funct3
+
+    res.rs1 = inst[ RVInstMask.RS1 ]
+    res.rs1_valid = 1
+    res.rd = inst[ RVInstMask.RD ]
+    res.rd_valid = 1
+
+    res.imm = sext( inst[ RVInstMask.I_IMM ], DECODED_IMM_LEN )
+
+    return res
+
+  def dec_store( s, inst ):
+    res = DecodePacket()
+
+    funct3 = int( inst[ RVInstMask.FUNCT3 ] )
+    insts = {
+        0b000: RV64Inst.SB,
+        0b001: RV64Inst.SH,
+        0b010: RV64Inst.SW,
+        0b011: RV64Inst.SD,
+    }
+    res.inst = insts[ funct3 ]
+    res.funct3 = funct3
+
+    res.rs1 = inst[ RVInstMask.RS1 ]
+    res.rs1_valid = 1
+    res.rs2 = inst[ RVInstMask.RS2 ]
+    res.rs2_valid = 1
+
+    res.imm = sext(
+        concat( inst[ RVInstMask.S_IMM1 ], inst[ RVInstMask.S_IMM0 ] ),
+        DECODED_IMM_LEN )
 
     return res
 

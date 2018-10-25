@@ -250,7 +250,9 @@ class DecodePacket( BitStructDefinition ):
     s.pc = BitField( XLEN )
     s.tag = BitField( INST_TAG_LEN )
 
-    s.is_branch = BitField( 1 )
+    s.is_control_flow = BitField( 1 )
+    s.funct3 = BitField( 3 )
+    s.opcode = BitField( Opcode.bits )
 
   def __str__( s ):
     return 'imm:{} inst:{: <5} rs1:{} v:{} rs2:{} v:{} rd:{} v:{}'.format(
