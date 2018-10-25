@@ -10,6 +10,7 @@
 from pymtl import Bits, concat
 from pymtl.datatypes import helpers
 from tinyrv2_encoding import TinyRV2Inst
+from config.general import *
 
 #-------------------------------------------------------------------------
 # Syntax Helpers
@@ -17,11 +18,11 @@ from tinyrv2_encoding import TinyRV2Inst
 
 
 def sext( bits ):
-  return helpers.sext( bits, 32 )
+  return helpers.sext( bits, XLEN )
 
 
 def zext( bits ):
-  return helpers.zext( bits, 32 )
+  return helpers.zext( bits, XLEN )
 
 
 class TinyRV2Semantics( object ):
@@ -41,7 +42,7 @@ class TinyRV2Semantics( object ):
 
     def __init__( self ):
 
-      self.regs = [ Bits( 32, 0 ) for i in xrange( 32 ) ]
+      self.regs = [ Bits( XLEN, 0 ) for i in xrange( XLEN ) ]
 
       self.trace_str = ""
       self.trace_regs = False
@@ -60,7 +61,7 @@ class TinyRV2Semantics( object ):
 
     def __setitem__( self, idx, value ):
 
-      trunc_value = Bits( 32, value, trunc=True )
+      trunc_value = Bits( XLEN, value, trunc=True )
 
       if self.trace_regs:
         self.dest = "X[{:2d}]={:0>8}".format( int( idx ), trunc_value )
@@ -91,9 +92,6 @@ class TinyRV2Semantics( object ):
     self.numcores = num_cores
     self.coreid = -1
 
-    # Only support RISC-V 32-bit ISA
-    self.xlen = 32
-
     self.reset()
 
   #-----------------------------------------------------------------------
@@ -102,7 +100,7 @@ class TinyRV2Semantics( object ):
 
   def reset( s ):
 
-    s.PC = Bits( 32, 0x00000200 )
+    s.PC = Bits( XLEN, RESET_VECTOR )
     s.stats_en = False
     s.coreid = -1
 

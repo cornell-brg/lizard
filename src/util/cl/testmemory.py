@@ -1,5 +1,5 @@
 #=========================================================================
-# TestMemory
+# TestMemoryCL
 #=========================================================================
 # A behavioral Test Memory which is parameterized based on the number of
 # memory request/response ports. This version is a little different from
@@ -13,11 +13,11 @@ from util.line_block import LineBlock
 from msg.mem import MemMsgType
 
 #-------------------------------------------------------------------------
-# TestMemory
+# TestMemoryCL
 #-------------------------------------------------------------------------
 
 
-class TestMemory( Model ):
+class TestMemoryCL( Model ):
 
   def __init__( s, mem_ifc_dtypes=MemMsg4B(), nports=1, mem_nbytes=2**20 ):
 
@@ -40,9 +40,9 @@ class TestMemory( Model ):
     s.data_nbits = mem_ifc_dtypes.req.data.nbits
     s.nports = nports
 
-    #---------------------------------------------------------------------
-    # Tick
-    #---------------------------------------------------------------------
+  #---------------------------------------------------------------------
+  # Tick
+  #---------------------------------------------------------------------
   def xtick( s ):
     for req_q, resp_q in zip( s.reqs_q, s.resps_q ):
       if resp_q.full():
@@ -95,7 +95,7 @@ class TestMemory( Model ):
         # Unknown message type -- throw an exception
         else:
           raise Exception(
-              "TestMemory doesn't know how to handle message type {}".format(
+              "TestMemoryCL doesn't know how to handle message type {}".format(
                   memreq.type_ ) )
 
   #-----------------------------------------------------------------------
@@ -128,6 +128,9 @@ class TestMemory( Model ):
   def read_mem( s, addr, size ):
     assert len( s.mem ) > ( addr + size )
     return s.mem[ addr:addr + size ]
+
+  def cleanup( s ):
+    del s.mem[: ]
 
 
 #-------------------------------------------------------------------------
