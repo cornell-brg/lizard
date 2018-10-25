@@ -988,16 +988,28 @@ def decode_inst_name( inst ):
         inst_name = "srai"
 
   elif inst[ opcode ] == 0b0100011:
-    if inst[ funct3 ] == 0b010:
+    if inst[ funct3 ] == 0b011:
+      inst_name = "sw"
+    elif inst[ funct3 ] == 0b010:
       inst_name = "sw"
     elif inst[ funct3 ] == 0b000:
       inst_name = "sb"
 
   elif inst[ opcode ] == 0b0000011:
-    if inst[ funct3 ] == 0b010:
-      inst_name = "lw"
-    elif inst[ funct3 ] == 0b000:
+    if inst[ funct3 ] == 0b000:
       inst_name = "lb"
+    elif inst[ funct3 ] == 0b001:
+      inst_name = "lh"
+    elif inst[ funct3 ] == 0b010:
+      inst_name = "lw"
+    elif inst[ funct3 ] == 0b011:
+      inst_name = "ld"
+    elif inst[ funct3 ] == 0b100:
+      inst_name = "lbu"
+    elif inst[ funct3 ] == 0b101:
+      inst_name = "lhu"
+    elif inst[ funct3 ] == 0b110:
+      inst_name = "lwu"
 
   elif inst[ opcode ] == 0b1100011:
     if inst[ funct3 ] == 0b000:

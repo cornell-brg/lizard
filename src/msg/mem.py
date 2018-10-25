@@ -152,12 +152,13 @@ class MemRespMsg( BitStructDefinition ):
 
     return msg
 
-  def mk_wr( s, opaque, stat, len_ ):
+  def mk_wr( s, opaque, len_ ):
     msg = s()
     msg.type_ = MemMsgType.WRITE
     msg.opaque = opaque
     msg.test = 0
-    msg.stat = stat
+    # TODO
+    #  msg.stat = stat
     msg.len = len_
     msg.data = 0
 

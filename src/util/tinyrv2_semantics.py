@@ -212,24 +212,59 @@ class TinyRV2Semantics( object ):
   # Load/store instructions
   #-----------------------------------------------------------------------
 
-  def execute_lw( s, inst ):
-    addr = s.R[ inst.rs1 ] + sext( inst.i_imm )
-    s.R[ inst.rd ] = s.M[ addr:addr + 4 ]
-    s.PC += 4
-
-  def execute_sw( s, inst ):
-    addr = s.R[ inst.rs1 ] + sext( inst.s_imm )
-    s.M[ addr:addr + 4 ] = s.R[ inst.rs2 ]
-    s.PC += 4
-
   def execute_lb( s, inst ):
     addr = s.R[ inst.rs1 ] + sext( inst.i_imm )
-    s.R[ inst.rd ] = sext( s.M[ addr ] )
+    s.R[ inst.rd ] = sext( s.M[ addr:addr + 1 ] )
+    s.PC += 4
+
+  def execute_lh( s, inst ):
+    addr = s.R[ inst.rs1 ] + sext( inst.i_imm )
+    s.R[ inst.rd ] = sext( s.M[ addr:addr + 2 ] )
+    s.PC += 4
+
+  def execute_lw( s, inst ):
+    addr = s.R[ inst.rs1 ] + sext( inst.i_imm )
+    s.R[ inst.rd ] = sext( s.M[ addr:addr + 4 ] )
+    s.PC += 4
+
+  def execute_ld( s, inst ):
+    addr = s.R[ inst.rs1 ] + sext( inst.i_imm )
+    s.R[ inst.rd ] = sext( s.M[ addr:addr + 8 ] )
+    s.PC += 4
+
+  def execute_lbu( s, inst ):
+    addr = s.R[ inst.rs1 ] + sext( inst.i_imm )
+    s.R[ inst.rd ] = zext( s.M[ addr:addr + 1 ] )
+    s.PC += 4
+
+  def execute_lhu( s, inst ):
+    addr = s.R[ inst.rs1 ] + sext( inst.i_imm )
+    s.R[ inst.rd ] = zext( s.M[ addr:addr + 2 ] )
+    s.PC += 4
+
+  def execute_lwu( s, inst ):
+    addr = s.R[ inst.rs1 ] + sext( inst.i_imm )
+    s.R[ inst.rd ] = zext( s.M[ addr:addr + 4 ] )
     s.PC += 4
 
   def execute_sb( s, inst ):
     addr = s.R[ inst.rs1 ] + sext( inst.s_imm )
-    s.M[ addr ] = s.R[ inst.rs2 ][ 0:8 ]
+    s.M[ addr:addr + 4 ] = s.R[ inst.rs2 ][ 0:8 ]
+    s.PC += 4
+
+  def execute_sh( s, inst ):
+    addr = s.R[ inst.rs1 ] + sext( inst.s_imm )
+    s.M[ addr:addr + 2 ] = s.R[ inst.rs2 ][ 0:16 ]
+    s.PC += 4
+
+  def execute_sw( s, inst ):
+    addr = s.R[ inst.rs1 ] + sext( inst.s_imm )
+    s.M[ addr:addr + 4 ] = s.R[ inst.rs2 ][ 0:32 ]
+    s.PC += 4
+
+  def execute_sd( s, inst ):
+    addr = s.R[ inst.rs1 ] + sext( inst.s_imm )
+    s.M[ addr:addr + 8 ] = s.R[ inst.rs2 ][ 0:64 ]
     s.PC += 4
 
   #-----------------------------------------------------------------------
@@ -380,7 +415,15 @@ class TinyRV2Semantics( object ):
       'slli': execute_slli,
       'lui': execute_lui,
       'auipc': execute_auipc,
+      'lb': execute_lb,
+      'lh': execute_lh,
       'lw': execute_lw,
+      'ld': execute_ld,
+      'lbu': execute_lbu,
+      'lhu': execute_lhu,
+      'lwu': execute_lwu,
+      'sb': execute_sb,
+      'sh': execute_sh,
       'sw': execute_sw,
       'jal': execute_jal,
       'jalr': execute_jalr,
