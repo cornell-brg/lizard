@@ -30,16 +30,15 @@ class DataFlowManagerCL( Model ):
     s.mngr2proc_q = InValRdyQueueAdapter( s.mngr2proc, size=None )
     s.proc2mngr_q = OutValRdyQueueAdapter( s.proc2mngr, size=None )
 
-  def fl_reset( s ):
-    s.free_regs.fl_reset()
-    for areg in range( REG_COUNT ):
-      tag = s.get_dst( areg ).tag
-      s.write_tag( tag, 0 )
-      s.commit_tag( tag, True )
-
-    s.csr_file = {}
-
   def xtick( s ):
+    if s.reset:
+      s.free_regs.fl_reset()
+      for areg in range( REG_COUNT ):
+        tag = s.get_dst( areg ).tag
+        s.write_tag( tag, 0 )
+        s.commit_tag( tag, True )
+      s.csr_file = {}
+
     s.mngr2proc_q.xtick()
     s.proc2mngr_q.xtick()
 

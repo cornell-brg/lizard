@@ -23,6 +23,14 @@ class MemoryFlowManagerCL( Model ):
     s.mem_resp = InValRdyCLPort( MemMsg8B.resp )
 
   def xtick( s ):
+    if s.reset:
+      s.current = None
+      s.submitted = False
+      s.resp_received = True
+      s.resp = None
+      s.drop_count = 0
+      return
+
     if not s.mem_resp.empty():
       if s.drop_count > 0:
         s.mem_resp.deq()
