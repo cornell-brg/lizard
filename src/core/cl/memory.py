@@ -10,15 +10,13 @@ from config.general import *
 
 class MemoryUnitCL( Model ):
 
-  def __init__( s, dataflow, controlflow ):
+  def __init__( s, dataflow, controlflow, memoryflow ):
     s.issued_q = InValRdyCLPort( IssuePacket() )
     s.result_q = OutValRdyCLPort( ExecutePacket() )
 
-    s.mem_req_q = OutValRdyCLPort( MemMsg8B.req )
-    s.mem_resp_q = InValRdyCLPort( MemMsg8B.resp )
-
     s.dataflow = dataflow
     s.controlflow = controlflow
+    s.memoryflow = memoryflow
 
     s.in_flight = Wire( 1 )
     s.current = None
@@ -29,10 +27,10 @@ class MemoryUnitCL( Model ):
 
     if s.in_flight:
       # can't do anything until response comes back
-      if s.mem_resp_q.empty():
+      if not s.memoryflow.response_ready():
         return
 
-      resp = s.mem_resp_q.deq()
+      resp = s.memoryflow.await_response()
 
       result = ExecutePacket()
       result.inst = s.current.inst
@@ -40,6 +38,7 @@ class MemoryUnitCL( Model ):
       result.rd = s.current.rd
       result.pc = s.current.pc
       result.tag = s.current.tag
+      result.opcode = s.current.opcode
 
       if s.current.opcode == Opcode.LOAD:
         if s.current.funct3[ 2 ] == 0:
@@ -54,7 +53,7 @@ class MemoryUnitCL( Model ):
       s.in_flight.next = 0
 
     # Nothing left in flight now, try to issue another one
-    if s.result_q.full() or s.mem_req_q.full() or s.issued_q.empty():
+    if s.result_q.full() or s.memoryflow.busy() or s.issued_q.empty():
       return
     s.current = s.issued_q.deq()
 
@@ -79,10 +78,25 @@ class MemoryUnitCL( Model ):
         MemMsg8B.req.len.nbits, 2**int( s.current.funct3[ 0:2 ] ), trunc=True )
     if s.current.opcode == Opcode.LOAD:
       req = MemMsg8B.req.mk_rd( 0, addr, byte_len )
+      s.memoryflow.stage( req )
+      # Loads we dispatch now; they have no side effects in the event of a squash
+      s.memoryflow.submit()
+      # Only need to wait on a response for a load
+      # Once a store has been staged, we are good
+      s.in_flight.next = 1
     else:
       req = MemMsg8B.req.mk_wr( 0, addr, byte_len, s.current.rs2 )
-    s.mem_req_q.enq( req )
-    s.in_flight.next = 1
+      s.memoryflow.stage( req )
+
+      # Once we stage we are done, so send to next stage
+      result = ExecutePacket()
+      result.inst = s.current.inst
+      result.rd_valid = s.current.rd_valid
+      result.rd = s.current.rd
+      result.pc = s.current.pc
+      result.tag = s.current.tag
+      result.opcode = s.current.opcode
+      s.result_q.enq( result )
 
   def line_trace( s ):
     return LineBlock([

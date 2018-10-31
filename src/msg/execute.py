@@ -16,6 +16,7 @@ class ExecutePacket( BitStructDefinition ):
 
     s.pc = BitField( XLEN )
     s.tag = BitField( INST_TAG_LEN )
+    s.opcode = BitField( Opcode.bits )
 
   def __str__( s ):
     return 'inst:{: <5} rd:{} v:{} result: {}'.format(
