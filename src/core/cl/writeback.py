@@ -12,7 +12,7 @@ from copy import deepcopy
 
 class WritebackUnitCL( Model ):
 
-  def __init__( s, dataflow, controlflow ):
+  def __init__( s, dataflow, controlflow, memoryflow ):
     s.execute_q = InValRdyCLPort( ExecutePacket() )
     s.memory_q = InValRdyCLPort( ExecutePacket() )
     s.result_in_q = InValRdyCLPortGroup([ s.execute_q, s.memory_q ] )
@@ -20,6 +20,7 @@ class WritebackUnitCL( Model ):
 
     s.dataflow = dataflow
     s.controlflow = controlflow
+    s.memoryflow = memoryflow
 
   def xtick( s ):
     if s.reset:
@@ -47,6 +48,11 @@ class WritebackUnitCL( Model ):
       creq = RetireRequest()
       creq.tag = p.tag
       s.controlflow.retire( creq )
+
+      # if memory instruction retire
+      if p.opcode == Opcode.STORE or p.opcode == Opcode.LOAD:
+        s.memoryflow.retire()
+
       return
 
     if p.rd_valid:
@@ -59,6 +65,7 @@ class WritebackUnitCL( Model ):
     out.result = p.result
     out.pc = p.pc
     out.tag = p.tag
+    out.opcode = p.opcode
     s.result_out_q.enq( out )
 
   def line_trace( s ):

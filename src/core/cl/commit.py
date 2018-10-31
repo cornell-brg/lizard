@@ -11,11 +11,12 @@ from copy import deepcopy
 
 class CommitUnitCL( Model ):
 
-  def __init__( s, dataflow, controlflow ):
+  def __init__( s, dataflow, controlflow, memoryflow ):
     s.result_in_q = InValRdyCLPort( WritebackPacket() )
 
     s.dataflow = dataflow
     s.controlflow = controlflow
+    s.memoryflow = memoryflow
 
     s.committed = Wire( INST_TAG_LEN )
     s.valid = Wire( 1 )
@@ -46,6 +47,10 @@ class CommitUnitCL( Model ):
       creq = RetireRequest()
       creq.tag = p.tag
       s.controlflow.retire( creq )
+
+      # if memory instruction retire
+      if p.opcode == Opcode.STORE or p.opcode == Opcode.LOAD:
+        s.memoryflow.retire()
       return
 
     if p.rd_valid:
@@ -57,6 +62,10 @@ class CommitUnitCL( Model ):
     s.controlflow.retire( creq )
     s.committed.next = p.tag
     s.valid.next = 1
+
+    # if memory instruction retire
+    if p.opcode == Opcode.STORE or p.opcode == Opcode.LOAD:
+      s.memoryflow.commit()
 
   def line_trace( s ):
     return LineBlock([

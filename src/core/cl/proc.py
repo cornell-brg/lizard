@@ -13,6 +13,7 @@ from core.cl.writeback import WritebackUnitCL
 from core.cl.commit import CommitUnitCL
 from core.cl.dataflow import DataFlowManagerCL
 from core.cl.controlflow import ControlFlowManagerCL
+from core.cl.memoryflow import MemoryFlowManagerCL
 from util import line_block
 from util.line_block import Divider
 
@@ -33,21 +34,22 @@ class ProcCL( Model ):
 
     s.dataflow = DataFlowManagerCL()
     s.controlflow = ControlFlowManagerCL( s.dataflow )
+    s.memoryflow = MemoryFlowManagerCL()
     s.fetch = FetchUnitCL( s.controlflow )
     s.decode = DecodeUnitCL( s.controlflow )
     s.issue = IssueUnitCL( s.dataflow, s.controlflow )
     s.execute = ExecuteUnitCL( s.dataflow, s.controlflow )
-    s.memory = MemoryUnitCL( s.dataflow, s.controlflow )
-    s.writeback = WritebackUnitCL( s.dataflow, s.controlflow )
-    s.commit = CommitUnitCL( s.dataflow, s.controlflow )
+    s.memory = MemoryUnitCL( s.dataflow, s.controlflow, s.memoryflow )
+    s.writeback = WritebackUnitCL( s.dataflow, s.controlflow, s.memoryflow )
+    s.commit = CommitUnitCL( s.dataflow, s.controlflow, s.memoryflow )
 
     s.connect( s.mngr2proc, s.dataflow.mngr2proc )
     s.connect( s.proc2mngr, s.dataflow.proc2mngr )
 
     cl_connect( s.imem_req, s.fetch.req_q )
     cl_connect( s.imem_resp, s.fetch.resp_q )
-    cl_connect( s.dmem_req, s.memory.mem_req_q )
-    cl_connect( s.dmem_resp, s.memory.mem_resp_q )
+    cl_connect( s.dmem_req, s.memoryflow.mem_req )
+    cl_connect( s.dmem_resp, s.memoryflow.mem_resp )
 
     cl_connect( s.fetch.instrs_q, s.decode.instr_q )
     cl_connect( s.decode.decoded_q, s.issue.decoded_q )
@@ -63,6 +65,7 @@ class ProcCL( Model ):
       s.controlflow.fl_reset()
     s.dataflow.xtick()
     s.commit.xtick()
+    s.memoryflow.xtick()
     s.writeback.xtick()
     s.execute.xtick()
     s.memory.xtick()

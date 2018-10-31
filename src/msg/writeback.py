@@ -16,3 +16,4 @@ class WritebackPacket( BitStructDefinition ):
 
     s.pc = BitField( XLEN )
     s.tag = BitField( INST_TAG_LEN )
+    s.opcode = BitField( Opcode.bits )
