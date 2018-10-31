@@ -35,13 +35,14 @@ class ControlFlowManagerCL( Model ):
 
     s.dataflow = dataflow
 
-  def fl_reset( s ):
-    s.seq = 0
-    s.head = 0
-    s.epoch = 0
-    s.in_flight = {}
-    s.epoch_start = RESET_VECTOR
-    s.spec_depth = 0
+  def xtick( s ):
+    if s.reset:
+      s.seq = 0
+      s.head = 0
+      s.epoch = 0
+      s.in_flight = {}
+      s.epoch_start = RESET_VECTOR
+      s.spec_depth = 0
 
   def get_epoch_start( s, request ):
     resp = GetEpochStartResponse()

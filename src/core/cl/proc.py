@@ -60,12 +60,11 @@ class ProcCL( Model ):
     cl_connect( s.writeback.result_out_q, s.commit.result_in_q )
 
   def xtick( s ):
-    if s.reset:
-      s.dataflow.fl_reset()
-      s.controlflow.fl_reset()
     s.dataflow.xtick()
-    s.commit.xtick()
+    s.controlflow.xtick()
     s.memoryflow.xtick()
+
+    s.commit.xtick()
     s.writeback.xtick()
     s.execute.xtick()
     s.memory.xtick()
