@@ -5,10 +5,9 @@ import argparse
 import sys
 
 BINARY = "yapf-brg"
-STYLE_BRG = ".style_brg.yapf"
-STYLE_SANE = ".style_sane.yapf"
-
 DIR = os.path.dirname( os.path.realpath( __file__ ) )
+STYLE_BRG = DIR + "/.style_brg.yapf"
+STYLE_SANE = DIR + "/.style_sane.yapf"
 
 
 def format( diff, style ):
