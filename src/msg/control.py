@@ -49,6 +49,14 @@ class RedirectRequest( BitStructDefinition ):
     s.source_tag = BitField( INST_TAG_LEN )
     s.target_pc = BitField( XLEN )
     s.at_commit = BitField( 1 )
+    # if 1, then regardless of the sucessor PC,
+    # the controlflow unit will force a rediredct.
+    # This is useful if even though the right instruction
+    # was fetched, it needs to be fetched and run again.
+    # For example, a FENCE.I instruction must redirect
+    # and fetch again regardless of what was originally
+    # fetched next.
+    s.force_redirect = BitField( 1 )
 
 
 class TagValidRequest( BitStructDefinition ):

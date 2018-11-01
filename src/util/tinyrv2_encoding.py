@@ -122,11 +122,12 @@ tinyrv2_encoding_table = \
     [ "csrr   rd, csrnum",       0b00000000000011111111000001111111, 0b00000000000000000010000001110011 ], # I-type, csrrs
     [ "csrw   csrnum, rs1",      0b00000000000000000111111111111111, 0b00000000000000000001000001110011 ], # I-type, csrrw
 
-
-    # These two are for elf execution.
-
-    [ "lb     rd,  i_imm(rs1)",  0b00000000000000000111000001111111, 0b00000000000000000000000000000011 ], # I-type
-    [ "sb     rs2, s_imm(rs1)",  0b00000000000000000111000001111111, 0b00000000000000000000000000100011 ], # S-type
+    #-----------------------------------------------------------------------
+    # Illegal Instruction
+    #-----------------------------------------------------------------------
+    # See "The RISC-V Instruction Set Manual Volume II Privileged Architecture.pdf" pp.13-21
+    [ "invld",                   0b11111111111111111111111111111111, 0b00000000000000000000000000000000 ], # I-type, csrrs
+    [ "csrw   csrnum, rs1",      0b00000000000000000111111111111111, 0b00000000000000000001000001110011 ], # I-type, csrrw
 ]
 
 #=========================================================================
@@ -300,7 +301,7 @@ def assemble_field_csrnum( bits, sym, pc, field_str ):
 
   assert (field_str == "proc2mngr") or (field_str == "mngr2proc") \
       or (field_str == "numcores" ) or (field_str == "coreid") \
-      or (field_str == "stats_en" )
+      or (field_str == "stats_en" ) or (field_str == "mtvec") \
 
   if field_str == "mngr2proc":
     imm = 0xFC0
@@ -312,6 +313,8 @@ def assemble_field_csrnum( bits, sym, pc, field_str ):
     imm = 0xF14
   elif field_str == "stats_en":
     imm = 0x7C1
+  elif field_str == "mtvec":
+    imm = 0x305
 
   bits[ tinyrv2_field_slice_csrnum ] = imm
 

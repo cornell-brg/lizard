@@ -32,6 +32,11 @@ class ExecuteUnitCL( Model ):
         return
       s.current = s.issued_q.deq()
 
+      s.work = ExecutePacket()
+      copy_common_bundle( s.current, s.work )
+      s.work.opcode = s.current.opcode
+      copy_field_valid_pair( s.current, s.work, 'rd' )
+
     # verify instruction still alive
     creq = TagValidRequest()
     creq.tag = s.current.tag
@@ -45,12 +50,13 @@ class ExecuteUnitCL( Model ):
       creq = RetireRequest()
       creq.tag = s.current.tag
       s.controlflow.retire( creq )
+      s.done.next = 1
       return
 
-    s.work = ExecutePacket()
-    s.work.inst = s.current.inst
-    s.work.rd_valid = s.current.rd_valid
-    s.work.rd = s.current.rd
+    if not s.work.valid:
+      s.done.next = 1
+      s.result_q.enq( s.work )
+      return
 
     if s.current.inst == RV64Inst.LUI:
       s.work.result = sext( s.current.imm, XLEN )
@@ -175,8 +181,6 @@ class ExecuteUnitCL( Model ):
       raise NotImplementedError( 'Not implemented so sad: ' +
                                  RV64Inst.name( s.current.inst ) )
 
-    s.work.pc = s.current.pc
-    s.work.tag = s.current.tag
     s.done.next = 1
     s.result_q.enq( s.work )
 

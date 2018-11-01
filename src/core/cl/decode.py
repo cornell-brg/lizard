@@ -27,21 +27,26 @@ class DecodeUnitCL( Model ):
     if s.instr_q.empty():
       return
 
-    decoded = s.instr_q.deq()
+    fetched = s.instr_q.deq()
 
     # verify instruction still alive
     creq = TagValidRequest()
-    creq.tag = decoded.tag
+    creq.tag = fetched.tag
     cresp = s.controlflow.tag_valid( creq )
     if not cresp.valid:
       # retire instruction from controlflow
       creq = RetireRequest()
-      creq.tag = decoded.tag
+      creq.tag = fetched.tag
       s.controlflow.retire( creq )
-
       return
 
-    inst = decoded.instr
+    out = DecodePacket()
+    copy_common_bundle( fetched, out )
+    if not out.valid:
+      s.ecoded_q.enq( out )
+      return
+
+    inst = fetched.instr
     # Decode it and create packet
     opmap = {
         int( Opcode.OP_IMM ): s.dec_op_imm,
@@ -57,19 +62,16 @@ class DecodeUnitCL( Model ):
     }
     try:
       opcode = inst[ RVInstMask.OPCODE ]
-      out = opmap[ opcode.uint() ]( inst )
       out.opcode = opcode
-      out.pc = decoded.pc
-      out.tag = decoded.tag
+      opmap[ opcode.uint() ]( inst, out )
     except KeyError as e:
-      return
-      # TODO: illegal instruction exception
-      raise NotImplementedError( 'Not implemented so sad: ' +
-                                 Opcode.name( opcode ) )
+      out.valid = 0
+      out.exception_triggered = 1
+      out.mcause = ExceptionCode.ILLEGAL_INSTRUCTION
+      out.mtval = fetched.instr
     s.decoded_q.enq( out )
 
-  def dec_op_imm( s, inst ):
-    res = DecodePacket()
+  def dec_op_imm( s, inst, res ):
     res.rs1 = inst[ RVInstMask.RS1 ]
     res.rs1_valid = 1
     res.rs2_valid = 0
@@ -105,8 +107,7 @@ class DecodeUnitCL( Model ):
 
     return res
 
-  def dec_op( s, inst ):
-    res = DecodePacket()
+  def dec_op( s, inst, res ):
     res.rs1 = inst[ RVInstMask.RS1 ]
     res.rs2 = inst[ RVInstMask.RS2 ]
     res.rd = inst[ RVInstMask.RD ]
@@ -134,9 +135,7 @@ class DecodeUnitCL( Model ):
 
     return res
 
-  def dec_system( s, inst ):
-    res = DecodePacket()
-
+  def dec_system( s, inst, res ):
     func3 = int( inst[ RVInstMask.FUNCT3 ] )
     insts = {
         0b001: RV64Inst.CSRRW,
@@ -156,8 +155,7 @@ class DecodeUnitCL( Model ):
 
     return res
 
-  def dec_branch( s, inst ):
-    res = DecodePacket()
+  def dec_branch( s, inst, res ):
     func3 = int( inst[ RVInstMask.FUNCT3 ] )
     insts = {
         0b000: RV64Inst.BEQ,
@@ -185,9 +183,7 @@ class DecodeUnitCL( Model ):
 
     return res
 
-  def dec_jal( s, inst ):
-    res = DecodePacket()
-
+  def dec_jal( s, inst, res ):
     res.inst = RV64Inst.JAL
     res.rd = inst[ RVInstMask.RD ]
     res.rd_valid = 1
@@ -200,9 +196,7 @@ class DecodeUnitCL( Model ):
 
     return res
 
-  def dec_jalr( s, inst ):
-    res = DecodePacket()
-
+  def dec_jalr( s, inst, res ):
     res.inst = RV64Inst.JALR
     res.rs1 = inst[ RVInstMask.RS1 ]
     res.rs1_valid = 1
@@ -215,9 +209,7 @@ class DecodeUnitCL( Model ):
 
     return res
 
-  def dec_lui( s, inst ):
-    res = DecodePacket()
-
+  def dec_lui( s, inst, res ):
     res.inst = RV64Inst.LUI
     res.rd = inst[ RVInstMask.RD ]
     res.rd_valid = 1
@@ -226,9 +218,7 @@ class DecodeUnitCL( Model ):
 
     return res
 
-  def dec_auipc( s, inst ):
-    res = DecodePacket()
-
+  def dec_auipc( s, inst, res ):
     res.inst = RV64Inst.AUIPC
     res.rd = inst[ RVInstMask.RD ]
     res.rd_valid = 1
@@ -237,9 +227,7 @@ class DecodeUnitCL( Model ):
 
     return res
 
-  def dec_load( s, inst ):
-    res = DecodePacket()
-
+  def dec_load( s, inst, res ):
     funct3 = int( inst[ RVInstMask.FUNCT3 ] )
     insts = {
         0b000: RV64Inst.LB,
@@ -262,9 +250,7 @@ class DecodeUnitCL( Model ):
 
     return res
 
-  def dec_store( s, inst ):
-    res = DecodePacket()
-
+  def dec_store( s, inst, res ):
     funct3 = int( inst[ RVInstMask.FUNCT3 ] )
     insts = {
         0b000: RV64Inst.SB,
