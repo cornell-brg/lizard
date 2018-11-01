@@ -117,78 +117,83 @@ class ExecuteUnitCL( Model ):
           XLEN, s.current.rs1.int() * s.current.rs2.int(), trunc=True )
     elif s.current.inst == RV64Inst.MULH:
       s.work.result = Bits(
-          XLEN, (s.current.rs1.int() * s.current.rs2.int()) >> XLEN, trunc=True )
+          XLEN, ( s.current.rs1.int() * s.current.rs2.int() ) >> XLEN,
+          trunc=True )
     elif s.current.inst == RV64Inst.MULHU:
       s.work.result = Bits(
-          XLEN, (s.current.rs1.uint() * s.current.rs2.uint()) >> XLEN, trunc=True )
+          XLEN, ( s.current.rs1.uint() * s.current.rs2.uint() ) >> XLEN,
+          trunc=True )
     elif s.current.inst == RV64Inst.MULHSU:
       s.work.result = Bits(
-          XLEN, (s.current.rs1.int() * s.current.rs2.uint()) >> XLEN, trunc=True )
+          XLEN, ( s.current.rs1.int() * s.current.rs2.uint() ) >> XLEN,
+          trunc=True )
     elif s.current.inst == RV64Inst.DIV:
-      if (s.current.rs2.int() == 0):
+      if ( s.current.rs2.int() == 0 ):
         s.work.result = sext( 1, XLEN )
       # Special overflow case
-      elif (s.current.rs1.int() == -2**(XLEN - 1) and s.current.rs2.int() == -1):
+      elif ( s.current.rs1.int() == -2**( XLEN - 1 ) and
+             s.current.rs2.int() == -1 ):
         s.work.result = s.current.rs1
       else:
         s.work.result = Bits(
             XLEN, s.current.rs1.int() // s.current.rs2.int(), trunc=True )
     elif s.current.inst == RV64Inst.DIVU:
-      if (s.current.rs2.int() == 0):
+      if ( s.current.rs2.int() == 0 ):
         s.work.result = sext( 1, XLEN )
       else:
         s.work.result = Bits(
             XLEN, s.current.rs1.uint() // s.current.rs2.uint(), trunc=True )
     elif s.current.inst == RV64Inst.REM:
-      if (s.current.rs2.int() == 0):
+      if ( s.current.rs2.int() == 0 ):
         s.work.result = s.current.rs1
       # Special overflow case
-      elif (s.current.rs1.int() == -2**(XLEN - 1) and s.current.rs2.int() == -1):
+      elif ( s.current.rs1.int() == -2**( XLEN - 1 ) and
+             s.current.rs2.int() == -1 ):
         s.work.result = 0
       else:
         s.work.result = Bits(
             XLEN, s.current.rs1.int() % s.current.rs2.int(), trunc=True )
     elif s.current.inst == RV64Inst.REMU:
-      if (s.current.rs2.int() == 0):
+      if ( s.current.rs2.int() == 0 ):
         s.work.result = s.current.rs1
       else:
         s.work.result = Bits(
             XLEN, s.current.rs1.uint() % s.current.rs2.uint(), trunc=True )
     # W suffix instructions
     elif s.current.inst == RV64Inst.MULW:
-      s.work.result = sext(s.current.rs1[:32 ] * s.current.rs2[:32 ] , XLEN )
+      s.work.result = sext( s.current.rs1[:32 ] * s.current.rs2[:32 ], XLEN )
     elif s.current.inst == RV64Inst.DIVW:
-      s1 = s.current.rs1[:32].int()
-      s2 = s.current.rs2[:32].int()
-      if (s2 == 0):
+      s1 = s.current.rs1[:32 ].int()
+      s2 = s.current.rs2[:32 ].int()
+      if ( s2 == 0 ):
         s.work.result = sext( 1, XLEN )
       # Special overflow case
-      elif (s1 == -2**(32 - 1) and s2 == -1):
+      elif ( s1 == -2**( 32 - 1 ) and s2 == -1 ):
         s.work.result = sext( s1, XLEN )
       else:
         s.work.result = sext( s1 // s2, XLEN )
     elif s.current.inst == RV64Inst.DIVUW:
-      s1 = s.current.rs1[:32].uint()
-      s2 = s.current.rs2[:32].uint()
-      if (s2 == 0):
+      s1 = s.current.rs1[:32 ].uint()
+      s2 = s.current.rs2[:32 ].uint()
+      if ( s2 == 0 ):
         s.work.result = sext( 1, XLEN )
       else:
         s.work.result = sext( s1 // s2, XLEN )
     elif s.current.inst == RV64Inst.REMW:
-      s1 = s.current.rs1[:32].int()
-      s2 = s.current.rs2[:32].int()
+      s1 = s.current.rs1[:32 ].int()
+      s2 = s.current.rs2[:32 ].int()
 
-      if (s2 == 0):
+      if ( s2 == 0 ):
         s.work.result = s1
       # Special overflow case
-      elif (s1 == -2**(32 - 1) and s2 == -1):
+      elif ( s1 == -2**( 32 - 1 ) and s2 == -1 ):
         s.work.result = 0
       else:
         s.work.result = sext( s1 % s2, XLEN )
     elif s.current.inst == RV64Inst.REMU:
-      s1 = s.current.rs1[:32].uint()
-      s2 = s.current.rs2[:32].uint()
-      if (s1 == 0):
+      s1 = s.current.rs1[:32 ].uint()
+      s2 = s.current.rs2[:32 ].uint()
+      if ( s1 == 0 ):
         s.work.result = s1
       else:
         s.work.result = sext( s1 % s2, XLEN )
