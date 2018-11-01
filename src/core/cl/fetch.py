@@ -41,6 +41,7 @@ class FetchUnitCL( Model ):
     if not s.resp_q.empty():
       mem_resp = s.resp_q.deq()
       out = FetchPacket()
+      out.valid = 1
       out.instr = mem_resp.data
       out.pc = s.pc_in_flight
 

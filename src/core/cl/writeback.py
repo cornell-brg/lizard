@@ -52,20 +52,21 @@ class WritebackUnitCL( Model ):
       # if memory instruction retire
       if p.opcode == Opcode.STORE or p.opcode == Opcode.LOAD:
         s.memoryflow.retire()
+      return
 
+    out = WritebackPacket()
+    copy_common_bundle( p, out )
+    out.opcode = p.opcode
+    copy_field_valid_pair( p, out, 'rd' )
+    out.result = p.result
+
+    if not out.valid:
+      s.result_out_q.enq( out )
       return
 
     if p.rd_valid:
       s.dataflow.write_tag( p.rd, p.result )
 
-    out = WritebackPacket()
-    out.inst = p.inst
-    out.rd_valid = p.rd_valid
-    out.rd = p.rd
-    out.result = p.result
-    out.pc = p.pc
-    out.tag = p.tag
-    out.opcode = p.opcode
     s.result_out_q.enq( out )
 
   def line_trace( s ):

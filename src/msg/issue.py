@@ -1,29 +1,20 @@
 from pymtl import *
 from msg.decode import *
 from config.general import *
+from msg.packet_common import *
 
 
 class IssuePacket( BitStructDefinition ):
 
   def __init__( s ):
-    s.imm = BitField( DECODED_IMM_LEN )
-    s.inst = BitField( RV64Inst.bits )
-    s.rs1 = BitField( XLEN )
-    s.rs1_valid = BitField( 1 )
-    s.rs2 = BitField( XLEN )
-    s.rs2_valid = BitField( 1 )
-    s.rd = BitField( REG_TAG_LEN )
-    s.rd_valid = BitField( 1 )
+    CommonBundle( s )
+    DecodeBundle( s )
 
-    s.csr = BitField( CSR_SPEC_LEN )
-    s.csr_valid = BitField( 1 )
+    FieldValidPair( s, 'rs1', XLEN )
+    FieldValidPair( s, 'rs2', XLEN )
+    FieldValidPair( s, 'rd', REG_TAG_LEN )
 
-    s.pc = BitField( XLEN )
-    s.tag = BitField( INST_TAG_LEN )
-
-    s.is_control_flow = BitField( 1 )
-    s.funct3 = BitField( 3 )
-    s.opcode = BitField( Opcode.bits )
+    ExceptionBundle( s )
 
   def __str__( s ):
     return 'imm:{} inst:{: <5} rs1:{} v:{} rs2:{} v:{} rd:{} v:{}'.format(

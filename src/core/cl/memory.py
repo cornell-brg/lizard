@@ -33,12 +33,9 @@ class MemoryUnitCL( Model ):
       resp = s.memoryflow.await_response()
 
       result = ExecutePacket()
-      result.inst = s.current.inst
-      result.rd_valid = s.current.rd_valid
-      result.rd = s.current.rd
-      result.pc = s.current.pc
-      result.tag = s.current.tag
+      copy_common_bundle( s.current, result )
       result.opcode = s.current.opcode
+      copy_field_valid_pair( s.current, result, 'rd' )
 
       if s.current.opcode == Opcode.LOAD:
         if s.current.funct3[ 2 ] == 0:
@@ -72,6 +69,14 @@ class MemoryUnitCL( Model ):
       s.controlflow.retire( creq )
       return
 
+    if not s.current.valid:
+      result = ExecutePacket()
+      copy_common_bundle( s.current, result )
+      result.opcode = s.current.opcode
+      copy_field_valid_pair( s.current, result, 'rd' )
+      s.result_q.enq( s.work )
+      return
+
     # Memory message length is number of bytes, with 0 = all (overlow)
     addr = s.current.rs1 + sext( s.current.imm, XLEN )
     byte_len = Bits(
@@ -90,12 +95,10 @@ class MemoryUnitCL( Model ):
 
       # Once we stage we are done, so send to next stage
       result = ExecutePacket()
-      result.inst = s.current.inst
-      result.rd_valid = s.current.rd_valid
-      result.rd = s.current.rd
-      result.pc = s.current.pc
-      result.tag = s.current.tag
+      copy_common_bundle( s.current, result )
       result.opcode = s.current.opcode
+      copy_field_valid_pair( s.current, result, 'rd' )
+
       s.result_q.enq( result )
 
   def line_trace( s ):

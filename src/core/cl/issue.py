@@ -6,6 +6,7 @@ from util.cl.ports import InValRdyCLPort, OutValRdyCLPort
 from util.cl.port_groups import OutValRdyCLPortGroup
 from config.general import *
 from util.line_block import LineBlock
+from msg.packet_common import *
 
 
 class IssueUnitCL( Model ):
@@ -36,6 +37,9 @@ class IssueUnitCL( Model ):
         return
       s.current_d = s.decoded_q.deq()
       s.work = IssuePacket()
+      copy_common_bundle( s.current_d, s.work )
+      copy_decode_bundle( s.current_d, s.work )
+
       s.current_rs1 = None
       s.current_rs2 = None
       s.marked_speculative = False
@@ -54,6 +58,12 @@ class IssueUnitCL( Model ):
       creq.tag = s.current_d.tag
       s.controlflow.retire( creq )
 
+      s.current_d = None
+      return
+
+    if not s.work.valid:
+      # Port doesn't matter for invalid instruction
+      s.issued_q.enq( s.work, s.EXECUTE_PORT_IDX )
       s.current_d = None
       return
 
@@ -101,16 +111,6 @@ class IssueUnitCL( Model ):
           # (likely because we are too deeply in speculation right now)
           # must stall
           return
-
-      s.work.imm = s.current_d.imm
-      s.work.inst = s.current_d.inst
-      s.work.csr = s.current_d.csr
-      s.work.csr_valid = s.current_d.csr_valid
-      s.work.pc = s.current_d.pc
-      s.work.tag = s.current_d.tag
-      s.work.is_control_flow = s.current_d.is_control_flow
-      s.work.funct3 = s.current_d.funct3
-      s.work.opcode = s.current_d.opcode
 
       # decide which port to issue it on
       if s.work.opcode == Opcode.LOAD or s.work.opcode == Opcode.STORE:

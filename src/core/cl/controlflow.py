@@ -89,7 +89,8 @@ class ControlFlowManagerCL( Model ):
     assert s.in_flight[ int( request.source_tag ) ].valid
 
     if s.in_flight[ int(
-        request.source_tag ) ].succesor_pc == request.target_pc:
+        request.source_tag
+    ) ].succesor_pc == request.target_pc and not request.force_redirect:
       return
 
     # invalidate all later instructions
