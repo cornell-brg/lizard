@@ -23,6 +23,8 @@ INST_TAG_LEN = 64
 MAX_SPEC_DEPTH = 4
 MAX_SPEC_DEPTH_LEN = clog2( MAX_SPEC_DEPTH )
 
+BIT32_MASK = Bits( 32, 0xFFFFFFFF )
+
 CsrRegisters = bit_enum(
     'CsrRegisters',
     bits=12,
