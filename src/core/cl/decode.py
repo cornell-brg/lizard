@@ -134,7 +134,7 @@ class DecodeUnitCL( Model ):
         ( 0b000, 0b0000001 ): RV64Inst.MUL,
         ( 0b001, 0b0000001 ): RV64Inst.MULH,
         ( 0b010, 0b0000001 ): RV64Inst.MULHSU,
-        ( 0b011, 0b0000001 ): RV64Inst.MULU,
+        ( 0b011, 0b0000001 ): RV64Inst.MULHU,
         ( 0b100, 0b0000001 ): RV64Inst.DIV,
         ( 0b101, 0b0000001 ): RV64Inst.DIVU,
         ( 0b110, 0b0000001 ): RV64Inst.REM,
