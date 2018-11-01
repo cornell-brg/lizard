@@ -127,7 +127,7 @@ class ExecuteUnitCL( Model ):
     elif s.current.inst == RV64Inst.SRLIW:
       s.work.result = sext(s.current.rs1[:32] >> s.current.imm, XLEN )
     elif s.current.inst == RV64Inst.SRAIW:
-      s.work.result = Bits(XLEN, s.current.rs1[:32].int() >> s.current.imm.uint())
+      s.work.result = Bits(XLEN, s.current.rs1[:32].int() >> s.current.imm.uint(), trunc=True )
     elif s.current.is_control_flow:
       taken = False
       base = s.current.pc
