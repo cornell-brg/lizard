@@ -115,6 +115,9 @@ class ExecuteUnitCL( Model ):
     elif s.current.inst == RV64Inst.MUL:
       s.work.result = Bits(
           XLEN, s.current.rs1.int() * s.current.rs2.int(), trunc=True )
+    elif s.current.inst == RV64Inst.DIV:
+      s.work.result = Bits(
+      XLEN, s.current.rs1.int() // s.current.rs2.int(), trunc=True )
     # W suffix instructions
     elif s.current.inst == RV64Inst.ADDW:
       s.work.result = sext( s.current.rs1[:32 ] + s.current.rs2[:32 ], XLEN )
