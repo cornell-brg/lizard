@@ -18,6 +18,7 @@ from pymtl import Bits, concat
 from string import translate, maketrans
 from util.sparse_memory_image import SparseMemoryImage
 from config.general import *
+from msg.codes import *
 
 #=========================================================================
 # Encoding Table
@@ -125,9 +126,7 @@ tinyrv2_encoding_table = \
     #-----------------------------------------------------------------------
     # Illegal Instruction
     #-----------------------------------------------------------------------
-    # See "The RISC-V Instruction Set Manual Volume II Privileged Architecture.pdf" pp.13-21
-    [ "invld",                   0b11111111111111111111111111111111, 0b00000000000000000000000000000000 ], # I-type, csrrs
-    [ "csrw   csrnum, rs1",      0b00000000000000000111111111111111, 0b00000000000000000001000001110011 ], # I-type, csrrw
+    [ "invld",                   0b11111111111111111111111111111111, 0b00000000110000001111111111101110 ], # 0x0c00ffee
 ]
 
 #=========================================================================
@@ -299,23 +298,7 @@ def disassemble_field_i_imm( bits ):
 
 def assemble_field_csrnum( bits, sym, pc, field_str ):
 
-  assert (field_str == "proc2mngr") or (field_str == "mngr2proc") \
-      or (field_str == "numcores" ) or (field_str == "coreid") \
-      or (field_str == "stats_en" ) or (field_str == "mtvec") \
-
-  if field_str == "mngr2proc":
-    imm = 0xFC0
-  elif field_str == "proc2mngr":
-    imm = 0x7C0
-  elif field_str == "numcores":
-    imm = 0xFC1
-  elif field_str == "coreid":
-    imm = 0xF14
-  elif field_str == "stats_en":
-    imm = 0x7C1
-  elif field_str == "mtvec":
-    imm = 0x305
-
+  imm = CsrRegisters.lookup( field_str )
   bits[ tinyrv2_field_slice_csrnum ] = imm
 
 
@@ -939,10 +922,7 @@ def decode_inst_name( inst ):
 
   inst_name = ""
 
-  if inst == 0b00000000000000000000000000010011:
-    inst_name = "nop"
-
-  elif inst[ opcode ] == 0b0110011:
+  if inst[ opcode ] == 0b0110011:
     if inst[ funct7 ] == 0b0000000:
       if inst[ funct3 ] == 0b000:
         inst_name = "add"
@@ -1042,15 +1022,14 @@ def decode_inst_name( inst ):
 
   elif inst[ opcode ] == 0b1110011:
     if inst[ funct3 ] == 0b001:
-      inst_name = "csrw"
+      inst_name = "csrrw"
     elif inst[ funct3 ] == 0b010:
-      inst_name = "csrr"
-
-  elif inst == 0:
-    inst_name = " "
+      inst_name = "csrrs"
+    elif inst[ funct3 ] == 0b011:
+      inst_name = "csrrc"
 
   if inst_name == "":
-    raise AssertionError( "Illegal instruction {}!".format( inst ) )
+    return "invld"
 
   return inst_name
 
@@ -1091,7 +1070,7 @@ class TinyRV2Inst( object ):
   #-----------------------------------------------------------------------
 
   def __init__( self, inst_bits ):
-    self.bits = Bits( 32, inst_bits )
+    self.bits = Bits( ILEN, inst_bits )
 
   #-----------------------------------------------------------------------
   # Get instruction name

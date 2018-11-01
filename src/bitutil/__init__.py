@@ -49,4 +49,20 @@ def bit_enum( name, bits=None, *names, **pairs ):
   data[ 'name' ] = sane_lookup( names_dict )
   data[ 'short' ] = sane_lookup( short )
   data[ 'bits' ] = bits
-  return type( name, (), data )
+  result = type( name, (), data )
+
+  @staticmethod
+  def lookup( k ):
+    if hasattr( result, k ):
+      return getattr( result, k )
+    else:
+      return None
+
+  @staticmethod
+  def contains( k ):
+    return int( k ) in names_dict
+
+  result.lookup = lookup
+  result.contains = contains
+
+  return result
