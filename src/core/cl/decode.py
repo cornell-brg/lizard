@@ -189,7 +189,6 @@ class DecodeUnitCL( Model ):
         ( 0b101, 0b0000001 ): RV64Inst.DIVUW,
         ( 0b110, 0b0000001 ): RV64Inst.REMW,
         ( 0b111, 0b0000001 ): RV64Inst.REMUW,
-
     }
     res.inst = insts[( func3, func7 ) ]
     return res
