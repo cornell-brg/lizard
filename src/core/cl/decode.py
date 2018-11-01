@@ -59,6 +59,8 @@ class DecodeUnitCL( Model ):
         int( Opcode.AUIPC ): s.dec_auipc,
         int( Opcode.LOAD ): s.dec_load,
         int( Opcode.STORE ): s.dec_store,
+        int( Opcode.OP_IMM_32 ): s.dec_op_imm32,
+        int( Opcode.OP_32 ): s.dec_op_32,
     }
     try:
       opcode = inst[ RVInstMask.OPCODE ]
@@ -135,7 +137,52 @@ class DecodeUnitCL( Model ):
 
     return res
 
+  def dec_op_imm32( s, inst, res ):
+    res.rs1 = inst[ RVInstMask.RS1 ]
+    res.rd = inst[ RVInstMask.RD ]
+    res.imm = 0
+    res.rs1_valid = 1
+    res.rs2_valid = 0
+    res.rd_valid = 1
+
+    if ( inst[ RVInstMask.FUNCT3 ] == 0b000 ):  # Special case for addiw
+      res.inst = RVInstMask.ADDIW
+      res.imm = sext( inst[ RVInstMask.I_IMM ], DECODED_IMM_LEN )
+    else:
+      func3 = int( inst[ RVInstMask.FUNCT3 ] )
+      func7 = int( inst[ RVInstMask.FUNCT7 ] )
+      insts = {
+          ( 0b001, 0b0000000 ): RV64Inst.SLLIW,
+          ( 0b101, 0b0000000 ): RV64Inst.SRLIW,
+          ( 0b101, 0b0100000 ): RV64Inst.SRAIW,
+      }
+      res.inst = insts[( func3, func7 ) ]
+      res.imm = sext( inst[ RVInstMask.SHAMT ], DECODED_IMM_LEN )
+    return res
+
+  def dec_op_32( s, inst, res ):
+    res.rs1 = inst[ RVInstMask.RS1 ]
+    res.rs2 = inst[ RVInstMask.RS2 ]
+    res.rd = inst[ RVInstMask.RD ]
+    res.imm = 0
+    res.rs1_valid = 1
+    res.rs2_valid = 1
+    res.rd_valid = 1
+
+    func3 = int( inst[ RVInstMask.FUNCT3 ] )
+    func7 = int( inst[ RVInstMask.FUNCT7 ] )
+    insts = {
+        ( 0b000, 0b0000000 ): RV64Inst.ADDW,
+        ( 0b000, 0b0100000 ): RV64Inst.SUBW,
+        ( 0b001, 0b0000000 ): RV64Inst.SLLW,
+        ( 0b101, 0b0000000 ): RV64Inst.SRLW,
+        ( 0b101, 0b0100000 ): RV64Inst.SRAW,
+    }
+    res.inst = insts[( func3, func7 ) ]
+    return res
+
   def dec_system( s, inst, res ):
+
     func3 = int( inst[ RVInstMask.FUNCT3 ] )
     insts = {
         0b001: RV64Inst.CSRRW,
