@@ -2,6 +2,7 @@ from msg.data import *
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 from pclib.cl import InValRdyQueueAdapter, OutValRdyQueueAdapter
 from config.general import *
+from msg.codes import *
 from util.freelist.fl import FreeListFL
 
 

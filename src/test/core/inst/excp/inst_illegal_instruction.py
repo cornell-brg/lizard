@@ -20,4 +20,10 @@ def gen_simple_test():
   nop                    # 0x234
   nop                    # 0x238
   csrw proc2mngr, x1 > 0 # 0x23c
+  csrr x3, mepc
+  csrw proc2mngr, x3 > 0x220
+  csrr x3, mcause
+  csrw proc2mngr, x3 > 2
+  csrr x3, mtval
+  csrw proc2mngr, x3 > 0x00c0ffee
   """

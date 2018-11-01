@@ -11,6 +11,7 @@ from pymtl import Bits, concat
 from pymtl.datatypes import helpers
 from tinyrv2_encoding import TinyRV2Inst
 from config.general import *
+from msg.codes import *
 
 #-------------------------------------------------------------------------
 # Syntax Helpers
@@ -77,6 +78,19 @@ class TinyRV2Semantics( object ):
       self.dest = ""
       return self.trace_str
 
+  class CsrRegisterFile( object ):
+
+    def __init__( self ):
+      self.regs = {}
+
+    def __getitem__( self, idx ):
+      key = int( idx )
+      return self.regs.get( key, Bits( XLEN,) )
+
+    def __setitem__( self, idx, value ):
+      trunc_value = Bits( XLEN, value, trunc=True )
+      self.regs[ int( idx ) ] = trunc_value
+
   #-----------------------------------------------------------------------
   # Constructor
   #-----------------------------------------------------------------------
@@ -84,6 +98,7 @@ class TinyRV2Semantics( object ):
   def __init__( self, memory, mngr2proc_queue, proc2mngr_queue, num_cores=1 ):
 
     self.R = TinyRV2Semantics.RegisterFile()
+    self.CSR = TinyRV2Semantics.CsrRegisterFile()
     self.M = memory
 
     self.mngr2proc_queue = mngr2proc_queue
@@ -332,57 +347,85 @@ class TinyRV2Semantics( object ):
   # CSR instructions
   #-----------------------------------------------------------------------
 
-  def execute_csrr( s, inst ):
-
-    # CSR: mngr2proc
-    # for mngr2proc just ignore the rs1 and do _not_ write to CSR at all.
-    # this is the same as setting rs1 = x0.
-
-    if inst.csrnum == 0xFC0:
-      bits = s.mngr2proc_queue.popleft()
-      s.mngr2proc_str = str( bits )
-      s.R[ inst.rd ] = bits
-
-    # CSR: numcores
-    elif inst.csrnum == 0xFC1:
-      s.R[ inst.rd ] = s.numcores
-
-    # CSR: coreid
-    elif inst.csrnum == 0xF14:
-      s.R[ inst.rd ] = s.coreid
-
-    else:
-      raise TinyRV2Semantics.IllegalInstruction(
-        "Unrecognized CSR register ({}) for csrr at PC={}" \
-          .format(inst.csrnum.uint(),s.PC) )
-
-    s.PC += 4
-
-  def execute_csrw( s, inst ):
-
+  # CSRRW Atomic Read and Write
+  def execute_csrrw( s, inst ):
     # CSR: proc2mngr
     # for proc2mngr we ignore the rd and do _not_ write old value to rd.
     # this is the same as setting rd = x0.
-
-    if inst.csrnum == 0x7C0:
+    if inst.csrnum == CsrRegisters.proc2mngr:
       bits = s.R[ inst.rs1 ]
       s.proc2mngr_str = str( bits )
       s.proc2mngr_queue.append( bits )
-
-    # CSR: stats_en
-
-    elif inst.csrnum == 0x7C1:
-      s.stats_en = bool( s.R[ inst.rs1 ] )
-
     else:
-      raise TinyRV2Semantics.IllegalInstruction(
-        "Unrecognized CSR register ({}) for csrw at PC={}" \
-          .format(inst.csrnum.uint(),s.PC) )
+      csr = int( inst.csrnum )
+      if not CsrRegisters.contains( csr ):
+        raise TinyRV2Semantics.IllegalInstruction(
+          "Unrecognized CSR register ({}) for csrw at PC={}" \
+            .format(inst.csrnum.uint(),s.PC) )
+      else:
+        s.R[ inst.rd ] = s.CSR[ csr ]
+        s.CSR[ csr ] = s.R[ inst.rs1 ]
 
     s.PC += 4
 
-  def execute_dumb( s, inst ):
-    pass
+  # CSRRS Atomic Read and Set Bits
+  def execute_csrrs( s, inst ):
+    # CSR: mngr2proc
+    # for mngr2proc just ignore the rs1 and do _not_ write to CSR at all.
+    # this is the same as setting rs1 = x0.
+    if inst.csrnum == CsrRegisters.mngr2proc:
+      bits = s.mngr2proc_queue.popleft()
+      s.mngr2proc_str = str( bits )
+      s.R[ inst.rd ] = bits
+    else:
+      csr = int( inst.csrnum )
+      if not CsrRegisters.contains( csr ):
+        raise TinyRV2Semantics.IllegalInstruction(
+          "Unrecognized CSR register ({}) for csrr at PC={}" \
+            .format(inst.csrnum.uint(),s.PC) )
+      else:
+        s.R[ inst.rd ] = s.CSR[ csr ]
+        s.CSR[ csr ] = s.CSR[ csr ] | s.R[ inst.rs1 ]
+
+    s.PC += 4
+
+  # CSRRS Atomic Read and Clear Bits
+  def execute_csrrc( s, inst ):
+    if inst.csrnum == CsrRegisters.mngr2proc:
+      raise TinyRV2Semantics.IllegalInstruction(
+          "mngr2proc CSR cannot be used with csrrc at PC={}".format( s.PC ) )
+    else:
+      csr = int( inst.csrnum )
+      if not CsrRegisters.contains( csr ):
+        raise TinyRV2Semantics.IllegalInstruction(
+          "Unrecognized CSR register ({}) for csrr at PC={}" \
+            .format(inst.csrnum.uint(),s.PC) )
+      else:
+        s.R[ inst.rd ] = s.CSR[ csr ]
+        s.CSR[ csr ] = c.CSR[ csr ] & ( not s.R[ inst.rs1 ] )
+
+    s.PC += 4
+
+  def execute_invld( s, inst ):
+    s.CSR[ CsrRegisters.mcause ] = ExceptionCode.ILLEGAL_INSTRUCTION
+    s.CSR[ CsrRegisters.mtval ] = inst.bits
+    s.CSR[ CsrRegisters.mepc ] = s.PC
+
+    mtvec = s.CSR[ CsrRegisters.mtvec ]
+    mode = mtvec[ 0:2 ]
+    base = concat( mtvec[ 2:XLEN ], Bits( 2, 0 ) )
+    if mode == MtvecMode.direct:
+      target = base
+    elif mode == MtvecMode.vectored:
+      target = base + ( p.mcause << 2 )
+    else:
+      # this is a bad state. mtvec is curcial to handling
+      # exceptions, and there is no way to handle and exception
+      # related to mtvec.
+      # In a real processor, this would probably just halt or reset
+      # the entire processor
+      assert False
+    s.PC = target
 
   #-----------------------------------------------------------------------
   # exec
@@ -392,7 +435,6 @@ class TinyRV2Semantics( object ):
 
       # Listed in the order of the lecture handout
       # 1.3 Tiny Risc-V Instruction Set Architecture
-      'nop': execute_nop,
       'add': execute_add,
       'addi': execute_addi,
       'sub': execute_sub,
@@ -433,9 +475,10 @@ class TinyRV2Semantics( object ):
       'bge': execute_bge,
       'bltu': execute_bltu,
       'bgeu': execute_bgeu,
-      'csrr': execute_csrr,
-      'csrw': execute_csrw,
-      ' ': execute_dumb  # this is for all-zero
+      'csrrw': execute_csrrw,
+      'csrrs': execute_csrrs,
+      'csrrc': execute_csrrc,
+      'invld': execute_invld,
   }
 
   def execute( self, inst ):
