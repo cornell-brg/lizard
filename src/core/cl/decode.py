@@ -144,6 +144,7 @@ class DecodeUnitCL( Model ):
 
     return res
 
+
   def dec_op_imm32( s, inst, res ):
     res.rs1 = inst[ RVInstMask.RS1 ]
     res.rd = inst[ RVInstMask.RD ]
