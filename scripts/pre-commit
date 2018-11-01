@@ -1,0 +1,25 @@
+#!/bin/sh
+#
+# An example hook script to verify what is about to be committed.
+# Called by "git commit" with no arguments.  The hook should
+# exit with non-zero status after issuing an appropriate message if
+# it wants to stop the commit.
+#
+# To enable this hook, move this to .git/hooks/pre-commit
+
+FORMAT="src/format"
+
+# Redirect output to stderr.
+exec 1>&2
+
+echo "Running yapf-brg..."
+$FORMAT --diff >> /dev/null
+
+if [ $? -eq 0 ]
+then
+  echo "Checks passed"
+  exit 0
+else
+  echo "yapf-brg failed, please corretcly format your code with '$FORMAT'">&2
+  exit 1
+fi
