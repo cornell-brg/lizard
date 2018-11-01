@@ -11,7 +11,9 @@ STYLE_SANE = DIR + "/.style_sane.yapf"
 
 
 def format( diff, style ):
-  command = [ BINARY, '-r', '--style', style, '-d' if diff else '-i', DIR ]
+  command = [
+      BINARY, '-r', '-p', '--style', style, '-d' if diff else '-i', DIR
+  ]
   return subprocess.call( command )
 
 
