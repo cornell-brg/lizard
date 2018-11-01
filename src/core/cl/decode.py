@@ -138,7 +138,6 @@ class DecodeUnitCL( Model ):
 
 
   def dec_op_imm32(s, inst):
-    # Special case for addiw
     res = DecodePacket()
     res.rs1 = inst[ RVInstMask.RS1 ]
     res.rd = inst[ RVInstMask.RD ]
@@ -147,7 +146,7 @@ class DecodeUnitCL( Model ):
     res.rs2_valid = 0
     res.rd_valid = 1
 
-    if (inst[RVInstMask.FUNCT3 ] == 0b000):
+    if (inst[RVInstMask.FUNCT3 ] == 0b000): # Special case for addiw
         res.inst = RVInstMask.ADDIW
         res.imm = sext( inst[ RVInstMask.I_IMM ], DECODED_IMM_LEN )
     else:
@@ -164,7 +163,6 @@ class DecodeUnitCL( Model ):
 
 
   def dec_op_32(s, inst):
-    # Special case for addiw
     res = DecodePacket()
     res.rs1 = inst[ RVInstMask.RS1 ]
     res.rs2 = inst[ RVInstMask.RS2 ]

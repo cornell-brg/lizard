@@ -111,14 +111,22 @@ class ExecuteUnitCL( Model ):
           XLEN, s.current.rs1.int() * s.current.rs2.int(), trunc=True )
     # W suffix instructions
     elif s.current.inst == RV64Inst.ADDW:
-      s.work.result = sext((s.current.rs1[:32] + s.current.rs2[:32]), XLEN )
+      s.work.result = sext(s.current.rs1[:32] + s.current.rs2[:32], XLEN )
     elif s.current.inst == RV64Inst.SUBW:
-      s.work.result = sext((s.current.rs1[:32] - s.current.rs2[:32]), XLEN )
+      s.work.result = sext(s.current.rs1[:32] - s.current.rs2[:32], XLEN )
     elif s.current.inst == RV64Inst.SLLW:
-      s.work.result = sext((s.current.rs1[:32] << s.current.rs2[:5 ].uint()), XLEN )
+      s.work.result = sext(s.current.rs1[:32] << s.current.rs2[:5 ].uint(), XLEN )
     elif s.current.inst == RV64Inst.SRLW:
-      s.work.result = sext((s.current.rs1[:32] >> s.current.imm), XLEN )
+      s.work.result = sext(s.current.rs1[:32] >> s.current.rs2[:5 ].uint(), XLEN )
     elif s.current.inst == RV64Inst.SRAW:
+      s.work.result = Bits(XLEN, s.current.rs1[:32].int() >> s.current.rs2[:5 ].uint(), trunc=True )
+    elif s.current.inst == RV64Inst.ADDIW:
+      s.work.result = sext(s.current.rs1[:32] + s.current.imm[:32], XLEN )
+    elif s.current.inst == RV64Inst.SLLIW:
+      s.work.result = sext(s.current.rs1[:32] << s.current.imm, XLEN )
+    elif s.current.inst == RV64Inst.SRLIW:
+      s.work.result = sext(s.current.rs1[:32] >> s.current.imm, XLEN )
+    elif s.current.inst == RV64Inst.SRAIW:
       s.work.result = Bits(XLEN, s.current.rs1[:32].int() >> s.current.imm.uint())
     elif s.current.is_control_flow:
       taken = False
