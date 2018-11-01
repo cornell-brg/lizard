@@ -132,6 +132,13 @@ class DecodeUnitCL( Model ):
         ( 0b110, 0b0000000 ): RV64Inst.OR,
         ( 0b111, 0b0000000 ): RV64Inst.AND,
         ( 0b000, 0b0000001 ): RV64Inst.MUL,
+        ( 0b001, 0b0000001 ): RV64Inst.MULH,
+        ( 0b010, 0b0000001 ): RV64Inst.MULHSU,
+        ( 0b011, 0b0000001 ): RV64Inst.MULU,
+        ( 0b100, 0b0000001 ): RV64Inst.DIV,
+        ( 0b101, 0b0000001 ): RV64Inst.DIVU,
+        ( 0b110, 0b0000001 ): RV64Inst.REM,
+        ( 0b111, 0b0000001 ): RV64Inst.REMU,
     }
     res.inst = insts[( func3, func7 ) ]
 
@@ -177,6 +184,12 @@ class DecodeUnitCL( Model ):
         ( 0b001, 0b0000000 ): RV64Inst.SLLW,
         ( 0b101, 0b0000000 ): RV64Inst.SRLW,
         ( 0b101, 0b0100000 ): RV64Inst.SRAW,
+        ( 0b000, 0b0000001 ): RV64Inst.MULW,
+        ( 0b100, 0b0000001 ): RV64Inst.DIVW,
+        ( 0b101, 0b0000001 ): RV64Inst.DIVUW,
+        ( 0b110, 0b0000001 ): RV64Inst.REMW,
+        ( 0b111, 0b0000001 ): RV64Inst.REMUW,
+
     }
     res.inst = insts[( func3, func7 ) ]
     return res
