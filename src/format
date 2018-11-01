@@ -4,19 +4,24 @@ import os
 import argparse
 import sys
 
+BINARY = "yapf-brg"
+STYLE_BRG = ".style_brg.yapf"
+STYLE_SANE = ".style_sane.yapf"
+
 DIR = os.path.dirname( os.path.realpath( __file__ ) )
 
 
-def format( diff ):
-  command = [ 'yapf', '-r', '-d' if diff else '-i', DIR ]
+def format( diff, style ):
+  command = [ BINARY, '-r', '--style', style, '-d' if diff else '-i', DIR ]
   return subprocess.call( command )
 
 
 def main():
   parser = argparse.ArgumentParser( description='Format source code' )
   parser.add_argument( '-d', '--diff', action='store_true' )
+  parser.add_argument( '--sane', action='store_true' )
   args = parser.parse_args()
-  sys.exit( format( args.diff ) )
+  sys.exit( format( args.diff, STYLE_SANE if args.sane else STYLE_BRG ) )
 
 
 if __name__ == '__main__':
