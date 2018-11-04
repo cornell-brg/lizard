@@ -64,6 +64,56 @@ def gen_bypass_test():
       nops_3=gen_nops( 3 ), nops_2=gen_nops( 2 ), nops_1=gen_nops( 1 ) )
 
 
+def gen_csr_bypass_test():
+  return """
+    addi x1, x0, 0x200
+    csrw mtvec, x1
+    csrr x2, mtvec
+    csrw proc2mngr, x2 > 0x200
+    """
+
+
+def gen_csr_branch_squash_test():
+  return """
+    addi x1, x0, 0x200
+    addi x2, x0, 0x400
+    csrw mtvec, x1
+    j check
+    csrw mtvec, x2
+  check:
+    csrr x3, mtvec
+    csrw proc2mngr, x3 > 0x200
+  """
+
+
+def gen_csr_exception_squash_test():
+  return """
+    addi x1, x0, 0x248        # 0x200
+    addi x2, x0, 0x250        # 0x204
+    csrw mtvec, x1            # 0x208
+    invld                     # 0x20c
+    csrw mtvec, x2            # 0x210
+    nop                       # 0x214
+    nop                       # 0x218
+    nop                       # 0x21c
+    nop                       # 0x220
+    nop                       # 0x224
+    nop                       # 0x228
+    nop                       # 0x22c
+    nop                       # 0x230
+    nop                       # 0x234
+    nop                       # 0x238
+    nop                       # 0x23c
+    nop                       # 0x240
+    nop                       # 0x244
+    addi x1, x0, 0            # 0x248
+    j done                    # 0x24c
+    addi x1, x0, 1            # 0x250
+  done:
+    csrw proc2mngr, x1 > 0x0  # 0x254
+  """
+
+
 #-------------------------------------------------------------------------
 # gen_value_asm_test
 #-------------------------------------------------------------------------

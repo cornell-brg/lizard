@@ -52,7 +52,7 @@ class IssueUnitCL( Model ):
       # if we allocated a destination register for this instruction,
       # we must free it
       if s.work.rd_valid:
-        s.dataflow.free_tag( c.work.rd )
+        s.dataflow.free_tag( s.work.rd )
       # retire instruction from controlflow
       creq = RetireRequest()
       creq.tag = s.current_d.tag
@@ -93,8 +93,14 @@ class IssueUnitCL( Model ):
       s.work.rd_valid = dst.success
       s.work.rd = dst.tag
 
+    creq = IsHeadRequest()
+    creq.tag = s.current_d.tag
+    is_head = s.controlflow.is_head( creq ).is_head
+
     # Done if all fields are as they should be
-    if s.current_d.rd_valid == s.work.rd_valid and s.current_d.rs1_valid == s.work.rs1_valid and s.current_d.rs2_valid == s.work.rs2_valid:
+    # and we are at the head if we have to be
+    if s.current_d.rd_valid == s.work.rd_valid and s.current_d.rs1_valid == s.work.rs1_valid and s.current_d.rs2_valid == s.work.rs2_valid and (
+        is_head if s.current_d.unique else True ):
       # if the instruction has potential to redirect early (before commit)
       # must declare instruction to controlflow
       # (essentialy creates a rename table snapshot)
