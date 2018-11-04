@@ -212,6 +212,11 @@ class DecodeUnitCL( Model ):
     res.csr = inst[ RVInstMask.CSRNUM ]
     res.csr_valid = 1
 
+    # if the instruction modifies a CSR, it must be unique:
+    # the pipeline must drain before it can issue
+    if res.inst == RV64Inst.CSRRW or res.inst == RV64Inst.CSRRS or res.inst == RV64Inst.CSRRC:
+      res.unique = 1
+
     return res
 
   def dec_branch( s, inst, res ):

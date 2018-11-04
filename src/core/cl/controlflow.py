@@ -119,6 +119,11 @@ class ControlFlowManagerCL( Model ):
     resp.valid = s.in_flight[ int( request.tag ) ].valid
     return resp
 
+  def is_head( s, request ):
+    resp = IsHeadResponse()
+    resp.is_head = request.tag == s.head
+    return resp
+
   def retire( s, request ):
     s.in_flight[ int( request.tag ) ].in_flight = 0
 
