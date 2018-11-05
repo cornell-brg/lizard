@@ -51,7 +51,7 @@ class CommitUnitCL( Model ):
     head = int( s.controlflow.get_head() )
     assert head in s.reorder  # Must be in reorder buffer
 
-    if s.rseq_num < head:  # We drop anything before the current seq number
+    if s.rseq_num != head:  # We drop anything before the current seq number
       # Assume we can only remove one entry per cycle
       del s.reorder[ s.rseq_num ]
       s.rseq_num += 1
