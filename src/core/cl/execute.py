@@ -53,7 +53,7 @@ class ExecuteUnitCL( Model ):
       s.done.next = 1
       return
 
-    if not s.work.valid:
+    if s.work.status != PacketStatus.ALIVE:
       s.done.next = 1
       s.result_q.enq( s.work )
       return

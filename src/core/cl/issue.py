@@ -61,7 +61,7 @@ class IssueUnitCL( Model ):
       s.current_d = None
       return
 
-    if not s.work.valid:
+    if s.work.status != PacketStatus.ALIVE:
       # Port doesn't matter for invalid instruction
       s.issued_q.enq( s.work, s.EXECUTE_PORT_IDX )
       s.current_d = None

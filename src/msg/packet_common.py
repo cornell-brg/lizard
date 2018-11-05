@@ -1,10 +1,20 @@
 from pymtl import *
 from config.general import *
 from msg.codes import *
+from bitutil import bit_enum
 
+PacketStatus = bit_enum(
+    'PacketStatus',
+    None,
+    'ALIVE',
+    'SQUASHED',
+    'EXCEPTION_TRIGGERED',
+    'TRAP_TRIGGERED',
+    'INTERRUPT_TRIGGERED'
+)
 
 def CommonBundle( target ):
-  target.valid = BitField( XLEN )
+  target.status = BitField( PacketStatus.bits )
   target.pc = BitField( XLEN )
   target.tag = BitField( INST_TAG_LEN )
   target.inst = BitField( RV64Inst.bits )
@@ -14,7 +24,6 @@ def CommonBundle( target ):
 
 
 def ExceptionBundle( target ):
-  target.exception_triggered = BitField( 1 )
   target.mcause = BitField( XLEN )
   target.mtval = BitField( XLEN )
 
@@ -44,7 +53,7 @@ def copy_field_valid_pair( src, dst, name ):
 
 
 def copy_common_bundle( src, dst ):
-  dst.valid = src.valid
+  dst.status= src.status
   dst.pc = src.pc
   dst.tag = src.tag
   dst.inst = src.inst
@@ -54,7 +63,6 @@ def copy_common_bundle( src, dst ):
 
 
 def copy_exception_bundle( src, dst ):
-  dst.exception_triggered = src.exception_triggered
   dst.mcause = src.mcause
   dst.mtval = src.mtval
 

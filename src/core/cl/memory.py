@@ -69,7 +69,7 @@ class MemoryUnitCL( Model ):
       s.controlflow.retire( creq )
       return
 
-    if not s.current.valid:
+    if s.current.status != PacketStatus.ALIVE:
       result = ExecutePacket()
       copy_common_bundle( s.current, result )
       result.opcode = s.current.opcode
