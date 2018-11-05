@@ -52,7 +52,6 @@ class ControlFlowManagerCL( Model ):
     resp.pc = s.epoch_start
     return resp
 
-
   def get_head( s ):
     return s.head
 
