@@ -23,6 +23,7 @@ def DecodeBundle( target ):
   target.is_control_flow = BitField( 1 )
   target.funct3 = BitField( 3 )
   target.opcode = BitField( Opcode.bits )
+  target.unique = BitField( 1 )
 
   FieldValidPair( target, 'imm', DECODED_IMM_LEN )
   FieldValidPair( target, 'csr', CSR_SPEC_LEN )

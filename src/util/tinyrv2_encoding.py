@@ -107,6 +107,7 @@ tinyrv2_encoding_table = \
 
     # Jump & Link
     [ "jal    rd, j_imm",        0b00000000000000000000000001111111, 0b00000000000000000000000001101111 ], # UJ-type, tinyrv{1,2}
+    [ "j      j_imm",            0b00000000000000000000000001111111, 0b00000000000000000000000001101111 ], # UJ-type, tinyrv{1,2}
     [ "jalr   rd, rs1, i_imm",   0b00000000000000000111000001111111, 0b00000000000000000000000001100111 ], # I-type, tinyrv{1,2}
 
     #-----------------------------------------------------------------------
@@ -120,8 +121,14 @@ tinyrv2_encoding_table = \
     # RV Privileged
     #-----------------------------------------------------------------------
     # See "The RISC-V Instruction Set Manual Volume II Privileged Architecture.pdf" pp.13-21
-    [ "csrr   rd, csrnum",       0b00000000000011111111000001111111, 0b00000000000000000010000001110011 ], # I-type, csrrs
-    [ "csrw   csrnum, rs1",      0b00000000000000000111111111111111, 0b00000000000000000001000001110011 ], # I-type, csrrw
+    [ "csrrw   rd, csrnum, rs1",   0b00000000000000000111000001111111, 0b00000000000000000001000001110011 ], # I-type, csrrw
+    [ "csrrs   rd, csrnum, rs1",   0b00000000000000000111000001111111, 0b00000000000000000010000001110011 ], # I-type, csrrs
+    [ "csrrc   rd, csrnum, rs1",   0b00000000000000000111000001111111, 0b00000000000000000011000001110011 ], # I-type, csrrc
+    [ "csrrwi  rd, csrnum, c_imm", 0b00000000000000000111000001111111, 0b00000000000000000101000001110011 ], # I-type, csrrw
+    [ "csrrsi  rd, csrnum, c_imm", 0b00000000000000000111000001111111, 0b00000000000000000110000001110011 ], # I-type, csrrs
+    [ "csrrci  rd, csrnum, c_imm", 0b00000000000000000111000001111111, 0b00000000000000000111000001110011 ], # I-type, csrrc
+    [ "csrr    rd, csrnum",        0b00000000000011111111000001111111, 0b00000000000000000010000001110011 ], # I-type, csrrs
+    [ "csrw    csrnum, rs1",       0b00000000000000000111111111111111, 0b00000000000000000001000001110011 ], # I-type, csrrw
 
     #-----------------------------------------------------------------------
     # Illegal Instruction
@@ -183,6 +190,8 @@ tinyrv2_field_slice_j_imm0 = slice( 21, 31 )
 tinyrv2_field_slice_j_imm1 = slice( 20, 21 )
 tinyrv2_field_slice_j_imm2 = slice( 12, 20 )
 tinyrv2_field_slice_j_imm3 = slice( 31, 32 )
+
+tinyrv2_field_slice_c_imm = tinyrv2_field_slice_rs1
 
 #-------------------------------------------------------------------------
 # rs1 assembly/disassembly functions
@@ -419,6 +428,22 @@ def disassemble_field_j_imm( bits ):
 
 
 #-------------------------------------------------------------------------
+# c_imm assembly/disassembly functions
+#-------------------------------------------------------------------------
+
+
+def assemble_field_c_imm( bits, sym, pc, field_str ):
+  imm = Bits( 5, int( field_str, 0 ) )
+
+  bits[ tinyrv2_field_slice_c_imm ] = imm
+
+
+def disassemble_field_c_imm( bits ):
+  imm = bits[ tinyrv2_field_slice_c_imm ]
+  return "0x{:0>2x}".format( imm.uint() )
+
+
+#-------------------------------------------------------------------------
 # Field Dictionary
 #-------------------------------------------------------------------------
 # Create a dictionary so we can lookup an assemble field function
@@ -437,6 +462,7 @@ tinyrv2_fields = \
     "b_imm"  : [ assemble_field_b_imm,  disassemble_field_b_imm  ],
     "u_imm"  : [ assemble_field_u_imm,  disassemble_field_u_imm  ],
     "j_imm"  : [ assemble_field_j_imm,  disassemble_field_j_imm  ],
+    "c_imm"  : [ assemble_field_c_imm,  disassemble_field_c_imm  ],
 }
 
 #=========================================================================
@@ -1027,6 +1053,12 @@ def decode_inst_name( inst ):
       inst_name = "csrrs"
     elif inst[ funct3 ] == 0b011:
       inst_name = "csrrc"
+    elif inst[ funct3 ] == 0b101:
+      inst_name = "csrrwi"
+    elif inst[ funct3 ] == 0b110:
+      inst_name = "csrrsi"
+    elif inst[ funct3 ] == 0b111:
+      inst_name = "csrrci"
 
   if inst_name == "":
     return "invld"
@@ -1131,6 +1163,11 @@ class TinyRV2Inst( object ):
     imm[ 11:12 ] = self.bits[ tinyrv2_field_slice_j_imm1 ]
     imm[ 12:20 ] = self.bits[ tinyrv2_field_slice_j_imm2 ]
     imm[ 20:21 ] = self.bits[ tinyrv2_field_slice_j_imm3 ]
+    return imm
+
+  @property
+  def c_imm( self ):
+    imm = self.bits[ tinyrv2_field_slice_c_imm ]
     return imm
 
   @property
