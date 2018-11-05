@@ -265,24 +265,32 @@ class ExecuteUnitCL( Model ):
       creq.at_commit = 0
       s.controlflow.request_redirect( creq )
 
-    elif s.current.inst == RV64Inst.CSRRW:
+    elif s.current.inst == RV64Inst.CSRRW or s.current.inst == RV64Inst.CSRRWI:
       if s.current.rd_valid:
         temp, worked = s.dataflow.read_csr( s.current.csr )
       if not worked:
         s.done.next = 0
         return
       s.work.result = temp
-      s.dataflow.write_csr( s.current.csr, s.current.rs1 )
-    elif s.current.inst == RV64Inst.CSRRS:
+      if s.current.inst == RV64Inst.CSRRWI:
+        value = zext( s.current.imm, XLEN )
+      else:
+        value = s.current.rs1
+      s.dataflow.write_csr( s.current.csr, value )
+    elif s.current.inst == RV64Inst.CSRRS or s.current.inst == RV64Inst.CSRRSI:
       temp, worked = s.dataflow.read_csr( s.current.csr )
       if not worked:
         s.done.next = 0
         return
       s.work.result = temp
+      if s.current.inst == RV64Inst.CSRRSI:
+        value = zext( s.current.imm, XLEN )
+      else:
+        value = s.current.rs1
       # TODO: not quite right because we should attempt to set
       # if the value of rs1 is zero but rs1 is not x0
-      if s.current.rs1 != 0:
-        s.dataflow.write_csr( s.current.csr, s.work.result | s.current.rs1 )
+      if value != 0:
+        s.dataflow.write_csr( s.current.csr, s.work.result | value )
     else:
       raise NotImplementedError( 'Not implemented so sad: ' +
                                  RV64Inst.name( s.current.inst ) )
