@@ -22,10 +22,12 @@ class CommitUnitCL( Model ):
     s.valid = Wire( 1 )
     # This will be a ring buffer in the RTL
     s.reorder = {}
+    s.rseq_num = 0
 
   def xtick( s ):
     if s.reset:
       s.reorder = {}
+      s.rseq_num = 0
       s.valid.next = 0
       return
 
@@ -34,7 +36,7 @@ class CommitUnitCL( Model ):
       s.valid.next = 0
 
     # Every cycle ask the control flow if we need to allocate an entry for a new seq number
-    seq = s.controlflow.get_curr_seq()
+    seq = int( s.controlflow.get_curr_seq() )
     if ( seq not in s.reorder ):  # Allocate
       s.reorder[ seq ] = None
 
@@ -48,7 +50,13 @@ class CommitUnitCL( Model ):
     # Every cycle, get the next seq number to be commited
     head = int( s.controlflow.get_head() )
     assert head in s.reorder  # Must be in reorder buffer
-    if s.reorder[ head ] is not None:  # we can commit it!
+
+    if s.rseq_num != head:  # We drop anything before the current seq number
+      # Assume we can only remove one entry per cycle
+      del s.reorder[ s.rseq_num ]
+      s.rseq_num += 1
+    elif s.reorder[ head ] is not None:  # we can commit it!
+      s.rseq_num = head + 1  # Update our reorder seq number
       p = s.reorder[ head ]
       del s.reorder[ head ]  # Free from reorder
 
