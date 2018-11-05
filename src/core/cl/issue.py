@@ -29,8 +29,8 @@ class IssueUnitCL( Model ):
       s.current_d = None
       return
 
-    if s.issued_q.full():
-      return
+    # if s.issued_q.full():
+    #   return
 
     if s.current_d is None:
       if s.decoded_q.empty():
@@ -125,6 +125,9 @@ class IssueUnitCL( Model ):
         idx = s.EXECUTE_PORT_IDX
       s.issued_q.enq( s.work, idx )
       s.current_d = None
+
+      # TODO: Our tests need to hit this case!
+      # assert not (s.execute_q.full() and s.memory_q.full())
 
   def line_trace( s ):
     return LineBlock([
