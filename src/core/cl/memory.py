@@ -59,15 +59,7 @@ class MemoryUnitCL( Model ):
     creq.tag = s.current.tag
     cresp = s.controlflow.tag_valid( creq )
     if not cresp.valid:
-      # if we allocated a destination register for this instruction,
-      # we must free it
-      if s.current.rd_valid:
-        s.dataflow.free_tag( s.current.rd )
-      # retire instruction from controlflow
-      creq = RetireRequest()
-      creq.tag = s.current.tag
-      s.controlflow.retire( creq )
-      return
+      s.current.status = PacketStatus.SQUASHED
 
     if s.current.status != PacketStatus.ALIVE:
       result = ExecutePacket()
