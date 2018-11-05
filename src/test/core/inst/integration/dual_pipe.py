@@ -7,6 +7,7 @@ import random
 from pymtl import *
 from test.core.inst_utils import *
 
+
 #-------------------------------------------------------------------------
 # gen_basic_test
 # This tests hits multiple instructions in an execute pipe at the same time

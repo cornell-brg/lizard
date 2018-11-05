@@ -124,7 +124,7 @@ class IssueUnitCL( Model ):
       else:
         idx = s.EXECUTE_PORT_IDX
 
-      if not s.issued_q.get(idx).full():
+      if not s.issued_q.get( idx ).full():
         s.issued_q.enq( s.work, idx )
         s.current_d = None
 
