@@ -18,6 +18,10 @@ class InValRdyCLPortGroup:
         return False
     return True
 
+
+  def get(s, idx):
+    return s.ports[idx]
+
   def deq( s ):
     for idx, port in enumerate( s.ports ):
       if not port.empty():
@@ -40,6 +44,10 @@ class OutValRdyCLPortGroup:
       if port.full():
         return True
     return False
+
+
+  def get(s, idx):
+    return s.ports[idx]
 
   def enq( s, msg, idx ):
     s.ports[ idx ].enq( msg )
