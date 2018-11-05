@@ -40,6 +40,7 @@ class DataFlowManagerCL( Model ):
         s.commit_tag( tag, True )
       s.csr_file = {}
 
+    s.forwards = {}
     s.mngr2proc_q.xtick()
     s.proc2mngr_q.xtick()
 
@@ -80,12 +81,22 @@ class DataFlowManagerCL( Model ):
       resp.tag = s.zero_tag
     return resp
 
+
+  def forward( s, data ):
+    assert int(data.tag) not in s.forwards
+    s.forwards[int(data.tag)] = data
+
+
   def read_tag( s, tag ):
     resp = ReadTagResponse()
     if tag != s.zero_tag:
-      preg = s.preg_file[ tag ]
-      resp.ready = preg.ready
-      resp.value = preg.value
+      if int(tag) in s.forwards: # Can we forward it?
+        resp.ready = 1
+        resp.value = s.forwards[int(tag)].value
+      else:
+        preg = s.preg_file[ tag ]
+        resp.ready = preg.ready
+        resp.value = preg.value
     else:
       resp.ready = 1
       resp.value = 0

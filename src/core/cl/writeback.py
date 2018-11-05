@@ -1,5 +1,6 @@
 from pymtl import *
 from msg.decode import *
+from msg.data import *
 from msg.issue import *
 from msg.execute import *
 from msg.writeback import *
@@ -15,7 +16,8 @@ class WritebackUnitCL( Model ):
   def __init__( s, dataflow, controlflow, memoryflow ):
     s.execute_q = InValRdyCLPort( ExecutePacket() )
     s.memory_q = InValRdyCLPort( ExecutePacket() )
-    s.result_in_q = InValRdyCLPortGroup([ s.execute_q, s.memory_q ] )
+    s.in_ports = [ s.execute_q, s.memory_q ]
+    s.result_in_q = InValRdyCLPortGroup(s.in_ports)
     s.result_out_q = OutValRdyCLPort( WritebackPacket() )
 
     s.dataflow = dataflow
@@ -34,25 +36,6 @@ class WritebackUnitCL( Model ):
 
     # drop idx, don't care which port it came out of
     p, _ = s.result_in_q.deq()
-
-    # verify instruction still alive
-    creq = TagValidRequest()
-    creq.tag = p.tag
-    cresp = s.controlflow.tag_valid( creq )
-    if not cresp.valid:
-      # if we allocated a destination register for this instruction,
-      # we must free it
-      if p.rd_valid:
-        s.dataflow.free_tag( p.rd )
-      # retire instruction from controlflow
-      creq = RetireRequest()
-      creq.tag = p.tag
-      s.controlflow.retire( creq )
-
-      # if memory instruction retire
-      if p.opcode == Opcode.STORE or p.opcode == Opcode.LOAD:
-        s.memoryflow.retire()
-      return
 
     out = WritebackPacket()
     copy_common_bundle( p, out )

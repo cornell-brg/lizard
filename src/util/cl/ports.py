@@ -27,7 +27,7 @@ class ValRdyCLPort:
 
   def last( s ):
     if s.mimic:
-      return s.mimic.msg()
+      return s.mimic.last()
     assert s.full()
     return s.msg
 
@@ -57,6 +57,10 @@ class InValRdyCLPort:
 
   def deq( s ):
     return s.port.deq()
+
+  def peek( s ):
+    assert not s.empty()
+    return s.port.last()
 
 
 class OutValRdyCLPort:
