@@ -43,6 +43,18 @@ class MarkSpeculativeResponse( BitStructDefinition ):
     s.success = BitField( 1 )
 
 
+class IsHeadRequest( BitStructDefinition ):
+
+  def __init__( s ):
+    s.tag = BitField( INST_TAG_LEN )
+
+
+class IsHeadResponse( BitStructDefinition ):
+
+  def __init__( s ):
+    s.is_head = BitField( 1 )
+
+
 class RedirectRequest( BitStructDefinition ):
 
   def __init__( s ):
