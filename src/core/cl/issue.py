@@ -123,8 +123,10 @@ class IssueUnitCL( Model ):
         idx = s.MEMORY_PORT_IDX
       else:
         idx = s.EXECUTE_PORT_IDX
-      s.issued_q.enq( s.work, idx )
-      s.current_d = None
+
+      if not s.issued_q.get(idx).full():
+        s.issued_q.enq( s.work, idx )
+        s.current_d = None
 
       # TODO: Our tests need to hit this case!
       # assert not (s.execute_q.full() and s.memory_q.full())
