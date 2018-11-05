@@ -33,27 +33,24 @@ class CommitUnitCL( Model ):
     if s.valid:
       s.valid.next = 0
 
-
     # Every cycle ask the control flow if we need to allocate an entry for a new seq number
     seq = s.controlflow.get_curr_seq()
-    if (seq not in s.reorder): # Allocate
-      s.reorder[seq] = None
+    if ( seq not in s.reorder ):  # Allocate
+      s.reorder[ seq ] = None
 
-
-    if not s.result_in_q.empty(): # Add to reorder
+    if not s.result_in_q.empty():  # Add to reorder
       p = s.result_in_q.deq()
-      seq = int(p.tag)
+      seq = int( p.tag )
       assert seq in s.reorder
-      assert s.reorder[seq] is None
-      s.reorder[seq] = p
-
+      assert s.reorder[ seq ] is None
+      s.reorder[ seq ] = p
 
     # Every cycle, get the next seq number to be commited
-    head = int(s.controlflow.get_head())
-    assert head in s.reorder # Must be in reorder buffer
-    if s.reorder[head] is not None: # we can commit it!
-      p = s.reorder[head]
-      del s.reorder[head] # Free from reorder
+    head = int( s.controlflow.get_head() )
+    assert head in s.reorder  # Must be in reorder buffer
+    if s.reorder[ head ] is not None:  # we can commit it!
+      p = s.reorder[ head ]
+      del s.reorder[ head ]  # Free from reorder
       # verify instruction still alive
       creq = TagValidRequest()
       creq.tag = p.tag
@@ -140,10 +137,6 @@ class CommitUnitCL( Model ):
       s.controlflow.retire( creq )
       s.committed.next = p.tag
       s.valid.next = 1
-
-
-
-
 
   def line_trace( s ):
     return LineBlock([
