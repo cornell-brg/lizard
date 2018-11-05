@@ -1,4 +1,5 @@
 from pymtl import *
+from msg.packet_common import *
 from msg.mem import MemMsg8B
 from msg.fetch import FetchPacket
 from msg.control import *
@@ -41,7 +42,7 @@ class FetchUnitCL( Model ):
     if not s.resp_q.empty():
       mem_resp = s.resp_q.deq()
       out = FetchPacket()
-      out.valid = 1
+      out.status = PacketStatus.ALIVE
       out.instr = mem_resp.data
       out.pc = s.pc_in_flight
 

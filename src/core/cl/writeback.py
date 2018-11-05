@@ -60,7 +60,7 @@ class WritebackUnitCL( Model ):
     copy_field_valid_pair( p, out, 'rd' )
     out.result = p.result
 
-    if not out.valid:
+    if out.status != PacketStatus.ALIVE:
       s.result_out_q.enq( out )
       return
 

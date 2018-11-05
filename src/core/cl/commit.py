@@ -75,7 +75,7 @@ class CommitUnitCL( Model ):
       # Ready to commit.
       # The instruction might have triggered an exception, in which
       # case it does not commit
-      if p.exception_triggered:
+      if p.status == PacketStatus.EXCEPTION_TRIGGERED:
         # An exception causes a force redirect
         # to a target specified by the mtvec CSR
         # The mtvec CSR has two fields: MODE

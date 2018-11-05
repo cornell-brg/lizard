@@ -42,7 +42,7 @@ class DecodeUnitCL( Model ):
 
     out = DecodePacket()
     copy_common_bundle( fetched, out )
-    if not out.valid:
+    if out.status != PacketStatus.ALIVE:
       s.ecoded_q.enq( out )
       return
 
@@ -68,7 +68,7 @@ class DecodeUnitCL( Model ):
       opmap[ opcode.uint() ]( inst, out )
     except KeyError as e:
       out.valid = 0
-      out.exception_triggered = 1
+      out.status = PacketStatus.EXCEPTION_TRIGGERED
       out.mcause = ExceptionCode.ILLEGAL_INSTRUCTION
       out.mtval = fetched.instr
     s.decoded_q.enq( out )
