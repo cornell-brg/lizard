@@ -52,6 +52,13 @@ class ControlFlowManagerCL( Model ):
     resp.pc = s.epoch_start
     return resp
 
+
+  def get_head( s ):
+    return s.head
+
+  def get_curr_seq( s ):
+    return s.seq
+
   def register( s, request ):
     resp = RegisterInstrResponse()
     resp.current_epoch = s.epoch
