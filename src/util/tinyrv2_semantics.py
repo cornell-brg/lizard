@@ -406,6 +406,65 @@ class TinyRV2Semantics( object ):
 
     s.PC += 4
 
+  # CSRRW Atomic Read and Write
+  def execute_csrrwi( s, inst ):
+    # CSR: proc2mngr
+    # for proc2mngr we ignore the rd and do _not_ write old value to rd.
+    # this is the same as setting rd = x0.
+    if inst.csrnum == CsrRegisters.proc2mngr:
+      bits = zext( inst.rs1 )
+      s.proc2mngr_str = str( bits )
+      s.proc2mngr_queue.append( bits )
+    else:
+      csr = int( inst.csrnum )
+      if not CsrRegisters.contains( csr ):
+        raise TinyRV2Semantics.IllegalInstruction(
+          "Unrecognized CSR register ({}) for csrw at PC={}" \
+            .format(inst.csrnum.uint(),s.PC) )
+      else:
+        s.R[ inst.rd ] = s.CSR[ csr ]
+        s.CSR[ csr ] = zext( inst.rs1 )
+
+    s.PC += 4
+
+  # CSRRS Atomic Read and Set Bits
+  def execute_csrrsi( s, inst ):
+    # CSR: mngr2proc
+    # for mngr2proc just ignore the rs1 and do _not_ write to CSR at all.
+    # this is the same as setting rs1 = x0.
+    if inst.csrnum == CsrRegisters.mngr2proc:
+      bits = s.mngr2proc_queue.popleft()
+      s.mngr2proc_str = str( bits )
+      s.R[ inst.rd ] = bits
+    else:
+      csr = int( inst.csrnum )
+      if not CsrRegisters.contains( csr ):
+        raise TinyRV2Semantics.IllegalInstruction(
+          "Unrecognized CSR register ({}) for csrr at PC={}" \
+            .format(inst.csrnum.uint(),s.PC) )
+      else:
+        s.R[ inst.rd ] = s.CSR[ csr ]
+        s.CSR[ csr ] = s.CSR[ csr ] | zext( inst.rs1 )
+
+    s.PC += 4
+
+  # CSRRS Atomic Read and Clear Bits
+  def execute_csrrci( s, inst ):
+    if inst.csrnum == CsrRegisters.mngr2proc:
+      raise TinyRV2Semantics.IllegalInstruction(
+          "mngr2proc CSR cannot be used with csrrc at PC={}".format( s.PC ) )
+    else:
+      csr = int( inst.csrnum )
+      if not CsrRegisters.contains( csr ):
+        raise TinyRV2Semantics.IllegalInstruction(
+          "Unrecognized CSR register ({}) for csrr at PC={}" \
+            .format(inst.csrnum.uint(),s.PC) )
+      else:
+        s.R[ inst.rd ] = s.CSR[ csr ]
+        s.CSR[ csr ] = c.CSR[ csr ] & ( not zext( inst.rs1 ) )
+
+    s.PC += 4
+
   def execute_invld( s, inst ):
     s.CSR[ CsrRegisters.mcause ] = ExceptionCode.ILLEGAL_INSTRUCTION
     s.CSR[ CsrRegisters.mtval ] = inst.bits
@@ -478,6 +537,9 @@ class TinyRV2Semantics( object ):
       'csrrw': execute_csrrw,
       'csrrs': execute_csrrs,
       'csrrc': execute_csrrc,
+      'csrrwi': execute_csrrwi,
+      'csrrsi': execute_csrrsi,
+      'csrrci': execute_csrrci,
       'invld': execute_invld,
   }
 

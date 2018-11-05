@@ -200,12 +200,18 @@ class DecodeUnitCL( Model ):
         0b001: RV64Inst.CSRRW,
         0b010: RV64Inst.CSRRS,
         0b011: RV64Inst.CSRRC,
+        0b101: RV64Inst.CSRRWI,
+        0b110: RV64Inst.CSRRSI,
+        0b111: RV64Inst.CSRRCI,
     }
 
     res.inst = insts[ func3 ]
-    res.rs1 = inst[ RVInstMask.RS1 ]
-    res.rs1_valid = 1
-    res.rs2_vallid = 0
+    if func3 >> 2 == 0:
+      res.rs1 = inst[ RVInstMask.RS1 ]
+      res.rs1_valid = 1
+    else:
+      res.imm = zext( inst[ RVInstMask.RS1 ], DECODED_IMM_LEN )
+    res.rs2_valid = 0
     res.rd = inst[ RVInstMask.RD ]
     res.rd_valid = 1
 
@@ -214,7 +220,7 @@ class DecodeUnitCL( Model ):
 
     # if the instruction modifies a CSR, it must be unique:
     # the pipeline must drain before it can issue
-    if res.inst == RV64Inst.CSRRW or res.inst == RV64Inst.CSRRS or res.inst == RV64Inst.CSRRC:
+    if func3 != 0:
       res.unique = 1
 
     return res
