@@ -10,8 +10,9 @@ PacketStatus = bit_enum(
     'SQUASHED',
     'EXCEPTION_TRIGGERED',
     'TRAP_TRIGGERED',
-    'INTERRUPT_TRIGGERED'
+    'INTERRUPT_TRIGGERED',
 )
+
 
 def CommonBundle( target ):
   target.status = BitField( PacketStatus.bits )
@@ -53,7 +54,7 @@ def copy_field_valid_pair( src, dst, name ):
 
 
 def copy_common_bundle( src, dst ):
-  dst.status= src.status
+  dst.status = src.status
   dst.pc = src.pc
   dst.tag = src.tag
   dst.inst = src.inst

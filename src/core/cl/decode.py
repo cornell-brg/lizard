@@ -29,21 +29,18 @@ class DecodeUnitCL( Model ):
 
     fetched = s.instr_q.deq()
 
+    out = DecodePacket()
+    copy_common_bundle( fetched, out )
+
     # verify instruction still alive
     creq = TagValidRequest()
     creq.tag = fetched.tag
     cresp = s.controlflow.tag_valid( creq )
     if not cresp.valid:
-      # retire instruction from controlflow
-      creq = RetireRequest()
-      creq.tag = fetched.tag
-      s.controlflow.retire( creq )
-      return
+      out.status = PacketStatus.SQUASHED
 
-    out = DecodePacket()
-    copy_common_bundle( fetched, out )
     if out.status != PacketStatus.ALIVE:
-      s.ecoded_q.enq( out )
+      s.decoded_q.enq( out )
       return
 
     inst = fetched.instr

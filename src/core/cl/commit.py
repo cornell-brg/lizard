@@ -51,31 +51,19 @@ class CommitUnitCL( Model ):
     if s.reorder[ head ] is not None:  # we can commit it!
       p = s.reorder[ head ]
       del s.reorder[ head ]  # Free from reorder
+
+      should_commit = True
+
       # verify instruction still alive
       creq = TagValidRequest()
       creq.tag = p.tag
       cresp = s.controlflow.tag_valid( creq )
       if not cresp.valid:
-        # if we allocated a destination register for this instruction,
-        # we must free it
-        if p.rd_valid:
-          s.dataflow.free_tag( p.rd )
-        # retire instruction from controlflow
-        creq = RetireRequest()
-        creq.tag = p.tag
-        s.controlflow.retire( creq )
+        p.status = PacketStatus.SQUASHED
 
-        # if memory instruction retire
-        if p.opcode == Opcode.STORE or p.opcode == Opcode.LOAD:
-          s.memoryflow.retire()
-        return
-
-      should_commit = True
-
-      # Ready to commit.
-      # The instruction might have triggered an exception, in which
-      # case it does not commit
-      if p.status == PacketStatus.EXCEPTION_TRIGGERED:
+      if p.status == PacketStatus.SQUASHED:
+        should_commit = False
+      elif p.status == PacketStatus.EXCEPTION_TRIGGERED:
         # An exception causes a force redirect
         # to a target specified by the mtvec CSR
         # The mtvec CSR has two fields: MODE
@@ -127,9 +115,18 @@ class CommitUnitCL( Model ):
         if p.rd_valid:
           s.dataflow.commit_tag( p.rd )
 
-        # if memory instruction retire
+        # if memory instruction commit
         if p.opcode == Opcode.STORE or p.opcode == Opcode.LOAD:
           s.memoryflow.commit()
+      else:
+        # if we allocated a destination register for this instruction,
+        # we must free it
+        if p.rd_valid:
+          s.dataflow.free_tag( p.rd )
+
+        # if memory instruction retire
+        if p.opcode == Opcode.STORE or p.opcode == Opcode.LOAD:
+          s.memoryflow.retire()
 
       # retire instruction from controlflow
       creq = RetireRequest()

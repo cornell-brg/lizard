@@ -49,17 +49,7 @@ class IssueUnitCL( Model ):
     creq.tag = s.current_d.tag
     cresp = s.controlflow.tag_valid( creq )
     if not cresp.valid:
-      # if we allocated a destination register for this instruction,
-      # we must free it
-      if s.work.rd_valid:
-        s.dataflow.free_tag( s.work.rd )
-      # retire instruction from controlflow
-      creq = RetireRequest()
-      creq.tag = s.current_d.tag
-      s.controlflow.retire( creq )
-
-      s.current_d = None
-      return
+      s.work.status = PacketStatus.SQUASHED
 
     if s.work.status != PacketStatus.ALIVE:
       # Port doesn't matter for invalid instruction
