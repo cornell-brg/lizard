@@ -8,6 +8,7 @@ from util.cl.ports import InValRdyCLPort, OutValRdyCLPort
 from util.line_block import LineBlock
 from copy import deepcopy
 
+
 # The CSRR execute pipe
 class CSRRUnitCL( Model ):
 
@@ -37,14 +38,13 @@ class CSRRUnitCL( Model ):
       s.work.opcode = s.current.opcode
       copy_field_valid_pair( s.current, s.work, 'rd' )
 
-
     # verify instruction still alive
     if s.work.status != PacketStatus.ALIVE:
       s.done.next = 1
       s.result_q.enq( s.work )
       return
 
-    s.done.next = 1 # Assume finishes this cycle
+    s.done.next = 1  # Assume finishes this cycle
 
     if s.current.inst == RV64Inst.CSRRW or s.current.inst == RV64Inst.CSRRWI:
       temp, worked = s.dataflow.read_csr( s.current.csr )
@@ -79,8 +79,6 @@ class CSRRUnitCL( Model ):
     if s.done.next:
       # Output the finished instruction
       s.result_q.enq( s.work )
-
-
 
   def line_trace( s ):
     return LineBlock([

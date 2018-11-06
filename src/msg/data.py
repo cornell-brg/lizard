@@ -35,7 +35,7 @@ class GetDstResponse( BitStructDefinition ):
 
 class PostForwards( BitStructDefinition ):
 
-  def __init__( s):
+  def __init__( s ):
     s.tag = BitField( REG_TAG_LEN )
     s.value = BitField( XLEN )
 
