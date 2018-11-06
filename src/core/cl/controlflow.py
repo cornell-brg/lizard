@@ -88,12 +88,15 @@ class ControlFlowManagerCL( Model ):
     return resp
 
   def request_redirect( s, request ):
+    # We ignore redirects from invalid instructions
+    if not s.in_flight[ int( request.source_tag ) ].valid:
+      return
+
     # if not at commit, and not speculative, error
     assert request.at_commit or s.in_flight[ int(
         request.source_tag ) ].rename_table is not None
-    # the instruction must be valid
-    assert s.in_flight[ int( request.source_tag ) ].valid
 
+    # Guess was correct
     if s.in_flight[ int(
         request.source_tag
     ) ].succesor_pc == request.target_pc and not request.force_redirect:
