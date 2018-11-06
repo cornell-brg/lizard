@@ -79,7 +79,6 @@ class ProcCL( Model ):
 
   def line_trace( s ):
     return line_block.join([
-        'F: ',
         s.fetch.line_trace(),
         Divider( ' | ' ),
         s.decode.line_trace(),

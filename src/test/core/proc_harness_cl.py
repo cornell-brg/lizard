@@ -67,9 +67,11 @@ class ProcTestHarnessCL( Model ):
 
   def line_trace( s ):
     return line_block.join([
-        s.src.line_trace(), " >", ( "- " if s.proc.stats_en else "  " ),
+        s.src.line_trace(),
+        " > ",
         s.proc.line_trace(),
         Divider( " | " ),
-        s.mem.line_trace(), " > ",
+        # s.mem.line_trace(),
+        " > ",
         s.sink.line_trace()
     ] )
