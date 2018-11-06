@@ -325,60 +325,60 @@ class TinyRV2Inst( object ):
 
   @property
   def rd( self ):
-    return RV64GEncoding.slice_rd.dissasemble( self.bits )
+    return RV64GEncoding.slice_rd.disassemble( self.bits )
 
   @property
   def rs1( self ):
-    return RV64GEncoding.slice_rs1.dissasemble( self.bits )
+    return RV64GEncoding.slice_rs1.disassemble( self.bits )
 
   @property
   def rs2( self ):
-    return RV64GEncoding.slice_rs2.dissasemble( self.bits )
+    return RV64GEncoding.slice_rs2.disassemble( self.bits )
 
   @property
   def shamt( self ):
-    return RV64GEncoding.slice_shamt32.dissasemble( self.bits )
+    return RV64GEncoding.slice_shamt32.disassemble( self.bits )
 
   @property
   def i_imm( self ):
-    return RV64GEncoding.slice_i_imm.dissasemble( self.bits )
+    return RV64GEncoding.slice_i_imm.disassemble( self.bits )
 
   @property
   def s_imm( self ):
-    return RV64GEncoding.slice_s_imm.dissasemble( self.bits )
+    return RV64GEncoding.slice_s_imm.disassemble( self.bits )
 
   @property
   def b_imm( self ):
-    return RV64GEncoding.slice_b_imm.dissasemble( self.bits )
+    return RV64GEncoding.slice_b_imm.disassemble( self.bits )
 
   @property
   def u_imm( self ):
     return concat(
-        RV64GEncoding.slice_u_imm.dissasemble( self.bits ), Bits( 12, 0 ) )
+        RV64GEncoding.slice_u_imm.disassemble( self.bits ), Bits( 12, 0 ) )
 
   @property
   def j_imm( self ):
-    return RV64GEncoding.slice_j_imm.dissasemble( self.bits )
+    return RV64GEncoding.slice_j_imm.disassemble( self.bits )
 
   @property
   def c_imm( self ):
-    return RV64GEncoding.slice_c_imm.dissasemble( self.bits )
+    return RV64GEncoding.slice_c_imm.disassemble( self.bits )
 
   @property
   def pred( self ):
-    return RV64GEncoding.slice_pred.dissasemble( self.bits )
+    return RV64GEncoding.slice_pred.disassemble( self.bits )
 
   @property
   def succ( self ):
-    return RV64GEncoding.slice_succ.dissasemble( self.bits )
+    return RV64GEncoding.slice_succ.disassemble( self.bits )
 
   @property
   def csrnum( self ):
-    return RV64GEncoding.slice_csrnum.dissasemble( self.bits )
+    return RV64GEncoding.slice_csrnum.disassemble( self.bits )
 
   @property
   def funct( self ):
-    return RV64GEncoding.slice_funct7.dissasemble( self.bits )
+    return RV64GEncoding.slice_funct7.disassemble( self.bits )
 
   def __str__( self ):
     return disassemble_inst( self.bits )
