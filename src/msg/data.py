@@ -33,6 +33,13 @@ class GetDstResponse( BitStructDefinition ):
     s.tag = BitField( REG_TAG_LEN )
 
 
+class PostForwards( BitStructDefinition ):
+
+  def __init__( s):
+    s.tag = BitField( REG_TAG_LEN )
+    s.value = BitField( XLEN )
+
+
 # Reads the value from a physical register
 class ReadTagRequest( BitStructDefinition ):
 
