@@ -18,13 +18,10 @@ class ExecuteUnitCL( Model ):
     s.dataflow = dataflow
     s.controlflow = controlflow
 
-    s.done = Wire( 1 )
 
   def xtick( s ):
     if s.reset:
-      s.done.next = 1
-      return
-
+      pass
     if s.result_q.full():
       # Forward
       res = s.result_q.peek() # Peek at the value in the reg
@@ -35,18 +32,17 @@ class ExecuteUnitCL( Model ):
         s.dataflow.forward(fwd)
       return
 
-    if s.done:
-      if s.issued_q.empty():
-        return
-      s.current = s.issued_q.deq()
+    if s.issued_q.empty():
+      return
 
-      s.work = ExecutePacket()
-      copy_common_bundle( s.current, s.work )
-      s.work.opcode = s.current.opcode
-      copy_field_valid_pair( s.current, s.work, 'rd' )
+    s.current = s.issued_q.deq()
 
 
-    # verify instruction still alive
+    s.work = ExecutePacket()
+    copy_common_bundle( s.current, s.work )
+    s.work.opcode = s.current.opcode
+    copy_field_valid_pair( s.current, s.work, 'rd' )
+
     # TODO fix this
     creq = TagValidRequest()
     creq.tag = s.current.tag
@@ -55,11 +51,8 @@ class ExecuteUnitCL( Model ):
       s.work.status = PacketStatus.SQUASHED
 
     if s.work.status != PacketStatus.ALIVE:
-      s.done.next = 1
       s.result_q.enq( s.work )
       return
-
-    s.done.next = 1 # Assume everythig works
 
     if s.current.inst == RV64Inst.LUI:
       s.work.result = sext( s.current.imm, XLEN )
@@ -267,46 +260,18 @@ class ExecuteUnitCL( Model ):
       creq.target_pc = target_pc
       creq.at_commit = 0
       s.controlflow.request_redirect( creq )
-
-    elif s.current.inst == RV64Inst.CSRRW or s.current.inst == RV64Inst.CSRRWI:
-      temp, worked = s.dataflow.read_csr( s.current.csr )
-      if not worked:
-        s.done.next = 0
-      else:
-        s.work.result = temp
-        if s.current.inst == RV64Inst.CSRRWI:
-          value = zext( s.current.imm, XLEN )
-        else:
-          value = s.current.rs1
-        s.dataflow.write_csr( s.current.csr, value )
-    elif s.current.inst == RV64Inst.CSRRS or s.current.inst == RV64Inst.CSRRSI:
-      temp, worked = s.dataflow.read_csr( s.current.csr )
-      if not worked:
-        s.done.next = 0
-      else:
-        s.work.result = temp
-        if s.current.inst == RV64Inst.CSRRSI:
-          value = zext( s.current.imm, XLEN )
-        else:
-          value = s.current.rs1
-        # TODO: not quite right because we should attempt to set
-        # if the value of rs1 is zero but rs1 is not x0
-        if value != 0:
-          s.dataflow.write_csr( s.current.csr, s.work.result | value )
     else:
-      raise NotImplementedError( 'Not implemented so sad: ' +
+      raise NotImplementedError( 'Not implemented so sad: %x ' % s.current.opcode +
                                  RV64Inst.name( s.current.inst ) )
 
-    # Did we finish an instruction this cycle?
-    if s.done.next.int():
-      # Output the finished instruction
-      s.result_q.enq( s.work )
-      # Forward
-      if s.work.rd_valid:
-        fwd = PostForwards()
-        fwd.tag = s.work.rd
-        fwd.value = s.work.result
-        s.dataflow.forward(fwd)
+    # Output the finished instruction
+    s.result_q.enq( s.work )
+    # Forward
+    if s.work.rd_valid:
+      fwd = PostForwards()
+      fwd.tag = s.work.rd
+      fwd.value = s.work.result
+      s.dataflow.forward(fwd)
 
   def line_trace( s ):
     return LineBlock([

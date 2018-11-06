@@ -8,6 +8,7 @@ from core.cl.fetch import FetchUnitCL
 from core.cl.decode import DecodeUnitCL
 from core.cl.issue import IssueUnitCL
 from core.cl.execute import ExecuteUnitCL
+from core.cl.csrr import CSRRUnitCL
 from core.cl.memory import MemoryUnitCL
 from core.cl.writeback import WritebackUnitCL
 from core.cl.commit import CommitUnitCL
@@ -40,6 +41,7 @@ class ProcCL( Model ):
     s.issue = IssueUnitCL( s.dataflow, s.controlflow )
     s.execute = ExecuteUnitCL( s.dataflow, s.controlflow )
     s.memory = MemoryUnitCL( s.dataflow, s.controlflow, s.memoryflow )
+    s.csrr = CSRRUnitCL( s.dataflow, s.controlflow )
     s.writeback = WritebackUnitCL( s.dataflow, s.controlflow, s.memoryflow )
     s.commit = CommitUnitCL( s.dataflow, s.controlflow, s.memoryflow )
 
@@ -55,8 +57,10 @@ class ProcCL( Model ):
     cl_connect( s.decode.decoded_q, s.issue.decoded_q )
     cl_connect( s.issue.execute_q, s.execute.issued_q )
     cl_connect( s.issue.memory_q, s.memory.issued_q )
+    cl_connect( s.issue.csrr_q, s.csrr.issued_q )
     cl_connect( s.execute.result_q, s.writeback.execute_q )
     cl_connect( s.memory.result_q, s.writeback.memory_q )
+    cl_connect( s.csrr.result_q, s.writeback.csrr_q )
     cl_connect( s.writeback.result_out_q, s.commit.result_in_q )
 
   def xtick( s ):
@@ -68,6 +72,7 @@ class ProcCL( Model ):
     s.writeback.xtick()
     s.execute.xtick()
     s.memory.xtick()
+    s.csrr.xtick()
     s.issue.xtick()
     s.decode.xtick()
     s.fetch.xtick()
