@@ -19,6 +19,7 @@ from string import translate, maketrans
 from util.sparse_memory_image import SparseMemoryImage
 from config.general import *
 from msg.codes import *
+from collections import namedtuple
 
 #=========================================================================
 # Encoding Table
@@ -33,221 +34,6 @@ from msg.codes import *
 # mask/match columns are used for decoding; effectively an encoded
 # instruction is tested against each entry in the table by first applying
 # the mask and then checking for a match.
-
-tinyrv2_encoding_table = \
-[
-
-    # inst                           opcode mask                         opcode
-    # pseudo
-    [ "nop",                         0b11111111111111111111111111111111, 0b00000000000000000000000000010011 ],
-    [ "j      j_imm",                0b00000000000000000000111111111111, 0b00000000000000000000000001101111 ], # UJ-type
-    [ "csrr    rd, csrnum",          0b00000000000011111111000001111111, 0b00000000000000000010000001110011 ], # I-type, csrrs
-    [ "csrw    csrnum, rs1",         0b00000000000000000111111111111111, 0b00000000000000000001000001110011 ], # I-type, csrrw
-
-    # lui
-    [ "lui    rd, u_imm",            0b00000000000000000000000001111111, 0b00000000000000000000000000110111 ], # U-type
-
-    # auipc
-    [ "auipc  rd, u_imm",            0b00000000000000000000000001111111, 0b00000000000000000000000000010111 ], # U-type
-
-    # jal
-    [ "jal    rd, j_imm",            0b00000000000000000000000001111111, 0b00000000000000000000000001101111 ], # UJ-type
-    [ "jalr   rd, rs1, i_imm",       0b00000000000000000111000001111111, 0b00000000000000000000000001100111 ], # I-type
-
-    # branch
-    [ "beq    rs1, rs2, b_imm",      0b00000000000000000111000001111111, 0b00000000000000000000000001100011 ], # SB-type
-    [ "bne    rs1, rs2, b_imm",      0b00000000000000000111000001111111, 0b00000000000000000001000001100011 ], # SB-type
-    [ "blt    rs1, rs2, b_imm",      0b00000000000000000111000001111111, 0b00000000000000000100000001100011 ], # SB-type
-    [ "bge    rs1, rs2, b_imm",      0b00000000000000000111000001111111, 0b00000000000000000101000001100011 ], # SB-type
-    [ "bltu   rs1, rs2, b_imm",      0b00000000000000000111000001111111, 0b00000000000000000110000001100011 ], # SB-type
-    [ "bgeu   rs1, rs2, b_imm",      0b00000000000000000111000001111111, 0b00000000000000000111000001100011 ], # SB-type
-
-    # load
-    [ "lb     rd, i_imm(rs1)",       0b00000000000000000111000001111111, 0b00000000000000000000000000000011 ], # I-type
-    [ "lh     rd, i_imm(rs1)",       0b00000000000000000111000001111111, 0b00000000000000000001000000000011 ], # I-type
-    [ "lw     rd, i_imm(rs1)",       0b00000000000000000111000001111111, 0b00000000000000000010000000000011 ], # I-type
-    [ "ld     rd, i_imm(rs1)",       0b00000000000000000111000001111111, 0b00000000000000000011000000000011 ], # I-type
-    [ "lbu    rd, i_imm(rs1)",       0b00000000000000000111000001111111, 0b00000000000000000100000000000011 ], # I-type
-    [ "lhu    rd, i_imm(rs1)",       0b00000000000000000111000001111111, 0b00000000000000000101000000000011 ], # I-type
-    [ "lwu    rd, i_imm(rs1)",       0b00000000000000000111000001111111, 0b00000000000000000110000000000011 ], # I-type
-
-    # store
-    [ "sb     rs2, s_imm(rs1)",      0b00000000000000000111000001111111, 0b00000000000000000000000000100011 ], # S-type
-    [ "sh     rs2, s_imm(rs1)",      0b00000000000000000111000001111111, 0b00000000000000000001000000100011 ], # S-type
-    [ "sw     rs2, s_imm(rs1)",      0b00000000000000000111000001111111, 0b00000000000000000010000000100011 ], # S-type
-    [ "sd     rs2, s_imm(rs1)",      0b00000000000000000111000001111111, 0b00000000000000000011000000100011 ], # S-type
-
-    # rimm
-    [ "addi   rd, rs1, i_imm",       0b00000000000000000111000001111111, 0b00000000000000000000000000010011 ], # I-type
-    [ "slti   rd, rs1, i_imm",       0b00000000000000000111000001111111, 0b00000000000000000010000000010011 ], # I-type
-    [ "sltiu  rd, rs1, i_imm",       0b00000000000000000111000001111111, 0b00000000000000000011000000010011 ], # I-type
-    [ "xori   rd, rs1, i_imm",       0b00000000000000000111000001111111, 0b00000000000000000100000000010011 ], # I-type
-    [ "ori    rd, rs1, i_imm",       0b00000000000000000111000001111111, 0b00000000000000000110000000010011 ], # I-type
-    [ "andi   rd, rs1, i_imm",       0b00000000000000000111000001111111, 0b00000000000000000111000000010011 ], # I-type
-    [ "slli   rd, rs1, shamt",       0b11111100000000000111000001111111, 0b00000000000000000001000000010011 ], # R-type
-    [ "srli   rd, rs1, shamt",       0b11111100000000000111000001111111, 0b00000000000000000101000000010011 ], # R-type
-    [ "srai   rd, rs1, shamt",       0b11111100000000000111000001111111, 0b01000000000000000101000000010011 ], # R-type
-
-    [ "addiw  rd, rs1, i_imm",       0b00000000000000000111000001111111, 0b00000000000000000000000000011011 ], # I-type
-    [ "slliw  rd, rs1, shamt",       0b11111110000000000111000001111111, 0b00000000000000000001000000011011 ], # R-type
-    [ "srliw  rd, rs1, shamt",       0b11111110000000000111000001111111, 0b00000000000000000101000000011011 ], # R-type
-    [ "sraiw  rd, rs1, shamt",       0b11111110000000000111000001111111, 0b01000000000000000101000000011011 ], # R-type
-
-    # rr
-    [ "add    rd, rs1, rs2",         0b11111110000000000111000001111111, 0b00000000000000000000000000110011 ], # R-type
-    [ "sub    rd, rs1, rs2",         0b11111110000000000111000001111111, 0b01000000000000000000000000110011 ], # R-type
-    [ "sll    rd, rs1, rs2",         0b11111110000000000111000001111111, 0b00000000000000000001000000110011 ], # R-type
-    [ "slt    rd, rs1, rs2",         0b11111110000000000111000001111111, 0b00000000000000000010000000110011 ], # R-type
-    [ "sltu   rd, rs1, rs2",         0b11111110000000000111000001111111, 0b00000000000000000011000000110011 ], # R-type
-    [ "xor    rd, rs1, rs2",         0b11111110000000000111000001111111, 0b00000000000000000100000000110011 ], # R-type
-    [ "srl    rd, rs1, rs2",         0b11111110000000000111000001111111, 0b00000000000000000101000000110011 ], # R-type
-    [ "sra    rd, rs1, rs2",         0b11111110000000000111000001111111, 0b01000000000000000101000000110011 ], # R-type
-    [ "or     rd, rs1, rs2",         0b11111110000000000111000001111111, 0b00000000000000000110000000110011 ], # R-type
-    [ "and    rd, rs1, rs2",         0b11111110000000000111000001111111, 0b00000000000000000111000000110011 ], # R-type
-
-    [ "addw   rd, rs1, rs2",         0b11111110000000000111000001111111, 0b00000000000000000000000000111011 ], # R-type
-    [ "subw   rd, rs1, rs2",         0b11111110000000000111000001111111, 0b01000000000000000000000000111011 ], # R-type
-    [ "sllw   rd, rs1, rs2",         0b11111110000000000111000001111111, 0b00000000000000000001000000111011 ], # R-type
-    [ "srlw   rd, rs1, rs2",         0b11111110000000000111000001111111, 0b00000000000000000101000000111011 ], # R-type
-    [ "sraw   rd, rs1, rs2",         0b11111110000000000111000001111111, 0b01000000000000000101000000111011 ], # R-type
-
-    # fence
-    [ "fence   pred, succ",          0b11110000000011111111111111111111, 0b00000000000000000000000000001111 ],
-    [ "fence.i",                     0b11111111111111111111111111111111, 0b00000000000000000001000000001111 ],
-
-    # system
-    [ "ecall",                       0b11111111111111111111111111111111, 0b00000000000000000000000001110011 ],
-    [ "ebreak",                      0b11111111111111111111111111111111, 0b00000000000100000000000001110011 ],
-    [ "csrrw   rd, csrnum, rs1",     0b00000000000000000111000001111111, 0b00000000000000000001000001110011 ], # I-type, csrrw
-    [ "csrrs   rd, csrnum, rs1",     0b00000000000000000111000001111111, 0b00000000000000000010000001110011 ], # I-type, csrrs
-    [ "csrrc   rd, csrnum, rs1",     0b00000000000000000111000001111111, 0b00000000000000000011000001110011 ], # I-type, csrrc
-    [ "csrrwi  rd, csrnum, c_imm",   0b00000000000000000111000001111111, 0b00000000000000000101000001110011 ], # I-type, csrrw
-    [ "csrrsi  rd, csrnum, c_imm",   0b00000000000000000111000001111111, 0b00000000000000000110000001110011 ], # I-type, csrrs
-    [ "csrrci  rd, csrnum, c_imm",   0b00000000000000000111000001111111, 0b00000000000000000111000001110011 ], # I-type, csrrc
-
-    # multiply
-    [ "mul    rd, rs1, rs2",         0b11111110000000000111000001111111, 0b00000010000000000000000000110011 ], # R-type
-    [ "mulh   rd, rs1, rs2",         0b11111110000000000111000001111111, 0b00000010000000000001000000110011 ], # R-type
-    [ "mulhsu rd, rs1, rs2",         0b11111110000000000111000001111111, 0b00000010000000000010000000110011 ], # R-type
-    [ "mulhu  rd, rs1, rs2",         0b11111110000000000111000001111111, 0b00000010000000000011000000110011 ], # R-type
-    [ "div    rd, rs1, rs2",         0b11111110000000000111000001111111, 0b00000010000000000100000000110011 ], # R-type
-    [ "divu   rd, rs1, rs2",         0b11111110000000000111000001111111, 0b00000010000000000101000000110011 ], # R-type
-    [ "rem    rd, rs1, rs2",         0b11111110000000000111000001111111, 0b00000010000000000110000000110011 ], # R-type
-    [ "remu   rd, rs1, rs2",         0b11111110000000000111000001111111, 0b00000010000000000111000000110011 ], # R-type
-
-    [ "mulw   rd, rs1, rs2",         0b11111110000000000111000001111111, 0b00000010000000000000000000111011 ], # R-type
-    [ "divw   rd, rs1, rs2",         0b11111110000000000111000001111111, 0b00000010000000000100000000111011 ], # R-type
-    [ "divuw  rd, rs1, rs2",         0b11111110000000000111000001111111, 0b00000010000000000101000000111011 ], # R-type
-    [ "remw   rd, rs1, rs2",         0b11111110000000000111000001111111, 0b00000010000000000110000000111011 ], # R-type
-    [ "remuw  rd, rs1, rs2",         0b11111110000000000111000001111111, 0b00000010000000000111000000111011 ], # R-type
-
-    # atomic
-    [ "lr.w           rd, rs1",           0b11111111111100000111000001111111, 0b00010000000000000010000000101111 ],
-    [ "lr.w.aq        rd, rs1",           0b11111111111100000111000001111111, 0b00010100000000000010000000101111 ],
-    [ "lr.w.rl        rd, rs1",           0b11111111111100000111000001111111, 0b00010010000000000010000000101111 ],
-    [ "lr.w.aqrl      rd, rs1",           0b11111111111100000111000001111111, 0b00010110000000000010000000101111 ],
-    [ "sc.w           rd, rs1, rs2",      0b11111110000000000111000001111111, 0b00011000000000000010000000101111 ],
-    [ "sc.w.aq        rd, rs1, rs2",      0b11111110000000000111000001111111, 0b00011100000000000010000000101111 ],
-    [ "sc.w.rl        rd, rs1, rs2",      0b11111110000000000111000001111111, 0b00011010000000000010000000101111 ],
-    [ "sc.w.aqrl      rd, rs1, rs2",      0b11111110000000000111000001111111, 0b00011110000000000010000000101111 ],
-    [ "amoswap.w      rd, rs1, rs2",      0b11111110000000000111000001111111, 0b00001000000000000010000000101111 ],
-    [ "amoswap.w.aq   rd, rs1, rs2",      0b11111110000000000111000001111111, 0b00001100000000000010000000101111 ],
-    [ "amoswap.w.rl   rd, rs1, rs2",      0b11111110000000000111000001111111, 0b00001010000000000010000000101111 ],
-    [ "amoswap.w.aqrl rd, rs1, rs2",      0b11111110000000000111000001111111, 0b00001110000000000010000000101111 ],
-    [ "amoadd.w       rd, rs1, rs2",      0b11111110000000000111000001111111, 0b00000000000000000010000000101111 ],
-    [ "amoadd.w.aq    rd, rs1, rs2",      0b11111110000000000111000001111111, 0b00000100000000000010000000101111 ],
-    [ "amoadd.w.rl    rd, rs1, rs2",      0b11111110000000000111000001111111, 0b00000010000000000010000000101111 ],
-    [ "amoadd.w.aqrl  rd, rs1, rs2",      0b11111110000000000111000001111111, 0b00000110000000000010000000101111 ],
-    [ "amoxor.w       rd, rs1, rs2",      0b11111110000000000111000001111111, 0b00100000000000000010000000101111 ],
-    [ "amoxor.w.aq    rd, rs1, rs2",      0b11111110000000000111000001111111, 0b00100100000000000010000000101111 ],
-    [ "amoxor.w.rl    rd, rs1, rs2",      0b11111110000000000111000001111111, 0b00100010000000000010000000101111 ],
-    [ "amoxor.w.aqrl  rd, rs1, rs2",      0b11111110000000000111000001111111, 0b00100110000000000010000000101111 ],
-    [ "amoand.w       rd, rs1, rs2",      0b11111110000000000111000001111111, 0b01100000000000000010000000101111 ],
-    [ "amoand.w.aq    rd, rs1, rs2",      0b11111110000000000111000001111111, 0b01100100000000000010000000101111 ],
-    [ "amoand.w.rl    rd, rs1, rs2",      0b11111110000000000111000001111111, 0b01100010000000000010000000101111 ],
-    [ "amoand.w.aqrl  rd, rs1, rs2",      0b11111110000000000111000001111111, 0b01100110000000000010000000101111 ],
-    [ "amoor.w        rd, rs1, rs2",      0b11111110000000000111000001111111, 0b01000000000000000010000000101111 ],
-    [ "amoor.w.aq     rd, rs1, rs2",      0b11111110000000000111000001111111, 0b01000100000000000010000000101111 ],
-    [ "amoor.w.rl     rd, rs1, rs2",      0b11111110000000000111000001111111, 0b01000010000000000010000000101111 ],
-    [ "amoor.w.aqrl   rd, rs1, rs2",      0b11111110000000000111000001111111, 0b01000110000000000010000000101111 ],
-    [ "amomin.w       rd, rs1, rs2",      0b11111110000000000111000001111111, 0b10000000000000000010000000101111 ],
-    [ "amomin.w.aq    rd, rs1, rs2",      0b11111110000000000111000001111111, 0b10000100000000000010000000101111 ],
-    [ "amomin.w.rl    rd, rs1, rs2",      0b11111110000000000111000001111111, 0b10000010000000000010000000101111 ],
-    [ "amomin.w.aqrl  rd, rs1, rs2",      0b11111110000000000111000001111111, 0b10000110000000000010000000101111 ],
-    [ "amomax.w       rd, rs1, rs2",      0b11111110000000000111000001111111, 0b10100000000000000010000000101111 ],
-    [ "amomax.w.aq    rd, rs1, rs2",      0b11111110000000000111000001111111, 0b10100100000000000010000000101111 ],
-    [ "amomax.w.rl    rd, rs1, rs2",      0b11111110000000000111000001111111, 0b10100010000000000010000000101111 ],
-    [ "amomax.w.aqrl  rd, rs1, rs2",      0b11111110000000000111000001111111, 0b10100110000000000010000000101111 ],
-    [ "amominu.w      rd, rs1, rs2",      0b11111110000000000111000001111111, 0b11000000000000000010000000101111 ],
-    [ "amominu.w.aq   rd, rs1, rs2",      0b11111110000000000111000001111111, 0b11000100000000000010000000101111 ],
-    [ "amominu.w.rl   rd, rs1, rs2",      0b11111110000000000111000001111111, 0b11000010000000000010000000101111 ],
-    [ "amominu.w.aqrl rd, rs1, rs2",      0b11111110000000000111000001111111, 0b11000110000000000010000000101111 ],
-    [ "amomaxu.w      rd, rs1, rs2",      0b11111110000000000111000001111111, 0b11100000000000000010000000101111 ],
-    [ "amomaxu.w.aq   rd, rs1, rs2",      0b11111110000000000111000001111111, 0b11100100000000000010000000101111 ],
-    [ "amomaxu.w.rl   rd, rs1, rs2",      0b11111110000000000111000001111111, 0b11100010000000000010000000101111 ],
-    [ "amomaxu.w.aqrl rd, rs1, rs2",      0b11111110000000000111000001111111, 0b11100110000000000010000000101111 ],
-
-    [ "lr.d           rd, rs1",           0b11111111111100000111000001111111, 0b00010000000000000011000000101111 ],
-    [ "lr.d.aq        rd, rs1",           0b11111111111100000111000001111111, 0b00010100000000000011000000101111 ],
-    [ "lr.d.rl        rd, rs1",           0b11111111111100000111000001111111, 0b00010010000000000011000000101111 ],
-    [ "lr.d.aqrl      rd, rs1",           0b11111111111100000111000001111111, 0b00010110000000000011000000101111 ],
-    [ "sc.d           rd, rs1, rs2",      0b11111110000000000111000001111111, 0b00011000000000000011000000101111 ],
-    [ "sc.d.aq        rd, rs1, rs2",      0b11111110000000000111000001111111, 0b00011100000000000011000000101111 ],
-    [ "sc.d.rl        rd, rs1, rs2",      0b11111110000000000111000001111111, 0b00011010000000000011000000101111 ],
-    [ "sc.d.aqrl      rd, rs1, rs2",      0b11111110000000000111000001111111, 0b00011110000000000011000000101111 ],
-    [ "amoswap.d      rd, rs1, rs2",      0b11111110000000000111000001111111, 0b00001000000000000011000000101111 ],
-    [ "amoswap.d.aq   rd, rs1, rs2",      0b11111110000000000111000001111111, 0b00001100000000000011000000101111 ],
-    [ "amoswap.d.rl   rd, rs1, rs2",      0b11111110000000000111000001111111, 0b00001010000000000011000000101111 ],
-    [ "amoswap.d.aqrl rd, rs1, rs2",      0b11111110000000000111000001111111, 0b00001110000000000011000000101111 ],
-    [ "amoadd.d       rd, rs1, rs2",      0b11111110000000000111000001111111, 0b00000000000000000011000000101111 ],
-    [ "amoadd.d.aq    rd, rs1, rs2",      0b11111110000000000111000001111111, 0b00000100000000000011000000101111 ],
-    [ "amoadd.d.rl    rd, rs1, rs2",      0b11111110000000000111000001111111, 0b00000010000000000011000000101111 ],
-    [ "amoadd.d.aqrl  rd, rs1, rs2",      0b11111110000000000111000001111111, 0b00000110000000000011000000101111 ],
-    [ "amoxor.d       rd, rs1, rs2",      0b11111110000000000111000001111111, 0b00100000000000000011000000101111 ],
-    [ "amoxor.d.aq    rd, rs1, rs2",      0b11111110000000000111000001111111, 0b00100100000000000011000000101111 ],
-    [ "amoxor.d.rl    rd, rs1, rs2",      0b11111110000000000111000001111111, 0b00100010000000000011000000101111 ],
-    [ "amoxor.d.aqrl  rd, rs1, rs2",      0b11111110000000000111000001111111, 0b00100110000000000011000000101111 ],
-    [ "amoand.d       rd, rs1, rs2",      0b11111110000000000111000001111111, 0b01100000000000000011000000101111 ],
-    [ "amoand.d.aq    rd, rs1, rs2",      0b11111110000000000111000001111111, 0b01100100000000000011000000101111 ],
-    [ "amoand.d.rl    rd, rs1, rs2",      0b11111110000000000111000001111111, 0b01100010000000000011000000101111 ],
-    [ "amoand.d.aqrl  rd, rs1, rs2",      0b11111110000000000111000001111111, 0b01100110000000000011000000101111 ],
-    [ "amoor.d        rd, rs1, rs2",      0b11111110000000000111000001111111, 0b01000000000000000011000000101111 ],
-    [ "amoor.d.aq     rd, rs1, rs2",      0b11111110000000000111000001111111, 0b01000100000000000011000000101111 ],
-    [ "amoor.d.rl     rd, rs1, rs2",      0b11111110000000000111000001111111, 0b01000010000000000011000000101111 ],
-    [ "amoor.d.aqrl   rd, rs1, rs2",      0b11111110000000000111000001111111, 0b01000110000000000011000000101111 ],
-    [ "amomin.d       rd, rs1, rs2",      0b11111110000000000111000001111111, 0b10000000000000000011000000101111 ],
-    [ "amomin.d.aq    rd, rs1, rs2",      0b11111110000000000111000001111111, 0b10000100000000000011000000101111 ],
-    [ "amomin.d.rl    rd, rs1, rs2",      0b11111110000000000111000001111111, 0b10000010000000000011000000101111 ],
-    [ "amomin.d.aqrl  rd, rs1, rs2",      0b11111110000000000111000001111111, 0b10000110000000000011000000101111 ],
-    [ "amomax.d       rd, rs1, rs2",      0b11111110000000000111000001111111, 0b10100000000000000011000000101111 ],
-    [ "amomax.d.aq    rd, rs1, rs2",      0b11111110000000000111000001111111, 0b10100100000000000011000000101111 ],
-    [ "amomax.d.rl    rd, rs1, rs2",      0b11111110000000000111000001111111, 0b10100010000000000011000000101111 ],
-    [ "amomax.d.aqrl  rd, rs1, rs2",      0b11111110000000000111000001111111, 0b10100110000000000011000000101111 ],
-    [ "amominu.d      rd, rs1, rs2",      0b11111110000000000111000001111111, 0b11000000000000000011000000101111 ],
-    [ "amominu.d.aq   rd, rs1, rs2",      0b11111110000000000111000001111111, 0b11000100000000000011000000101111 ],
-    [ "amominu.d.rl   rd, rs1, rs2",      0b11111110000000000111000001111111, 0b11000010000000000011000000101111 ],
-    [ "amominu.d.aqrl rd, rs1, rs2",      0b11111110000000000111000001111111, 0b11000110000000000011000000101111 ],
-    [ "amomaxu.d      rd, rs1, rs2",      0b11111110000000000111000001111111, 0b11100000000000000011000000101111 ],
-    [ "amomaxu.d.aq   rd, rs1, rs2",      0b11111110000000000111000001111111, 0b11100100000000000011000000101111 ],
-    [ "amomaxu.d.rl   rd, rs1, rs2",      0b11111110000000000111000001111111, 0b11100010000000000011000000101111 ],
-    [ "amomaxu.d.aqrl rd, rs1, rs2",      0b11111110000000000111000001111111, 0b11100110000000000011000000101111 ],
-
-    #-----------------------------------------------------------------------
-    # Illegal Instruction
-    #-----------------------------------------------------------------------
-    [ "invld",                       0b11111111111111111111111111111111, 0b00000000110000001111111111101110 ], # 0x0c00ffee
-]
-
-#=========================================================================
-# Field Definitions
-#=========================================================================
-# For each field tag used in the above instruction templates, we need to
-# define: (1) a slice object specifying where the field is encoded in the
-# instruction; (2) an assembly_field function that takes the instruction
-# bits instruction and a string for the field as input and assembles the
-# field string into the appropriate bits of the instruction; and (3) a
-# disassembly_field function that takes the instruction bits as input,
-# extracts the appropriate field, and converts it into a string.
 
 #-------------------------------------------------------------------------
 # Define slice for each field
@@ -301,6 +87,215 @@ tinyrv2_field_slice_succ = slice( 20, 24 )
 
 tinyrv2_field_slice_aq = slice( 26, 27 )
 tinyrv2_field_slice_rl = slice( 25, 26 )
+
+
+def split_instr( instr ):
+  result = instr.split( None, 1 )
+  if len( result ) == 1:
+    return result[ 0 ], ""
+  else:
+    return result
+
+
+def simplify_args( args ):
+  return translate( args, maketrans( ",()", "   " ) ).split()
+
+
+def expand_gen( func ):
+
+  def loop( rows ):
+    result = []
+    for row in rows:
+      temp = func(*row )
+      if not isinstance( temp, list ):
+        temp = [ temp ]
+      result += temp
+    return result
+
+  return loop
+
+
+@expand_gen
+def gen_amo_consistency_variants( name, args, simple_args, opcode_mask,
+                                  opcode ):
+  result = []
+  amo_consistency_pairs = [
+      # suffix   aq rl
+      ( "", 0, 0 ),
+      ( ".aq", 1, 0 ),
+      ( ".rl", 0, 1 ),
+      ( ".aqrl", 1, 1 ),
+  ]
+  for suffix, aq, rl in amo_consistency_pairs:
+    mod = Bits( ILEN, opcode )
+    mod[ tinyrv2_field_slice_aq ] = aq
+    mod[ tinyrv2_field_slice_rl ] = rl
+    result.append(( "{}{}".format( name, suffix ), args, simple_args,
+                    opcode_mask, int( mod ) ) )
+  return result
+
+
+@expand_gen
+def gen_amo_width_variants( name, args, simple_args, opcode_mask, opcode ):
+  result = []
+  amo_width_pairs = [
+      # suffix funct3
+      ( ".w", 0b010 ),
+      ( ".d", 0b011 ),
+  ]
+  for suffix, funct3 in amo_width_pairs:
+    mod = Bits( ILEN, opcode )
+    mod[ tinyrv2_field_slice_funct3 ] = funct3
+    result.append(( "{}{}".format( name, suffix ), args, simple_args,
+                    opcode_mask, int( mod ) ) )
+  return result
+
+
+@expand_gen
+def expand_encoding( inst, opcode_mask, opcode ):
+  name, args = split_instr( inst )
+  return name, args, simplify_args( args ), opcode_mask, opcode
+
+
+@expand_gen
+def expand_pseudo_spec( pseudo, bases ):
+  pseudo_name, pseudo_args = split_instr( pseudo )
+  bases_expanded = [ split_instr( base ) for base in bases ]
+  return pseudo_name, simplify_args( pseudo_args ), bases_expanded
+
+
+# yapf: disable
+tinyrv2_encoding_table = expand_encoding( [
+    # inst                           opcode mask                         opcode
+    # lui
+    ( "lui    rd, u_imm",           0b00000000000000000000000001111111, 0b00000000000000000000000000110111 ),  # U-type
+
+    # auipc
+    ( "auipc  rd, u_imm",           0b00000000000000000000000001111111, 0b00000000000000000000000000010111 ),  # U-type
+
+    # jal
+    ( "jal    rd, j_imm",           0b00000000000000000000000001111111, 0b00000000000000000000000001101111 ),  # UJ-type
+    ( "jalr   rd, rs1, i_imm",      0b00000000000000000111000001111111, 0b00000000000000000000000001100111 ),  # I-type
+
+    # branch
+    ( "beq    rs1, rs2, b_imm",     0b00000000000000000111000001111111, 0b00000000000000000000000001100011 ),  # SB-type
+    ( "bne    rs1, rs2, b_imm",     0b00000000000000000111000001111111, 0b00000000000000000001000001100011 ),  # SB-type
+    ( "blt    rs1, rs2, b_imm",     0b00000000000000000111000001111111, 0b00000000000000000100000001100011 ),  # SB-type
+    ( "bge    rs1, rs2, b_imm",     0b00000000000000000111000001111111, 0b00000000000000000101000001100011 ),  # SB-type
+    ( "bltu   rs1, rs2, b_imm",     0b00000000000000000111000001111111, 0b00000000000000000110000001100011 ),  # SB-type
+    ( "bgeu   rs1, rs2, b_imm",     0b00000000000000000111000001111111, 0b00000000000000000111000001100011 ),  # SB-type
+
+    # load
+    ( "lb     rd, i_imm(rs1)",      0b00000000000000000111000001111111, 0b00000000000000000000000000000011 ),  # I-type
+    ( "lh     rd, i_imm(rs1)",      0b00000000000000000111000001111111, 0b00000000000000000001000000000011 ),  # I-type
+    ( "lw     rd, i_imm(rs1)",      0b00000000000000000111000001111111, 0b00000000000000000010000000000011 ),  # I-type
+    ( "ld     rd, i_imm(rs1)",      0b00000000000000000111000001111111, 0b00000000000000000011000000000011 ),  # I-type
+    ( "lbu    rd, i_imm(rs1)",      0b00000000000000000111000001111111, 0b00000000000000000100000000000011 ),  # I-type
+    ( "lhu    rd, i_imm(rs1)",      0b00000000000000000111000001111111, 0b00000000000000000101000000000011 ),  # I-type
+    ( "lwu    rd, i_imm(rs1)",      0b00000000000000000111000001111111, 0b00000000000000000110000000000011 ),  # I-type
+
+    # store
+    ( "sb     rs2, s_imm(rs1)",     0b00000000000000000111000001111111, 0b00000000000000000000000000100011 ),  # S-type
+    ( "sh     rs2, s_imm(rs1)",     0b00000000000000000111000001111111, 0b00000000000000000001000000100011 ),  # S-type
+    ( "sw     rs2, s_imm(rs1)",     0b00000000000000000111000001111111, 0b00000000000000000010000000100011 ),  # S-type
+    ( "sd     rs2, s_imm(rs1)",     0b00000000000000000111000001111111, 0b00000000000000000011000000100011 ),  # S-type
+
+    # rimm
+    ( "addi   rd, rs1, i_imm",      0b00000000000000000111000001111111, 0b00000000000000000000000000010011 ),  # I-type
+    ( "slti   rd, rs1, i_imm",      0b00000000000000000111000001111111, 0b00000000000000000010000000010011 ),  # I-type
+    ( "sltiu  rd, rs1, i_imm",      0b00000000000000000111000001111111, 0b00000000000000000011000000010011 ),  # I-type
+    ( "xori   rd, rs1, i_imm",      0b00000000000000000111000001111111, 0b00000000000000000100000000010011 ),  # I-type
+    ( "ori    rd, rs1, i_imm",      0b00000000000000000111000001111111, 0b00000000000000000110000000010011 ),  # I-type
+    ( "andi   rd, rs1, i_imm",      0b00000000000000000111000001111111, 0b00000000000000000111000000010011 ),  # I-type
+    ( "slli   rd, rs1, shamt",      0b11111100000000000111000001111111, 0b00000000000000000001000000010011 ),  # R-type
+    ( "srli   rd, rs1, shamt",      0b11111100000000000111000001111111, 0b00000000000000000101000000010011 ),  # R-type
+    ( "srai   rd, rs1, shamt",      0b11111100000000000111000001111111, 0b01000000000000000101000000010011 ),  # R-type
+    ( "addiw  rd, rs1, i_imm",      0b00000000000000000111000001111111, 0b00000000000000000000000000011011 ),  # I-type
+    ( "slliw  rd, rs1, shamt",      0b11111110000000000111000001111111, 0b00000000000000000001000000011011 ),  # R-type
+    ( "srliw  rd, rs1, shamt",      0b11111110000000000111000001111111, 0b00000000000000000101000000011011 ),  # R-type
+    ( "sraiw  rd, rs1, shamt",      0b11111110000000000111000001111111, 0b01000000000000000101000000011011 ),  # R-type
+
+    # rr
+    ( "add    rd, rs1, rs2",        0b11111110000000000111000001111111, 0b00000000000000000000000000110011 ),  # R-type
+    ( "sub    rd, rs1, rs2",        0b11111110000000000111000001111111, 0b01000000000000000000000000110011 ),  # R-type
+    ( "sll    rd, rs1, rs2",        0b11111110000000000111000001111111, 0b00000000000000000001000000110011 ),  # R-type
+    ( "slt    rd, rs1, rs2",        0b11111110000000000111000001111111, 0b00000000000000000010000000110011 ),  # R-type
+    ( "sltu   rd, rs1, rs2",        0b11111110000000000111000001111111, 0b00000000000000000011000000110011 ),  # R-type
+    ( "xor    rd, rs1, rs2",        0b11111110000000000111000001111111, 0b00000000000000000100000000110011 ),  # R-type
+    ( "srl    rd, rs1, rs2",        0b11111110000000000111000001111111, 0b00000000000000000101000000110011 ),  # R-type
+    ( "sra    rd, rs1, rs2",        0b11111110000000000111000001111111, 0b01000000000000000101000000110011 ),  # R-type
+    ( "or     rd, rs1, rs2",        0b11111110000000000111000001111111, 0b00000000000000000110000000110011 ),  # R-type
+    ( "and    rd, rs1, rs2",        0b11111110000000000111000001111111, 0b00000000000000000111000000110011 ),  # R-type
+    ( "addw   rd, rs1, rs2",        0b11111110000000000111000001111111, 0b00000000000000000000000000111011 ),  # R-type
+    ( "subw   rd, rs1, rs2",        0b11111110000000000111000001111111, 0b01000000000000000000000000111011 ),  # R-type
+    ( "sllw   rd, rs1, rs2",        0b11111110000000000111000001111111, 0b00000000000000000001000000111011 ),  # R-type
+    ( "srlw   rd, rs1, rs2",        0b11111110000000000111000001111111, 0b00000000000000000101000000111011 ),  # R-type
+    ( "sraw   rd, rs1, rs2",        0b11111110000000000111000001111111, 0b01000000000000000101000000111011 ),  # R-type
+
+    # fence
+    ( "fence   pred, succ",         0b11110000000011111111111111111111, 0b00000000000000000000000000001111 ),
+    ( "fence.i",                    0b11111111111111111111111111111111, 0b00000000000000000001000000001111 ),
+
+    # system
+    ( "ecall",                      0b11111111111111111111111111111111, 0b00000000000000000000000001110011 ),
+    ( "ebreak",                     0b11111111111111111111111111111111, 0b00000000000100000000000001110011 ),
+    ( "csrrw   rd, csrnum, rs1",    0b00000000000000000111000001111111, 0b00000000000000000001000001110011 ),  # I-type, csrrw
+    ( "csrrs   rd, csrnum, rs1",    0b00000000000000000111000001111111, 0b00000000000000000010000001110011 ),  # I-type, csrrs
+    ( "csrrc   rd, csrnum, rs1",    0b00000000000000000111000001111111, 0b00000000000000000011000001110011 ),  # I-type, csrrc
+    ( "csrrwi  rd, csrnum, c_imm",  0b00000000000000000111000001111111, 0b00000000000000000101000001110011 ),  # I-type, csrrw
+    ( "csrrsi  rd, csrnum, c_imm",  0b00000000000000000111000001111111, 0b00000000000000000110000001110011 ),  # I-type, csrrs
+    ( "csrrci  rd, csrnum, c_imm",  0b00000000000000000111000001111111, 0b00000000000000000111000001110011 ),  # I-type, csrrc
+
+    # multiply
+    ( "mul    rd, rs1, rs2",        0b11111110000000000111000001111111, 0b00000010000000000000000000110011 ),  # R-type
+    ( "mulh   rd, rs1, rs2",        0b11111110000000000111000001111111, 0b00000010000000000001000000110011 ),  # R-type
+    ( "mulhsu rd, rs1, rs2",        0b11111110000000000111000001111111, 0b00000010000000000010000000110011 ),  # R-type
+    ( "mulhu  rd, rs1, rs2",        0b11111110000000000111000001111111, 0b00000010000000000011000000110011 ),  # R-type
+    ( "div    rd, rs1, rs2",        0b11111110000000000111000001111111, 0b00000010000000000100000000110011 ),  # R-type
+    ( "divu   rd, rs1, rs2",        0b11111110000000000111000001111111, 0b00000010000000000101000000110011 ),  # R-type
+    ( "rem    rd, rs1, rs2",        0b11111110000000000111000001111111, 0b00000010000000000110000000110011 ),  # R-type
+    ( "remu   rd, rs1, rs2",        0b11111110000000000111000001111111, 0b00000010000000000111000000110011 ),  # R-type
+    ( "mulw   rd, rs1, rs2",        0b11111110000000000111000001111111, 0b00000010000000000000000000111011 ),  # R-type
+    ( "divw   rd, rs1, rs2",        0b11111110000000000111000001111111, 0b00000010000000000100000000111011 ),  # R-type
+    ( "divuw  rd, rs1, rs2",        0b11111110000000000111000001111111, 0b00000010000000000101000000111011 ),  # R-type
+    ( "remw   rd, rs1, rs2",        0b11111110000000000111000001111111, 0b00000010000000000110000000111011 ),  # R-type
+    ( "remuw  rd, rs1, rs2",        0b11111110000000000111000001111111, 0b00000010000000000111000000111011 ),  # R-type
+
+    ( "invld",                      0b11111111111111111111111111111111, 0b00000000110000001111111111101110 ),  # 0x0c00ffee
+  ] ) + gen_amo_consistency_variants( gen_amo_width_variants( expand_encoding( [
+    ( "lr           rd, rs1",       0b11111111111100000111000001111111, 0b00010000000000000010000000101111 ),
+    ( "sc           rd, rs1, rs2",  0b11111110000000000111000001111111, 0b00011000000000000010000000101111 ),
+    ( "amoswap      rd, rs1, rs2",  0b11111110000000000111000001111111, 0b00001000000000000010000000101111 ),
+    ( "amoadd       rd, rs1, rs2",  0b11111110000000000111000001111111, 0b00000000000000000010000000101111 ),
+    ( "amoxor       rd, rs1, rs2",  0b11111110000000000111000001111111, 0b00100000000000000010000000101111 ),
+    ( "amoand       rd, rs1, rs2",  0b11111110000000000111000001111111, 0b01100000000000000010000000101111 ),
+    ( "amoor        rd, rs1, rs2",  0b11111110000000000111000001111111, 0b01000000000000000010000000101111 ),
+    ( "amomin       rd, rs1, rs2",  0b11111110000000000111000001111111, 0b10000000000000000010000000101111 ),
+    ( "amomax       rd, rs1, rs2",  0b11111110000000000111000001111111, 0b10100000000000000010000000101111 ),
+    ( "amominu      rd, rs1, rs2",  0b11111110000000000111000001111111, 0b11000000000000000010000000101111 ),
+    ( "amomaxu      rd, rs1, rs2",  0b11111110000000000111000001111111, 0b11100000000000000010000000101111 ),
+  ] ) ) )
+
+pseudo_instruction_table = expand_pseudo_spec( [
+  # pseudo instruction    base instruction
+  ( "la rd, symbol",      [ "auipc $rd, %hi[$symbol]", "addi $rd, %lw[$symbol]" ] ),
+  ( "nop",                [ "addi x0, x0, 0" ] ),
+  ( "j j_imm",            [ "jal x0, $j_imm" ] ),
+  ( "csrr rd, csrnum",    [ "csrrs $rd, $csrnum, x0" ] ),
+  ( "csrw csrnum, rs1",   [ "csrrw x0, $csrnum, $rs1" ] ),
+] )
+# yapf: enable
+
+#=========================================================================
+# Field Definitions
+#=========================================================================
+# For each field tag used in the above instruction templates, we need to
+# define: (1) a slice object specifying where the field is encoded in the
+# instruction; (2) an assembly_field function that takes the instruction
+# bits instruction and a string for the field as input and assembles the
+# field string into the appropriate bits of the instruction; and (3) a
+# disassembly_field function that takes the instruction bits as input,
+# extracts the appropriate field, and converts it into a string.
 
 #-------------------------------------------------------------------------
 # rs1 assembly/disassembly functions
@@ -615,191 +610,80 @@ tinyrv2_fields = \
     "succ"   : [ assemble_field_succ,   disassemble_field_succ   ],
 }
 
-#=========================================================================
-# IsaImpl
-#=========================================================================
-# We use the encoding table and assembly/disassembly field functions to
-# instantiate an IsaImpl objection which we can then use in our
-# assembly/disassembly functions. I am not sure if we still want to
-# refactor this here, but it is good enough for now.
+InstSpec = namedtuple( 'InstSpec', 'args simple_args opcode_mask opcode' )
+PseudoSpec = namedtuple( 'PseudoSpec', 'simple_args base_list' )
 
 
 class IsaImpl( object ):
 
-  #-----------------------------------------------------------------------
-  # Constructor
-  #-----------------------------------------------------------------------
-
-  def __init__( self, nbits, inst_encoding_table, inst_fields ):
+  def __init__( self, nbits, inst_encoding_table, pseudo_table, inst_fields ):
 
     self.nbits = nbits
-    self.inst_encoding_table = inst_encoding_table
-    self.asm_field_funcs_dict = {}
-    self.disasm_field_funcs_dict = {}
-    self.opcode_match_dict = {}
+    self.encoding = {}
+    self.pseudo_map = {}
+    self.fields = inst_fields
 
-    self.disasm_field_funcs_dict[ '' ] = {}  # this is for all-zero case
+    for name, args, simple_args, opcode_mask, opcode in inst_encoding_table:
+      self.encoding[ name ] = InstSpec( args, simple_args, opcode_mask, opcode )
 
-    for row in inst_encoding_table:
+    for name, simple_args, base_list in pseudo_table:
+      self.pseudo_map[ name ] = PseudoSpec( simple_args, base_list )
 
-      # Extract the columns from the row
-
-      inst_tmpl = row[ 0 ]
-      opcode_mask = row[ 1 ]
-      opcode_match = row[ 2 ]
-
-      # Extract instruction name from string template
-
-      ( inst_name, sep, inst_tmpl ) = inst_tmpl.partition( ' ' )
-
-      # Add opcode match to the a dictionary using the instruction
-      # name as the key
-
-      self.opcode_match_dict[ inst_name ] = opcode_match
-
-      # Split the remainder of the template into field strings. First we
-      # translate non-whitespace deliminters into whitespace so that we
-      # can use split.
-
-      translation_table = maketrans( ",()", "   " )
-      inst_field_tags = translate( inst_tmpl, translation_table ).split()
-
-      # Create the list of asm field functions
-
-      asm_field_funcs = []
-      for asm_field_tag in inst_field_tags:
-        asm_field_funcs.append( inst_fields[ asm_field_tag ][ 0 ] )
-
-      # Add the list of asm field functions to the encoding
-
-      self.asm_field_funcs_dict[ inst_name ] = asm_field_funcs
-
-      # Create the list of disasm field functions
-
-      disasm_field_funcs = {}
-      for asm_field_tag in inst_field_tags:
-        disasm_field_funcs[ asm_field_tag ] = inst_fields[ asm_field_tag ][ 1 ]
-
-      # Add the list of disasm field functions to the encoding
-
-      self.disasm_field_funcs_dict[ inst_name ] = disasm_field_funcs
-
-  #-----------------------------------------------------------------------
-  # decode_tmpl
-  #-----------------------------------------------------------------------
-  # For now this is O(n) where n is the number of instructions in the
-  # encoding table. Obviously, this is pretty slow. I am sure we can do
-  # better by creating some kind of tree-based data structure.
-
-  def decode_tmpl( self, inst_bits ):
-
-    if inst_bits == 0:  # hacky
-      return ""
-
-    for row in self.inst_encoding_table:
-
-      # Extract the columns from the row
-
-      inst_tmpl = row[ 0 ]
-      opcode_mask = row[ 1 ]
-      opcode_match = row[ 2 ]
-
-      # If match, then return instruction name
-
-      if ( inst_bits & opcode_mask ) == opcode_match:
-        return inst_tmpl
-
-    # Illegal instruction
-
-    raise AssertionError( "Illegal instruction {}!".format( inst_bits ) )
-
-  #-----------------------------------------------------------------------
-  # decode_name
-  #-----------------------------------------------------------------------
+  def expand_pseudo_instructions( self, inst_str ):
+    if ':' in inst_str:
+      return [ inst_str ]
+    if inst_str.strip().startswith( '.' ):
+      return [ inst_str ]
+    inst_str = ( inst_str.partition( '#' )[ 0 ] ).strip()
+    if len( inst_str ) == 0:
+      return []
+    name, args = split_instr( inst_str )
+    if name in self.encoding:
+      return [ inst_str ]
+    elif name in self.pseudo_map:
+      simple = simplify_args( args )
+      var_names = self.pseudo_map[ name ].simple_args
+      arg_map = zip( var_names, simple )
+      result = []
+      for base_name, base_args in self.pseudo_map[ name ].base_list:
+        for var, value in arg_map:
+          base_args = base_args.replace( "${}".format( var ), value )
+        result.append( "{} {} {}".format(
+            base_name, base_args, ' '.join( simple[ len( var_names ):] ) ) )
+      return result
+    else:
+      raise AssertionError( "Unknown instruction: {}".format( inst_str ) )
 
   def decode_inst_name( self, inst_bits ):
-
-    # Decode template
-
-    inst_tmpl = self.decode_tmpl( inst_bits )
-
-    # Extract instruction name
-
-    return inst_tmpl.partition( ' ' )[ 0 ]
-
-  #-----------------------------------------------------------------------
-  # assemble_inst
-  #-----------------------------------------------------------------------
+    for name, spec in self.encoding.iteritems():
+      if ( inst_bits & spec.opcode_mask ) == spec.opcode:
+        return name
+    raise AssertionError( "Illegal instruction {}!".format( inst_bits ) )
 
   def assemble_inst( self, sym, pc, inst_str ):
+    name, args = split_instr( inst_str )
+    arg_list = simplify_args( args )
 
-    # Extract instruction name from asm string
+    result = Bits( self.nbits, self.encoding[ name ].opcode )
 
-    ( inst_name, sep, inst_str ) = inst_str.partition( ' ' )
-
-    # Use the instruction name to get the opcode match which we can
-    # the use to initialize the instruction bits
-
-    inst_bits = Bits( self.nbits, self.opcode_match_dict[ inst_name ] )
-
-    # Split the remainder of the asm string into field strings. First
-    # we translate non-whitespace deliminters into whitespace so that
-    # we can use split.
-
-    translation_table = maketrans( ",()", "   " )
-    asm_field_strs = translate( inst_str, translation_table ).split()
-
-    # Retrieve the list of asm field functions for this instruction
-
-    asm_field_funcs = self.asm_field_funcs_dict[ inst_name ]
-
-    # Apply these asm field functions to the asm field strings
-
-    for asm_field_str, asm_field_func in zip( asm_field_strs, asm_field_funcs ):
-      asm_field_func( inst_bits, sym, pc, asm_field_str )
-
-    # Return the assembled instruction
-
-    return inst_bits
-
-  #-----------------------------------------------------------------------
-  # disassemble_inst
-  #-----------------------------------------------------------------------
+    for asm_field_str, asm_field_func in zip(
+        arg_list, self.encoding[ name ].simple_args ):
+      self.fields[ asm_field_func ][ 0 ]( result, sym, pc, asm_field_str )
+    return result
 
   def disassemble_inst( self, inst_bits ):
+    name = self.decode_inst_name( inst_bits )
 
-    # Decode the instruction to find instruction template
+    arg_str = self.encoding[ name ].args
+    for field_name in self.encoding[ name ].simple_args:
+      arg_str = arg_str.replace( field_name,
+                                 self.fields[ field_name ][ 1 ]( inst_bits ) )
 
-    inst_tmpl = self.decode_tmpl( inst_bits )
-
-    # Extract instruction name from asm template
-
-    inst_name = inst_tmpl.partition( ' ' )[ 0 ]
-
-    # Retrieve the list of disasm field functions for this instruction
-
-    disasm_field_funcs = self.disasm_field_funcs_dict[ inst_name ]
-
-    # Apply these asm field functions to create the disasm string
-
-    inst_str = inst_tmpl
-    for inst_field_tag, disasm_field_func in disasm_field_funcs.iteritems():
-      field_str = disasm_field_func( inst_bits )
-      inst_str = inst_str.replace( inst_field_tag, field_str )
-
-    # Return the disassembled instruction
-
-    return inst_str
+    return "{} {}".format( name, arg_str )
 
 
-# Here is the actual riscv_isa_impl. I think I refactored this because the
-# idea was that the IsaImpl class could be reused across different ISAs?
-
-tinyrv2_isa_impl = IsaImpl( 32, tinyrv2_encoding_table, tinyrv2_fields )
-
-#=========================================================================
-# Assemble
-#=========================================================================
+tinyrv2_isa_impl = IsaImpl( ILEN, tinyrv2_encoding_table,
+                            pseudo_instruction_table, tinyrv2_fields )
 
 # https://docs.python.org/2/library/struct.html#format-characters
 # 64 bit data elements packed as unsigned long long
@@ -813,23 +697,26 @@ def assemble_inst( sym, pc, inst_str ):
   return tinyrv2_isa_impl.assemble_inst( sym, pc, inst_str )
 
 
-def assemble( asm_code ):
-  # If asm_code is a single string, then put it in a list to simplify the
-  # rest of the logic.
+def expand_pseudo_instructions( instr_str ):
+  return tinyrv2_isa_impl.expand_pseudo_instructions( instr_str )
 
+
+def assemble( asm_code ):
   asm_code_list = asm_code
   if isinstance( asm_code, str ):
     asm_code_list = [ asm_code ]
-
-  # Create a single list of lines
 
   asm_list = []
   for asm_seq in asm_code_list:
     asm_list.extend( asm_seq.splitlines() )
 
-  # First pass to create symbol table. This is obviously very simplistic.
-  # We can maybe make it more robust in the future.
+  # Inject all the pseudo instructions
+  temp = []
+  for instr in asm_list:
+    temp += expand_pseudo_instructions( instr )
+  asm_list = temp
 
+  # Create symbol table
   addr = int( RESET_VECTOR )
   sym = {}
   for line in asm_list:
