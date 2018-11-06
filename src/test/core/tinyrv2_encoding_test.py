@@ -7,7 +7,8 @@
 import pytest
 import struct
 
-from util.tinyrv2_encoding import assemble_inst, disassemble_inst
+from util.tinyrv2_encoding import assemble, assemble_inst, disassemble_inst
+from config.general import *
 from util.sparse_memory_image import SparseMemoryImage
 
 #-------------------------------------------------------------------------
@@ -35,7 +36,13 @@ def compare_str( str1, str2 ):
 
 def check( inst_str, inst_bits_ref, inst_str_ref ):
 
-  inst_bits = assemble_inst({}, 0, inst_str )
+  memory_image = assemble( inst_str )
+  text = memory_image.get_section( ".text" ).data
+
+  assert len( text ) == ILEN_BYTES
+  inst_bits = Bits(
+      ILEN,
+      struct.unpack_from( "<I", buffer( text, 0, ILEN_BYTES ) )[ 0 ] )
   assert inst_bits == inst_bits_ref
 
   inst_str = disassemble_inst( inst_bits )
@@ -63,9 +70,8 @@ def check_sym( sym, pc, inst_str, inst_bits_ref, inst_str_ref ):
 #-------------------------------------------------------------------------
 
 
-@pytest.mark.skip
 def test_tinyrv2_inst_nop():
-  check( "nop", 0b00000000000000000000000000010011, "addi x0, x0 0" )
+  check( "nop", 0b00000000000000000000000000010011, "addi x00, x00, 0x000" )
 
 
 #-------------------------------------------------------------------------
@@ -184,16 +190,14 @@ def test_tinyrv2_inst_beq():
 #-------------------------------------------------------------------------
 
 
-@pytest.mark.skip
 def test_tinyrv2_inst_csrr():
   check( "csrr  x3, mngr2proc", 0b11111100000000000010000111110011,
-         "csrr  x03, 0xfc0" )
+         "csrrs x03, 0xfc0, x00" )
 
 
-@pytest.mark.skip
 def test_tinyrv2_inst_csrw():
   check( "csrw  proc2mngr, x2", 0b01111100000000010001000001110011,
-         "csrw  0x7c0, x02" )
+         "csrrw x00, 0x7c0, x02" )
 
 
 #-------------------------------------------------------------------------

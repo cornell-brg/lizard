@@ -73,16 +73,9 @@ def run_test( TestHarness, gen_test, max_cycles=50000000, extra_cycles=3 ):
 
   # Assemble the test program
   asm = gen_test()
-  # We CANNOT just walk of the end because of extra cycles
-  # That will trigger an illegal instruction exception
-  trailer = '\n'.join([ 'nop' ] * extra_cycles )
   if isinstance( asm, list ):
-    for seq in asm:
-      print( seq )
-    asm += [ trailer ]
-  else:
-    print( asm )
-    asm += trailer
+    asm = '\n'.join( asm )
+  print( asm )
   mem_image = assemble( asm )
 
   # Load the program into the model
