@@ -28,10 +28,11 @@ class ExecuteUnitCL( Model ):
     if s.result_q.full():
       # Forward
       res = s.result_q.peek() # Peek at the value in the reg
-      fwd = PostForwards()
-      fwd.tag = res.rd
-      fwd.value = res.result
-      s.dataflow.forward(fwd)
+      if res.rd_valid:
+        fwd = PostForwards()
+        fwd.tag = res.rd
+        fwd.value = res.result
+        s.dataflow.forward(fwd)
       return
 
     if s.done:
@@ -297,14 +298,15 @@ class ExecuteUnitCL( Model ):
                                  RV64Inst.name( s.current.inst ) )
 
     # Did we finish an instruction this cycle?
-    if s.done.next:
-      # Forward
-      fwd = PostForwards()
-      fwd.tag = s.work.rd
-      fwd.value = s.work.result
-      s.dataflow.forward(fwd)
+    if s.done.next.int():
       # Output the finished instruction
       s.result_q.enq( s.work )
+      # Forward
+      if s.work.rd_valid:
+        fwd = PostForwards()
+        fwd.tag = s.work.rd
+        fwd.value = s.work.result
+        s.dataflow.forward(fwd)
 
   def line_trace( s ):
     return LineBlock([
