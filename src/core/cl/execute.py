@@ -8,7 +8,7 @@ from util.cl.ports import InValRdyCLPort, OutValRdyCLPort
 from util.line_block import LineBlock
 from copy import deepcopy
 
-
+# The integer execute pipe
 class ExecuteUnitCL( Model ):
 
   def __init__( s, dataflow, controlflow ):
@@ -42,17 +42,6 @@ class ExecuteUnitCL( Model ):
     copy_common_bundle( s.current, s.work )
     s.work.opcode = s.current.opcode
     copy_field_valid_pair( s.current, s.work, 'rd' )
-
-    # TODO fix this
-    creq = TagValidRequest()
-    creq.tag = s.current.tag
-    cresp = s.controlflow.tag_valid( creq )
-    if not cresp.valid:
-      s.work.status = PacketStatus.SQUASHED
-
-    if s.work.status != PacketStatus.ALIVE:
-      s.result_q.enq( s.work )
-      return
 
     if s.current.inst == RV64Inst.LUI:
       s.work.result = sext( s.current.imm, XLEN )

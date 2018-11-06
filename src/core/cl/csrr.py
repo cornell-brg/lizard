@@ -8,7 +8,7 @@ from util.cl.ports import InValRdyCLPort, OutValRdyCLPort
 from util.line_block import LineBlock
 from copy import deepcopy
 
-
+# The CSRR execute pipe
 class CSRRUnitCL( Model ):
 
   def __init__( s, dataflow, controlflow ):
@@ -39,19 +39,12 @@ class CSRRUnitCL( Model ):
 
 
     # verify instruction still alive
-    # TODO fix this
-    creq = TagValidRequest()
-    creq.tag = s.current.tag
-    cresp = s.controlflow.tag_valid( creq )
-    if not cresp.valid:
-      s.work.status = PacketStatus.SQUASHED
-
     if s.work.status != PacketStatus.ALIVE:
       s.done.next = 1
       s.result_q.enq( s.work )
       return
 
-    s.done.next = 1 # Assume everythig works
+    s.done.next = 1 # Assume finishes this cycle
 
     if s.current.inst == RV64Inst.CSRRW or s.current.inst == RV64Inst.CSRRWI:
       temp, worked = s.dataflow.read_csr( s.current.csr )
