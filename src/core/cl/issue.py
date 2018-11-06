@@ -16,21 +16,32 @@ class IssueUnitCL( Model ):
 
     s.execute_q = OutValRdyCLPort( IssuePacket() )
     s.memory_q = OutValRdyCLPort( IssuePacket() )
+    s.csrr_q = OutValRdyCLPort( IssuePacket() )
 
-    s.issued_q = OutValRdyCLPortGroup([ s.execute_q, s.memory_q ] )
+    s.issued_q = OutValRdyCLPortGroup([ s.execute_q, s.memory_q, s.csrr_q ] )
     s.EXECUTE_PORT_IDX = 0
     s.MEMORY_PORT_IDX = 1
+    s.CSRR_PORT_IDX = 2
 
     s.dataflow = dataflow
     s.controlflow = controlflow
+
+
+  # Given packet p pick the index of the pipe to send it down
+  def choose_pipe( s, p ):
+    if p.opcode == Opcode.LOAD or p.opcode == Opcode.STORE:
+      idx = s.MEMORY_PORT_IDX
+    elif p.opcode == Opcode.SYSTEM: # TODO, only csrs
+      idx = s.CSRR_PORT_IDX
+    else:
+      idx = s.EXECUTE_PORT_IDX
+    return idx
+
 
   def xtick( s ):
     if s.reset:
       s.current_d = None
       return
-
-    # if s.issued_q.full():
-    #   return
 
     if s.current_d is None:
       if s.decoded_q.empty():
@@ -44,6 +55,8 @@ class IssueUnitCL( Model ):
       s.current_rs2 = None
       s.marked_speculative = False
 
+    pipe_idx = s.choose_pipe(s.current_d)
+
     # verify instruction still alive
     creq = TagValidRequest()
     creq.tag = s.current_d.tag
@@ -52,8 +65,7 @@ class IssueUnitCL( Model ):
       s.work.status = PacketStatus.SQUASHED
 
     if s.work.status != PacketStatus.ALIVE:
-      # Port doesn't matter for invalid instruction
-      s.issued_q.enq( s.work, s.EXECUTE_PORT_IDX )
+      s.issued_q.enq( s.work, pipe_idx)
       s.current_d = None
       return
 
@@ -108,14 +120,8 @@ class IssueUnitCL( Model ):
           # must stall
           return
 
-      # decide which port to issue it on
-      if s.work.opcode == Opcode.LOAD or s.work.opcode == Opcode.STORE:
-        idx = s.MEMORY_PORT_IDX
-      else:
-        idx = s.EXECUTE_PORT_IDX
-
-      if not s.issued_q.get( idx ).full():
-        s.issued_q.enq( s.work, idx )
+      if not s.issued_q.get( pipe_idx ).full():
+        s.issued_q.enq( s.work, pipe_idx )
         s.current_d = None
 
       # TODO: Our tests need to hit this case!
