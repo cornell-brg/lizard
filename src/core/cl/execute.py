@@ -8,6 +8,7 @@ from util.cl.ports import InValRdyCLPort, OutValRdyCLPort
 from util.line_block import LineBlock
 from copy import deepcopy
 
+
 # The integer execute pipe
 class ExecuteUnitCL( Model ):
 
@@ -18,25 +19,23 @@ class ExecuteUnitCL( Model ):
     s.dataflow = dataflow
     s.controlflow = controlflow
 
-
   def xtick( s ):
     if s.reset:
       pass
     if s.result_q.full():
       # Forward
-      res = s.result_q.peek() # Peek at the value in the reg
+      res = s.result_q.peek()  # Peek at the value in the reg
       if res.rd_valid:
         fwd = PostForwards()
         fwd.tag = res.rd
         fwd.value = res.result
-        s.dataflow.forward(fwd)
+        s.dataflow.forward( fwd )
       return
 
     if s.issued_q.empty():
       return
 
     s.current = s.issued_q.deq()
-
 
     s.work = ExecutePacket()
     copy_common_bundle( s.current, s.work )
@@ -250,8 +249,9 @@ class ExecuteUnitCL( Model ):
       creq.at_commit = 0
       s.controlflow.request_redirect( creq )
     else:
-      raise NotImplementedError( 'Not implemented so sad: %x ' % s.current.opcode +
-                                 RV64Inst.name( s.current.inst ) )
+      raise NotImplementedError(
+          'Not implemented so sad: %x ' % s.current.opcode +
+          RV64Inst.name( s.current.inst ) )
 
     # Output the finished instruction
     s.result_q.enq( s.work )
@@ -260,7 +260,7 @@ class ExecuteUnitCL( Model ):
       fwd = PostForwards()
       fwd.tag = s.work.rd
       fwd.value = s.work.result
-      s.dataflow.forward(fwd)
+      s.dataflow.forward( fwd )
 
   def line_trace( s ):
     return LineBlock([

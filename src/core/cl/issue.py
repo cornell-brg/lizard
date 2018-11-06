@@ -26,17 +26,15 @@ class IssueUnitCL( Model ):
     s.dataflow = dataflow
     s.controlflow = controlflow
 
-
   # Given packet p pick the index of the pipe to send it down
   def choose_pipe( s, p ):
     if p.opcode == Opcode.LOAD or p.opcode == Opcode.STORE:
       idx = s.MEMORY_PORT_IDX
-    elif p.opcode == Opcode.SYSTEM: # TODO, only csrs
+    elif p.opcode == Opcode.SYSTEM:  # TODO, only csrs
       idx = s.CSRR_PORT_IDX
     else:
       idx = s.EXECUTE_PORT_IDX
     return idx
-
 
   def xtick( s ):
     if s.reset:
@@ -55,7 +53,7 @@ class IssueUnitCL( Model ):
       s.current_rs2 = None
       s.marked_speculative = False
 
-    pipe_idx = s.choose_pipe(s.current_d)
+    pipe_idx = s.choose_pipe( s.current_d )
 
     # verify instruction still alive
     creq = TagValidRequest()
@@ -65,7 +63,7 @@ class IssueUnitCL( Model ):
       s.work.status = PacketStatus.SQUASHED
 
     if s.work.status != PacketStatus.ALIVE:
-      s.issued_q.enq( s.work, pipe_idx)
+      s.issued_q.enq( s.work, pipe_idx )
       s.current_d = None
       return
 

@@ -81,21 +81,19 @@ class DataFlowManagerCL( Model ):
       resp.tag = s.zero_tag
     return resp
 
-
   def forward( s, data ):
     if data.tag == s.zero_tag:
       return
-    assert int(data.tag) not in s.forwards
-    s.forwards[int(data.tag)] = data
-
+    assert int( data.tag ) not in s.forwards
+    s.forwards[ int( data.tag ) ] = data
 
   def read_tag( s, tag ):
     resp = ReadTagResponse()
     if tag != s.zero_tag:
-      assert(int(tag) != int (s.zero_tag))
-      if int(tag) in s.forwards: # Can we forward it?
+      assert ( int( tag ) != int( s.zero_tag ) )
+      if int( tag ) in s.forwards:  # Can we forward it?
         resp.ready = 1
-        resp.value = s.forwards[int(tag)].value
+        resp.value = s.forwards[ int( tag ) ].value
       else:
         preg = s.preg_file[ tag ]
         resp.ready = preg.ready
