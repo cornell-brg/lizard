@@ -105,17 +105,17 @@ def test_tinyrv2_inst_addi():
 
 def test_tinyrv2_inst_slli():
   check( "slli  x1,  x2,  3", 0b00000000001100010001000010010011,
-         "slli  x01, x02, 03" )
+         "slli  x01, x02, 0x03" )
 
 
 def test_tinyrv2_inst_srli():
   check( "srli  x1,  x2,  3", 0b00000000001100010101000010010011,
-         "srli  x01, x02, 03" )
+         "srli  x01, x02, 0x03" )
 
 
 def test_tinyrv2_inst_srai():
   check( "srai  x1,  x2,  3", 0b01000000001100010101000010010011,
-         "srai  x01, x02, 03" )
+         "srai  x01, x02, 0x03" )
 
 
 #-------------------------------------------------------------------------
