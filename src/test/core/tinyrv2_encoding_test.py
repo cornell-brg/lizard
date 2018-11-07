@@ -192,12 +192,12 @@ def test_tinyrv2_inst_beq():
 
 def test_tinyrv2_inst_csrr():
   check( "csrr  x3, mngr2proc", 0b11111100000000000010000111110011,
-         "csrrs x03, 0xfc0, x00" )
+         "csrrs x03, mngr2proc, x00" )
 
 
 def test_tinyrv2_inst_csrw():
   check( "csrw  proc2mngr, x2", 0b01111100000000010001000001110011,
-         "csrrw x00, 0x7c0, x02" )
+         "csrrw x00, proc2mngr, x02" )
 
 
 #-------------------------------------------------------------------------

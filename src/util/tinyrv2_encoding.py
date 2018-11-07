@@ -50,8 +50,9 @@ class FieldSpec( object ):
   in the target, while the low bit must be 0.
   """
 
-  def __init__( self, width, parts ):
+  def __init__( self, width, formatter, parts ):
     self.width = width
+    self.formatter = formatter
     if isinstance( parts, slice ):
       self.parts = [( parts, bslice( self.width - 1, 0 ) ) ]
     else:
@@ -83,44 +84,173 @@ class FieldSpec( object ):
         result[ field_slice ] = target_slice
     return result
 
+  def parse( self, sym, pc, spec ):
+    result = self.formatter.parse( sym, pc, spec )
+    assert int( result ) < 2**self.width
+    return result
+
+  def format( self, value ):
+    return self.formatter.format( value )
+
+  def translate( self, target, sym, pc, spec ):
+    self.assemble( target, self.parse( sym, pc, spec ) )
+
+  def decode( self, source ):
+    return self.format( self.disassemble( source ) )
+
+
+class RV64GRegisterFormat:
+
+  def parse( self, sym, pc, spec ):
+    assert spec.startswith( "x" )
+    reg_specifier = int( spec.lstrip( "x" ) )
+    assert 0 <= reg_specifier < REG_COUNT
+    return reg_specifier
+
+  def format( self, value ):
+    return "x{:0>2}".format( int( value ) )
+
+
+class RV64GImmFormat:
+  directives = {
+      "hi": bslice( 31, 12 ),
+      "lo": bslice( 11, 0 ),
+  }
+
+  def __init__( self, allow_directives=False ):
+    self.allow_directives = allow_directives
+
+  def parse( self, sym, pc, spec ):
+    if spec.startswith( "%" ) and self.allow_directives:
+      directive, arg = translate( spec, maketrans( "%[]",
+                                                   "   " ) ).strip().split()
+      value = Bits( XLEN, sym[ arg ] )
+      if "_" in directive:
+        variant, directive = directive.split( "_" )
+        assert variant == "pcrel"
+        value -= pc
+      result = value[ self.directives[ directive ] ]
+    else:
+      result = int( spec, 0 )
+    return result
+
+  def format( self, value ):
+    return value.hex()
+
+
+class RV64GCsrnumFormat:
+
+  def parse( self, sym, pc, spec ):
+    csrnum = CsrRegisters.lookup( spec )
+    if csrnum is not None:
+      return CsrRegisters.lookup( spec )
+    else:
+      result = int( spec, 0 )
+      assert int( spec ) < 2**CsrRegisters.bits
+      return result
+
+  def format( self, value ):
+    if CsrRegisters.contains( value ):
+      return CsrRegisters.name( value )
+    else:
+      return value.hex()
+
+
+class RV64GTargetFormat:
+
+  def parse( self, sym, pc, spec ):
+    if spec in sym:
+      return sym[ spec ] - pc
+    else:
+      return int( spec, 0 )
+
+  def format( self, value ):
+    return value.hex()
+
+
+class RV64GFenceFormat:
+  fence_spec = 'iorw'
+  fence_locs = dict([( c, i ) for c, i in enumerate( fence_spec ) ] )
+
+  def parse_fence_spec( self, spec ):
+    assert len( spec ) < len( fence_locs )
+    result = Bits( len( fence_locs ), 0 )
+    for c in spec:
+      assert c in fence_locs
+      assert not result[ fence_locs[ c ] ]
+      result[ fence_locs[ c ] ] = 1
+
+    return result
+
+  def format_fence_spec( self, value ):
+    result = ''
+    for c in fence_spec:
+      if value[ fence_locs[ c ] ]:
+        result += c
+    return result
+
+  def parse( self, sym, pc, spec ):
+    return parse_fence_spec( spec )
+
+  def format( self, value ):
+    return format_fence_spec( value )
+
 
 class RV64GEncoding:
-  slice_opcode = FieldSpec( 7, bslice( 6, 0 ) )
-  slice_funct2 = FieldSpec( 2, bslice( 26, 25 ) )
-  slice_funct3 = FieldSpec( 3, bslice( 14, 12 ) )
-  slice_funct7 = FieldSpec( 7, bslice( 31, 25 ) )
-
-  slice_rd = FieldSpec( 5, bslice( 11, 7 ) )
-  slice_rs1 = FieldSpec( 5, bslice( 19, 15 ) )
-  slice_rs2 = FieldSpec( 5, bslice( 24, 20 ) )
-  slice_shamt32 = FieldSpec( 5, bslice( 24, 20 ) )
-  slice_shamt64 = FieldSpec( 6, bslice( 25, 20 ) )
-
-  slice_i_imm = FieldSpec( 12, bslice( 31, 20 ) )
-  slice_csrnum = slice_i_imm
-
-  slice_s_imm = FieldSpec( 12, [( bslice( 11, 7 ), bslice( 4, 0 ) ),
-                                ( bslice( 31, 25 ), bslice( 11, 5 ) ) ] )
-  slice_b_imm = FieldSpec( 13, [( bslice( 31 ), bslice( 12 ) ),
-                                ( bslice( 7 ), bslice( 11 ) ),
-                                ( bslice( 30, 25 ), bslice( 10, 5 ) ),
-                                ( bslice( 11, 8 ), bslice( 4, 1 ) ),
-                                ( 0, bslice( 0 ) ) ] )
-
-  slice_u_imm = FieldSpec( 20, bslice( 31, 12 ) )
-  slice_j_imm = FieldSpec( 21, [( bslice( 31 ), bslice( 20 ) ),
-                                ( bslice( 19, 12 ), bslice( 19, 12 ) ),
-                                ( bslice( 20 ), bslice( 11 ) ),
-                                ( bslice( 30, 21 ), bslice( 10, 1 ) ),
-                                ( 0, bslice( 0 ) ) ] )
-
-  slice_c_imm = slice_rs1
-
-  slice_pred = FieldSpec( 4, bslice( 27, 24 ) )
-  slice_succ = FieldSpec( 4, bslice( 23, 20 ) )
-
-  slice_aq = FieldSpec( 1, bslice( 26 ) )
-  slice_rl = FieldSpec( 1, bslice( 25 ) )
+  fields = {
+      "opcode":
+          FieldSpec( 7, RV64GImmFormat(), bslice( 6, 0 ) ),
+      "funct2":
+          FieldSpec( 2, RV64GImmFormat(), bslice( 26, 25 ) ),
+      "funct3":
+          FieldSpec( 3, RV64GImmFormat(), bslice( 14, 12 ) ),
+      "funct7":
+          FieldSpec( 7, RV64GImmFormat(), bslice( 31, 25 ) ),
+      "rd":
+          FieldSpec( 5, RV64GRegisterFormat(), bslice( 11, 7 ) ),
+      "rs1":
+          FieldSpec( 5, RV64GRegisterFormat(), bslice( 19, 15 ) ),
+      "rs2":
+          FieldSpec( 5, RV64GRegisterFormat(), bslice( 24, 20 ) ),
+      "shamt32":
+          FieldSpec( 5, RV64GImmFormat(), bslice( 24, 20 ) ),
+      "shamt64":
+          FieldSpec( 6, RV64GImmFormat(), bslice( 25, 20 ) ),
+      "i_imm":
+          FieldSpec( 12, RV64GImmFormat( True ), bslice( 31, 20 ) ),
+      "csrnum":
+          FieldSpec( 12, RV64GCsrnumFormat(), bslice( 31, 20 ) ),
+      "s_imm":
+          FieldSpec( 12, RV64GImmFormat( True ),
+                     [( bslice( 11, 7 ), bslice( 4, 0 ) ),
+                      ( bslice( 31, 25 ), bslice( 11, 5 ) ) ] ),
+      "b_imm":
+          FieldSpec(
+              13, RV64GTargetFormat(), [( bslice( 31 ), bslice( 12 ) ),
+                                        ( bslice( 7 ), bslice( 11 ) ),
+                                        ( bslice( 30, 25 ), bslice( 10, 5 ) ),
+                                        ( bslice( 11, 8 ), bslice( 4, 1 ) ),
+                                        ( 0, bslice( 0 ) ) ] ),
+      "u_imm":
+          FieldSpec( 20, RV64GImmFormat( True ), bslice( 31, 12 ) ),
+      "j_imm":
+          FieldSpec(
+              21, RV64GTargetFormat(), [( bslice( 31 ), bslice( 20 ) ),
+                                        ( bslice( 19, 12 ), bslice( 19, 12 ) ),
+                                        ( bslice( 20 ), bslice( 11 ) ),
+                                        ( bslice( 30, 21 ), bslice( 10, 1 ) ),
+                                        ( 0, bslice( 0 ) ) ] ),
+      "c_imm":
+          FieldSpec( 5, RV64GImmFormat(), bslice( 19, 15 ) ),
+      "pred":
+          FieldSpec( 4, RV64GFenceFormat(), bslice( 27, 24 ) ),
+      "succ":
+          FieldSpec( 4, RV64GFenceFormat(), bslice( 23, 20 ) ),
+      "aq":
+          FieldSpec( 1, RV64GImmFormat(), bslice( 26 ) ),
+      "rl":
+          FieldSpec( 1, RV64GImmFormat(), bslice( 25 ) ),
+  }
 
 
 def split_instr( instr ):
@@ -162,8 +292,8 @@ def gen_amo_consistency_variants( name, args, simple_args, opcode_mask,
   ]
   for suffix, aq, rl in amo_consistency_pairs:
     mod = Bits( ILEN, opcode )
-    RV64GEncoding.slice_aq.assemble( mod, aq )
-    RV64GEncoding.slice_rl.assemble( mod, rl )
+    RV64GEncoding.fields[ "aq" ].assemble( mod, aq )
+    RV64GEncoding.fields[ "rl" ].assemble( mod, rl )
     result.append(( "{}{}".format( name, suffix ), args, simple_args,
                     opcode_mask, int( mod ) ) )
   return result
@@ -179,7 +309,7 @@ def gen_amo_width_variants( name, args, simple_args, opcode_mask, opcode ):
   ]
   for suffix, funct3 in amo_width_pairs:
     mod = Bits( ILEN, opcode )
-    RV64GEncoding.slice_funct3.assemble( mod, funct3 )
+    RV64GEncoding.fields[ "funct3" ].assemble( mod, funct3 )
     result.append(( "{}{}".format( name, suffix ), args, simple_args,
                     opcode_mask, int( mod ) ) )
   return result
@@ -241,13 +371,13 @@ tinyrv2_encoding_table = expand_encoding( [
     ( "xori   rd, rs1, i_imm",      0b00000000000000000111000001111111, 0b00000000000000000100000000010011 ),  # I-type
     ( "ori    rd, rs1, i_imm",      0b00000000000000000111000001111111, 0b00000000000000000110000000010011 ),  # I-type
     ( "andi   rd, rs1, i_imm",      0b00000000000000000111000001111111, 0b00000000000000000111000000010011 ),  # I-type
-    ( "slli   rd, rs1, shamt",      0b11111100000000000111000001111111, 0b00000000000000000001000000010011 ),  # R-type
-    ( "srli   rd, rs1, shamt",      0b11111100000000000111000001111111, 0b00000000000000000101000000010011 ),  # R-type
-    ( "srai   rd, rs1, shamt",      0b11111100000000000111000001111111, 0b01000000000000000101000000010011 ),  # R-type
+    ( "slli   rd, rs1, shamt64",    0b11111100000000000111000001111111, 0b00000000000000000001000000010011 ),  # R-type
+    ( "srli   rd, rs1, shamt64",    0b11111100000000000111000001111111, 0b00000000000000000101000000010011 ),  # R-type
+    ( "srai   rd, rs1, shamt64",    0b11111100000000000111000001111111, 0b01000000000000000101000000010011 ),  # R-type
     ( "addiw  rd, rs1, i_imm",      0b00000000000000000111000001111111, 0b00000000000000000000000000011011 ),  # I-type
-    ( "slliw  rd, rs1, shamt",      0b11111110000000000111000001111111, 0b00000000000000000001000000011011 ),  # R-type
-    ( "srliw  rd, rs1, shamt",      0b11111110000000000111000001111111, 0b00000000000000000101000000011011 ),  # R-type
-    ( "sraiw  rd, rs1, shamt",      0b11111110000000000111000001111111, 0b01000000000000000101000000011011 ),  # R-type
+    ( "slliw  rd, rs1, shamt32",    0b11111110000000000111000001111111, 0b00000000000000000001000000011011 ),  # R-type
+    ( "srliw  rd, rs1, shamt32",    0b11111110000000000111000001111111, 0b00000000000000000101000000011011 ),  # R-type
+    ( "sraiw  rd, rs1, shamt32",    0b11111110000000000111000001111111, 0b01000000000000000101000000011011 ),  # R-type
 
     # rr
     ( "add    rd, rs1, rs2",        0b11111110000000000111000001111111, 0b00000000000000000000000000110011 ),  # R-type
@@ -332,276 +462,64 @@ class TinyRV2Inst( object ):
 
   @property
   def rd( self ):
-    return RV64GEncoding.slice_rd.disassemble( self.bits )
+    return RV64GEncoding.fields[ "rd" ].disassemble( self.bits )
 
   @property
   def rs1( self ):
-    return RV64GEncoding.slice_rs1.disassemble( self.bits )
+    return RV64GEncoding.fields[ "rs1" ].disassemble( self.bits )
 
   @property
   def rs2( self ):
-    return RV64GEncoding.slice_rs2.disassemble( self.bits )
+    return RV64GEncoding.fields[ "rs2" ].disassemble( self.bits )
 
   @property
   def shamt( self ):
-    return RV64GEncoding.slice_shamt32.disassemble( self.bits )
+    return RV64GEncoding.fields[ "shamt32" ].disassemble( self.bits )
 
   @property
   def i_imm( self ):
-    return RV64GEncoding.slice_i_imm.disassemble( self.bits )
+    return RV64GEncoding.fields[ "i_imm" ].disassemble( self.bits )
 
   @property
   def s_imm( self ):
-    return RV64GEncoding.slice_s_imm.disassemble( self.bits )
+    return RV64GEncoding.fields[ "s_imm" ].disassemble( self.bits )
 
   @property
   def b_imm( self ):
-    return RV64GEncoding.slice_b_imm.disassemble( self.bits )
+    return RV64GEncoding.fields[ "b_imm" ].disassemble( self.bits )
 
   @property
   def u_imm( self ):
-    return concat(
-        RV64GEncoding.slice_u_imm.disassemble( self.bits ), Bits( 12, 0 ) )
+    return concat( RV64GEncoding.fields[ "u_imm" ].disassemble( self.bits ),
+                   Bits( 12, 0 ) )
 
   @property
   def j_imm( self ):
-    return RV64GEncoding.slice_j_imm.disassemble( self.bits )
+    return RV64GEncoding.fields[ "j_imm" ].disassemble( self.bits )
 
   @property
   def c_imm( self ):
-    return RV64GEncoding.slice_c_imm.disassemble( self.bits )
+    return RV64GEncoding.fields[ "c_imm" ].disassemble( self.bits )
 
   @property
   def pred( self ):
-    return RV64GEncoding.slice_pred.disassemble( self.bits )
+    return RV64GEncoding.fields[ "pred" ].disassemble( self.bits )
 
   @property
   def succ( self ):
-    return RV64GEncoding.slice_succ.disassemble( self.bits )
+    return RV64GEncoding.fields[ "succ" ].disassemble( self.bits )
 
   @property
   def csrnum( self ):
-    return RV64GEncoding.slice_csrnum.disassemble( self.bits )
+    return RV64GEncoding.fields[ "csrnum" ].disassemble( self.bits )
 
   @property
   def funct( self ):
-    return RV64GEncoding.slice_funct7.disassemble( self.bits )
+    return RV64GEncoding.fields[ "funct7" ].disassemble( self.bits )
 
   def __str__( self ):
     return disassemble_inst( self.bits )
 
-
-def assemble_field_rs1( bits, sym, pc, field_str ):
-  assert field_str[ 0 ] == "x"
-  reg_specifier = int( field_str.lstrip( "x" ) )
-  assert 0 <= reg_specifier < REG_COUNT
-
-  RV64GEncoding.slice_rs1.assemble( bits, reg_specifier )
-
-
-def disassemble_field_rs1( bits ):
-  return "x{:0>2}".format( int( RV64GEncoding.slice_rs1.disassemble( bits ) ) )
-
-
-def assemble_field_rs2( bits, sym, pc, field_str ):
-  assert field_str[ 0 ] == "x"
-  reg_specifier = int( field_str.lstrip( "x" ) )
-  assert 0 <= reg_specifier < REG_COUNT
-
-  RV64GEncoding.slice_rs2.assemble( bits, reg_specifier )
-
-
-def disassemble_field_rs2( bits ):
-  return "x{:0>2}".format( int( RV64GEncoding.slice_rs2.disassemble( bits ) ) )
-
-
-def assemble_field_shamt( bits, sym, pc, field_str ):
-
-  shamt = int( field_str, 0 )
-  assert 0 <= shamt <= 31
-  RV64GEncoding.slice_shamt32.assemble( bits, shamt )
-
-
-def disassemble_field_shamt( bits ):
-  return RV64GEncoding.slice_shamt32.disassemble( bits ).hex()
-
-
-def assemble_field_rd( bits, sym, pc, field_str ):
-  assert field_str[ 0 ] == "x"
-  reg_specifier = int( field_str.lstrip( "x" ) )
-  assert 0 <= reg_specifier < REG_COUNT
-
-  RV64GEncoding.slice_rd.assemble( bits, reg_specifier )
-
-
-def disassemble_field_rd( bits ):
-  return "x{:0>2}".format( int( RV64GEncoding.slice_rd.disassemble( bits ) ) )
-
-
-def assemble_field_i_imm( bits, sym, pc, field_str ):
-  if field_str[ 0 ] == "%":
-    label_addr = Bits( 32, sym[ field_str[ 4:-1 ] ] )
-    if field_str.startswith( "%hi[" ):
-      imm = label_addr[ 20:32 ]
-    elif field_str.startswith( "%md[" ):
-      imm = label_addr[ 13:25 ]
-    elif field_str.startswith( "%lo[" ):
-      imm = label_addr[ 0:12 ]
-  else:
-    imm = int( field_str, 0 )
-
-  assert imm < ( 1 << 12 )
-
-  RV64GEncoding.slice_i_imm.assemble( bits, imm )
-
-
-def disassemble_field_i_imm( bits ):
-  return RV64GEncoding.slice_i_imm.disassemble( bits ).hex()
-
-
-def assemble_field_csrnum( bits, sym, pc, field_str ):
-
-  imm = CsrRegisters.lookup( field_str )
-  RV64GEncoding.slice_csrnum.assemble( bits, imm )
-
-
-def disassemble_field_csrnum( bits ):
-  return RV64GEncoding.slice_csrnum.disassemble( bits ).hex()
-
-
-def assemble_field_s_imm( bits, sym, pc, field_str ):
-
-  imm = Bits( 12, int( field_str, 0 ) )
-  RV64GEncoding.slice_s_imm.assemble( bits, imm )
-
-
-def disassemble_field_s_imm( bits ):
-  return RV64GEncoding.slice_s_imm.disassemble( bits ).hex()
-
-
-def assemble_field_b_imm( bits, sym, pc, field_str ):
-
-  if sym.has_key( field_str ):
-    btarg_byte_addr = sym[ field_str ] - pc
-  else:
-    btarg_byte_addr = int( field_str, 0 )
-
-  imm = Bits( 13, btarg_byte_addr )
-  RV64GEncoding.slice_b_imm.assemble( bits, imm )
-
-
-def disassemble_field_b_imm( bits ):
-  return RV64GEncoding.slice_b_imm.disassemble( bits ).hex()
-
-
-def assemble_field_u_imm( bits, sym, pc, field_str ):
-  if field_str[ 0 ] == "%":
-    label_addr = Bits( 32, sym[ field_str[ 4:-1 ] ] )
-    if field_str.startswith( "%hi[" ):
-      imm = label_addr[ 12:32 ]
-    elif field_str.startswith( "%lo[" ):
-      imm = label_addr[ 0:12 ]
-    else:
-      assert False
-  else:
-    imm = int( field_str, 0 )
-
-  assert imm < ( 1 << 20 )
-  RV64GEncoding.slice_u_imm.assemble( bits, imm )
-
-
-def disassemble_field_u_imm( bits ):
-  return RV64GEncoding.slice_u_imm.disassemble( bits ).hex()
-
-
-def assemble_field_j_imm( bits, sym, pc, field_str ):
-
-  if sym.has_key( field_str ):
-    # notice that we encode the branch target address (a lable) relative
-    # to current PC
-    jtarg_byte_addr = sym[ field_str ] - pc
-  else:
-    jtarg_byte_addr = int( field_str, 0 )
-
-  imm = Bits( 21, jtarg_byte_addr )
-  RV64GEncoding.slice_j_imm.assemble( bits, imm )
-
-
-def disassemble_field_j_imm( bits ):
-  return RV64GEncoding.slice_j_imm.disassemble( bits ).hex()
-
-
-def assemble_field_c_imm( bits, sym, pc, field_str ):
-  imm = Bits( 5, int( field_str, 0 ) )
-  RV64GEncoding.slice_c_imm.assemble( bits, imm )
-
-
-def disassemble_field_c_imm( bits ):
-  return RV64GEncoding.slice_c_imm.disassemble( bits ).hex()
-
-
-fence_spec = 'iorw'
-fence_locs = dict([( c, i ) for c, i in enumerate( fence_spec ) ] )
-
-
-def parse_fence_spec( spec ):
-  assert len( spec ) < len( fence_locs )
-  result = Bits( len( fence_locs ), 0 )
-  for c in spec:
-    assert c in fence_locs
-    assert not result[ fence_locs[ c ] ]
-    result[ fence_locs[ c ] ] = 1
-
-  return result
-
-
-def format_fence_spec( value ):
-  result = ''
-  for c in fence_spec:
-    if value[ fence_locs[ c ] ]:
-      result += c
-  return result
-
-
-def assemble_field_pred( bits, sym, pc, field_str ):
-  RV64GEncoding.slice_pred.assemble( bits, parse_fence_spec( field_str ) )
-
-
-def disassemble_field_pred( bits ):
-  return format_fence_spec( RV64GEncoding.slice_pred.disassemble( bits ) )
-
-
-def assemble_field_succ( bits, sym, pc, field_str ):
-  RV64GEncoding.slice_succ.assemble( bits, parse_fence_spec( field_str ) )
-
-
-def disassemble_field_succ( bits ):
-  return format_fence_spec( RV64GEncoding.slice_succ.disassemble( bits ) )
-
-
-#-------------------------------------------------------------------------
-# Field Dictionary
-#-------------------------------------------------------------------------
-# Create a dictionary so we can lookup an assemble field function
-# based on the field tag. I imagine we can eventually use some kind of
-# Python magic to eliminate this boiler plate code.
-
-tinyrv2_fields = \
-{
-    "rs1"    : [ assemble_field_rs1,    disassemble_field_rs1    ],
-    "rs2"    : [ assemble_field_rs2,    disassemble_field_rs2    ],
-    "shamt"  : [ assemble_field_shamt,  disassemble_field_shamt  ],
-    "rd"     : [ assemble_field_rd,     disassemble_field_rd     ],
-    "i_imm"  : [ assemble_field_i_imm,  disassemble_field_i_imm  ],
-    "csrnum" : [ assemble_field_csrnum, disassemble_field_csrnum ],
-    "s_imm"  : [ assemble_field_s_imm,  disassemble_field_s_imm  ],
-    "b_imm"  : [ assemble_field_b_imm,  disassemble_field_b_imm  ],
-    "u_imm"  : [ assemble_field_u_imm,  disassemble_field_u_imm  ],
-    "j_imm"  : [ assemble_field_j_imm,  disassemble_field_j_imm  ],
-    "c_imm"  : [ assemble_field_c_imm,  disassemble_field_c_imm  ],
-    "pred"   : [ assemble_field_pred,   disassemble_field_pred   ],
-    "succ"   : [ assemble_field_succ,   disassemble_field_succ   ],
-}
 
 InstSpec = namedtuple( 'InstSpec', 'args simple_args opcode_mask opcode' )
 PseudoSpec = namedtuple( 'PseudoSpec', 'simple_args base_list' )
@@ -609,12 +527,11 @@ PseudoSpec = namedtuple( 'PseudoSpec', 'simple_args base_list' )
 
 class IsaImpl( object ):
 
-  def __init__( self, nbits, inst_encoding_table, pseudo_table, inst_fields ):
+  def __init__( self, nbits, inst_encoding_table, pseudo_table ):
 
     self.nbits = nbits
     self.encoding = {}
     self.pseudo_map = {}
-    self.fields = inst_fields
 
     for name, args, simple_args, opcode_mask, opcode in inst_encoding_table:
       self.encoding[ name ] = InstSpec( args, simple_args, opcode_mask, opcode )
@@ -652,9 +569,10 @@ class IsaImpl( object ):
 
     result = Bits( self.nbits, self.encoding[ name ].opcode )
 
-    for asm_field_str, asm_field_func in zip(
-        arg_list, self.encoding[ name ].simple_args ):
-      self.fields[ asm_field_func ][ 0 ]( result, sym, pc, asm_field_str )
+    for asm_field_str, field_name in zip( arg_list,
+                                          self.encoding[ name ].simple_args ):
+      RV64GEncoding.fields[ field_name ].translate( result, sym, pc,
+                                                    asm_field_str )
     return result
 
   def disassemble_inst( self, inst_bits ):
@@ -662,14 +580,14 @@ class IsaImpl( object ):
 
     arg_str = self.encoding[ name ].args
     for field_name in self.encoding[ name ].simple_args:
-      arg_str = arg_str.replace( field_name,
-                                 self.fields[ field_name ][ 1 ]( inst_bits ) )
+      arg_str = arg_str.replace(
+          field_name, RV64GEncoding.fields[ field_name ].decode( inst_bits ) )
 
     return "{} {}".format( name, arg_str )
 
 
 tinyrv2_isa_impl = IsaImpl( ILEN, tinyrv2_encoding_table,
-                            pseudo_instruction_table, tinyrv2_fields )
+                            pseudo_instruction_table )
 
 # https://docs.python.org/2/library/struct.html#format-characters
 # 64 bit data elements packed as unsigned long long
