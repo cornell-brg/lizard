@@ -74,7 +74,7 @@ class FieldSpec( object ):
         result[ field_slice ] = source[ target_slice ]
       else:
         result[ field_slice ] = target_slice
-    return int( result )
+    return result
 
 
 class RV64GEncoding:
@@ -393,7 +393,7 @@ def assemble_field_rs1( bits, sym, pc, field_str ):
 
 
 def disassemble_field_rs1( bits ):
-  return "x{:0>2}".format( RV64GEncoding.slice_rs1.disassemble( bits ) )
+  return RV64GEncoding.slice_rs1.disassemble( bits ).hex()
 
 
 def assemble_field_rs2( bits, sym, pc, field_str ):
@@ -405,7 +405,7 @@ def assemble_field_rs2( bits, sym, pc, field_str ):
 
 
 def disassemble_field_rs2( bits ):
-  return "x{:0>2}".format( RV64GEncoding.slice_rs2.disassemble( bits ) )
+  return RV64GEncoding.slice_rs2.disassemble( bits ).hex()
 
 
 def assemble_field_shamt( bits, sym, pc, field_str ):
@@ -416,7 +416,7 @@ def assemble_field_shamt( bits, sym, pc, field_str ):
 
 
 def disassemble_field_shamt( bits ):
-  return "{:0>2x}".format( RV64GEncoding.slice_shamt32.disassemble( bits ) )
+  return RV64GEncoding.slice_shamt32.disassemble( bits ).hex()
 
 
 def assemble_field_rd( bits, sym, pc, field_str ):
@@ -428,7 +428,7 @@ def assemble_field_rd( bits, sym, pc, field_str ):
 
 
 def disassemble_field_rd( bits ):
-  return "x{:0>2}".format( RV64GEncoding.slice_rd.disassemble( bits ) )
+  return RV64GEncoding.slice_rd.disassemble( bits ).hex()
 
 
 def assemble_field_i_imm( bits, sym, pc, field_str ):
@@ -449,7 +449,7 @@ def assemble_field_i_imm( bits, sym, pc, field_str ):
 
 
 def disassemble_field_i_imm( bits ):
-  return "0x{:0>3x}".format( RV64GEncoding.slice_i_imm.disassemble( bits ) )
+  return RV64GEncoding.slice_i_imm.disassemble( bits ).hex()
 
 
 def assemble_field_csrnum( bits, sym, pc, field_str ):
@@ -459,7 +459,7 @@ def assemble_field_csrnum( bits, sym, pc, field_str ):
 
 
 def disassemble_field_csrnum( bits ):
-  return "0x{:0>3x}".format( RV64GEncoding.slice_csrnum.disassemble( bits ) )
+  return RV64GEncoding.slice_csrnum.disassemble( bits ).hex()
 
 
 def assemble_field_s_imm( bits, sym, pc, field_str ):
@@ -469,7 +469,7 @@ def assemble_field_s_imm( bits, sym, pc, field_str ):
 
 
 def disassemble_field_s_imm( bits ):
-  return "0x{:0>3x}".format( RV64GEncoding.slice_s_imm.disassemble( bits ) )
+  return RV64GEncoding.slice_s_imm.disassemble( bits ).hex()
 
 
 def assemble_field_b_imm( bits, sym, pc, field_str ):
@@ -484,7 +484,7 @@ def assemble_field_b_imm( bits, sym, pc, field_str ):
 
 
 def disassemble_field_b_imm( bits ):
-  return "0x{:0>4x}".format( RV64GEncoding.slice_b_imm.disassemble( bits ) )
+  return RV64GEncoding.slice_b_imm.disassemble( bits ).hex()
 
 
 def assemble_field_u_imm( bits, sym, pc, field_str ):
@@ -504,7 +504,7 @@ def assemble_field_u_imm( bits, sym, pc, field_str ):
 
 
 def disassemble_field_u_imm( bits ):
-  return "0x{:0>3x}".format( RV64GEncoding.slice_u_imm.disassemble( bits ) )
+  return RV64GEncoding.slice_u_imm.disassemble( bits ).hex()
 
 
 def assemble_field_j_imm( bits, sym, pc, field_str ):
@@ -521,7 +521,7 @@ def assemble_field_j_imm( bits, sym, pc, field_str ):
 
 
 def disassemble_field_j_imm( bits ):
-  return "0x{:0>6x}".format( RV64GEncoding.slice_j_imm.disassemble( bits ) )
+  return RV64GEncoding.slice_j_imm.disassemble( bits ).hex()
 
 
 def assemble_field_c_imm( bits, sym, pc, field_str ):
@@ -530,7 +530,7 @@ def assemble_field_c_imm( bits, sym, pc, field_str ):
 
 
 def disassemble_field_c_imm( bits ):
-  return "0x{:0>2x}".format( RV64GEncoding.slice_c_imm.disassemble( bits ) )
+  return RV64GEncoding.slice_c_imm.disassemble( bits ).hex()
 
 
 fence_spec = 'iorw'
