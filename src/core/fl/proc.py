@@ -7,7 +7,7 @@ from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 from pclib.fl import InValRdyQueueAdapter, OutValRdyQueueAdapter
 from pclib.fl import BytesMemPortAdapter
 
-from util.tinyrv2_encoding import TinyRV2Inst
+from util.arch.rv64g import Inst as TinyRV2Inst
 from util.tinyrv2_semantics import TinyRV2Semantics
 from config.general import *
 from msg.mem import MemMsg4B

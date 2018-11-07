@@ -66,3 +66,26 @@ def bit_enum( name, bits=None, *names, **pairs ):
   result.contains = contains
 
   return result
+
+
+def bslice( high, low=None ):
+  """
+  Represents: the bits range [high : low] of some value. If low is not given,
+  represents just [high] (only 1 bit), which is the same as [high : high].
+  """
+  if low is None:
+    low = high
+  return slice( low, high + 1 )
+
+
+def byte_count( bits ):
+  return bits // 8 + ( 0 if bits % 8 == 0 else 1 )
+
+
+def data_pack_directive( bits ):
+  if bits == 32:
+    return "<I"
+  elif bits == 64:
+    return "<Q"
+  else:
+    raise ValueError( "No data pack directive for size: {}".format( bits ) )

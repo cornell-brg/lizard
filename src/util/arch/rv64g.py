@@ -1,105 +1,13 @@
-import struct
-
-from pymtl import Bits, concat
-from string import translate, maketrans
-from util.sparse_memory_image import SparseMemoryImage
+from pymtl import *
 from config.general import *
 from msg.codes import *
-from collections import namedtuple
+from util.arch import isa
+from util.arch.isa import Isa, FieldSpec, FieldFormat
+from util.arch.assembler import Assembler
+from bitutil import bslice
 
 
-def bslice( high, low=None ):
-  """
-  Represents: the bits range [high : low] of some value. If low is not given,
-  represents just [high] (only 1 bit), which is the same as [high : high].
-  """
-  if low is None:
-    low = high
-  return slice( low, high + 1 )
-
-
-class FieldSpec( object ):
-  """
-  Represents: a field specifier. A field is a value encoded into
-  some positions inside an instruction.
-  A field is specified by its width, the total number of bits involved,
-  and by a mapping from slices in the value to slices in the target instruction.
-  This is represented as an association list by parts. 
-  For example, consider the following 32 instruction with a strange 29 bit imm:
-
-   31                16 15 13 12        0
-  | imm[28:13]         |     | imm[12:0] |
-
-  This could be encoded as:
-
-  FieldSpec(29, [(bslice(31, 16), bslice(28, 13)), (bslice(12, 0), bslice(12, 0))])
-
-  A simple case occurs when the value is not split across multiple areas.
-  In this case, it can be represented by only its location in the encoded
-  instruction:
-
-  FieldSpec(3, bslice(7, 4))
-
-  One special case is where some bits in the value are not actually encoded, but 
-  are instread required to be fixed values. In that case, instead of including
-  a slice indicating a position in the target, include a value instead:
-
-  FieldSpec(3, [(bslice(2,1), bslice(2, 1), (0, bslice(0))]
-
-  The above spec means that only the 2 high bits of the field are actually encoded
-  in the target, while the low bit must be 0.
-  """
-
-  def __init__( self, width, formatter, parts ):
-    self.width = width
-    self.formatter = formatter
-    if isinstance( parts, slice ):
-      self.parts = [( parts, bslice( self.width - 1, 0 ) ) ]
-    else:
-      self.parts = parts
-
-  def assemble( self, target, value ):
-    """
-    Effect: copies the value into the appropriate positions in the target
-    """
-    value = Bits( self.width, value )
-    for target_slice, field_slice in self.parts:
-      if isinstance( target_slice, slice ):
-        target[ target_slice ] = value[ field_slice ]
-      elif value[ field_slice ] != target_slice:
-        raise ValueError(
-            "Incorrect value in slice {} of field {}: found: {} expected: {}"
-            .format( field_slice, value, value[ field_slice ], target_slice ) )
-
-  def disassemble( self, source ):
-    """
-    Computes the value by extracting and concatenating the individual parts from the source
-    Returns: a Bits object of size width with the extracted value
-    """
-    result = Bits( self.width, 0 )
-    for target_slice, field_slice in self.parts:
-      if isinstance( target_slice, slice ):
-        result[ field_slice ] = source[ target_slice ]
-      else:
-        result[ field_slice ] = target_slice
-    return result
-
-  def parse( self, sym, pc, spec ):
-    result = self.formatter.parse( sym, pc, spec )
-    assert int( result ) < 2**self.width
-    return result
-
-  def format( self, value ):
-    return self.formatter.format( value )
-
-  def translate( self, target, sym, pc, spec ):
-    self.assemble( target, self.parse( sym, pc, spec ) )
-
-  def decode( self, source ):
-    return self.format( self.disassemble( source ) )
-
-
-class RV64GRegisterFormat:
+class RegisterFormat( FieldFormat ):
 
   def parse( self, sym, pc, spec ):
     assert spec.startswith( "x" )
@@ -111,7 +19,7 @@ class RV64GRegisterFormat:
     return "x{:0>2}".format( int( value ) )
 
 
-class RV64GImmFormat:
+class ImmFormat( FieldFormat ):
   directives = {
       "hi": bslice( 31, 12 ),
       "lo": bslice( 11, 0 ),
@@ -138,7 +46,7 @@ class RV64GImmFormat:
     return value.hex()
 
 
-class RV64GCsrnumFormat:
+class CsrnumFormat( FieldFormat ):
 
   def parse( self, sym, pc, spec ):
     csrnum = CsrRegisters.lookup( spec )
@@ -156,7 +64,7 @@ class RV64GCsrnumFormat:
       return value.hex()
 
 
-class RV64GTargetFormat:
+class TargetFormat( FieldFormat ):
 
   def parse( self, sym, pc, spec ):
     if spec in sym:
@@ -168,7 +76,7 @@ class RV64GTargetFormat:
     return value.hex()
 
 
-class RV64GFenceFormat:
+class FenceFormat( FieldFormat ):
   fence_spec = 'iorw'
   fence_locs = dict([( c, i ) for c, i in enumerate( fence_spec ) ] )
 
@@ -196,90 +104,61 @@ class RV64GFenceFormat:
     return format_fence_spec( value )
 
 
-class RV64GEncoding:
-  fields = {
-      "opcode":
-          FieldSpec( 7, RV64GImmFormat(), bslice( 6, 0 ) ),
-      "funct2":
-          FieldSpec( 2, RV64GImmFormat(), bslice( 26, 25 ) ),
-      "funct3":
-          FieldSpec( 3, RV64GImmFormat(), bslice( 14, 12 ) ),
-      "funct7":
-          FieldSpec( 7, RV64GImmFormat(), bslice( 31, 25 ) ),
-      "rd":
-          FieldSpec( 5, RV64GRegisterFormat(), bslice( 11, 7 ) ),
-      "rs1":
-          FieldSpec( 5, RV64GRegisterFormat(), bslice( 19, 15 ) ),
-      "rs2":
-          FieldSpec( 5, RV64GRegisterFormat(), bslice( 24, 20 ) ),
-      "shamt32":
-          FieldSpec( 5, RV64GImmFormat(), bslice( 24, 20 ) ),
-      "shamt64":
-          FieldSpec( 6, RV64GImmFormat(), bslice( 25, 20 ) ),
-      "i_imm":
-          FieldSpec( 12, RV64GImmFormat( True ), bslice( 31, 20 ) ),
-      "csrnum":
-          FieldSpec( 12, RV64GCsrnumFormat(), bslice( 31, 20 ) ),
-      "s_imm":
-          FieldSpec( 12, RV64GImmFormat( True ),
-                     [( bslice( 11, 7 ), bslice( 4, 0 ) ),
-                      ( bslice( 31, 25 ), bslice( 11, 5 ) ) ] ),
-      "b_imm":
-          FieldSpec(
-              13, RV64GTargetFormat(), [( bslice( 31 ), bslice( 12 ) ),
+fields = {
+    "opcode":
+        FieldSpec( 7, ImmFormat(), bslice( 6, 0 ) ),
+    "funct2":
+        FieldSpec( 2, ImmFormat(), bslice( 26, 25 ) ),
+    "funct3":
+        FieldSpec( 3, ImmFormat(), bslice( 14, 12 ) ),
+    "funct7":
+        FieldSpec( 7, ImmFormat(), bslice( 31, 25 ) ),
+    "rd":
+        FieldSpec( 5, RegisterFormat(), bslice( 11, 7 ) ),
+    "rs1":
+        FieldSpec( 5, RegisterFormat(), bslice( 19, 15 ) ),
+    "rs2":
+        FieldSpec( 5, RegisterFormat(), bslice( 24, 20 ) ),
+    "shamt32":
+        FieldSpec( 5, ImmFormat(), bslice( 24, 20 ) ),
+    "shamt64":
+        FieldSpec( 6, ImmFormat(), bslice( 25, 20 ) ),
+    "i_imm":
+        FieldSpec( 12, ImmFormat( True ), bslice( 31, 20 ) ),
+    "csrnum":
+        FieldSpec( 12, CsrnumFormat(), bslice( 31, 20 ) ),
+    "s_imm":
+        FieldSpec( 12, ImmFormat( True ),
+                   [( bslice( 11, 7 ), bslice( 4, 0 ) ),
+                    ( bslice( 31, 25 ), bslice( 11, 5 ) ) ] ),
+    "b_imm":
+        FieldSpec( 13, TargetFormat(), [( bslice( 31 ), bslice( 12 ) ),
                                         ( bslice( 7 ), bslice( 11 ) ),
                                         ( bslice( 30, 25 ), bslice( 10, 5 ) ),
                                         ( bslice( 11, 8 ), bslice( 4, 1 ) ),
                                         ( 0, bslice( 0 ) ) ] ),
-      "u_imm":
-          FieldSpec( 20, RV64GImmFormat( True ), bslice( 31, 12 ) ),
-      "j_imm":
-          FieldSpec(
-              21, RV64GTargetFormat(), [( bslice( 31 ), bslice( 20 ) ),
+    "u_imm":
+        FieldSpec( 20, ImmFormat( True ), bslice( 31, 12 ) ),
+    "j_imm":
+        FieldSpec( 21, TargetFormat(), [( bslice( 31 ), bslice( 20 ) ),
                                         ( bslice( 19, 12 ), bslice( 19, 12 ) ),
                                         ( bslice( 20 ), bslice( 11 ) ),
                                         ( bslice( 30, 21 ), bslice( 10, 1 ) ),
                                         ( 0, bslice( 0 ) ) ] ),
-      "c_imm":
-          FieldSpec( 5, RV64GImmFormat(), bslice( 19, 15 ) ),
-      "pred":
-          FieldSpec( 4, RV64GFenceFormat(), bslice( 27, 24 ) ),
-      "succ":
-          FieldSpec( 4, RV64GFenceFormat(), bslice( 23, 20 ) ),
-      "aq":
-          FieldSpec( 1, RV64GImmFormat(), bslice( 26 ) ),
-      "rl":
-          FieldSpec( 1, RV64GImmFormat(), bslice( 25 ) ),
-  }
+    "c_imm":
+        FieldSpec( 5, ImmFormat(), bslice( 19, 15 ) ),
+    "pred":
+        FieldSpec( 4, FenceFormat(), bslice( 27, 24 ) ),
+    "succ":
+        FieldSpec( 4, FenceFormat(), bslice( 23, 20 ) ),
+    "aq":
+        FieldSpec( 1, ImmFormat(), bslice( 26 ) ),
+    "rl":
+        FieldSpec( 1, ImmFormat(), bslice( 25 ) ),
+}
 
 
-def split_instr( instr ):
-  result = instr.split( None, 1 )
-  if len( result ) == 1:
-    return result[ 0 ], ""
-  else:
-    return result
-
-
-def simplify_args( args ):
-  return translate( args, maketrans( ",()", "   " ) ).split()
-
-
-def expand_gen( func ):
-
-  def loop( rows ):
-    result = []
-    for row in rows:
-      temp = func(*row )
-      if not isinstance( temp, list ):
-        temp = [ temp ]
-      result += temp
-    return result
-
-  return loop
-
-
-@expand_gen
+@isa.expand_gen
 def gen_amo_consistency_variants( name, args, simple_args, opcode_mask,
                                   opcode ):
   result = []
@@ -292,14 +171,14 @@ def gen_amo_consistency_variants( name, args, simple_args, opcode_mask,
   ]
   for suffix, aq, rl in amo_consistency_pairs:
     mod = Bits( ILEN, opcode )
-    RV64GEncoding.fields[ "aq" ].assemble( mod, aq )
-    RV64GEncoding.fields[ "rl" ].assemble( mod, rl )
+    fields[ "aq" ].assemble( mod, aq )
+    fields[ "rl" ].assemble( mod, rl )
     result.append(( "{}{}".format( name, suffix ), args, simple_args,
                     opcode_mask, int( mod ) ) )
   return result
 
 
-@expand_gen
+@isa.expand_gen
 def gen_amo_width_variants( name, args, simple_args, opcode_mask, opcode ):
   result = []
   amo_width_pairs = [
@@ -309,27 +188,14 @@ def gen_amo_width_variants( name, args, simple_args, opcode_mask, opcode ):
   ]
   for suffix, funct3 in amo_width_pairs:
     mod = Bits( ILEN, opcode )
-    RV64GEncoding.fields[ "funct3" ].assemble( mod, funct3 )
+    fields[ "funct3" ].assemble( mod, funct3 )
     result.append(( "{}{}".format( name, suffix ), args, simple_args,
                     opcode_mask, int( mod ) ) )
   return result
 
 
-@expand_gen
-def expand_encoding( inst, opcode_mask, opcode ):
-  name, args = split_instr( inst )
-  return name, args, simplify_args( args ), opcode_mask, opcode
-
-
-@expand_gen
-def expand_pseudo_spec( pseudo, bases ):
-  pseudo_name, pseudo_args = split_instr( pseudo )
-  bases_expanded = [ split_instr( base ) for base in bases ]
-  return pseudo_name, simplify_args( pseudo_args ), bases_expanded
-
-
 # yapf: disable
-tinyrv2_encoding_table = expand_encoding( [
+encoding_table = isa.expand_encoding( [
     # inst                           opcode mask                         opcode
     # lui
     ( "lui    rd, u_imm",           0b00000000000000000000000001111111, 0b00000000000000000000000000110111 ),  # U-type
@@ -426,7 +292,7 @@ tinyrv2_encoding_table = expand_encoding( [
     ( "remuw  rd, rs1, rs2",        0b11111110000000000111000001111111, 0b00000010000000000111000000111011 ),  # R-type
 
     ( "invld",                      0b11111111111111111111111111111111, 0b00000000110000001111111111101110 ),  # 0x0c00ffee
-  ] ) + gen_amo_consistency_variants( gen_amo_width_variants( expand_encoding( [
+  ] ) + gen_amo_consistency_variants( gen_amo_width_variants( isa.expand_encoding( [
     ( "lr           rd, rs1",       0b11111111111100000111000001111111, 0b00010000000000000010000000101111 ),
     ( "sc           rd, rs1, rs2",  0b11111110000000000111000001111111, 0b00011000000000000010000000101111 ),
     ( "amoswap      rd, rs1, rs2",  0b11111110000000000111000001111111, 0b00001000000000000010000000101111 ),
@@ -440,7 +306,7 @@ tinyrv2_encoding_table = expand_encoding( [
     ( "amomaxu      rd, rs1, rs2",  0b11111110000000000111000001111111, 0b11100000000000000010000000101111 ),
   ] ) ) )
 
-pseudo_instruction_table = expand_pseudo_spec( [
+pseudo_instruction_table = isa.expand_pseudo_spec( [
   # pseudo instruction    base instruction
   ( "la rd, symbol",      [ "auipc $rd, %hi[$symbol]", "addi $rd, %lw[$symbol]" ] ),
   ( "nop",                [ "addi x0, x0, 0" ] ),
@@ -450,303 +316,83 @@ pseudo_instruction_table = expand_pseudo_spec( [
 ] )
 # yapf: enable
 
+isa = Isa( ILEN, XLEN, encoding_table, pseudo_instruction_table, fields )
 
-class TinyRV2Inst( object ):
-
-  def __init__( self, inst_bits ):
-    self.bits = Bits( ILEN, inst_bits )
-
-  @property
-  def name( self ):
-    return decode_inst_name( self.bits )
-
-  @property
-  def rd( self ):
-    return RV64GEncoding.fields[ "rd" ].disassemble( self.bits )
-
-  @property
-  def rs1( self ):
-    return RV64GEncoding.fields[ "rs1" ].disassemble( self.bits )
-
-  @property
-  def rs2( self ):
-    return RV64GEncoding.fields[ "rs2" ].disassemble( self.bits )
-
-  @property
-  def shamt( self ):
-    return RV64GEncoding.fields[ "shamt32" ].disassemble( self.bits )
-
-  @property
-  def i_imm( self ):
-    return RV64GEncoding.fields[ "i_imm" ].disassemble( self.bits )
-
-  @property
-  def s_imm( self ):
-    return RV64GEncoding.fields[ "s_imm" ].disassemble( self.bits )
-
-  @property
-  def b_imm( self ):
-    return RV64GEncoding.fields[ "b_imm" ].disassemble( self.bits )
-
-  @property
-  def u_imm( self ):
-    return concat( RV64GEncoding.fields[ "u_imm" ].disassemble( self.bits ),
-                   Bits( 12, 0 ) )
-
-  @property
-  def j_imm( self ):
-    return RV64GEncoding.fields[ "j_imm" ].disassemble( self.bits )
-
-  @property
-  def c_imm( self ):
-    return RV64GEncoding.fields[ "c_imm" ].disassemble( self.bits )
-
-  @property
-  def pred( self ):
-    return RV64GEncoding.fields[ "pred" ].disassemble( self.bits )
-
-  @property
-  def succ( self ):
-    return RV64GEncoding.fields[ "succ" ].disassemble( self.bits )
-
-  @property
-  def csrnum( self ):
-    return RV64GEncoding.fields[ "csrnum" ].disassemble( self.bits )
-
-  @property
-  def funct( self ):
-    return RV64GEncoding.fields[ "funct7" ].disassemble( self.bits )
-
-  def __str__( self ):
-    return disassemble_inst( self.bits )
-
-
-InstSpec = namedtuple( 'InstSpec', 'args simple_args opcode_mask opcode' )
-PseudoSpec = namedtuple( 'PseudoSpec', 'simple_args base_list' )
-
-
-class IsaImpl( object ):
-
-  def __init__( self, nbits, inst_encoding_table, pseudo_table ):
-
-    self.nbits = nbits
-    self.encoding = {}
-    self.pseudo_map = {}
-
-    for name, args, simple_args, opcode_mask, opcode in inst_encoding_table:
-      self.encoding[ name ] = InstSpec( args, simple_args, opcode_mask, opcode )
-
-    for name, simple_args, base_list in pseudo_table:
-      self.pseudo_map[ name ] = PseudoSpec( simple_args, base_list )
-
-  def expand_pseudo_instructions( self, inst_str ):
-    name, args = split_instr( inst_str )
-    if name in self.encoding:
-      return [ inst_str ]
-    elif name in self.pseudo_map:
-      simple = simplify_args( args )
-      var_names = self.pseudo_map[ name ].simple_args
-      assert len( simple ) == len( var_names )
-      arg_map = zip( var_names, simple )
-      result = []
-      for base_name, base_args in self.pseudo_map[ name ].base_list:
-        for var, value in arg_map:
-          base_args = base_args.replace( "${}".format( var ), value )
-        result.append( "{} {}".format( base_name, base_args ) )
-      return result
-    else:
-      raise ValueError( "Unknown instruction: {}".format( inst_str ) )
-
-  def decode_inst_name( self, inst_bits ):
-    for name, spec in self.encoding.iteritems():
-      if ( inst_bits & spec.opcode_mask ) == spec.opcode:
-        return name
-    return 'invld'
-
-  def assemble_inst( self, sym, pc, inst_str ):
-    name, args = split_instr( inst_str )
-    arg_list = simplify_args( args )
-
-    result = Bits( self.nbits, self.encoding[ name ].opcode )
-
-    for asm_field_str, field_name in zip( arg_list,
-                                          self.encoding[ name ].simple_args ):
-      RV64GEncoding.fields[ field_name ].translate( result, sym, pc,
-                                                    asm_field_str )
-    return result
-
-  def disassemble_inst( self, inst_bits ):
-    name = self.decode_inst_name( inst_bits )
-
-    arg_str = self.encoding[ name ].args
-    for field_name in self.encoding[ name ].simple_args:
-      arg_str = arg_str.replace(
-          field_name, RV64GEncoding.fields[ field_name ].decode( inst_bits ) )
-
-    return "{} {}".format( name, arg_str )
-
-
-tinyrv2_isa_impl = IsaImpl( ILEN, tinyrv2_encoding_table,
-                            pseudo_instruction_table )
-
-# https://docs.python.org/2/library/struct.html#format-characters
-# 64 bit data elements packed as unsigned long long
-if XLEN == 64:
-  DATA_PACK_DIRECTIVE = "<Q"
-else:
-  DATA_PACK_DIRECTIVE = "<I"
-
-
-def assemble_inst( sym, pc, inst_str ):
-  return tinyrv2_isa_impl.assemble_inst( sym, pc, inst_str )
-
-
-def expand_pseudo_instructions( instr_str ):
-  return tinyrv2_isa_impl.expand_pseudo_instructions( instr_str )
-
-
-PreprocessedAsm = namedtuple( "Preprocessed", "text proc2mngr mngr2proc data" )
-
-
-def preprocess_asm( seq_list ):
-  """
-  Takes a list of instructions, and:
-  1. Removes all comments, blank lines, or other useless information
-  2. Seperates into 4 sections: .text, .proc2mngr, .mngr2proc, and .data
-  3. Expands pseudo instructions
-  Returns: a PreprocessedAsm namedtuple with a list of source lines for each section
-  """
-
-  text = []
-  proc2mngr = []
-  mngr2proc = []
-  data = []
-
-  in_data = False
-  current = text
-
-  for line in seq_list.splitlines():
-    line = line.partition( '#' )[ 0 ].strip()
-    if len( line ) == 0:
-      continue
-
-    if ':' in line:
-      current.append( line )
-    elif line == ".data":
-      assert not in_data
-      in_data = True
-      current = data
-    elif not in_data:
-      aux = None
-      if '<' in line:
-        line, value = line.split( '<' )
-        aux = mngr2proc
-      elif '>' in line:
-        line, value = line.split( '>' )
-        aux = proc2mngr
-      if aux is not None:
-        aux.append( int( Bits( XLEN, int( value.strip(), 0 ) ) ) )
-        line = line.strip()
-      current += expand_pseudo_instructions( line )
-    else:
-      current += [ line ]
-
-  return PreprocessedAsm( text, proc2mngr, mngr2proc, data )
-
+DATA_PACK_DIRECTIVE = "<Q"
 
 TEXT_OFFSET = int( RESET_VECTOR )
 DATA_OFFSET = 0x2000
 MNGR2PROC_OFFSET = 0x13000
 PROC2MNGR_OFFSET = 0x14000
 
-
-def augment_symbol_table( base, code, sym ):
-  addr = base
-  result = []
-  for line in code:
-    if ':' in line:
-      line, extra = line.split( ':', 1 )
-      assert len( extra ) == 0
-      line = line.strip()
-      assert line not in sym
-      sym[ line ] = addr
-    else:
-      result.append( line )
-      addr += ILEN_BYTES
-  return result
+assembler = Assembler( isa, TEXT_OFFSET, DATA_OFFSET, MNGR2PROC_OFFSET,
+                       PROC2MNGR_OFFSET )
 
 
-def assemble( asm_code ):
-  assert isinstance( asm_code, str )
+class Inst( object ):
 
-  asm_list = preprocess_asm( asm_code )
-  sym = {}
-  asm_list = asm_list._replace(
-      text=augment_symbol_table( TEXT_OFFSET, asm_list.text, sym ),
-      data=augment_symbol_table( DATA_OFFSET, asm_list.data, sym ) )
+  def __init__( self, inst_bits ):
+    self.bits = Bits( ILEN, inst_bits )
 
-  asm_list_idx = 0
-  text_bytes = bytearray()
-  mngr2proc_bytes = bytearray()
-  proc2mngr_bytes = bytearray()
-  data_bytes = bytearray()
+  @property
+  def name( self ):
+    return isa.decode_inst_name( self.bits )
 
-  addr = TEXT_OFFSET
-  for line in asm_list.text:
-    bits = assemble_inst( sym, addr, line )
-    text_bytes.extend( struct.pack( "<I", bits.uint() ) )
-    addr += ILEN_BYTES
+  @property
+  def rd( self ):
+    return fields[ "rd" ].disassemble( self.bits )
 
-  for value in asm_list.mngr2proc:
-    mngr2proc_bytes.extend( struct.pack( DATA_PACK_DIRECTIVE, value ) )
-  for value in asm_list.proc2mngr:
-    proc2mngr_bytes.extend( struct.pack( DATA_PACK_DIRECTIVE, value ) )
+  @property
+  def rs1( self ):
+    return fields[ "rs1" ].disassemble( self.bits )
 
-  for line in asm_list.data:
-    # only support .word because:
-    # 1. labels inside are easier to compute
-    # 2. no alignment issues. .word is supposed to align on a natrual
-    #    boundary, which takes no effort if everything is a word.
-    assert line.startswith( ".word" )
-    _, value = line.split()
-    data_bytes.extend( struct.pack( "<I", int( value, 0 ) ) )
+  @property
+  def rs2( self ):
+    return fields[ "rs2" ].disassemble( self.bits )
 
-  mem_image = SparseMemoryImage()
-  if len( text_bytes ) > 0:
-    mem_image.add_section(
-        SparseMemoryImage.Section( ".text", TEXT_OFFSET, text_bytes ) )
-  if len( mngr2proc_bytes ) > 0:
-    mem_image.add_section(
-        SparseMemoryImage.Section( ".mngr2proc", MNGR2PROC_OFFSET,
-                                   mngr2proc_bytes ) )
-  if len( proc2mngr_bytes ) > 0:
-    mem_image.add_section(
-        SparseMemoryImage.Section( ".proc2mngr", PROC2MNGR_OFFSET,
-                                   proc2mngr_bytes ) )
-  if len( data_bytes ) > 0:
-    mem_image.add_section(
-        SparseMemoryImage.Section( ".data", DATA_OFFSET, data_bytes ) )
+  @property
+  def shamt( self ):
+    return fields[ "shamt32" ].disassemble( self.bits )
 
-  return mem_image
+  @property
+  def i_imm( self ):
+    return fields[ "i_imm" ].disassemble( self.bits )
 
+  @property
+  def s_imm( self ):
+    return fields[ "s_imm" ].disassemble( self.bits )
 
-def disassemble_inst( inst_bits ):
-  return tinyrv2_isa_impl.disassemble_inst( inst_bits )
+  @property
+  def b_imm( self ):
+    return fields[ "b_imm" ].disassemble( self.bits )
 
+  @property
+  def u_imm( self ):
+    return concat( fields[ "u_imm" ].disassemble( self.bits ), Bits( 12, 0 ) )
 
-def decode_inst_name( inst ):
-  return tinyrv2_isa_impl.decode_inst_name( inst )
+  @property
+  def j_imm( self ):
+    return fields[ "j_imm" ].disassemble( self.bits )
 
+  @property
+  def c_imm( self ):
+    return fields[ "c_imm" ].disassemble( self.bits )
 
-def disassemble( mem_image ):
-  text_section = mem_image.get_section( ".text" )
-  addr = text_section.addr
-  asm_code = ""
-  for i in xrange( 0, len( text_section.data ), ILEN_BYTES ):
-    bits = struct.unpack_from( "<I", buffer( text_section.data, i,
-                                             ILEN_BYTES ) )[ 0 ]
-    inst_str = disassemble_inst( Bits( ILEN, bits ) )
-    disasm_line = " {:0>8x}  {:0>8x}  {}\n".format( addr + i, bits, inst_str )
-    asm_code += disasm_line
+  @property
+  def pred( self ):
+    return fields[ "pred" ].disassemble( self.bits )
 
-  return asm_code
+  @property
+  def succ( self ):
+    return fields[ "succ" ].disassemble( self.bits )
+
+  @property
+  def csrnum( self ):
+    return fields[ "csrnum" ].disassemble( self.bits )
+
+  @property
+  def funct( self ):
+    return fields[ "funct7" ].disassemble( self.bits )
+
+  def __str__( self ):
+    return isa.disassemble_inst( self.bits )

@@ -9,7 +9,7 @@
 
 from pymtl import Bits, concat
 from pymtl.datatypes import helpers
-from tinyrv2_encoding import TinyRV2Inst
+from util.arch.rv64g import Inst as TinyRV2Inst
 from config.general import *
 from msg.codes import *
 
