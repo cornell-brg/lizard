@@ -5,6 +5,7 @@ from util.arch import isa
 from util.arch.isa import Isa, FieldSpec, FieldFormat
 from util.arch.assembler import Assembler
 from bitutil import bslice
+from string import translate, maketrans
 
 
 class RegisterFormat( FieldFormat ):
