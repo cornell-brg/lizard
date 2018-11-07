@@ -8,6 +8,16 @@ from msg.codes import *
 from collections import namedtuple
 
 
+def bslice( high, low=None ):
+  """
+  Represents: the bits range [high : low] of some value. If low is not given,
+  represents just [high] (only 1 bit), which is the same as [high : high].
+  """
+  if low is None:
+    low = high
+  return slice( low, high + 1 )
+
+
 class FieldSpec( object ):
   """
   Represents: a field specifier. A field is a value encoded into
@@ -22,31 +32,28 @@ class FieldSpec( object ):
 
   This could be encoded as:
 
-  FieldSpec(29, [(slice(16, 32), slice(29, 13)), (slice(13, 0), slice(13, 0))])
+  FieldSpec(29, [(bslice(31, 16), bslice(28, 13)), (bslice(12, 0), bslice(12, 0))])
 
   A simple case occurs when the value is not split across multiple areas.
   In this case, it can be represented by only its location in the encoded
   instruction:
 
-  FieldSpec(3, slice(4, 8))
+  FieldSpec(3, bslice(7, 4))
 
   One special case is where some bits in the value are not actually encoded, but 
   are instread required to be fixed values. In that case, instead of including
   a slice indicating a position in the target, include a value instead:
 
-  FieldSpec(3, [(slice(1,3), slice(1, 3), (0, slice(0, 1)]
+  FieldSpec(3, [(bslice(2,1), bslice(2, 1), (0, bslice(0))]
 
   The above spec means that only the 2 high bits of the field are actually encoded
   in the target, while the low bit must be 0.
-
-  Note that python slices are exclusive; a python slice [a, b) is bits [b-1 : a]
-  in the traditional representation
   """
 
   def __init__( self, width, parts ):
     self.width = width
     if isinstance( parts, slice ):
-      self.parts = [( parts, slice( 0, self.width ) ) ]
+      self.parts = [( parts, bslice( self.width - 1, 0 ) ) ]
     else:
       self.parts = parts
 
@@ -78,42 +85,42 @@ class FieldSpec( object ):
 
 
 class RV64GEncoding:
-  slice_opcode = FieldSpec( 7, slice( 0, 7 ) )
-  slice_funct2 = FieldSpec( 2, slice( 25, 27 ) )
-  slice_funct3 = FieldSpec( 3, slice( 12, 15 ) )
-  slice_funct7 = FieldSpec( 7, slice( 25, 32 ) )
+  slice_opcode = FieldSpec( 7, bslice( 6, 0 ) )
+  slice_funct2 = FieldSpec( 2, bslice( 26, 25 ) )
+  slice_funct3 = FieldSpec( 3, bslice( 14, 12 ) )
+  slice_funct7 = FieldSpec( 7, bslice( 31, 25 ) )
 
-  slice_rd = FieldSpec( 5, slice( 7, 12 ) )
-  slice_rs1 = FieldSpec( 5, slice( 15, 20 ) )
-  slice_rs2 = FieldSpec( 5, slice( 20, 25 ) )
-  slice_shamt32 = FieldSpec( 5, slice( 20, 25 ) )
-  slice_shamt64 = FieldSpec( 6, slice( 20, 26 ) )
+  slice_rd = FieldSpec( 5, bslice( 11, 7 ) )
+  slice_rs1 = FieldSpec( 5, bslice( 19, 15 ) )
+  slice_rs2 = FieldSpec( 5, bslice( 24, 20 ) )
+  slice_shamt32 = FieldSpec( 5, bslice( 24, 20 ) )
+  slice_shamt64 = FieldSpec( 6, bslice( 25, 20 ) )
 
-  slice_i_imm = FieldSpec( 12, slice( 20, 32 ) )
+  slice_i_imm = FieldSpec( 12, bslice( 31, 20 ) )
   slice_csrnum = slice_i_imm
 
-  slice_s_imm = FieldSpec( 12, [( slice( 7, 12 ), slice( 0, 5 ) ),
-                                ( slice( 25, 32 ), slice( 5, 12 ) ) ] )
-  slice_b_imm = FieldSpec( 13, [( slice( 31, 32 ), slice( 12, 13 ) ),
-                                ( slice( 7, 8 ), slice( 11, 12 ) ),
-                                ( slice( 25, 31 ), slice( 5, 11 ) ),
-                                ( slice( 8, 12 ), slice( 1, 5 ) ),
-                                ( 0, slice( 0, 1 ) ) ] )
+  slice_s_imm = FieldSpec( 12, [( bslice( 11, 7 ), bslice( 4, 0 ) ),
+                                ( bslice( 31, 25 ), bslice( 11, 5 ) ) ] )
+  slice_b_imm = FieldSpec( 13, [( bslice( 31 ), bslice( 12 ) ),
+                                ( bslice( 7 ), bslice( 11 ) ),
+                                ( bslice( 30, 25 ), bslice( 10, 5 ) ),
+                                ( bslice( 11, 8 ), bslice( 4, 1 ) ),
+                                ( 0, bslice( 0 ) ) ] )
 
-  slice_u_imm = FieldSpec( 20, slice( 12, 32 ) )
-  slice_j_imm = FieldSpec( 21, [( slice( 31, 32 ), slice( 20, 21 ) ),
-                                ( slice( 12, 20 ), slice( 12, 20 ) ),
-                                ( slice( 20, 21 ), slice( 11, 12 ) ),
-                                ( slice( 21, 31 ), slice( 1, 11 ) ),
-                                ( 0, slice( 0, 1 ) ) ] )
+  slice_u_imm = FieldSpec( 20, bslice( 31, 12 ) )
+  slice_j_imm = FieldSpec( 21, [( bslice( 31 ), bslice( 20 ) ),
+                                ( bslice( 19, 12 ), bslice( 19, 12 ) ),
+                                ( bslice( 20 ), bslice( 11 ) ),
+                                ( bslice( 30, 21 ), bslice( 10, 1 ) ),
+                                ( 0, bslice( 0 ) ) ] )
 
   slice_c_imm = slice_rs1
 
-  slice_pred = FieldSpec( 4, slice( 24, 28 ) )
-  slice_succ = FieldSpec( 4, slice( 20, 24 ) )
+  slice_pred = FieldSpec( 4, bslice( 27, 24 ) )
+  slice_succ = FieldSpec( 4, bslice( 23, 20 ) )
 
-  slice_aq = FieldSpec( 1, slice( 26, 27 ) )
-  slice_rl = FieldSpec( 1, slice( 25, 26 ) )
+  slice_aq = FieldSpec( 1, bslice( 26 ) )
+  slice_rl = FieldSpec( 1, bslice( 25 ) )
 
 
 def split_instr( instr ):
@@ -393,7 +400,7 @@ def assemble_field_rs1( bits, sym, pc, field_str ):
 
 
 def disassemble_field_rs1( bits ):
-  return RV64GEncoding.slice_rs1.disassemble( bits ).hex()
+  return "x{:0>2}".format( int( RV64GEncoding.slice_rs1.disassemble( bits ) ) )
 
 
 def assemble_field_rs2( bits, sym, pc, field_str ):
@@ -405,7 +412,7 @@ def assemble_field_rs2( bits, sym, pc, field_str ):
 
 
 def disassemble_field_rs2( bits ):
-  return RV64GEncoding.slice_rs2.disassemble( bits ).hex()
+  return "x{:0>2}".format( int( RV64GEncoding.slice_rs2.disassemble( bits ) ) )
 
 
 def assemble_field_shamt( bits, sym, pc, field_str ):
@@ -428,7 +435,7 @@ def assemble_field_rd( bits, sym, pc, field_str ):
 
 
 def disassemble_field_rd( bits ):
-  return RV64GEncoding.slice_rd.disassemble( bits ).hex()
+  return "x{:0>2}".format( int( RV64GEncoding.slice_rd.disassemble( bits ) ) )
 
 
 def assemble_field_i_imm( bits, sym, pc, field_str ):
