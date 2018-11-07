@@ -6,7 +6,7 @@ from pymtl import *
 from pclib.test import TestSource, TestSink
 from pclib.test import TestMemory
 
-from util.tinyrv2_encoding import DATA_PACK_DIRECTIVE
+from util.arch.rv64g import DATA_PACK_DIRECTIVE
 
 from core.fl.proc import ProcFL
 

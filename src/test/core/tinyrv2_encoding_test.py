@@ -7,7 +7,7 @@
 import pytest
 import struct
 
-from util.tinyrv2_encoding import assemble, assemble_inst, disassemble_inst
+from util.arch import rv64g
 from config.general import *
 from util.sparse_memory_image import SparseMemoryImage
 
@@ -36,7 +36,7 @@ def compare_str( str1, str2 ):
 
 def check( inst_str, inst_bits_ref, inst_str_ref ):
 
-  memory_image = assemble( inst_str )
+  memory_image = rv64g.assembler.assemble( inst_str )
   text = memory_image.get_section( ".text" ).data
 
   assert len( text ) == ILEN_BYTES
@@ -45,7 +45,7 @@ def check( inst_str, inst_bits_ref, inst_str_ref ):
       struct.unpack_from( "<I", buffer( text, 0, ILEN_BYTES ) )[ 0 ] )
   assert inst_bits == inst_bits_ref
 
-  inst_str = disassemble_inst( inst_bits )
+  inst_str = rv64g.isa.disassemble_inst( inst_bits )
   assert compare_str( inst_str, inst_str_ref )
 
 
@@ -58,10 +58,10 @@ def check( inst_str, inst_bits_ref, inst_str_ref ):
 
 def check_sym( sym, pc, inst_str, inst_bits_ref, inst_str_ref ):
 
-  inst_bits = assemble_inst( sym, pc, inst_str )
+  inst_bits = rv64g.isa.assemble_inst( sym, pc, inst_str )
   assert inst_bits == inst_bits_ref
 
-  inst_str = disassemble_inst( inst_bits )
+  inst_str = rv64g.isa.disassemble_inst( inst_bits )
   assert compare_str( inst_str, inst_str_ref )
 
 

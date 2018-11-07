@@ -14,7 +14,7 @@ from pclib.test import TestSource, TestSink
 from util.cl.testmemory import TestMemoryCL
 from util.cl.ports import InValRdyCLPort, OutValRdyCLPort, cl_connect
 
-from util.tinyrv2_encoding import assemble, DATA_PACK_DIRECTIVE
+from util.arch import rv64g
 
 from config.general import *
 from util import line_block
@@ -76,7 +76,7 @@ def run_test( TestHarness, gen_test, max_cycles=50000000, extra_cycles=3 ):
   if isinstance( asm, list ):
     asm = '\n'.join( asm )
   print( asm )
-  mem_image = assemble( asm )
+  mem_image = rv64g.assembler.assemble( asm )
 
   # Load the program into the model
 
