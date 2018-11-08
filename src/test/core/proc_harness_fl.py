@@ -33,10 +33,6 @@ class ProcTestHarnessFL( Model ):
     s.connect( s.proc.dmemreq, s.mem.reqs[ 1 ] )
     s.connect( s.proc.dmemresp, s.mem.resps[ 1 ] )
 
-    # Starting F16 we turn core_id into input ports to
-    # enable module reusability. In the past it was passed as arguments.
-    s.connect( s.proc.core_id, 0 )
-
   def load( self, mem_image ):
     sections = mem_image.get_sections()
     for section in sections:
@@ -67,4 +63,4 @@ class ProcTestHarnessFL( Model ):
     return s.src.done and s.sink.done
 
   def line_trace( s ):
-    return "fl test who needs a line trace"
+    return s.proc.line_trace()
