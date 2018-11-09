@@ -28,8 +28,7 @@ class ProcFL( Model ):
 
     # Construct the ISA semantics object
 
-    s.isa = TinyRV2Semantics(
-        s.dmem, s.mngr2proc_q, s.proc2mngr_q, num_cores=num_cores )
+    s.isa = TinyRV2Semantics( s.dmem, s.mngr2proc_q, s.proc2mngr_q )
 
     # Copies of pc and inst for line tracing
 
@@ -43,12 +42,16 @@ class ProcFL( Model ):
 
     @s.tick_fl
     def logic():
-      reset_trace()
-      s.pc = s.isa.PC.uint()
-      s.inst = Bits( ILEN, s.imem[ s.pc:s.pc + 4 ] )
-      s.trace = "#".ljust( s.width )
-      s.isa.execute( s.inst )
-      s.trace = "{:0>8x} {: <24}".format( s.pc, s.inst )
+      if s.reset:
+        reset_trace()
+        s.isa.reset()
+      else:
+        reset_trace()
+        s.pc = s.isa.PC.uint()
+        s.inst = Bits( ILEN, s.imem[ s.pc:s.pc + 4 ] )
+        s.trace = "#".ljust( s.width )
+        s.isa.execute( s.inst )
+        s.trace = "{:0>8x} {: <24}".format( s.pc, s.inst )
 
   def line_trace( s ):
     return s.trace
