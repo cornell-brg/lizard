@@ -1,21 +1,11 @@
-#=========================================================================
-# tinyrv2_semantics
-#=========================================================================
-# This class defines the semantics for each instruction in the RISC-V
-# teaching grade instruction set.
-#
-# Author : Christopher Batten, Moyang Wang, Shunning Jiang
-# Date   : Aug 29, 2016
-
 from pymtl import Bits, concat
 from pymtl.datatypes import helpers
 from util.arch.rv64g import Inst as TinyRV2Inst
 from config.general import *
 from msg.codes import *
-
-#-------------------------------------------------------------------------
-# Syntax Helpers
-#-------------------------------------------------------------------------
+from inspect import getargspec
+from functools import wraps
+from util.arch import rv64g
 
 
 def sext( bits ):
@@ -26,18 +16,23 @@ def zext( bits ):
   return helpers.zext( bits, XLEN )
 
 
-class TinyRV2Semantics( object ):
+def instr( func ):
 
-  #-----------------------------------------------------------------------
-  # IllegalInstruction
-  #-----------------------------------------------------------------------
+  @wraps( func )
+  def exec_instr( self, instr_bits ):
+    args = [ self ] + [
+        self.isa.fields[ x ].disassemble( instr_bits )
+        for x in getargspec( func ).args[ 1:]
+    ]
+    return func(*args )
+
+  return exec_instr
+
+
+class TinyRV2Semantics( object ):
 
   class IllegalInstruction( Exception ):
     pass
-
-  #-----------------------------------------------------------------------
-  # RegisterFile
-  #-----------------------------------------------------------------------
 
   class RegisterFile( object ):
 
@@ -107,6 +102,8 @@ class TinyRV2Semantics( object ):
     self.numcores = num_cores
     self.coreid = -1
 
+    self.isa = rv64g.isa
+
     self.reset()
 
   #-----------------------------------------------------------------------
@@ -119,219 +116,251 @@ class TinyRV2Semantics( object ):
     s.stats_en = False
     s.coreid = -1
 
-  #-----------------------------------------------------------------------
-  # Basic Instructions
-  #-----------------------------------------------------------------------
-
-  def execute_nop( s, inst ):
+  @instr
+  def execute_add( s, rd, rs1, rs2 ):
+    s.R[ rd ] = s.R[ rs1 ] + s.R[ rs2 ]
     s.PC += 4
 
-  #-----------------------------------------------------------------------
-  # Register-register arithmetic, logical, and comparison instructions
-  #-----------------------------------------------------------------------
-
-  def execute_add( s, inst ):
-    s.R[ inst.rd ] = s.R[ inst.rs1 ] + s.R[ inst.rs2 ]
+  @instr
+  def execute_sub( s, rd, rs1, rs2 ):
+    s.R[ rd ] = s.R[ rs1 ] - s.R[ rs2 ]
     s.PC += 4
 
-  def execute_sub( s, inst ):
-    s.R[ inst.rd ] = s.R[ inst.rs1 ] - s.R[ inst.rs2 ]
+  @instr
+  def execute_sll( s, rd, rs1, rs2 ):
+    s.R[ rd ] = s.R[ rs1 ] << ( s.R[ rs2 ].uint() & 0x1F )
     s.PC += 4
 
-  def execute_sll( s, inst ):
-    s.R[ inst.rd ] = s.R[ inst.rs1 ] << ( s.R[ inst.rs2 ].uint() & 0x1F )
+  @instr
+  def execute_slt( s, rd, rs1, rs2 ):
+    s.R[ rd ] = s.R[ rs1 ].int() < s.R[ rs2 ].int()
     s.PC += 4
 
-  def execute_slt( s, inst ):
-    s.R[ inst.rd ] = s.R[ inst.rs1 ].int() < s.R[ inst.rs2 ].int()
+  @instr
+  def execute_sltu( s, rd, rs1, rs2 ):
+    s.R[ rd ] = s.R[ rs1 ] < s.R[ rs2 ]
     s.PC += 4
 
-  def execute_sltu( s, inst ):
-    s.R[ inst.rd ] = s.R[ inst.rs1 ] < s.R[ inst.rs2 ]
+  @instr
+  def execute_xor( s, rd, rs1, rs2 ):
+    s.R[ rd ] = s.R[ rs1 ] ^ s.R[ rs2 ]
     s.PC += 4
 
-  def execute_xor( s, inst ):
-    s.R[ inst.rd ] = s.R[ inst.rs1 ] ^ s.R[ inst.rs2 ]
+  @instr
+  def execute_srl( s, rd, rs1, rs2 ):
+    s.R[ rd ] = s.R[ rs1 ] >> ( s.R[ rs2 ].uint() & 0x1F )
     s.PC += 4
 
-  def execute_srl( s, inst ):
-    s.R[ inst.rd ] = s.R[ inst.rs1 ] >> ( s.R[ inst.rs2 ].uint() & 0x1F )
+  @instr
+  def execute_sra( s, rd, rs1, rs2 ):
+    s.R[ rd ] = s.R[ rs1 ].int() >> ( s.R[ rs2 ].uint() & 0x1F )
     s.PC += 4
 
-  def execute_sra( s, inst ):
-    s.R[ inst.rd ] = s.R[ inst.rs1 ].int() >> ( s.R[ inst.rs2 ].uint() & 0x1F )
+  @instr
+  def execute_or( s, rd, rs1, rs2 ):
+    s.R[ rd ] = s.R[ rs1 ] | s.R[ rs2 ]
     s.PC += 4
 
-  def execute_or( s, inst ):
-    s.R[ inst.rd ] = s.R[ inst.rs1 ] | s.R[ inst.rs2 ]
-    s.PC += 4
-
-  def execute_and( s, inst ):
-    s.R[ inst.rd ] = s.R[ inst.rs1 ] & s.R[ inst.rs2 ]
+  @instr
+  def execute_and( s, rd, rs1, rs2 ):
+    s.R[ rd ] = s.R[ rs1 ] & s.R[ rs2 ]
     s.PC += 4
 
   #-----------------------------------------------------------------------
   # Register-immediate arithmetic, logical, and comparison instructions
   #-----------------------------------------------------------------------
 
-  def execute_addi( s, inst ):
-    s.R[ inst.rd ] = s.R[ inst.rs1 ] + sext( inst.i_imm )
+  @instr
+  def execute_addi( s, rd, rs1, i_imm ):
+    s.R[ rd ] = s.R[ rs1 ] + sext( i_imm )
     s.PC += 4
 
-  def execute_slti( s, inst ):
-    s.R[ inst.rd ] = s.R[ inst.rs1 ].int() < inst.i_imm.int()
+  @instr
+  def execute_slti( s, rd, rs1, i_imm ):
+    s.R[ rd ] = s.R[ rs1 ].int() < i_imm.int()
     s.PC += 4
 
-  def execute_sltiu( s, inst ):
-    s.R[ inst.rd ] = s.R[ inst.rs1 ] < sext( inst.i_imm )
+  @instr
+  def execute_sltiu( s, rd, rs1, i_imm ):
+    s.R[ rd ] = s.R[ rs1 ] < sext( i_imm )
     s.PC += 4
 
-  def execute_xori( s, inst ):
-    s.R[ inst.rd ] = s.R[ inst.rs1 ] ^ sext( inst.i_imm )
+  @instr
+  def execute_xori( s, rd, rs1, i_imm ):
+    s.R[ rd ] = s.R[ rs1 ] ^ sext( i_imm )
     s.PC += 4
 
-  def execute_ori( s, inst ):
-    s.R[ inst.rd ] = s.R[ inst.rs1 ] | sext( inst.i_imm )
+  @instr
+  def execute_ori( s, rd, rs1, i_imm ):
+    s.R[ rd ] = s.R[ rs1 ] | sext( i_imm )
     s.PC += 4
 
-  def execute_andi( s, inst ):
-    s.R[ inst.rd ] = s.R[ inst.rs1 ] & sext( inst.i_imm )
+  @instr
+  def execute_andi( s, rd, rs1, i_imm ):
+    s.R[ rd ] = s.R[ rs1 ] & sext( i_imm )
     s.PC += 4
 
-  def execute_slli( s, inst ):
+  @instr
+  def execute_slli( s, rd, rs1, shamt64 ):
     # does not have exception, just assert here
-    s.R[ inst.rd ] = s.R[ inst.rs1 ] << inst.shamt
+    s.R[ rd ] = s.R[ rs1 ] << shamt64
     s.PC += 4
 
-  def execute_srli( s, inst ):
-    s.R[ inst.rd ] = s.R[ inst.rs1 ] >> inst.shamt
+  @instr
+  def execute_srli( s, rd, rs1, shamt64 ):
+    s.R[ rd ] = s.R[ rs1 ] >> shamt64
     s.PC += 4
 
-  def execute_srai( s, inst ):
-    s.R[ inst.rd ] = s.R[ inst.rs1 ].int() >> inst.shamt.uint()
+  @instr
+  def execute_srai( s, rd, rs1, shamt64 ):
+    s.R[ rd ] = s.R[ rs1 ].int() >> shamt64.uint()
     s.PC += 4
 
   #-----------------------------------------------------------------------
   # Other instructions
   #-----------------------------------------------------------------------
 
-  def execute_lui( s, inst ):
-    s.R[ inst.rd ] = sext( inst.u_imm )
+  def augment_u_imm( s, u_imm ):
+    return concat( u_imm, Bits( 12, 0 ) )
+
+  @instr
+  def execute_lui( s, rd, u_imm ):
+    s.R[ rd ] = sext( s.augment_u_imm( u_imm ) )
     s.PC += 4
 
-  def execute_auipc( s, inst ):
-    s.R[ inst.rd ] = sext( inst.u_imm ) + s.PC
+  @instr
+  def execute_auipc( s, rd, u_imm ):
+    s.R[ rd ] = sext( s.augment_u_imm( u_imm ) ) + s.PC
     s.PC += 4
 
   #-----------------------------------------------------------------------
   # Load/store instructions
   #-----------------------------------------------------------------------
 
-  def execute_lb( s, inst ):
-    addr = s.R[ inst.rs1 ] + sext( inst.i_imm )
-    s.R[ inst.rd ] = sext( s.M[ addr:addr + 1 ] )
+  @instr
+  def execute_lb( s, rd, rs1, i_imm ):
+    addr = s.R[ rs1 ] + sext( i_imm )
+    s.R[ rd ] = sext( s.M[ addr:addr + 1 ] )
     s.PC += 4
 
-  def execute_lh( s, inst ):
-    addr = s.R[ inst.rs1 ] + sext( inst.i_imm )
-    s.R[ inst.rd ] = sext( s.M[ addr:addr + 2 ] )
+  @instr
+  def execute_lh( s, rd, rs1, i_imm ):
+    addr = s.R[ rs1 ] + sext( i_imm )
+    s.R[ rd ] = sext( s.M[ addr:addr + 2 ] )
     s.PC += 4
 
-  def execute_lw( s, inst ):
-    addr = s.R[ inst.rs1 ] + sext( inst.i_imm )
-    s.R[ inst.rd ] = sext( s.M[ addr:addr + 4 ] )
+  @instr
+  def execute_lw( s, rd, rs1, i_imm ):
+    addr = s.R[ rs1 ] + sext( i_imm )
+    s.R[ rd ] = sext( s.M[ addr:addr + 4 ] )
     s.PC += 4
 
-  def execute_ld( s, inst ):
-    addr = s.R[ inst.rs1 ] + sext( inst.i_imm )
-    s.R[ inst.rd ] = sext( s.M[ addr:addr + 8 ] )
+  @instr
+  def execute_ld( s, rd, rs1, i_imm ):
+    addr = s.R[ rs1 ] + sext( i_imm )
+    s.R[ rd ] = sext( s.M[ addr:addr + 8 ] )
     s.PC += 4
 
-  def execute_lbu( s, inst ):
-    addr = s.R[ inst.rs1 ] + sext( inst.i_imm )
-    s.R[ inst.rd ] = zext( s.M[ addr:addr + 1 ] )
+  @instr
+  def execute_lbu( s, rd, rs1, i_imm ):
+    addr = s.R[ rs1 ] + sext( i_imm )
+    s.R[ rd ] = zext( s.M[ addr:addr + 1 ] )
     s.PC += 4
 
-  def execute_lhu( s, inst ):
-    addr = s.R[ inst.rs1 ] + sext( inst.i_imm )
-    s.R[ inst.rd ] = zext( s.M[ addr:addr + 2 ] )
+  @instr
+  def execute_lhu( s, rd, rs1, i_imm ):
+    addr = s.R[ rs1 ] + sext( i_imm )
+    s.R[ rd ] = zext( s.M[ addr:addr + 2 ] )
     s.PC += 4
 
-  def execute_lwu( s, inst ):
-    addr = s.R[ inst.rs1 ] + sext( inst.i_imm )
-    s.R[ inst.rd ] = zext( s.M[ addr:addr + 4 ] )
+  @instr
+  def execute_lwu( s, rd, rs1, i_imm ):
+    addr = s.R[ rs1 ] + sext( i_imm )
+    s.R[ rd ] = zext( s.M[ addr:addr + 4 ] )
     s.PC += 4
 
-  def execute_sb( s, inst ):
-    addr = s.R[ inst.rs1 ] + sext( inst.s_imm )
-    s.M[ addr:addr + 4 ] = s.R[ inst.rs2 ][ 0:8 ]
+  @instr
+  def execute_sb( s, rs1, rs2, s_imm ):
+    addr = s.R[ rs1 ] + sext( s_imm )
+    s.M[ addr:addr + 4 ] = s.R[ rs2 ][ 0:8 ]
     s.PC += 4
 
-  def execute_sh( s, inst ):
-    addr = s.R[ inst.rs1 ] + sext( inst.s_imm )
-    s.M[ addr:addr + 2 ] = s.R[ inst.rs2 ][ 0:16 ]
+  @instr
+  def execute_sh( s, rs1, rs2, s_imm ):
+    addr = s.R[ rs1 ] + sext( s_imm )
+    s.M[ addr:addr + 2 ] = s.R[ rs2 ][ 0:16 ]
     s.PC += 4
 
-  def execute_sw( s, inst ):
-    addr = s.R[ inst.rs1 ] + sext( inst.s_imm )
-    s.M[ addr:addr + 4 ] = s.R[ inst.rs2 ][ 0:32 ]
+  @instr
+  def execute_sw( s, rs1, rs2, s_imm ):
+    addr = s.R[ rs1 ] + sext( s_imm )
+    s.M[ addr:addr + 4 ] = s.R[ rs2 ][ 0:32 ]
     s.PC += 4
 
-  def execute_sd( s, inst ):
-    addr = s.R[ inst.rs1 ] + sext( inst.s_imm )
-    s.M[ addr:addr + 8 ] = s.R[ inst.rs2 ][ 0:64 ]
+  @instr
+  def execute_sd( s, rs1, rs2, s_imm ):
+    addr = s.R[ rs1 ] + sext( s_imm )
+    s.M[ addr:addr + 8 ] = s.R[ rs2 ][ 0:64 ]
     s.PC += 4
 
   #-----------------------------------------------------------------------
   # Unconditional jump instructions
   #-----------------------------------------------------------------------
 
-  def execute_jal( s, inst ):
-    s.R[ inst.rd ] = s.PC + 4
-    s.PC = s.PC + sext( inst.j_imm )
+  @instr
+  def execute_jal( s, rd, j_imm ):
+    s.R[ rd ] = s.PC + 4
+    s.PC = s.PC + sext( j_imm )
 
-  def execute_jalr( s, inst ):
-    temp = s.R[ inst.rs1 ] + sext( inst.i_imm )
-    s.R[ inst.rd ] = s.PC + 4
+  @instr
+  def execute_jalr( s, rd, rs1, i_imm ):
+    temp = s.R[ rs1 ] + sext( i_imm )
+    s.R[ rd ] = s.PC + 4
     s.PC = temp & 0xFFFFFFFE
 
   #-----------------------------------------------------------------------
   # Conditional branch instructions
   #-----------------------------------------------------------------------
 
-  def execute_beq( s, inst ):
-    if s.R[ inst.rs1 ] == s.R[ inst.rs2 ]:
-      s.PC = s.PC + sext( inst.b_imm )
+  @instr
+  def execute_beq( s, rs1, rs2, b_imm ):
+    if s.R[ rs1 ] == s.R[ rs2 ]:
+      s.PC = s.PC + sext( b_imm )
     else:
       s.PC += 4
 
-  def execute_bne( s, inst ):
-    if s.R[ inst.rs1 ] != s.R[ inst.rs2 ]:
-      s.PC = s.PC + sext( inst.b_imm )
+  @instr
+  def execute_bne( s, rs1, rs2, b_imm ):
+    if s.R[ rs1 ] != s.R[ rs2 ]:
+      s.PC = s.PC + sext( b_imm )
     else:
       s.PC += 4
 
-  def execute_blt( s, inst ):
-    if s.R[ inst.rs1 ].int() < s.R[ inst.rs2 ].int():
-      s.PC = s.PC + sext( inst.b_imm )
+  @instr
+  def execute_blt( s, rs1, rs2, b_imm ):
+    if s.R[ rs1 ].int() < s.R[ rs2 ].int():
+      s.PC = s.PC + sext( b_imm )
     else:
       s.PC += 4
 
-  def execute_bge( s, inst ):
-    if s.R[ inst.rs1 ].int() >= s.R[ inst.rs2 ].int():
-      s.PC = s.PC + sext( inst.b_imm )
+  @instr
+  def execute_bge( s, rs1, rs2, b_imm ):
+    if s.R[ rs1 ].int() >= s.R[ rs2 ].int():
+      s.PC = s.PC + sext( b_imm )
     else:
       s.PC += 4
 
-  def execute_bltu( s, inst ):
-    if s.R[ inst.rs1 ] < s.R[ inst.rs2 ]:
-      s.PC = s.PC + sext( inst.b_imm )
+  @instr
+  def execute_bltu( s, rs1, rs2, b_imm ):
+    if s.R[ rs1 ] < s.R[ rs2 ]:
+      s.PC = s.PC + sext( b_imm )
     else:
       s.PC += 4
 
-  def execute_bgeu( s, inst ):
-    if s.R[ inst.rs1 ] >= s.R[ inst.rs2 ]:
-      s.PC = s.PC + sext( inst.b_imm )
+  @instr
+  def execute_bgeu( s, rs1, rs2, b_imm ):
+    if s.R[ rs1 ] >= s.R[ rs2 ]:
+      s.PC = s.PC + sext( b_imm )
     else:
       s.PC += 4
 
@@ -339,8 +368,9 @@ class TinyRV2Semantics( object ):
   # Mul/Div instructions
   #-----------------------------------------------------------------------
 
-  def execute_mul( s, inst ):
-    s.R[ inst.rd ] = s.R[ inst.rs1 ] * s.R[ inst.rs2 ]
+  @instr
+  def execute_mul( s, rd, rs1, rs2 ):
+    s.R[ rd ] = s.R[ rs1 ] * s.R[ rs2 ]
     s.PC += 4
 
   #-----------------------------------------------------------------------
@@ -348,126 +378,132 @@ class TinyRV2Semantics( object ):
   #-----------------------------------------------------------------------
 
   # CSRRW Atomic Read and Write
-  def execute_csrrw( s, inst ):
+  @instr
+  def execute_csrrw( s, rd, csrnum, rs1 ):
     # CSR: proc2mngr
     # for proc2mngr we ignore the rd and do _not_ write old value to rd.
     # this is the same as setting rd = x0.
-    if inst.csrnum == CsrRegisters.proc2mngr:
-      bits = s.R[ inst.rs1 ]
+    if csrnum == CsrRegisters.proc2mngr:
+      bits = s.R[ rs1 ]
       s.proc2mngr_str = str( bits )
       s.proc2mngr_queue.append( bits )
     else:
-      csr = int( inst.csrnum )
+      csr = int( csrnum )
       if not CsrRegisters.contains( csr ):
         raise TinyRV2Semantics.IllegalInstruction(
           "Unrecognized CSR register ({}) for csrw at PC={}" \
-            .format(inst.csrnum.uint(),s.PC) )
+            .format(csrnum.uint(),s.PC) )
       else:
-        s.R[ inst.rd ] = s.CSR[ csr ]
-        s.CSR[ csr ] = s.R[ inst.rs1 ]
+        s.R[ rd ] = s.CSR[ csr ]
+        s.CSR[ csr ] = s.R[ rs1 ]
 
     s.PC += 4
 
   # CSRRS Atomic Read and Set Bits
-  def execute_csrrs( s, inst ):
+  @instr
+  def execute_csrrs( s, rd, csrnum, rs1 ):
     # CSR: mngr2proc
     # for mngr2proc just ignore the rs1 and do _not_ write to CSR at all.
     # this is the same as setting rs1 = x0.
-    if inst.csrnum == CsrRegisters.mngr2proc:
+    if csrnum == CsrRegisters.mngr2proc:
       bits = s.mngr2proc_queue.popleft()
       s.mngr2proc_str = str( bits )
-      s.R[ inst.rd ] = bits
+      s.R[ rd ] = bits
     else:
-      csr = int( inst.csrnum )
+      csr = int( csrnum )
       if not CsrRegisters.contains( csr ):
         raise TinyRV2Semantics.IllegalInstruction(
           "Unrecognized CSR register ({}) for csrr at PC={}" \
-            .format(inst.csrnum.uint(),s.PC) )
+            .format(csrnum.uint(),s.PC) )
       else:
-        s.R[ inst.rd ] = s.CSR[ csr ]
-        s.CSR[ csr ] = s.CSR[ csr ] | s.R[ inst.rs1 ]
+        s.R[ rd ] = s.CSR[ csr ]
+        s.CSR[ csr ] = s.CSR[ csr ] | s.R[ rs1 ]
 
     s.PC += 4
 
   # CSRRS Atomic Read and Clear Bits
-  def execute_csrrc( s, inst ):
-    if inst.csrnum == CsrRegisters.mngr2proc:
+  @instr
+  def execute_csrrc( s, rd, csrnum, rs1 ):
+    if csrnum == CsrRegisters.mngr2proc:
       raise TinyRV2Semantics.IllegalInstruction(
           "mngr2proc CSR cannot be used with csrrc at PC={}".format( s.PC ) )
     else:
-      csr = int( inst.csrnum )
+      csr = int( csrnum )
       if not CsrRegisters.contains( csr ):
         raise TinyRV2Semantics.IllegalInstruction(
           "Unrecognized CSR register ({}) for csrr at PC={}" \
-            .format(inst.csrnum.uint(),s.PC) )
+            .format(csrnum.uint(),s.PC) )
       else:
-        s.R[ inst.rd ] = s.CSR[ csr ]
-        s.CSR[ csr ] = c.CSR[ csr ] & ( not s.R[ inst.rs1 ] )
+        s.R[ rd ] = s.CSR[ csr ]
+        s.CSR[ csr ] = c.CSR[ csr ] & ( not s.R[ rs1 ] )
 
     s.PC += 4
 
   # CSRRW Atomic Read and Write
-  def execute_csrrwi( s, inst ):
+  @instr
+  def execute_csrrwi( s, rd, csrnum, rs1 ):
     # CSR: proc2mngr
     # for proc2mngr we ignore the rd and do _not_ write old value to rd.
     # this is the same as setting rd = x0.
-    if inst.csrnum == CsrRegisters.proc2mngr:
-      bits = zext( inst.rs1 )
+    if csrnum == CsrRegisters.proc2mngr:
+      bits = zext( rs1 )
       s.proc2mngr_str = str( bits )
       s.proc2mngr_queue.append( bits )
     else:
-      csr = int( inst.csrnum )
+      csr = int( csrnum )
       if not CsrRegisters.contains( csr ):
         raise TinyRV2Semantics.IllegalInstruction(
           "Unrecognized CSR register ({}) for csrw at PC={}" \
-            .format(inst.csrnum.uint(),s.PC) )
+            .format(csrnum.uint(),s.PC) )
       else:
-        s.R[ inst.rd ] = s.CSR[ csr ]
-        s.CSR[ csr ] = zext( inst.rs1 )
+        s.R[ rd ] = s.CSR[ csr ]
+        s.CSR[ csr ] = zext( rs1 )
 
     s.PC += 4
 
   # CSRRS Atomic Read and Set Bits
-  def execute_csrrsi( s, inst ):
+  @instr
+  def execute_csrrsi( s, rd, csrnum, rs1 ):
     # CSR: mngr2proc
     # for mngr2proc just ignore the rs1 and do _not_ write to CSR at all.
     # this is the same as setting rs1 = x0.
-    if inst.csrnum == CsrRegisters.mngr2proc:
+    if csrnum == CsrRegisters.mngr2proc:
       bits = s.mngr2proc_queue.popleft()
       s.mngr2proc_str = str( bits )
-      s.R[ inst.rd ] = bits
+      s.R[ rd ] = bits
     else:
-      csr = int( inst.csrnum )
+      csr = int( csrnum )
       if not CsrRegisters.contains( csr ):
         raise TinyRV2Semantics.IllegalInstruction(
           "Unrecognized CSR register ({}) for csrr at PC={}" \
-            .format(inst.csrnum.uint(),s.PC) )
+            .format(csrnum.uint(),s.PC) )
       else:
-        s.R[ inst.rd ] = s.CSR[ csr ]
-        s.CSR[ csr ] = s.CSR[ csr ] | zext( inst.rs1 )
+        s.R[ rd ] = s.CSR[ csr ]
+        s.CSR[ csr ] = s.CSR[ csr ] | zext( rs1 )
 
     s.PC += 4
 
   # CSRRS Atomic Read and Clear Bits
-  def execute_csrrci( s, inst ):
-    if inst.csrnum == CsrRegisters.mngr2proc:
+  @instr
+  def execute_csrrci( s, rd, csrnum, rs1 ):
+    if csrnum == CsrRegisters.mngr2proc:
       raise TinyRV2Semantics.IllegalInstruction(
           "mngr2proc CSR cannot be used with csrrc at PC={}".format( s.PC ) )
     else:
-      csr = int( inst.csrnum )
+      csr = int( csrnum )
       if not CsrRegisters.contains( csr ):
         raise TinyRV2Semantics.IllegalInstruction(
           "Unrecognized CSR register ({}) for csrr at PC={}" \
-            .format(inst.csrnum.uint(),s.PC) )
+            .format(csrnum.uint(),s.PC) )
       else:
-        s.R[ inst.rd ] = s.CSR[ csr ]
-        s.CSR[ csr ] = c.CSR[ csr ] & ( not zext( inst.rs1 ) )
+        s.R[ rd ] = s.CSR[ csr ]
+        s.CSR[ csr ] = c.CSR[ csr ] & ( not zext( rs1 ) )
 
     s.PC += 4
 
-  def execute_invld( s, inst ):
+  def execute_invld( s, instr ):
     s.CSR[ CsrRegisters.mcause ] = ExceptionCode.ILLEGAL_INSTRUCTION
-    s.CSR[ CsrRegisters.mtval ] = inst.bits
+    s.CSR[ CsrRegisters.mtval ] = instr
     s.CSR[ CsrRegisters.mepc ] = s.PC
 
     mtvec = s.CSR[ CsrRegisters.mtvec ]
@@ -486,62 +522,7 @@ class TinyRV2Semantics( object ):
       assert False
     s.PC = target
 
-  #-----------------------------------------------------------------------
-  # exec
-  #-----------------------------------------------------------------------
-
-  execute_dispatch = {
-
-      # Listed in the order of the lecture handout
-      # 1.3 Tiny Risc-V Instruction Set Architecture
-      'add': execute_add,
-      'addi': execute_addi,
-      'sub': execute_sub,
-      'mul': execute_mul,
-      'and': execute_and,
-      'andi': execute_andi,
-      'or': execute_or,
-      'ori': execute_ori,
-      'xor': execute_xor,
-      'xori': execute_xori,
-      'slt': execute_slt,
-      'slti': execute_slti,
-      'sltu': execute_sltu,
-      'sltiu': execute_sltiu,
-      'sra': execute_sra,
-      'srai': execute_srai,
-      'srl': execute_srl,
-      'srli': execute_srli,
-      'sll': execute_sll,
-      'slli': execute_slli,
-      'lui': execute_lui,
-      'auipc': execute_auipc,
-      'lb': execute_lb,
-      'lh': execute_lh,
-      'lw': execute_lw,
-      'ld': execute_ld,
-      'lbu': execute_lbu,
-      'lhu': execute_lhu,
-      'lwu': execute_lwu,
-      'sb': execute_sb,
-      'sh': execute_sh,
-      'sw': execute_sw,
-      'jal': execute_jal,
-      'jalr': execute_jalr,
-      'beq': execute_beq,
-      'bne': execute_bne,
-      'blt': execute_blt,
-      'bge': execute_bge,
-      'bltu': execute_bltu,
-      'bgeu': execute_bgeu,
-      'csrrw': execute_csrrw,
-      'csrrs': execute_csrrs,
-      'csrrc': execute_csrrc,
-      'csrrwi': execute_csrrwi,
-      'csrrsi': execute_csrrsi,
-      'csrrci': execute_csrrci,
-      'invld': execute_invld,
-  }
-
   def execute( self, inst ):
-    self.execute_dispatch[ inst.name ]( self, inst )
+    foo = getattr( self, 'execute_{}'.format(
+        self.isa.decode_inst_name( inst ) ) )
+    foo( inst )
