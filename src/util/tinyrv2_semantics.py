@@ -1,6 +1,5 @@
 from pymtl import Bits, concat
 from pymtl.datatypes import helpers
-from util.arch.rv64g import Inst as TinyRV2Inst
 from config.general import *
 from msg.codes import *
 from inspect import getargspec
