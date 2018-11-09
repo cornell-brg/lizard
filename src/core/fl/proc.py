@@ -46,7 +46,7 @@ class ProcFL( Model ):
     def logic():
       reset_trace()
       s.pc = s.isa.PC.uint()
-      s.inst = Inst( s.imem[ s.pc:s.pc + 4 ] )
+      s.inst = Bits( ILEN, s.imem[ s.pc:s.pc + 4 ] )
       s.trace = "#".ljust( s.width )
       s.isa.execute( s.inst )
       s.trace = "{:0>8x} {: <24}".format( s.pc, s.inst )
