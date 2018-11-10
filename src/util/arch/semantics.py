@@ -40,52 +40,50 @@ class ProcException( object ):
     self.mcause = mcause
 
 
-class TinyRV2Semantics( object ):
+class RegisterFile( object ):
 
-  class IllegalInstruction( Exception ):
-    pass
+  def __init__( self ):
+    self.regs = [ Bits( XLEN, 0 ) for i in xrange( REG_COUNT ) ]
 
-  class RegisterFile( object ):
+  def __getitem__( self, idx ):
+    if idx == 0:
+      return 0
+    else:
+      return self.regs[ int( idx ) ]
 
-    def __init__( self ):
-      self.regs = [ Bits( XLEN, 0 ) for i in xrange( REG_COUNT ) ]
+  def __setitem__( self, idx, value ):
+    if idx != 0:
+      self.regs[ idx ] = Bits( XLEN, value, trunc=True )
 
-    def __getitem__( self, idx ):
-      if idx == 0:
-        return 0
-      else:
-        return self.regs[ int( idx ) ]
 
-    def __setitem__( self, idx, value ):
-      if idx != 0:
-        self.regs[ idx ] = Bits( XLEN, value, trunc=True )
+class CsrRegisterFile( object ):
 
-  class CsrRegisterFile( object ):
+  def __init__( self, mngr2proc_queue, proc2mngr_queue ):
+    self.regs = {}
+    self.mngr2proc_queue = mngr2proc_queue
+    self.proc2mngr_queue = proc2mngr_queue
 
-    def __init__( self, mngr2proc_queue, proc2mngr_queue ):
-      self.regs = {}
-      self.mngr2proc_queue = mngr2proc_queue
-      self.proc2mngr_queue = proc2mngr_queue
+  def __getitem__( self, idx ):
+    if idx == CsrRegisters.mngr2proc:
+      return self.mngr2proc_queue.popleft()
+    else:
+      return self.regs.get( int( idx ), Bits( XLEN, 0 ) )
 
-    def __getitem__( self, idx ):
-      if idx == CsrRegisters.mngr2proc:
-        return self.mngr2proc_queue.popleft()
-      else:
-        return self.regs.get( int( idx ), Bits( XLEN, 0 ) )
+  def __setitem__( self, idx, value ):
+    trunc = Bits( XLEN, value, trunc=True )
+    if idx == CsrRegisters.proc2mngr:
+      self.proc2mngr_queue.append( trunc )
+    else:
+      self.regs[ int( idx ) ] = trunc
 
-    def __setitem__( self, idx, value ):
-      trunc = Bits( XLEN, value, trunc=True )
-      if idx == CsrRegisters.proc2mngr:
-        self.proc2mngr_queue.append( trunc )
-      else:
-        self.regs[ int( idx ) ] = trunc
+
+class RV64GSemantics( object ):
 
   def __init__( self, memory, mngr2proc_queue, proc2mngr_queue ):
 
     self.PC = Bits( XLEN )
-    self.R = TinyRV2Semantics.RegisterFile()
-    self.CSR = TinyRV2Semantics.CsrRegisterFile( mngr2proc_queue,
-                                                 proc2mngr_queue )
+    self.R = RegisterFile()
+    self.CSR = CsrRegisterFile( mngr2proc_queue, proc2mngr_queue )
     self.M = memory
 
     self.isa = rv64g.isa
@@ -285,8 +283,7 @@ class TinyRV2Semantics( object ):
     if not CsrRegisters.contains( csr ):
       return ProcException( ExceptionCode.ILLEGAL_INSTRUCTION )
     else:
-      if rd != 0:
-        s.R[ rd ] = s.CSR[ csr ]
+      s.R[ rd ] = s.CSR[ csr ]
       return op( csr, rs1_is_x0, value )
 
   def csr_reg_func( s, rd, csrnum, rs1, op ):
@@ -303,7 +300,8 @@ class TinyRV2Semantics( object ):
       s.CSR[ csr ] = s.CSR[ csr ] | value
 
   def csrrc_op( s, csr, rs1_is_x0, value ):
-    s.CSR[ csr ] = c.CSR[ csr ] & ( not value )
+    if not rs1_is_x0:
+      s.CSR[ csr ] = c.CSR[ csr ] & ( not value )
 
   @instr
   def execute_csrrw( s, rd, csrnum, rs1 ):

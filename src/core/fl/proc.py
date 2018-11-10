@@ -3,7 +3,7 @@ from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 from pclib.fl import InValRdyQueueAdapter, OutValRdyQueueAdapter
 from pclib.fl import BytesMemPortAdapter
 
-from util.tinyrv2_semantics import TinyRV2Semantics
+from util.arch.semantics import RV64GSemantics
 from config.general import *
 from msg.mem import MemMsg4B
 
@@ -28,7 +28,7 @@ class ProcFL( Model ):
 
     # Construct the ISA semantics object
 
-    s.isa = TinyRV2Semantics( s.dmem, s.mngr2proc_q, s.proc2mngr_q )
+    s.isa = RV64GSemantics( s.dmem, s.mngr2proc_q, s.proc2mngr_q )
 
     # Copies of pc and inst for line tracing
 
