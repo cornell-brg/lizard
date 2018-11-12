@@ -59,6 +59,7 @@ class DecodeUnitCL( Model ):
         int( Opcode.OP_IMM_32 ): s.dec_op_imm32,
         int( Opcode.OP_32 ): s.dec_op_32,
     }
+
     try:
       opcode = inst[ RVInstMask.OPCODE ]
       out.opcode = opcode
@@ -76,14 +77,14 @@ class DecodeUnitCL( Model ):
     res.rs2_valid = 0
     res.rd = inst[ RVInstMask.RD ]
     res.rd_valid = 1
-    # Mapping from func3 to map of func7 to shamt instruction
+    # Mapping from func3 to map of func7_shft64 to shamt instruction
     shamts = {
         0b001: {
             0b0000000: RV64Inst.SLLI,
         },
         0b101: {
-            0b0000000: RV64Inst.SRLI,
-            0b0100000: RV64Inst.SRAI,
+            0b000000: RV64Inst.SRLI,
+            0b010000: RV64Inst.SRAI,
         },
     }
 
@@ -96,10 +97,10 @@ class DecodeUnitCL( Model ):
         0b111: RV64Inst.ANDI,
     }
     func3 = inst[ RVInstMask.FUNCT3 ].uint()
-    func7 = inst[ RVInstMask.FUNCT7 ].uint()
+    func7_shmt = inst[ RVInstMask.FUNCT7_SHFT64 ].uint()
     if ( inst[ RVInstMask.FUNCT3 ].uint() in shamts ):
-      res.inst = shamts[ func3 ][ func7 ]
-      res.imm = zext( inst[ RVInstMask.SHAMT ], DECODED_IMM_LEN )
+      res.inst = shamts[ func3 ][ func7_shmt ]
+      res.imm = zext( inst[ RVInstMask.SHAMT64 ], DECODED_IMM_LEN )
     else:
       res.inst = nshamts[ func3 ]
       res.imm = sext( inst[ RVInstMask.I_IMM ], DECODED_IMM_LEN )
@@ -161,7 +162,7 @@ class DecodeUnitCL( Model ):
           ( 0b101, 0b0100000 ): RV64Inst.SRAIW,
       }
       res.inst = insts[( func3, func7 ) ]
-      res.imm = sext( inst[ RVInstMask.SHAMT ], DECODED_IMM_LEN )
+      res.imm = sext( inst[ RVInstMask.SHAMT32 ], DECODED_IMM_LEN )
     return res
 
   def dec_op_32( s, inst, res ):

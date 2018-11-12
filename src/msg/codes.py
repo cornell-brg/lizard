@@ -7,10 +7,12 @@ class RVInstMask:
   OPCODE = slice( 0, 7 )
   FUNCT3 = slice( 12, 15 )
   FUNCT7 = slice( 25, 32 )
+  FUNCT7_SHFT64 = slice( 26, 32 )
   RD = slice( 7, 12 )
   RS1 = slice( 15, 20 )
   RS2 = slice( 20, 25 )
-  SHAMT = slice( 20, 25 )
+  SHAMT32 = slice( 20, 25 )
+  SHAMT64 = slice( 20, 26 )
 
   I_IMM = slice( 20, 32 )
   CSRNUM = slice( 20, 32 )
