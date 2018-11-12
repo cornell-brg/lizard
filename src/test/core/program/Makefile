@@ -1,5 +1,8 @@
 CC=riscv64-unknown-elf-gcc
-CFLAGS= -I. -nostdlib -nostartfiles -static -O1 -march=rv64im -mabi=lp64
+# Make sure to build tools with: ./configure --prefix=/opt/riscv --with-arch=rv64im --with-abi=lp64
+#CFLAGS= -I. -nostdlib -nostartfiles -static -march=rv64im -mabi=lp64 -O0
+CFLAGS= -I. -nostartfiles -static -march=rv64im -mabi=lp64 -O0
+
 SOURCES = $(wildcard *.c)
 OBJECTS = $(patsubst %.c,%.out,$(wildcard *.c))
 RESET_VECTOR = 0x200
