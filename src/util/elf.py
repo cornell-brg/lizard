@@ -22,6 +22,13 @@
 # Date   : May 20, 2014
 
 import struct
+#from   pydgin.utils import intmask
+intmask = lambda x: x
+try:
+  from rpython.rlib.rstruct.runpack import runpack
+  unpack = runpack
+except ImportError:
+  unpack = struct.unpack
 
 from util.sparse_memory_image import SparseMemoryImage
 
@@ -63,11 +70,30 @@ from util.sparse_memory_image import SparseMemoryImage
 #   elf_half e_shstrndx;
 # } elf_ehdr;
 
+# ELF64:
+#
+# unsigned char   e_ident [EI_NIDENT]
+# Elf64_Half      e_type
+# Elf64_Half      e_machine
+# Elf64_Word      e_version
+# Elf64_Addr      e_entry
+# Elf64_Off       e_phoff
+# Elf64_Off       e_shoff
+# Elf64_Word      e_flags
+# Elf64_Half      e_ehsize
+# Elf64_Half      e_phentsize
+# Elf64_Half      e_phnum
+# Elf64_Half      e_shentsize
+# Elf64_Half      e_shnum
+# Elf64_Half      e_shstrndx
+
 
 class ElfHeader( object ):
 
+  FORMAT64 = "<16sHHIQQQIHHHHHH"
   FORMAT = "<16sHHIIIIIHHHHHH"
   NBYTES = struct.calcsize( FORMAT )
+  NBYTES64 = struct.calcsize( FORMAT64 )
 
   # Offsets within e_ident
 
@@ -95,8 +121,16 @@ class ElfHeader( object ):
   # Constructor
   #-----------------------------------------------------------------------
 
-  def __init__( self, data=None ):
-    if data != None:
+  #def __init__( self, data=None ):
+  #  if data != None:
+  def __init__( self, data='', is_64bit=False ):
+    self.is_64bit = is_64bit
+    if is_64bit:
+      self.format = ElfHeader.FORMAT64
+    else:
+      self.format = ElfHeader.FORMAT
+
+    if data != '':
       self.from_bytes( data )
 
   #-----------------------------------------------------------------------
@@ -104,7 +138,7 @@ class ElfHeader( object ):
   #-----------------------------------------------------------------------
 
   def from_bytes( self, data ):
-    ehdr_list = struct.unpack( ElfHeader.FORMAT, data )
+    ehdr_list = unpack( self.format, data )
     self.ident = ehdr_list[ 0 ]
     self.type = ehdr_list[ 1 ]
     self.machine = ehdr_list[ 2 ]
@@ -203,11 +237,26 @@ class ElfHeader( object ):
 # } elf_shdr;
 #
 
+# ELF64:
+#
+# Elf64_Word  sh_name
+# Elf64_Word  sh_type
+# Elf64_Xword   sh_flags
+# Elf64_Addr  sh_addr
+# Elf64_Off   sh_offset
+# Elf64_Xword   sh_size
+# Elf64_Word  sh_link
+# Elf64_Word  sh_info
+# Elf64_Xword   sh_addralign
+# Elf64_Xword   sh_entsize
+
 
 class ElfSectionHeader( object ):
 
   FORMAT = "<IIIIIIIIII"
+  FORMAT64 = "<IIQQQQIIQQ"
   NBYTES = struct.calcsize( FORMAT )
+  NBYTES64 = struct.calcsize( FORMAT64 )
 
   # Section types. Note that we only load some of these sections.
 
@@ -240,8 +289,15 @@ class ElfSectionHeader( object ):
   # Constructor
   #-----------------------------------------------------------------------
 
-  def __init__( self, data=None ):
-    if data != None:
+  #def __init__( self, data=None ):
+  #  if data != None:
+  def __init__( self, data='', is_64bit=False ):
+    self.is_64bit = is_64bit
+    if is_64bit:
+      self.format = ElfSectionHeader.FORMAT64
+    else:
+      self.format = ElfSectionHeader.FORMAT
+    if data != '':
       self.from_bytes( data )
 
   #-----------------------------------------------------------------------
@@ -249,7 +305,7 @@ class ElfSectionHeader( object ):
   #-----------------------------------------------------------------------
 
   def from_bytes( self, data ):
-    shdr_list = struct.unpack( ElfSectionHeader.FORMAT, data )
+    shdr_list = unpack( self.format, data )
     self.name = shdr_list[ 0 ]
     self.type = shdr_list[ 1 ]
     self.flags = shdr_list[ 2 ]
@@ -348,8 +404,10 @@ class ElfSymTabEntry( object ):
   # Constructor
   #-----------------------------------------------------------------------
 
-  def __init__( self, data=None ):
-    if data != None:
+  #def __init__( self, data=None ):
+  #  if data != None:
+  def __init__( self, data='' ):
+    if data != '':
       self.from_bytes( data )
 
   #-----------------------------------------------------------------------
@@ -357,7 +415,8 @@ class ElfSymTabEntry( object ):
   #-----------------------------------------------------------------------
 
   def from_bytes( self, data ):
-    sym_list = struct.unpack( ElfSymTabEntry.FORMAT, data )
+    #sym_list = struct.unpack( ElfSymTabEntry.FORMAT, data )
+    sym_list = unpack( ElfSymTabEntry.FORMAT, data )
     self.name = sym_list[ 0 ]
     self.value = sym_list[ 1 ]
     self.size = sym_list[ 2 ]
@@ -410,15 +469,14 @@ class ElfSymTabEntry( object ):
 # Opens and parses an ELF file into a sparse memory image object.
 
 
-def elf_reader( file_obj ):
+def elf_reader( file_obj, is_64bit=False ):
 
   # Read the data for the ELF header
 
-  ehdr_data = file_obj.read( ElfHeader.NBYTES )
-
+  ehdr_data = file_obj.read( ElfHeader.NBYTES64 if is_64bit else ElfHeader
+                             .NBYTES )
   # Construct an ELF header object
-
-  ehdr = ElfHeader( ehdr_data )
+  ehdr = ElfHeader( ehdr_data, is_64bit=is_64bit )
 
   # Verify if its a known format and realy an ELF file
 
@@ -429,18 +487,17 @@ def elf_reader( file_obj ):
   # name of each section. We know that the section header for the section
   # string table is entry shstrndx, so we first get the data for this
   # section header.
-
-  file_obj.seek( ehdr.shoff + ehdr.shstrndx * ehdr.shentsize )
+  file_obj.seek( intmask( ehdr.shoff ) + ehdr.shstrndx * ehdr.shentsize )
   shdr_data = file_obj.read( ehdr.shentsize )
 
   # Construct a section header object for the section string table
 
-  shdr = ElfSectionHeader( shdr_data )
+  shdr = ElfSectionHeader( shdr_data, is_64bit=is_64bit )
 
   # Read the data for the section header table
 
-  file_obj.seek( shdr.offset )
-  shstrtab_data = file_obj.read( shdr.size )
+  file_obj.seek( intmask( shdr.offset ) )
+  shstrtab_data = file_obj.read( intmask( shdr.size ) )
 
   # Load sections
 
@@ -453,24 +510,33 @@ def elf_reader( file_obj ):
 
     # Read the data for the section header
 
-    file_obj.seek( ehdr.shoff + section_idx * ehdr.shentsize )
+    file_obj.seek( intmask( ehdr.shoff ) + section_idx * ehdr.shentsize )
     shdr_data = file_obj.read( ehdr.shentsize )
 
     # Pad the returned string in case the section header is not long
     # enough (otherwise the unpack function would not work)
 
-    shdr_data = shdr_data.ljust( ElfSectionHeader.NBYTES, '\0' )
+    #shdr_data = shdr_data.ljust( ElfSectionHeader.NBYTES, '\0' )
+    shdr_nbytes = ElfSectionHeader.NBYTES64 if is_64bit else \
+                  ElfSectionHeader.NBYTES
+    fill = '\0' * ( shdr_nbytes - len( shdr_data ) )
+    shdr_data = shdr_data + fill
 
     # Construct a section header object
 
-    shdr = ElfSectionHeader( shdr_data )
+    shdr = ElfSectionHeader( shdr_data, is_64bit=is_64bit )
 
     # Find the section name
 
-    start = shstrtab_data[ shdr.name:]
-    section_name = start.partition( '\0' )[ 0 ]
+    #start = shstrtab_data[shdr.name:]
+    idx = shdr.name
+    assert idx >= 0
+    start = shstrtab_data[ idx:]
 
-    # Only sections marked as alloc should be written to memory
+    #section_name = start.partition('\0')[0]
+    section_name = start.split( '\0', 1 )[ 0 ]
+
+    # only sections marked as lloc should be written to memory
 
     if not ( shdr.flags & ElfSectionHeader.FLAGS_ALLOC ):
       continue
@@ -478,8 +544,8 @@ def elf_reader( file_obj ):
     # Read the section data if it exists
 
     if section_name not in [ '.sbss', '.bss' ]:
-      file_obj.seek( shdr.offset )
-      data = file_obj.read( shdr.size )
+      file_obj.seek( intmask( shdr.offset ) )
+      data = file_obj.read( intmask( shdr.size ) )
 
     # NOTE: the .bss and .sbss sections don't actually contain any
     # data in the ELF.  These sections should be initialized to zero.
@@ -579,7 +645,10 @@ def elf_writer( mem_image, file_obj ):
   # Note that we have two extra sections beyond the normal sections. The
   # first "null" section and the final ".shstrtab" section.
 
-  ehdr.ident = "\x7fELF\x01\x01\x01".ljust( ElfHeader.IDENT_NBYTES, '0' )
+  #ehdr.ident     = "\x7fELF\x01\x01\x01".ljust( ElfHeader.IDENT_NBYTES, '0' )
+  ehdr.ident = "\x7fELF\x01\x01\x01"
+  fill = '\0' * ( ElfHeader.IDENT_NBYTES - len( ehdr.ident ) )
+  ehdr.ident = ehdr.ident + fill
   ehdr.type = ElfHeader.TYPE_EXEC
   ehdr.machine = 8
   ehdr.version = 1
