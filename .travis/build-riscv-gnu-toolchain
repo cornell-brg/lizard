@@ -1,0 +1,18 @@
+#! /bin/bash
+
+set -e
+
+RISCV_GNU_TOOLCHAIN_HOME="$TRAVIS_BUILD_DIR/riscv-gnu-toolchain"
+
+# If the toolchain exists and is not empty, travis got it from the cache
+if [ -d "$RISCV_GNU_TOOLCHAIN_HOME" ] && [ -n "$(ls -A "$RISCV_GNU_TOOLCHAIN_HOME")" ]; then
+  exit 0
+fi
+
+RISCV_GNU_TOOLCHAIN_SOURCE="$(realpath "$RISCV_GNU_TOOLCHAIN_HOME/src")"
+RISCV_GNU_TOOLCHAIN_BUILD="$(realpath "$RISCV_GNU_TOOLCHAIN_HOME/build")"
+
+git clone --depth=1 --recursive https://github.com/riscv/riscv-gnu-toolchain "$RISCV_GNU_TOOLCHAIN_SOURCE"
+cd "$RISCV_GNU_TOOLCHAIN_SOURCE"
+./configure --prefix="$RISCV_GNU_TOOLCHAIN_BUILD"
+make -j "$(nproc)"
