@@ -1,0 +1,9 @@
+#! /usr/bin/env python2
+
+import sys
+from util.arch import rv64g
+from pymtl import *
+
+print(rv64g.isa.disassemble_inst(Bits(32, int(sys.argv[1], 0))))
+
+
