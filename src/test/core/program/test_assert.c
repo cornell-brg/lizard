@@ -9,5 +9,6 @@ int main() {
 
   ASSERT(tmp == 10);
 
+  TEST_PASS();
   return 0;
 }

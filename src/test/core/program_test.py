@@ -26,4 +26,4 @@ def test( proc_key, program ):
   print( "Building: %s" % program )
   outname = collector.build( program )
   # Run it
-  run_test_elf( proc_dict[ proc_key ], outname, 1000 )
+  run_test_elf( proc_dict[ proc_key ], outname, 10000 )
