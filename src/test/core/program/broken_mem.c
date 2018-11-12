@@ -10,5 +10,7 @@ int main() {
     ASSERT(tmp[i] == i);
   }
 
+  TEST_PASS();
+
   return 0;
 }

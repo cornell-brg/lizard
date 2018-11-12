@@ -69,7 +69,7 @@ class TestMemoryCL( Model ):
         elif memreq.type_ == MemReqMsg.TYPE_WRITE:
           # Copy write data bits into bytearray
           write_data = memreq.data
-          assert ( memreq.addr < len( s.mem ) )  # Out of bounds
+          assert ( memreq.addr < 2**64 )  # Out of bounds
           for j in range( nbytes ):
             s.mem[ int( memreq.addr + j ) ] = write_data[ j * 8:j * 8 +
                                                           8 ].uint()

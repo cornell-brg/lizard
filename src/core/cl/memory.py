@@ -67,7 +67,7 @@ class MemoryUnitCL( Model ):
       copy_common_bundle( s.current, result )
       result.opcode = s.current.opcode
       copy_field_valid_pair( s.current, result, 'rd' )
-      s.result_q.enq( s.work )
+      s.result_q.enq( result )
       return
 
     # Memory message length is number of bytes, with 0 = all (overlow)
