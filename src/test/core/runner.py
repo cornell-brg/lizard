@@ -15,6 +15,8 @@ from util.cl.testmemory import TestMemoryCL
 from util.cl.ports import InValRdyCLPort, OutValRdyCLPort, cl_connect
 
 from util.arch import rv64g
+from util import elf
+from util.tinyrv2_encoding import assemble, DATA_PACK_DIRECTIVE
 
 from config.general import *
 from util import line_block
@@ -64,13 +66,6 @@ def extract_tests( ms ):
 
 
 def run_test( TestHarness, gen_test, max_cycles=50000000, extra_cycles=3 ):
-
-  # Instantiate and elaborate the model
-
-  model = TestHarness()
-
-  model.elaborate()
-
   # Assemble the test program
   asm = gen_test()
   if isinstance( asm, list ):
@@ -78,16 +73,35 @@ def run_test( TestHarness, gen_test, max_cycles=50000000, extra_cycles=3 ):
   print( asm )
   mem_image = rv64g.assembler.assemble( asm )
 
-  # Load the program into the model
+  # Run the test
+  run_test_image( TestHarness, mem_image, max_cycles, extra_cycles )
 
+
+#=========================================================================
+# run_test_bin: Run a test from an elf binary
+#=========================================================================
+def run_test_elf( TestHarness, elf_file, max_cycles=50000000, extra_cycles=3 ):
+  with open( elf_file, "rb" ) as fd:
+    mem = elf.elf_reader( fd, True )
+    run_test_image( TestHarness, mem, max_cycles, extra_cycles )
+
+
+def run_test_image( TestHarness,
+                    mem_image,
+                    max_cycles=50000000,
+                    extra_cycles=3 ):
+  # Instantiate and elaborate the model
+  model = TestHarness()
+
+  model.elaborate()
+
+  # Load the program into the model
   model.load( mem_image )
 
   # Create a simulator using the simulation tool
-
   sim = SimulationTool( model )
 
   # Run the simulation
-
   print( '' )
 
   def print_line_trace():
