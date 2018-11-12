@@ -9,7 +9,26 @@ cache:
 
 before_install:
  - sudo apt-get update
- - sudo apt-get install -y autoconf automake autotools-dev curl libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison flex texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev
+ - |
+   sudo apt-get install -y \
+   autoconf \
+   automake \
+   autotools-dev \
+   curl \
+   libmpc-dev \
+   libmpfr-dev \
+   libgmp-dev gawk \
+   build-essential \
+   bison \
+   flex \
+   texinfo \
+   gperf \
+   libtool \
+   patchutils \
+   bc \
+   zlib1g-dev \
+   libexpat-dev \
+   realpath
 
 install:
  # Install verilator
