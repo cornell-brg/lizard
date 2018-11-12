@@ -2,7 +2,7 @@
 
 // Helpful: http://www-inst.eecs.berkeley.edu/~cs250/sp16/disc/Disc05.pdf
 #define PC_START 0x200
-#define STACK_START (1 << 19)
+#define STACK_START (1 << 20)
 #define PROC2MNGR_REG "0x7C0"
 #define MNGR2PROC_REG "0xFC0"
 
