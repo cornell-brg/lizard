@@ -43,12 +43,15 @@ class MemoryFlowManagerCL( Model ):
     return s.current is not None or s.mem_req.full()
 
   def stage( s, request ):
+    assert s.current is None
+    assert request is not None
     s.current = deepcopy( request )
     s.submitted = False
     s.resp_received = False
     s.resp = None
 
   def submit( s ):
+    assert s.current is not None
     s.mem_req.enq( s.current )
     s.submitted = True
 

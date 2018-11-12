@@ -47,7 +47,7 @@ class RegisterFile( object ):
 
   def __getitem__( self, idx ):
     if idx == 0:
-      return 0
+      return Bits( XLEN, 0 )
     else:
       return self.regs[ int( idx ) ]
 

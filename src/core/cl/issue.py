@@ -63,8 +63,9 @@ class IssueUnitCL( Model ):
       s.work.status = PacketStatus.SQUASHED
 
     if s.work.status != PacketStatus.ALIVE:
-      s.issued_q.enq( s.work, pipe_idx )
-      s.current_d = None
+      if not s.issued_q.get( pipe_idx ).full():
+        s.issued_q.enq( s.work, pipe_idx )
+        s.current_d = None
       return
 
     if s.current_d.rs1_valid and s.current_rs1 is None:
