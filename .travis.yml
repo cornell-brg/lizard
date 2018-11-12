@@ -15,7 +15,8 @@ install:
  - pip -q install git+https://github.com/cornell-brg/pymtl.git
  # Install YAPF formatter
  - pip -q install git+https://github.com/wizard97/yapf.git
- - pip install futures
+ - pip -q install futures
+ - pip -q install hypothesis
  - pip list
 
 before_script:
