@@ -12,6 +12,8 @@ from util.cl.ports import InValRdyCLPort, OutValRdyCLPort
 from util.line_block import LineBlock
 from msg.mem import MemMsgType
 
+import binascii
+
 #-------------------------------------------------------------------------
 # TestMemoryCL
 #-------------------------------------------------------------------------
@@ -57,7 +59,6 @@ class TestMemoryCL( Model ):
           nbytes = s.data_nbits / 8
 
         if memreq.type_ == MemReqMsg.TYPE_READ:
-
           # Copy the bytes from the bytearray into read data bits
           read_data = Bits( s.data_nbits )
           for j in range( nbytes ):
