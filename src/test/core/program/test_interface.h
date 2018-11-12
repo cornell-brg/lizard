@@ -31,13 +31,15 @@ int main();
 
 __attribute__((weak)) __attribute__((section(".start"))) __attribute__ ((naked)) void _start() {
   // Setup up stack pointer
-  asm volatile ("mv sp, %[rs1]\n"
+  asm volatile  ("mv sp, %[rs1]\n"
                   : : [rs1]"r"(STACK_START)
                 );
-  // Set return addr and call main
-  asm volatile ("la ra, again\n"
-                "j main\n"
-                "again: nop\n"
-                "j again"
-              );
+
+  // call test entry point
+  asm volatile ("call main\n");
+
+  // Loop forever
+  asm volatile ("again: nop\n"
+                "j again\n"
+                );
 }

@@ -1,5 +1,5 @@
 CC=riscv64-unknown-elf-gcc
-CFLAGS= -I. -nostdlib -nostartfiles -O1 -march=rv64g
+CFLAGS= -I. -nostdlib -nostartfiles -static -O1 -march=rv64g
 TESTS = basic.out
 RESET_VECTOR=0x200
 
