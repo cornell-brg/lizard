@@ -16,7 +16,6 @@ from util.cl.ports import InValRdyCLPort, OutValRdyCLPort, cl_connect
 
 from util.arch import rv64g
 from util import elf
-from util.tinyrv2_encoding import assemble, DATA_PACK_DIRECTIVE
 
 from config.general import *
 from util import line_block
