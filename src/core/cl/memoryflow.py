@@ -64,8 +64,10 @@ class MemoryFlowManagerCL( Model ):
   def retire( s ):
     s.current = None
     # If no response has been received yet, drop it
-    if not s.resp_received:
+    if not s.resp_received and s.submitted:
       s.drop_count += 1
+    s.submitted = False
+    # s.resp_received = True
 
   def commit( s ):
     if not s.submitted:

@@ -6,6 +6,7 @@ from msg.issue import *
 from msg.execute import *
 from util.cl.ports import InValRdyCLPort, OutValRdyCLPort
 from config.general import *
+from util.line_block import Divider, LineBlock
 
 
 # The memory execute pipe
@@ -30,7 +31,6 @@ class MemoryUnitCL( Model ):
       # can't do anything until response comes back
       if not s.memoryflow.response_ready():
         return
-
       resp = s.memoryflow.await_response()
 
       result = ExecutePacket()

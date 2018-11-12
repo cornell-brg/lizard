@@ -87,6 +87,8 @@ class ProcCL( Model ):
         Divider( ' | ' ),
         s.execute.line_trace(),
         Divider( ' | ' ),
+        s.memory.line_trace(),
+        Divider( ' | ' ),
         s.writeback.line_trace(),
         Divider( ' | ' ),
         s.commit.line_trace()
