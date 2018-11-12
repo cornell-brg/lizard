@@ -7,5 +7,7 @@ int main() {
 
   ASSERT(res == 314);
 
+  TEST_PASS();
+
   return 0;
 }
