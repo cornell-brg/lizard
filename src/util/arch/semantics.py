@@ -136,6 +136,10 @@ class RV64GSemantics( object ):
     s.R[ rd ] = s.R[ rs1 ] + sext( i_imm )
 
   @instr
+  def execute_addiw( s, rd, rs1, i_imm ):
+    s.R[ rd ] = sext( s.R[ rs1 ][:32 ] + sext( i_imm )[:32 ] )
+
+  @instr
   def execute_slti( s, rd, rs1, i_imm ):
     s.R[ rd ] = s.R[ rs1 ].int() < i_imm.int()
 
