@@ -56,8 +56,10 @@ class ProcTestHarnessCL( Model ):
       # For all other sections, simply copy them into the memory
       else:
         start_addr = section.addr
-        stop_addr = section.addr + len( section.data )
-        self.mem.mem[ start_addr:stop_addr ] = section.data
+        temp = bytearray()
+        temp.extend( section.data )
+        for i in range( len( section.data ) ):
+          self.mem.mem[ start_addr + i ] = temp[ i ]
 
   def cleanup( s ):
     s.mem.cleanup()
