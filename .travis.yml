@@ -42,7 +42,7 @@ install:
  - pip -q install git+https://github.com/wizard97/yapf.git
  - pip -q install futures
  - pip -q install hypothesis
- - pip list
+ - pip list --format=columns
 
 before_script:
  - .travis/build-riscv-gnu-toolchain
