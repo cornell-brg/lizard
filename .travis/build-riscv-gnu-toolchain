@@ -2,9 +2,8 @@
 
 set -e
 set -v
-set -x
 
-RISCV_GNU_TOOLCHAIN_HOME="$TRAVIS_BUILD_DIR/riscv-gnu-toolchain"
+RISCV_GNU_TOOLCHAIN_HOME="$(realpath -m "$TRAVIS_BUILD_DIR/riscv-gnu-toolchain")"
 mkdir -p "$RISCV_GNU_TOOLCHAIN_HOME"
 
 # If the toolchain exists and is not empty, travis got it from the cache
@@ -12,8 +11,8 @@ if [ -n "$(ls -A "$RISCV_GNU_TOOLCHAIN_HOME")" ]; then
   exit 0
 fi
 
-RISCV_GNU_TOOLCHAIN_SOURCE="$(realpath "$RISCV_GNU_TOOLCHAIN_HOME/src")"
-RISCV_GNU_TOOLCHAIN_BUILD="$(realpath "$RISCV_GNU_TOOLCHAIN_HOME/build")"
+RISCV_GNU_TOOLCHAIN_SOURCE="$RISCV_GNU_TOOLCHAIN_HOME/src"
+RISCV_GNU_TOOLCHAIN_BUILD="$RISCV_GNU_TOOLCHAIN_HOME/build"
 
 mkdir -p "$RISCV_GNU_TOOLCHAIN_SOURCE"
 mkdir -p "$RISCV_GNU_TOOLCHAIN_BUILD"
