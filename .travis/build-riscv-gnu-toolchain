@@ -1,6 +1,8 @@
 #! /bin/bash
 
 set -e
+set -v
+set -x
 
 RISCV_GNU_TOOLCHAIN_HOME="$TRAVIS_BUILD_DIR/riscv-gnu-toolchain"
 mkdir -p "$RISCV_GNU_TOOLCHAIN_HOME"
