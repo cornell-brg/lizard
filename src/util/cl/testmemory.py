@@ -34,7 +34,7 @@ class TestMemoryCL( Model ):
     assert mem_ifc_dtypes.req.data.nbits % 8 == 0
     assert mem_ifc_dtypes.resp.data.nbits % 8 == 0
 
-    s.mem = bytearray( mem_nbytes )
+    s.mem = {}
 
     s.mk_rd_resp = mem_ifc_dtypes.resp.mk_rd
     s.mk_wr_resp = mem_ifc_dtypes.resp.mk_wr
@@ -62,7 +62,8 @@ class TestMemoryCL( Model ):
           # Copy the bytes from the bytearray into read data bits
           read_data = Bits( s.data_nbits )
           for j in range( nbytes ):
-            read_data[ j * 8:j * 8 + 8 ] = s.mem[ memreq.addr + j ]
+            read_data[ j * 8:j * 8 + 8 ] = s.mem.get(
+                int( memreq.addr + j ), 0 )
 
           resp_q.enq( s.mk_rd_resp( memreq.opaque, memreq.len, read_data ) )
         elif memreq.type_ == MemReqMsg.TYPE_WRITE:
@@ -70,7 +71,8 @@ class TestMemoryCL( Model ):
           write_data = memreq.data
           assert ( memreq.addr < len( s.mem ) )  # Out of bounds
           for j in range( nbytes ):
-            s.mem[ memreq.addr + j ] = write_data[ j * 8:j * 8 + 8 ].uint()
+            s.mem[ int( memreq.addr + j ) ] = write_data[ j * 8:j * 8 +
+                                                          8 ].uint()
 
           resp_q.enq( s.mk_wr_resp( memreq.opaque, 0 ) )
         elif ( memreq.type_ == MemReqMsg.TYPE_AMO_ADD or
@@ -83,13 +85,15 @@ class TestMemoryCL( Model ):
           # Copy the bytes from the bytearray into read data bits
           read_data = Bits( s.data_nbits )
           for j in range( nbytes ):
-            read_data[ j * 8:j * 8 + 8 ] = s.mem[ memreq.addr + j ]
+            read_data[ j * 8:j * 8 + 8 ] = s.mem.get(
+                int( memreq.addr + j ), 0 )
 
           write_data = AMO_FUNS[ memreq.type_.uint() ]( read_data, req_data )
 
           # Copy write data bits into bytearray
           for j in range( nbytes ):
-            s.mem[ memreq.addr + j ] = write_data[ j * 8:j * 8 + 8 ].uint()
+            s.mem[ int( memreq.addr + j ) ] = write_data[ j * 8:j * 8 +
+                                                          8 ].uint()
 
           resp_q.enq(
               s.mk_misc_resp( memreq.type_, memreq.opaque, memreq.len,
@@ -132,7 +136,7 @@ class TestMemoryCL( Model ):
     return s.mem[ addr:addr + size ]
 
   def cleanup( s ):
-    del s.mem[: ]
+    pass
 
 
 #-------------------------------------------------------------------------
