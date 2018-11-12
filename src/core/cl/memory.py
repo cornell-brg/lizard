@@ -55,21 +55,6 @@ class MemoryUnitCL( Model ):
       return
     s.current = s.issued_q.deq()
 
-    # verify instruction still alive
-    creq = TagValidRequest()
-    creq.tag = s.current.tag
-    cresp = s.controlflow.tag_valid( creq )
-    if not cresp.valid:
-      s.current.status = PacketStatus.SQUASHED
-
-    if s.current.status != PacketStatus.ALIVE:
-      result = ExecutePacket()
-      copy_common_bundle( s.current, result )
-      result.opcode = s.current.opcode
-      copy_field_valid_pair( s.current, result, 'rd' )
-      s.result_q.enq( result )
-      return
-
     # Memory message length is number of bytes, with 0 = all (overlow)
     addr = s.current.rs1 + sext( s.current.imm, XLEN )
     byte_len = Bits(

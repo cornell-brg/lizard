@@ -1,5 +1,5 @@
 CC=riscv64-unknown-elf-gcc
-CFLAGS= -I. -nostdlib -nostartfiles -static -O1 -march=rv64g
+CFLAGS= -I. -nostdlib -nostartfiles -static -O0 -march=rv64g
 SOURCES = $(wildcard *.c)
 OBJECTS = $(patsubst %.c,%.out,$(wildcard *.c))
 RESET_VECTOR = 0x200

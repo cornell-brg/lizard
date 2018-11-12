@@ -11,7 +11,7 @@ from util.arch.rv64g import DATA_PACK_DIRECTIVE
 from core.fl.proc import ProcFL
 
 from config.general import *
-from msg.mem import MemMsg4B
+from msg.mem import MemMsg8B
 from util import line_block
 from util.line_block import Divider
 
@@ -23,7 +23,7 @@ class ProcTestHarnessFL( Model ):
     s.src = TestSource( XLEN, [], 0 )
     s.sink = TestSink( XLEN, [], 0 )
     s.proc = ProcFL()
-    s.mem = TestMemory( MemMsg4B, 2, 0, 0 )
+    s.mem = TestMemory( MemMsg8B, 2, 0, 0 )
 
     s.connect( s.proc.mngr2proc, s.src.out )
     s.connect( s.proc.proc2mngr, s.sink.in_ )

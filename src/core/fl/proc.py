@@ -5,7 +5,7 @@ from pclib.fl import BytesMemPortAdapter
 
 from util.arch.semantics import RV64GSemantics
 from config.general import *
-from msg.mem import MemMsg4B
+from msg.mem import MemMsg8B
 
 
 class ProcFL( Model ):
@@ -14,11 +14,11 @@ class ProcFL( Model ):
     s.mngr2proc = InValRdyBundle( XLEN )
     s.proc2mngr = OutValRdyBundle( XLEN )
 
-    s.imemreq = OutValRdyBundle( MemMsg4B.req )
-    s.imemresp = InValRdyBundle( MemMsg4B.resp )
+    s.imemreq = OutValRdyBundle( MemMsg8B.req )
+    s.imemresp = InValRdyBundle( MemMsg8B.resp )
 
-    s.dmemreq = OutValRdyBundle( MemMsg4B.req )
-    s.dmemresp = InValRdyBundle( MemMsg4B.resp )
+    s.dmemreq = OutValRdyBundle( MemMsg8B.req )
+    s.dmemresp = InValRdyBundle( MemMsg8B.resp )
 
     s.mngr2proc_q = InValRdyQueueAdapter( s.mngr2proc )
     s.proc2mngr_q = OutValRdyQueueAdapter( s.proc2mngr )
