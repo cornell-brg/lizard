@@ -1,10 +1,10 @@
 CC=riscv64-unknown-elf-gcc
-CFLAGS= -I. -nostdlib -nostartfiles -O0 -march=rv64g
+CFLAGS= -I. -nostdlib -nostartfiles -O1 -march=rv64g
 TESTS = basic.out
 RESET_VECTOR=0x200
 
 %.out: %.c $(DEPS)
-	$(CC) -o $@ $< $(CFLAGS) -Wl,--section-start,.text=$(RESET_VECTOR)
+	$(CC) -o $@ $< $(CFLAGS) -Wl,--section-start,.start=$(RESET_VECTOR)
 
 all: $(TESTS)
 
