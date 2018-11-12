@@ -19,5 +19,5 @@ mkdir -p "$RISCV_GNU_TOOLCHAIN_BUILD"
 
 git clone --depth=1 --recursive https://github.com/riscv/riscv-gnu-toolchain "$RISCV_GNU_TOOLCHAIN_SOURCE"
 cd "$RISCV_GNU_TOOLCHAIN_SOURCE"
-./configure --prefix="$RISCV_GNU_TOOLCHAIN_BUILD" --with-arch=rv64im --with-abi=lp64
-make -j "$(nproc)"
+./configure --prefix="$RISCV_GNU_TOOLCHAIN_BUILD" --with-arch=rv64im --with-abi=lp64 &> /dev/null
+make -j "$(nproc)" &> /dev/null

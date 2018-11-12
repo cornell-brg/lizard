@@ -45,7 +45,7 @@ install:
  - pip list --format=columns
 
 before_script:
- - .travis/build-riscv-gnu-toolchain
+ - travis_wait 60 .travis/build-riscv-gnu-toolchain
  - export PATH="$TRAVIS_BUILD_DIR/riscv-gnu-toolchain/build/bin:$PATH"
  - mkdir -p build
  - cd build

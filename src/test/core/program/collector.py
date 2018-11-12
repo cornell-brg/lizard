@@ -10,7 +10,7 @@ def collect():
   return ( dir_path, names )
 
 
-def build( fname ):
-  oname = fname + ".out"
-  call([ "make", "-C", dir_path, oname ] )
+def build( fname, opt_level ):
+  oname = fname + "-%d.out" % opt_level
+  call([ "make", "-C", dir_path, 'OPT_LEVEL=%d' % opt_level, oname ] )
   return dir_path + '/' + oname
