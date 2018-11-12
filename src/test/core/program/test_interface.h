@@ -43,3 +43,11 @@ __attribute__((weak)) __attribute__((section(".start"))) __attribute__ ((naked))
                 "j again\n"
                 );
 }
+
+// Our dummy exception handler
+__attribute__((section(".exception_handler"))) void _exception_handler() {
+  int x = -1;
+  TEST_SINK(x);
+  // Loop forever
+  while(1);
+}
