@@ -3,6 +3,14 @@ language: python
 python:
  - "2.7"
 
+cache:
+  directories:
+   - riscv-gnu-toolchain
+
+before_install:
+ - sudo apt-get update
+ - sudo apt-get install -y autoconf automake autotools-dev curl libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison flex texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev
+
 install:
  # Install verilator
  - git clone https://github.com/cornell-brg/verilator-travisci-cache.git
@@ -11,15 +19,15 @@ install:
  - export PATH=${VERILATOR_ROOT}/bin:$PATH
  - export PYMTL_VERILATOR_INCLUDE_DIR=${VERILATOR_ROOT}/include
  - verilator --version
- # Install PyMTL
  - pip -q install git+https://github.com/cornell-brg/pymtl.git
- # Install YAPF formatter
  - pip -q install git+https://github.com/wizard97/yapf.git
  - pip -q install futures
  - pip -q install hypothesis
  - pip list
 
 before_script:
+ - .travis/build-riscv-gnu-toolchain
+ - export PATH="$TRAVIS_BUILD_DIR/riscv-gnu-toolchain/build/bin:$PATH"
  - mkdir -p build
  - cd build
 
