@@ -150,7 +150,7 @@ class DecodeUnitCL( Model ):
     res.rd_valid = 1
 
     if ( inst[ RVInstMask.FUNCT3 ] == 0b000 ):  # Special case for addiw
-      res.inst = RVInstMask.ADDIW
+      res.inst = RV64Inst.ADDIW
       res.imm = sext( inst[ RVInstMask.I_IMM ], DECODED_IMM_LEN )
     else:
       func3 = int( inst[ RVInstMask.FUNCT3 ] )
