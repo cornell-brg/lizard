@@ -72,22 +72,22 @@ def run_test( TestHarness, gen_test, max_cycles=50000000, extra_cycles=3 ):
   mem_image = assemble( asm )
 
   # Run the test
-  run_test_image(TestHarness, mem_image, max_cycles, extra_cycles)
-
-
+  run_test_image( TestHarness, mem_image, max_cycles, extra_cycles )
 
 
 #=========================================================================
 # run_test_bin: Run a test from an elf binary
 #=========================================================================
 def run_test_elf( TestHarness, elf_file, max_cycles=50000000, extra_cycles=3 ):
-  with open(elf_file, "rb") as fd:
-    mem = elf.elf_reader(fd, True)
-    run_test_image(TestHarness, mem, max_cycles, extra_cycles)
+  with open( elf_file, "rb" ) as fd:
+    mem = elf.elf_reader( fd, True )
+    run_test_image( TestHarness, mem, max_cycles, extra_cycles )
 
 
-
-def run_test_image(TestHarness, mem_image, max_cycles=50000000, extra_cycles=3):
+def run_test_image( TestHarness,
+                    mem_image,
+                    max_cycles=50000000,
+                    extra_cycles=3 ):
   # Instantiate and elaborate the model
   model = TestHarness()
 

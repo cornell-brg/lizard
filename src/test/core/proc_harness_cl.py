@@ -41,7 +41,7 @@ class ProcTestHarnessCL( Model ):
     for section in sections:
       # For .mngr2proc sections, copy section into mngr2proc src
       if section.name == ".mngr2proc":
-        print(len( section.data ))
+        print( len( section.data ) )
         for i in xrange( 0, len( section.data ), XLEN_BYTES ):
           bits = struct.unpack_from( DATA_PACK_DIRECTIVE,
                                      buffer( section.data, i,
