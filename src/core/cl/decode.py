@@ -163,7 +163,6 @@ class DecodeUnitCL( Model ):
       }
       res.inst = insts[( func3, func7 ) ]
       res.imm = inst[ RVInstMask.SHAMT32 ]
-      print( res.imm )
     return res
 
   def dec_op_32( s, inst, res ):
