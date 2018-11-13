@@ -35,7 +35,7 @@ class ImmFormat( FieldFormat ):
                                                    "   " ) ).strip().split()
       value = Bits( XLEN, sym[ arg ] )
       if "_" in directive:
-        variant, directive = directive.split( "_" )
+        directive, variant = directive.split( "_" )
         assert variant == "pcrel"
         value -= pc
       result = value[ self.directives[ directive ] ]
@@ -309,7 +309,7 @@ encoding_table = isa.expand_encoding( [
 
 pseudo_instruction_table = isa.expand_pseudo_spec( [
   # pseudo instruction    base instruction
-  ( "la rd, symbol",      [ "auipc $rd, %hi[$symbol]", "addi $rd, %lw[$symbol]" ] ),
+  ( "la rd, symbol",      [ "lui $rd, %hi[$symbol]", "addi $rd, $rd, %lo[$symbol]" ] ),
   ( "nop",                [ "addi x0, x0, 0" ] ),
   ( "j j_imm",            [ "jal x0, $j_imm" ] ),
   ( "csrr rd, csrnum",    [ "csrrs $rd, $csrnum, x0" ] ),
