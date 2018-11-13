@@ -10,6 +10,12 @@ def collect():
   return ( dir_path, names )
 
 
+def collect_bin():
+  os.chdir( dir_path + "/bin" )
+  names = glob.glob( "rv64ui*" )
+  return ( dir_path + "/bin/", names )
+
+
 def build( fname, opt_level ):
   oname = fname + "-%d.out" % opt_level
   call([ "make", "-C", dir_path, 'OPT_LEVEL=%d' % opt_level, oname ] )
