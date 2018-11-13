@@ -1,0 +1,17 @@
+#! /bin/bash
+
+set -e
+
+VERSION="riscv-gnu-toolchain-2018-11-13T0508S04-0f59d24"
+URL="https://cornell.box.com/shared/static/gc8lrlft0pvple0w54uraieq0bz8ybdd.gz"
+OUT_DIR="riscv-gnu-toolchain"
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+
+mkdir -p "$OUT_DIR"
+wget -O "$OUT_DIR/$VERSION.tar.gz" "$URL"
+cp "$DIR/$VERSION.sha512" "$OUT_DIR/"
+pushd "$OUT_DIR" &>/dev/null
+sha512sum -c "$VERSION.sha512"
+tar -zxvf "$VERSION.tar.gz"
+popd &>/dev/null
