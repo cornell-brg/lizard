@@ -105,7 +105,7 @@ class RV64GSemantics( object ):
 
   @instr
   def execute_sll( s, rd, rs1, rs2 ):
-    s.R[ rd ] = s.R[ rs1 ] << ( s.R[ rs2 ].uint() & 0x1F )
+    s.R[ rd ] = s.R[ rs1 ] << ( s.R[ rs2 ].uint() & 0x3F )
 
   @instr
   def execute_slt( s, rd, rs1, rs2 ):
@@ -121,11 +121,11 @@ class RV64GSemantics( object ):
 
   @instr
   def execute_srl( s, rd, rs1, rs2 ):
-    s.R[ rd ] = s.R[ rs1 ] >> ( s.R[ rs2 ].uint() & 0x1F )
+    s.R[ rd ] = s.R[ rs1 ] >> ( s.R[ rs2 ].uint() & 0x3F )
 
   @instr
   def execute_sra( s, rd, rs1, rs2 ):
-    s.R[ rd ] = s.R[ rs1 ].int() >> ( s.R[ rs2 ].uint() & 0x1F )
+    s.R[ rd ] = s.R[ rs1 ].int() >> ( s.R[ rs2 ].uint() & 0x3F )
 
   @instr
   def execute_or( s, rd, rs1, rs2 ):
@@ -240,6 +240,16 @@ class RV64GSemantics( object ):
   def execute_sd( s, rs1, rs2, s_imm ):
     addr = s.R[ rs1 ] + sext( s_imm )
     s.M[ addr:addr + 8 ] = s.R[ rs2 ][ 0:64 ]
+
+  @instr
+  def execute_fence_i( s ):
+    # fence_i is NOP since we have no pipeline
+    pass
+
+  @instr
+  def execute_fence( s ):
+    # fence is NOP since we have no pipeline
+    pass
 
   @instr
   def execute_jal( s, rd, j_imm ):
@@ -369,8 +379,9 @@ class RV64GSemantics( object ):
     s.PC = target
 
   def execute( self, inst ):
-    foo = getattr( self, 'execute_{}'.format(
-        self.isa.decode_inst_name( inst ) ) )
+    foo = getattr(
+        self, 'execute_{}'.format(
+            self.isa.decode_inst_name( inst ).replace( '.', '_' ) ) )
     result = foo( inst )
     if isinstance( result, ProcException ):
       self.handle_exception( inst, result )

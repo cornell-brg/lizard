@@ -124,9 +124,9 @@ def gen_srcs_dest_test():
 def gen_value_test():
   return [
       gen_rr_value_test( "srl", 0xff00ff00, 0xffffff0f, 0x0001FE01 ),
-      gen_rr_value_test( "srl", 0x0ff00ff0, 0x000000f0, 0x00000ff0 ),
+      gen_rr_value_test( "srl", 0x0ff00ff0, 0x000000f0, 0x00000000 ),
       gen_rr_value_test( "srl", 0x00ff00ff, 0xfffff00f, 0x000001fe ),
-      gen_rr_value_test( "srl", 0xf00ff00f, 0x00000ff0, 0x0000f00f ),
+      gen_rr_value_test( "srl", 0xf00ff00f, 0x00000ff0, 0x00000000 ),
   ]
 
 
@@ -140,7 +140,7 @@ def gen_random_test():
   for i in xrange( 100 ):
     src0 = Bits( XLEN, random.randint( 0, 0xffffffff ) )
     src1 = Bits( XLEN, random.randint( 0, 0xffffffff ) )
-    temp = src0.uint() >> ( src1.uint() & 0x1F )
+    temp = src0.uint() >> ( src1.uint() & 0x3F )
     dest = Bits( XLEN, temp, trunc=True )
     asm_code.append(
         gen_rr_value_test( "srl", src0.uint(), src1.uint(), dest.uint() ) )
