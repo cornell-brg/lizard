@@ -12,7 +12,7 @@ def collect():
 
 def collect_bin():
   os.chdir( dir_path + "/bin" )
-  names = glob.glob( "rv64ui*" )
+  names = glob.glob( "rv64u*" )
   return ( dir_path + "/bin/", names )
 
 
