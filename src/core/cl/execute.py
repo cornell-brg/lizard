@@ -54,7 +54,7 @@ class ExecuteUnitCL( Model ):
       else:
         s.work.result = 0
     elif s.current.inst == RV64Inst.SLTIU:
-      if s.current.rs1.uint() < s.current.imm.uint():
+      if s.current.rs1.uint() < sext( s.current.imm, XLEN ).uint():
         s.work.result = 1
       else:
         s.work.result = 0
@@ -79,13 +79,13 @@ class ExecuteUnitCL( Model ):
       s.work.result = s.current.rs1 - s.current.rs2
     elif s.current.inst == RV64Inst.SLL:
       s.work.result = Bits(
-          XLEN, s.current.rs1 << s.current.rs2[:5 ], trunc=True )
+          XLEN, s.current.rs1 << s.current.rs2[:6 ].uint(), trunc=True )
     elif s.current.inst == RV64Inst.SRL:
       s.work.result = Bits(
-          XLEN, s.current.rs1.uint() >> s.current.rs2[:5 ].uint(), trunc=True )
+          XLEN, s.current.rs1.uint() >> s.current.rs2[:6 ].uint(), trunc=True )
     elif s.current.inst == RV64Inst.SRA:
       s.work.result = Bits(
-          XLEN, s.current.rs1.int() >> s.current.rs2[:5 ].uint(), trunc=True )
+          XLEN, s.current.rs1.int() >> s.current.rs2[:6 ].uint(), trunc=True )
     elif s.current.inst == RV64Inst.SLT:
       s.work.result = int( s.current.rs1.int() < s.current.rs2.int() )
     elif s.current.inst == RV64Inst.SLTU:
@@ -199,9 +199,13 @@ class ExecuteUnitCL( Model ):
     elif s.current.inst == RV64Inst.ADDIW:
       s.work.result = sext( s.current.rs1[:32 ] + s.current.imm[:32 ], XLEN )
     elif s.current.inst == RV64Inst.SLLIW:
-      s.work.result = sext( s.current.rs1[:32 ] << s.current.imm, XLEN )
+      s.work.result = sext(
+          Bits(
+              32,
+              s.current.rs1[:32 ].int() << s.current.imm.uint(),
+              trunc=True ), XLEN )
     elif s.current.inst == RV64Inst.SRLIW:
-      s.work.result = sext( s.current.rs1[:32 ] >> s.current.imm, XLEN )
+      s.work.result = sext( s.current.rs1[:32 ] >> s.current.imm.uint(), XLEN )
     elif s.current.inst == RV64Inst.SRAIW:
       s.work.result = Bits(
           XLEN, s.current.rs1[:32 ].int() >> s.current.imm.uint(), trunc=True )
