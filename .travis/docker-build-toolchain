@@ -1,0 +1,5 @@
+#! /bin/bash
+
+DOCKER_WORKING_DIR="/work"
+
+docker run -i -t --rm -v "$PWD":"$DOCKER_WORKING_DIR" -w "$DOCKER_WORKING_DIR" ubuntu:14.04 "$DOCKER_WORKING_DIR/docker_script" "$(id -u)" "$(id -g)"
