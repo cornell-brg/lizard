@@ -1,14 +1,20 @@
 #! /bin/bash
 
 set -e
-set -v
 
-RISCV_GNU_TOOLCHAIN_HOME="$TRAVIS_BUILD_DIR/riscv-gnu-toolchain"
-mkdir -p "$(realpath "$RISCV_GNU_TOOLCHAIN_HOME")"
+echo "UID: $(id -u) GID: $(id -g)"
 
-# If the toolchain exists and is not empty, travis got it from the cache
+RISCV_GNU_TOOLCHAIN_HOME="$1"
+
+mkdir -p "$1"
+RISCV_GNU_TOOLCHAIN_HOME="$(realpath "$1")"
+
+mkdir -p "$2"
+OUT_DIR="$(realpath "$2")"
+
 if [ -n "$(ls -A "$RISCV_GNU_TOOLCHAIN_HOME")" ]; then
-  exit 0
+  echo "work dir not empty"
+  exit 1
 fi
 
 RISCV_GNU_TOOLCHAIN_SOURCE="$RISCV_GNU_TOOLCHAIN_HOME/src"
@@ -17,7 +23,14 @@ RISCV_GNU_TOOLCHAIN_BUILD="$RISCV_GNU_TOOLCHAIN_HOME/build"
 mkdir -p "$RISCV_GNU_TOOLCHAIN_SOURCE"
 mkdir -p "$RISCV_GNU_TOOLCHAIN_BUILD"
 
-git clone --depth=1 --recursive https://github.com/riscv/riscv-gnu-toolchain "$RISCV_GNU_TOOLCHAIN_SOURCE"
+git clone --depth=1 https://github.com/riscv/riscv-gnu-toolchain "$RISCV_GNU_TOOLCHAIN_SOURCE"
 cd "$RISCV_GNU_TOOLCHAIN_SOURCE"
-./configure --prefix="$RISCV_GNU_TOOLCHAIN_BUILD" --with-arch=rv64im --with-abi=lp64 &> /dev/null
-make -j "$(nproc)" &> /dev/null
+git submodule update --init --recursive
+./configure --prefix="$RISCV_GNU_TOOLCHAIN_BUILD" --with-arch=rv64im --with-abi=lp64
+make -j "$(nproc)"
+
+DATE_STAMP="$(date +"%Y-%m-%dT%H%MS%S")"
+TAR_NAME="$OUT_DIR/riscv-gnu-toolchain-$DATE_STAMP"
+cd "$RISCV_GNU_TOOLCHAIN_BUILD"
+tar -zcvf "$TAR_NAME" .
+mv "$TAR_NAME" "$TAR_NAME-$(sha512sum "$TAR_NAME" | head -c 7).tar.gz"
