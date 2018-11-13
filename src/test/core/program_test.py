@@ -18,7 +18,8 @@ proc_dict = dict([( x.__name__, x ) for x in procs ] )
 opt_levels = range( 4 )
 dir, tests = collector.collect()
 
-dir_bin, tests_bin = collector.collect_bin()
+collector.build_riscv_tests()
+dir_bin, tests_bin = collector.collect_riscv_tests()
 
 
 @pytest.mark.parametrize( 'opt_level', opt_levels )
