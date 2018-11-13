@@ -2,7 +2,7 @@ OPT_LEVEL=0
 CC=riscv64-unknown-elf-gcc
 # Make sure to build tools with: ./configure --prefix=/opt/riscv --with-arch=rv64im --with-abi=lp64
 #CFLAGS= -I. -nostdlib -nostartfiles -static -march=rv64im -mabi=lp64 -O0
-CFLAGS= -I. -nostartfiles -static -march=rv64im -mabi=lp64 -O$(OPT_LEVEL)
+CFLAGS= -I. -static -march=rv64im -mabi=lp64 -O$(OPT_LEVEL)
 
 OBJECTS = $(patsubst %.c,%-$(OPT_LEVEL).out,$(wildcard *.c))
 RESET_VECTOR = 0x200
