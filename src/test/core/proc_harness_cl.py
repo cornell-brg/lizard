@@ -55,11 +55,9 @@ class ProcTestHarnessCL( Model ):
           self.sink.sink.msgs.append( Bits( XLEN, bits ) )
       # For all other sections, simply copy them into the memory
       else:
-        start_addr = section.addr
         temp = bytearray()
         temp.extend( section.data )
-        for i in range( len( section.data ) ):
-          self.mem.mem[ start_addr + i ] = temp[ i ]
+        self.mem.write_mem( section.addr, temp )
 
   def cleanup( s ):
     s.mem.cleanup()
