@@ -6,11 +6,12 @@ CFLAGS= -I. -nostartfiles -static -march=rv64im -mabi=lp64 -O$(OPT_LEVEL)
 
 OBJECTS = $(patsubst %.c,%-$(OPT_LEVEL).out,$(wildcard *.c))
 RESET_VECTOR = 0x200
+EXCEPTION_VECTOR = 0x0
 
 all: $(OBJECTS)
 
 $(OBJECTS): %-$(OPT_LEVEL).out: %.c
-	$(CC) -o $@ $< $(CFLAGS) -Wl,--section-start,.start=$(RESET_VECTOR)
+	$(CC) -o $@ $< $(CFLAGS) -Wl,--section-start,.start=$(RESET_VECTOR),--section-start,.exception_handler=$(EXCEPTION_VECTOR)
 
 all: $(TESTS)
 
