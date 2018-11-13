@@ -7,6 +7,10 @@ from functools import wraps
 from util.arch import rv64g
 
 
+def sign( num ):
+  return ( 1, -1 )[ num < 0 ]
+
+
 def sext( bits ):
   return helpers.sext( bits, XLEN )
 
