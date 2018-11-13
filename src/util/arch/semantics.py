@@ -335,6 +335,14 @@ class RV64GSemantics( object ):
   def execute_invld( s ):
     return ProcException( ExceptionCode.ILLEGAL_INSTRUCTION )
 
+  @instr
+  def execute_ecall( s ):
+    return ProcException( ExceptionCode.ENVIRONMENT_CALL_FROM_U )
+
+  @instr
+  def execute_ebreak( s ):
+    return ProcException( ExceptionCode.BREAKPOINT )
+
   def handle_exception( s, instr, packet ):
     s.CSR[ CsrRegisters.mtval ] = instr
     s.CSR[ CsrRegisters.mcause ] = packet.mcause

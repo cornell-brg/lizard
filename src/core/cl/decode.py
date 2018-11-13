@@ -203,23 +203,30 @@ class DecodeUnitCL( Model ):
         0b111: RV64Inst.CSRRCI,
     }
 
-    res.inst = insts[ func3 ]
-    if func3 >> 2 == 0:
-      res.rs1 = inst[ RVInstMask.RS1 ]
-      res.rs1_valid = 1
-    else:
-      res.imm = zext( inst[ RVInstMask.RS1 ], DECODED_IMM_LEN )
-    res.rs2_valid = 0
-    res.rd = inst[ RVInstMask.RD ]
-    res.rd_valid = 1
+    if func3 in insts:
+      res.inst = insts[ func3 ]
+      if func3 >> 2 == 0:
+        res.rs1 = inst[ RVInstMask.RS1 ]
+        res.rs1_valid = 1
+      else:
+        res.imm = zext( inst[ RVInstMask.RS1 ], DECODED_IMM_LEN )
+      res.rs2_valid = 0
+      res.rd = inst[ RVInstMask.RD ]
+      res.rd_valid = 1
 
-    res.csr = inst[ RVInstMask.CSRNUM ]
-    res.csr_valid = 1
+      res.csr = inst[ RVInstMask.CSRNUM ]
+      res.csr_valid = 1
 
-    # if the instruction modifies a CSR, it must be unique:
-    # the pipeline must drain before it can issue
-    if func3 != 0:
+      # if the instruction modifies a CSR, it must be unique:
+      # the pipeline must drain before it can issue
       res.unique = 1
+    else:
+      i_imm = int( inst[ RVInstMask.I_IMM ] )
+      insts = {
+          0: RV64Inst.ECALL,
+          1: RV64Inst.EBREAK,
+      }
+      res.inst = insts[ i_imm ]
 
     return res
 
