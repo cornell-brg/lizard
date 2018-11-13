@@ -6,6 +6,7 @@ from msg.execute import *
 from msg.control import *
 from util.cl.ports import InValRdyCLPort, OutValRdyCLPort
 from util.line_block import LineBlock
+from util.arch.semantics import sign
 from copy import deepcopy
 
 
@@ -113,17 +114,18 @@ class ExecuteUnitCL( Model ):
           trunc=True )
     elif s.current.inst == RV64Inst.DIV:
       if ( s.current.rs2.int() == 0 ):
-        s.work.result = sext( 1, XLEN )
+        s.work.result = Bits( XLEN, -1, trunc=True )
       # Special overflow case
       elif ( s.current.rs1.int() == -2**( XLEN - 1 ) and
              s.current.rs2.int() == -1 ):
         s.work.result = s.current.rs1
       else:
-        s.work.result = Bits(
-            XLEN, s.current.rs1.int() // s.current.rs2.int(), trunc=True )
+        res = abs( s.current.rs1.int() ) // abs( s.current.rs2.int() )
+        sn = sign( s.current.rs1.int() ) * sign( s.current.rs2.int() )
+        s.work.result = Bits( XLEN, sn * res, trunc=True )
     elif s.current.inst == RV64Inst.DIVU:
       if ( s.current.rs2.int() == 0 ):
-        s.work.result = sext( 1, XLEN )
+        s.work.result = Bits( XLEN, -1, trunc=True )
       else:
         s.work.result = Bits(
             XLEN, s.current.rs1.uint() // s.current.rs2.uint(), trunc=True )
