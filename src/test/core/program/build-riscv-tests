@@ -1,0 +1,20 @@
+#! /bin/bash
+
+set -e
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+cd "$DIR/riscv-tests"
+
+autoconf
+./configure
+
+pushd env &>/dev/null
+git apply < "$DIR/riscv-tests-env.patch"
+popd &>/dev/null
+
+pushd isa &>/dev/null
+make -j "$(nproc)"
+popd &>/dev/null
+
+pushd env &>/dev/null
+git reset --hard &>/dev/null
+popd &>/dev/null

@@ -1,0 +1,97 @@
+diff --git a/p/link.ld b/p/link.ld
+index b3e315e..2ad2000 100644
+--- a/p/link.ld
++++ b/p/link.ld
+@@ -3,7 +3,7 @@ ENTRY(_start)
+ 
+ SECTIONS
+ {
+-  . = 0x80000000;
++  . = 0x200;
+   .text.init : { *(.text.init) }
+   . = ALIGN(0x1000);
+   .tohost : { *(.tohost) }
+@@ -12,6 +12,6 @@ SECTIONS
+   . = ALIGN(0x1000);
+   .data : { *(.data) }
+   .bss : { *(.bss) }
++  .proc2mngr : { *(.proc2mngr) }
+   _end = .;
+ }
+-
+diff --git a/p/riscv_test.h b/p/riscv_test.h
+index 7cb00d5..9c12caa 100644
+--- a/p/riscv_test.h
++++ b/p/riscv_test.h
+@@ -4,6 +4,9 @@
+ #define _ENV_PHYSICAL_SINGLE_CORE_H
+ 
+ #include "../encoding.h"
++#define PROC2MNGR_REG 0x7C0
++#define MNGR2PROC_REG 0xFC0
++
+ 
+ //-----------------------------------------------------------------------
+ // Begin Macro
+@@ -107,6 +110,8 @@
+ #define INTERRUPT_HANDLER j other_exception /* No interrupts should occur */
+ 
+ #define RVTEST_CODE_BEGIN                                               \
++        .section .proc2mngr, "a";                                       \
++        .dword 0;                                                       \
+         .section .text.init;                                            \
+         .align  6;                                                      \
+         .weak stvec_handler;                                            \
+@@ -142,6 +147,7 @@ handle_exception:                                                       \
+         sw TESTNUM, tohost, t5;                                         \
+         j write_tohost;                                                 \
+ reset_vector:                                                           \
++/* Eventually we need to support this:
+         RISCV_MULTICORE_DISABLE;                                        \
+         INIT_SATP;                                                     \
+         INIT_PMP;                                                       \
+@@ -150,7 +156,7 @@ reset_vector:                                                           \
+         la t0, trap_vector;                                             \
+         csrw mtvec, t0;                                                 \
+         CHECK_XLEN;                                                     \
+-        /* if an stvec_handler is defined, delegate exceptions to it */ \
++        // if an stvec_handler is defined, delegate exceptions to it   \
+         la t0, stvec_handler;                                           \
+         beqz t0, 1f;                                                    \
+         csrw stvec, t0;                                                 \
+@@ -172,30 +178,26 @@ reset_vector:                                                           \
+         csrr a0, mhartid;                                               \
+         mret;                                                           \
+ 1:
+-
++*/
+ //-----------------------------------------------------------------------
+ // End Macro
+ //-----------------------------------------------------------------------
+ 
+ #define RVTEST_CODE_END                                                 \
+-        unimp
++        again:;                                                         \
++        j again;                                                        \
+ 
+ //-----------------------------------------------------------------------
+ // Pass/Fail Macro
+ //-----------------------------------------------------------------------
+ 
+ #define RVTEST_PASS                                                     \
+-        fence;                                                          \
+-        li TESTNUM, 1;                                                  \
+-        ecall
++        csrw PROC2MNGR_REG, 0;                                          \
+ 
+ #define TESTNUM gp
+ #define RVTEST_FAIL                                                     \
+-        fence;                                                          \
+ 1:      beqz TESTNUM, 1b;                                               \
+-        sll TESTNUM, TESTNUM, 1;                                        \
+-        or TESTNUM, TESTNUM, 1;                                         \
+-        ecall
++        csrw PROC2MNGR_REG, TESTNUM;
+ 
+ //-----------------------------------------------------------------------
+ // Data Section Macro
