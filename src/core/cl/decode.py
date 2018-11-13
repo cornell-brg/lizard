@@ -162,7 +162,8 @@ class DecodeUnitCL( Model ):
           ( 0b101, 0b0100000 ): RV64Inst.SRAIW,
       }
       res.inst = insts[( func3, func7 ) ]
-      res.imm = sext( inst[ RVInstMask.SHAMT32 ], DECODED_IMM_LEN )
+      res.imm = inst[ RVInstMask.SHAMT32 ]
+      print( res.imm )
     return res
 
   def dec_op_32( s, inst, res ):
