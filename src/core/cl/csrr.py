@@ -71,6 +71,12 @@ class CSRRUnitCL( Model ):
         # if the value of rs1 is zero but rs1 is not x0
         if value != 0:
           s.dataflow.write_csr( s.current.csr, s.work.result | value )
+    elif s.current.inst == RV64Inst.ECALL:
+      s.work.status = PacketStatus.EXCEPTION_TRIGGERED
+      s.work.mcause = ExceptionCode.ENVIRONMENT_CALL_FROM_U
+    elif s.current.inst == RV64Inst.EBREAK:
+      s.work.status = PacketStatus.EXCEPTION_TRIGGERED
+      s.work.mcause = ExceptionCode.BREAKPOINT
     else:
       raise NotImplementedError( 'Not implemented so sad: ' +
                                  RV64Inst.name( s.current.inst ) )

@@ -95,7 +95,6 @@ class ControlFlowManagerCL( Model ):
     # if not at commit, and not speculative, error
     assert request.at_commit or s.in_flight[ int(
         request.source_tag ) ].rename_table is not None
-
     # Guess was correct
     if s.in_flight[ int(
         request.source_tag
