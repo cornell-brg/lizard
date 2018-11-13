@@ -126,11 +126,11 @@ def gen_value_test():
       gen_rr_value_test( "sra", 0xffffffffff00ff00, 0xffffffffffffff0f,
                          0xfffffffffffffe01 ),
       gen_rr_value_test( "sra", 0x000000000ff00ff0, 0x00000000000000f0,
-                         0x0000000000000ff0 ),
+                         0x0000000000000000 ),
       gen_rr_value_test( "sra", 0x0000000000ff00ff, 0xfffffffffffff00f,
                          0x00000000000001fe ),
       gen_rr_value_test( "sra", 0xfffffffff00ff00f, 0x0000000000000ff0,
-                         0xfffffffffffff00f ),
+                         0xffffffffffffffff ),
   ]
 
 
@@ -144,7 +144,7 @@ def gen_random_test():
   for i in xrange( 100 ):
     src0 = Bits( XLEN, random.randint( 0, 0xffffffff ) )
     src1 = Bits( XLEN, random.randint( 0, 0xffffffff ) )
-    temp = src0.int() >> ( src1.uint() & 0x1F )
+    temp = src0.int() >> ( src1.uint() & 0x3F )
     dest = Bits( XLEN, temp, trunc=True )
     asm_code.append(
         gen_rr_value_test( "sra", src0.uint(), src1.uint(), dest.uint() ) )
