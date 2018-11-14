@@ -42,6 +42,7 @@ install:
  - pip -q install git+https://github.com/wizard97/yapf.git
  - pip -q install futures
  - pip -q install hypothesis
+ - pip -q install pytest-xdist
  - pip list --format=columns
 
 before_script:
@@ -51,5 +52,5 @@ before_script:
  - cd build
 
 script:
- - py.test --verbose ../src/test
+ - py.test -n auto --verbose ../src/test
  - ../src/format --diff
