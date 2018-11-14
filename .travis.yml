@@ -3,10 +3,6 @@ language: python
 python:
  - "2.7"
 
-cache:
-  directories:
-   - riscv-gnu-toolchain
-
 before_install:
  - sudo apt-get update
  - |
