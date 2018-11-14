@@ -44,6 +44,7 @@ install:
 before_script:
  - .travis/fetch-riscv-gnu-toolchain
  - export PATH="$TRAVIS_BUILD_DIR/riscv-gnu-toolchain/bin:$PATH"
+ - src/test/core/program/build-riscv-tests
  - mkdir -p build
  - cd build
 
