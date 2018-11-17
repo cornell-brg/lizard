@@ -6,7 +6,7 @@ from util.rtl.freelist import FreeList
 def test_basic():
   run_test_vector_sim(
       FreeList( 4 ), [
-          ( 'alloc_port.call alloc_port.ret.valid* alloc_port.ret.value* free_port.call free_port.arg'
+          ( 'alloc_port.call alloc_port.ret.valid* alloc_port.ret.index* free_port.call free_port.arg'
           ),
           ( 1, 1, 0, 0, 0 ),
           ( 1, 1, 1, 0, 0 ),
@@ -16,4 +16,5 @@ def test_basic():
           ( 1, 1, 0, 0, 0 ),
           ( 1, 1, 1, 1, 1 ),
       ],
-      dump_vcd=None )
+      dump_vcd=None,
+      test_verilog=True )
