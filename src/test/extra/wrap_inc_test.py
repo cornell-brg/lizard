@@ -1,11 +1,13 @@
 from pymtl import *
 from pclib.test import run_test_vector_sim
-from util.rtl.wrap_inc import WrapInc, WrapDec
+from util.rtl.wrap_inc import WrapInc, WrapIncVar
+
+pymtl_broken = False
 
 
 def test_inc_basic():
   run_test_vector_sim(
-      WrapInc( 2, 4 ), [
+      WrapInc( 2, 4, True ), [
           ( 'in_ out*' ),
           ( 0, 1 ),
           ( 1, 2 ),
@@ -13,12 +15,12 @@ def test_inc_basic():
           ( 3, 0 ),
       ],
       dump_vcd=None,
-      test_verilog=True )
+      test_verilog=not pymtl_broken )
 
 
 def test_dec_basic():
   run_test_vector_sim(
-      WrapDec( 2, 4 ), [
+      WrapInc( 2, 4, False ), [
           ( 'in_ out*' ),
           ( 0, 3 ),
           ( 1, 0 ),
@@ -26,4 +28,17 @@ def test_dec_basic():
           ( 3, 2 ),
       ],
       dump_vcd=None,
-      test_verilog=True )
+      test_verilog=not pymtl_broken )
+
+
+def test_inc_multi():
+  run_test_vector_sim(
+      WrapIncVar( 2, 4, True, 2 ), [
+          ( 'in_ ops out*' ),
+          ( 0, 0, 0 ),
+          ( 0, 1, 1 ),
+          ( 0, 2, 2 ),
+          ( 2, 2, 0 ),
+      ],
+      dump_vcd=None,
+      test_verilog=not pymtl_broken )
