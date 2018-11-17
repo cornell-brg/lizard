@@ -19,7 +19,7 @@ class FreeRequest( BitStructDefinition ):
 
 class FreeList( Model ):
 
-  def __init__( s, nslots ):
+  def __init__( s, nslots, used_slots_initial=0 ):
 
     nbits = clog2( nslots )
     s.AllocResponse = AllocResponse( nbits )
@@ -69,9 +69,9 @@ class FreeList( Model ):
     @s.tick_rtl
     def update():
       if s.reset:
-        s.head.n = 0
+        s.head.n = used_slots_initial
         s.tail.n = 0
-        s.size.n = 0
+        s.size.n = used_slots_initial
       else:
         s.head.n = s.head_next
         s.tail.n = s.tail_next
