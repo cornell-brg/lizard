@@ -1,6 +1,7 @@
 from pymtl import *
 from util.rtl.method import InMethodCallPortBundle
-from util.rtl.wrap_inc import WrapInc, WrapDec
+from util.rtl.wrap_inc import WrapInc
+from util.rtl.registerfile import RegisterFile
 from bitutil import clog2
 
 
@@ -19,52 +20,98 @@ class FreeRequest( BitStructDefinition ):
 
 class FreeList( Model ):
 
-  def __init__( s, nslots, used_slots_initial=0 ):
+  def __init__( s,
+                nslots,
+                num_alloc_ports,
+                num_free_ports,
+                used_slots_initial=0 ):
 
     nbits = clog2( nslots )
+    ncount_bits = clog2( nslots + 1 )
+
     s.AllocResponse = AllocResponse( nbits )
     s.FreeRequest = FreeRequest( nbits )
 
-    s.alloc_port = InMethodCallPortBundle( None, s.AllocResponse, False )
-    s.free_port = InMethodCallPortBundle( s.FreeRequest, None, False )
+    s.alloc_ports = [
+        InMethodCallPortBundle( None, s.AllocResponse, False )
+        for _ in range( num_alloc_ports )
+    ]
+    s.free_ports = [
+        InMethodCallPortBundle( s.FreeRequest, None, False )
+        for _ in range( num_free_ports )
+    ]
 
-    ncount_bits = clog2( nslots + 1 )
-    s.free = [ Wire( nbits ) for _ in range( nslots ) ]
+    s.free = RegisterFile( nbits, nslots, num_alloc_ports, num_free_ports,
+                           False, [ x for x in range( nslots ) ] )
     s.size = Wire( ncount_bits )
     s.head = Wire( nbits )
     s.tail = Wire( nbits )
 
-    s.write_idx = Wire( nbits )
-    s.write_value = Wire( nbits )
-    s.write_en = Wire( 1 )
+    s.alloc_size_next = [
+        Wire( ncount_bits ) for _ in range( num_alloc_ports )
+    ]
+    s.free_size_next = [ Wire( ncount_bits ) for _ in range( num_free_ports ) ]
+    s.head_next = [ Wire( nbits ) for _ in range( num_alloc_ports ) ]
+    s.tail_next = [ Wire( nbits ) for _ in range( num_free_ports ) ]
+    s.head_incs = [
+        WrapInc( nbits, nslots, True ) for _ in range( num_alloc_ports )
+    ]
+    s.tail_incs = [
+        WrapInc( nbits, nslots, True ) for _ in range( num_free_ports )
+    ]
 
-    s.free_delta = Wire( 1 )
-    s.alloc_delta = Wire( 1 )
-    s.size_next = Wire( ncount_bits )
-    s.size_after_free = Wire( ncount_bits )
+    for port in range( num_free_ports ):
+      if port == 0:
+        s.connect( s.tail_incs[ port ].in_, s.tail )
+      else:
+        s.connect( s.tail_incs[ port ].in_, s.tail_next[ port - 1 ] )
 
-    s.head_next = Wire( nbits )
-    s.tail_next = Wire( nbits )
+      @s.combinational
+      def handle_free( port=port ):
+        if port == 0:
+          base = s.size
+          ctail = s.tail
+        else:
+          base = s.free_size_next[ port - 1 ]
+          ctail = s.tail_next[ port - 1 ]
 
-    s.head_inc_value = Wire( nbits )
-    s.tail_dec_value = Wire( nbits )
+        if s.free_ports[ port ].call:
+          s.free.wr_en[ port ].v = 1
+          s.free.wr_addr[ port ].v = ctail
+          s.free.wr_data = s.free_ports[ port ].arg.index
 
-    s.head_inc = WrapInc( nbits, nslots )
-    s.connect( s.head_inc.in_, s.head )
-    s.connect( s.head_inc.out, s.head_inc_value )
+          s.tail_next[ port ].v = s.tail_incs[ port ].out
+          s.free_size_next[ port ].v = base - 1
+        else:
+          s.free.wr_en[ port ].v = 0
+          s.tail_next[ port ].v = ctail
+          s.free_size_next[ port ].v = base
 
-    s.tail_dec = WrapDec( nbits, nslots )
-    s.connect( s.tail_dec.in_, s.tail )
-    s.connect( s.tail_dec.out, s.tail_dec_value )
+    for port in range( num_alloc_ports ):
+      if port == 0:
+        s.connect( s.head_incs[ port ].in_, s.head )
+      else:
+        s.connect( s.head_incs[ port ].in_, s.head_next[ port - 1 ].out )
 
-    for x in range( len( s.free ) ):
+      s.connect( s.free.rd_data[ port ], s.alloc_ports[ port ].ret.index )
 
-      @s.tick_rtl
-      def update():
-        if s.reset:
-          s.free[ x ].n = x
-        elif s.write_en and s.write_idx == x:
-          s.free[ x ].n = s.write_value
+      @s.combinational
+      def handle_alloc( port=port ):
+        if port == 0:
+          base = s.free_size_next[ num_free_ports - 1 ]
+          chead = s.head
+        else:
+          base = s.alloc_size_next[ port - 1 ]
+          chead = s.head_next[ port - 1 ]
+        s.free.rd_addr[ port ].v = chead
+        if s.alloc_ports[ port ].call and s.size != nslots:
+          s.alloc_ports[ port ].ret.valid.v = 1
+          s.head_next[ port ].v = s.head_incs[ port ].out
+          s.alloc_size_next[ port ].v = base + 1
+        else:
+          s.alloc_ports[ port ].ret.valid.v = 0
+          s.head_next[ port ].v = chead
+          s.alloc_size_next[ port ].v = base
 
     @s.tick_rtl
     def update():
@@ -73,47 +120,9 @@ class FreeList( Model ):
         s.tail.n = 0
         s.size.n = used_slots_initial
       else:
-        s.head.n = s.head_next
-        s.tail.n = s.tail_next
-        s.size.n = s.size_next
-
-    @s.combinational
-    def handle_alloc():
-      s.alloc_delta.v = 0
-      s.head_next.v = s.head
-      if s.alloc_port.call:
-        if s.size_after_free == nslots:
-          s.alloc_port.ret.valid.v = 0
-        else:
-          s.alloc_port.ret.valid.v = 1
-          s.alloc_port.ret.index.v = s.head
-          s.alloc_delta.v = 1
-          s.head_next.v = s.head_inc_value
-
-    @s.combinational
-    def handle_free():
-      s.write_en.v = 0
-      s.free_delta.v = 0
-      s.tail_next.v = s.tail
-      s.size_after_free.v = s.size
-      if s.free_port.call:
-        s.write_idx.v = s.tail
-        s.write_value.v = s.free_port.arg.index
-        s.write_en.v = 1
-        s.free_delta.v = 1
-        s.tail_next.v = s.tail_dec_value
-        s.size_after_free.v = s.size - 1
-
-    @s.combinational
-    def update_size():
-      if s.free_delta and s.alloc_delta:
-        s.size_next.v = s.size
-      elif not s.free_delta and s.alloc_delta:
-        s.size_next.v = s.size + 1
-      elif s.free_delta and not s.alloc_delta:
-        s.size_next.v = s.size - 1
-      else:
-        s.size_next.v = s.size
+        s.head.n = s.head_next[ num_alloc_ports - 1 ]
+        s.tail.n = s.tail_next[ num_free_ports - 1 ]
+        s.size.n = s.alloc_size_next[ num_alloc_ports - 1 ]
 
   def line_trace( s ):
     return "hd:{}tl:{}:sz:{}".format( s.head.v, s.tail.v, s.size.v )

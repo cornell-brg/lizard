@@ -118,60 +118,18 @@ def run_test_vector_sim( model,
   sim.reset()
   print ""
 
-  # Run the simulation
-
-  row_num = 0
-  for row in test_vectors:
-    row_num += 1
-
-    # Apply test inputs
-
+  for row_num, row in enumerate( test_vectors ):
     for port_name, in_value in zip( port_names, row ):
       if port_name[-1 ] != "*":
-
-        # Special case for lists of ports
-        if '[' in port_name:
-          m = re.match( r'(\w+)\[(\d+)\]', port_name )
-          if not m:
-            raise Exception(
-                "Could not parse port name: {}".format( port_name ) )
-          getattr( model, m.group( 1 ) )[ int( m.group( 2 ) ) ].value = in_value
-        else:
-          foo = model
-          parts = port_name.split( '.' )
-          for i in range( len( parts ) - 1 ):
-            foo = getattr( foo, parts[ i ] )
-          getattr( foo, parts[-1 ] ).value = in_value
-
-    # Evaluate combinational concurrent blocks
+        exec ( "model.{}.v = in_value".format( port_name ) )
 
     sim.eval_combinational()
-
-    # Display line trace output
-
     sim.print_line_trace()
-
-    # Check test outputs
 
     for port_name, ref_value in zip( port_names, row ):
       if port_name[-1 ] == "*":
-
-        # Special case for lists of ports
-        if '[' in port_name:
-          m = re.match( r'(\w+)\[(\d+)\]', port_name[ 0:-1 ] )
-          if not m:
-            raise Exception(
-                "Could not parse port name: {}".format( port_name ) )
-          out_value = getattr( model, m.group( 1 ) )[ int( m.group( 2 ) ) ]
-        else:
-          foo = model
-          parts = port_name.split( '.' )
-          for i in range( len( parts ) - 1 ):
-            foo = getattr( foo, parts[ i ] )
-          out_value = getattr( foo, parts[-1 ][ 0:-1 ] )
-
+        exec ( "out_value = model.{}".format( port_name[ 0:-1 ] ) )
         if ( ref_value != '?' ) and ( out_value != ref_value ):
-
           error_msg = """
  run_test_vector_sim received an incorrect value!
   - row number     : {row_number}
