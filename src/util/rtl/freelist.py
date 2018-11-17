@@ -1,5 +1,20 @@
 from pymtl import *
+from util.rtl.method import InMethodCallPortBundle
+from util.rtl.wrap_inc import WrapInc, WrapDec
 from bitutil import clog2
+
+
+class AllocResponse( BitStructDefinition ):
+
+  def __init__( s, size ):
+    s.value = BitField( size )
+    s.valid = BitField( 1 )
+
+
+class FreeRequest( BitStructDefinition ):
+
+  def __init__( s, size ):
+    s.value = BitField( size )
 
 
 class FreeList( Model ):
@@ -7,60 +22,98 @@ class FreeList( Model ):
   def __init__( s, nslots ):
 
     nbits = clog2( nslots )
-    s.alloc_enable = InPort( 1 )
-    s.alloc_full = OutPort( 1 )
-    s.alloc_output = OutPort( nbits )
+    s.AllocResponse = AllocResponse( nbits )
+    s.FreeRequest = FreeRequest( nbits )
 
-    s.free_enable = InPort( 1 )
-    s.free_slot = InPort( nbits )
+    s.alloc_port = InMethodCallPortBundle( None, s.AllocResponse, False )
+    s.free_port = InMethodCallPortBundle( s.FreeRequest, None, False )
 
     ncount_bits = clog2( nslots + 1 )
-    s.size = Wire( ncount_bits )
-    s.full = Wire( 1 )
     s.free = [ Wire( nbits ) for _ in range( nslots ) ]
+    s.size = Wire( ncount_bits )
     s.head = Wire( nbits )
     s.tail = Wire( nbits )
 
-    s.connect( s.full, s.alloc_full )
+    s.write_idx = Wire( nbits )
+    s.write_value = Wire( nbits )
+    s.write_en = Wire( 1 )
+
+    s.free_delta = Wire( 1 )
+    s.alloc_delta = Wire( 1 )
+    s.size_next = Wire( ncount_bits )
+    s.size_after_free = Wire( ncount_bits )
+
+    s.head_next = Wire( nbits )
+    s.tail_next = Wire( nbits )
+
+    s.head_inc_value = Wire( nbits )
+    s.tail_dec_value = Wire( nbits )
+
+    s.head_inc = WrapInc( nbits, nslots )
+    s.connect( s.head_inc.in_, s.head )
+    s.connect( s.head_inc.out, s.head_inc_value )
+
+    s.tail_dec = WrapDec( nbits, nslots )
+    s.connect( s.tail_dec.in_, s.tail )
+    s.connect( s.tail_dec.out, s.tail_dec_value )
 
     for x in range( len( s.free ) ):
 
       @s.tick_rtl
-      def reset_free():
+      def update():
         if s.reset:
           s.free[ x ].next = x
+        elif s.write_en and s.write_idx == x:
+          s.free[ x ].next = s.write_value
 
     @s.tick_rtl
-    def tick():
+    def update():
       if s.reset:
         s.head.next = 0
         s.tail.next = 0
         s.size.next = 0
       else:
-        # If there is an alloc request are we aren't full then we have
-        # served it, so advance the head
-        if s.alloc_enable and not s.full:
-          s.size.next = s.size.value + 1
-          if s.head.value == nslots - 1:
-            s.head.next = 0
-          else:
-            s.head.next = s.head.value + 1
-
-        # If there is a free request then execute it
-        # Note we do not combinationally handle a free request
-        # and an alloc request in the same cycle when full
-        if s.free_enable:
-          s.free[ s.tail.value ].next = s.free_slot
-          s.size.next = s.size.value - 1
-          if s.tail.value == nslots - 1:
-            s.tail.next = 0
-          else:
-            s.tail.next = s.tail.value + 1
+        s.head.next = s.head_next
+        s.tail.next = s.tail_next
+        s.size.next = s.size_next
 
     @s.combinational
-    def b1():
-      s.alloc_output.value = s.free[ s.head ]
-      s.full.value = ( s.size == nslots )
+    def handle_alloc():
+      s.alloc_delta.value = 0
+      s.head_next.value = s.head
+      if s.alloc_port.call:
+        if s.size_after_free == nslots:
+          s.alloc_port.ret.valid.value = 0
+        else:
+          s.alloc_port.ret.valid.value = 1
+          s.alloc_port.ret.value.value = s.head
+          s.alloc_delta.value = 1
+          s.head_next.value = s.head_inc_value
+
+    @s.combinational
+    def handle_free():
+      s.write_en.value = 0
+      s.free_delta.value = 0
+      s.tail_next.value = s.tail
+      s.size_after_free.value = s.size
+      if s.free_port.call:
+        s.write_idx.value = s.tail
+        s.write_value.value = s.free_port.arg.value
+        s.write_en.value = 1
+        s.free_delta.value = 1
+        s.tail_next.value = s.tail_dec_value
+        s.size_after_free.value = s.size - 1
+
+    @s.combinational
+    def update_size():
+      if s.free_delta and s.alloc_delta:
+        s.size_next.value = s.size
+      elif not s.free_delta and s.alloc_delta:
+        s.size_next.value = s.size + 1
+      elif s.free_delta and not s.alloc_delta:
+        s.size_next.value = s.size - 1
+      else:
+        s.size_next.value = s.size
 
   def line_trace( s ):
     return "hd:{}tl:{}:sz:{}".format( s.head, s.tail, s.size )
