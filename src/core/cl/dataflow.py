@@ -32,8 +32,8 @@ class DataFlowManagerCL( Model ):
     s.proc2mngr_q = OutValRdyQueueAdapter( s.proc2mngr, size=None )
 
   def xtick( s ):
+    s.free_regs.xtick()
     if s.reset:
-      s.free_regs.fl_reset()
       for areg in range( REG_COUNT ):
         tag = s.get_dst( areg ).tag
         s.write_tag( tag, 0 )
