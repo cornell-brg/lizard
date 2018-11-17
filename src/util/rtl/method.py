@@ -24,9 +24,9 @@ class MethodCallPortBundle( PortBundle ):
   def __init__( self, arg_type, ret_type, has_rdy=True ):
     self.call = InPort( 1 )
     if arg_type is not None:
-      self.arg = InPort( arg_type() )
+      self.arg = InPort( arg_type )
     if ret_type is not None:
-      self.ret = OutPort( ret_type() )
+      self.ret = OutPort( ret_type )
     if has_rdy:
       self.rdy = OutPort( 1 )
 

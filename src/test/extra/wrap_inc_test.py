@@ -11,7 +11,9 @@ def test_inc_basic():
           ( 1, 2 ),
           ( 2, 3 ),
           ( 3, 0 ),
-      ], dump_vcd = None, test_verilog = True)
+      ],
+      dump_vcd=None,
+      test_verilog=True )
 
 
 def test_dec_basic():
@@ -22,4 +24,6 @@ def test_dec_basic():
           ( 1, 0 ),
           ( 2, 1 ),
           ( 3, 2 ),
-      ], False )
+      ],
+      dump_vcd=None,
+      test_verilog=True )

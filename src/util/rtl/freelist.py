@@ -7,14 +7,14 @@ from bitutil import clog2
 class AllocResponse( BitStructDefinition ):
 
   def __init__( s, size ):
-    s.value = BitField( size )
+    s.index = BitField( size )
     s.valid = BitField( 1 )
 
 
 class FreeRequest( BitStructDefinition ):
 
   def __init__( s, size ):
-    s.value = BitField( size )
+    s.index = BitField( size )
 
 
 class FreeList( Model ):
@@ -62,58 +62,58 @@ class FreeList( Model ):
       @s.tick_rtl
       def update():
         if s.reset:
-          s.free[ x ].next = x
+          s.free[ x ].n = x
         elif s.write_en and s.write_idx == x:
-          s.free[ x ].next = s.write_value
+          s.free[ x ].n = s.write_value
 
     @s.tick_rtl
     def update():
       if s.reset:
-        s.head.next = 0
-        s.tail.next = 0
-        s.size.next = 0
+        s.head.n = 0
+        s.tail.n = 0
+        s.size.n = 0
       else:
-        s.head.next = s.head_next
-        s.tail.next = s.tail_next
-        s.size.next = s.size_next
+        s.head.n = s.head_next
+        s.tail.n = s.tail_next
+        s.size.n = s.size_next
 
     @s.combinational
     def handle_alloc():
-      s.alloc_delta.value = 0
-      s.head_next.value = s.head
+      s.alloc_delta.v = 0
+      s.head_next.v = s.head
       if s.alloc_port.call:
         if s.size_after_free == nslots:
-          s.alloc_port.ret.valid.value = 0
+          s.alloc_port.ret.valid.v = 0
         else:
-          s.alloc_port.ret.valid.value = 1
-          s.alloc_port.ret.value.value = s.head
-          s.alloc_delta.value = 1
-          s.head_next.value = s.head_inc_value
+          s.alloc_port.ret.valid.v = 1
+          s.alloc_port.ret.index.v = s.head
+          s.alloc_delta.v = 1
+          s.head_next.v = s.head_inc_value
 
     @s.combinational
     def handle_free():
-      s.write_en.value = 0
-      s.free_delta.value = 0
-      s.tail_next.value = s.tail
-      s.size_after_free.value = s.size
+      s.write_en.v = 0
+      s.free_delta.v = 0
+      s.tail_next.v = s.tail
+      s.size_after_free.v = s.size
       if s.free_port.call:
-        s.write_idx.value = s.tail
-        s.write_value.value = s.free_port.arg.value
-        s.write_en.value = 1
-        s.free_delta.value = 1
-        s.tail_next.value = s.tail_dec_value
-        s.size_after_free.value = s.size - 1
+        s.write_idx.v = s.tail
+        s.write_value.v = s.free_port.arg.index
+        s.write_en.v = 1
+        s.free_delta.v = 1
+        s.tail_next.v = s.tail_dec_value
+        s.size_after_free.v = s.size - 1
 
     @s.combinational
     def update_size():
       if s.free_delta and s.alloc_delta:
-        s.size_next.value = s.size
+        s.size_next.v = s.size
       elif not s.free_delta and s.alloc_delta:
-        s.size_next.value = s.size + 1
+        s.size_next.v = s.size + 1
       elif s.free_delta and not s.alloc_delta:
-        s.size_next.value = s.size - 1
+        s.size_next.v = s.size - 1
       else:
-        s.size_next.value = s.size
+        s.size_next.v = s.size
 
   def line_trace( s ):
-    return "hd:{}tl:{}:sz:{}".format( s.head, s.tail, s.size )
+    return "hd:{}tl:{}:sz:{}".format( s.head.v, s.tail.v, s.size.v )
