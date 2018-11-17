@@ -5,8 +5,7 @@ dir_path = os.path.dirname( os.path.realpath( __file__ ) )
 
 
 def collect():
-  os.chdir( dir_path )
-  names = [ f.rsplit( ".", 1 )[ 0 ] for f in glob.glob( "*.c" ) ]
+  names = [ os.path.basename(f.rsplit( ".", 1 )[ 0 ]) for f in glob.glob( dir_path + "/*.c" ) ]
   return ( dir_path, names )
 
 

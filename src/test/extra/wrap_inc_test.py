@@ -11,7 +11,7 @@ def test_inc_basic():
           ( 1, 2 ),
           ( 2, 3 ),
           ( 3, 0 ),
-      ], False )
+      ], dump_vcd = None, test_verilog = True)
 
 
 def test_dec_basic():
