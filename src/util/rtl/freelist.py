@@ -86,6 +86,8 @@ class FreeList( Model ):
         if s.free_ports[ port ].call:
           s.free.wr_en[ port ].v = 1
           s.free.wr_addr[ port ].v = ctail
+          # pymtl is broken doesn't translate: https://github.com/cornell-brg/pymtl/issues/141
+          # PYMTL_BROKEN
           s.free.wr_data[ port ].v = s.free_ports[ port ].arg.index
 
           s.tail_next[ port ].v = s.tail_incs[ port ].out
@@ -124,6 +126,8 @@ class FreeList( Model ):
           chead = s.head_next[ port - 1 ]
         s.free.rd_addr[ port ].v = chead
         if s.alloc_ports[ port ].call and s.bypassed_size != nslots:
+          # pymtl is broken doesn't translate: https://github.com/cornell-brg/pymtl/issues/141
+          # PYMTL_BROKEN
           s.alloc_ports[ port ].ret.valid.v = 1
           s.head_next[ port ].v = s.head_incs[ port ].out
           s.alloc_size_next[ port ].v = base + 1
