@@ -2,6 +2,8 @@ from pymtl import *
 from util.test_utils import run_test_vector_sim
 from util.rtl.registerfile import RegisterFile
 
+pymtl_broken = True
+
 
 def test_basic():
   run_test_vector_sim(
@@ -11,7 +13,7 @@ def test_basic():
           ( 0, 255, 0, 0, 0 ),
       ],
       dump_vcd=None,
-      test_verilog=False )
+      test_verilog=not pymtl_broken )
 
 
 def test_bypassed_basic():
@@ -22,7 +24,7 @@ def test_bypassed_basic():
           ( 0, 255, 0, 0, 0 ),
       ],
       dump_vcd=None,
-      test_verilog=False )
+      test_verilog=not pymtl_broken )
 
 
 def test_dump_basic():
@@ -37,4 +39,4 @@ def test_dump_basic():
           ( 0, 4, 0, 0, 0, 4, 2, 0, 0, 0 ),
       ],
       dump_vcd=None,
-      test_verilog=False )
+      test_verilog=not pymtl_broken )
