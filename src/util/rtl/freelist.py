@@ -2,7 +2,7 @@ from pymtl import *
 from util.rtl.method import InMethodCallPortBundle
 from util.rtl.wrap_inc import WrapInc
 from util.rtl.registerfile import RegisterFile
-from bitutil import clog2
+from bitutil import clog2, clog2nz
 
 
 class AllocResponse( BitStructDefinition ):
@@ -27,7 +27,7 @@ class FreeList( Model ):
                 combinational_bypass,
                 used_slots_initial=0 ):
 
-    nbits = clog2( nslots )
+    nbits = clog2nz( nslots )
     ncount_bits = clog2( nslots + 1 )
 
     s.AllocResponse = AllocResponse( nbits )
@@ -42,9 +42,14 @@ class FreeList( Model ):
         for _ in range( num_free_ports )
     ]
 
-    s.free = RegisterFile( nbits, nslots, num_alloc_ports, num_free_ports,
-                           combinational_bypass,
-                           [ x for x in range( nslots ) ] )
+    s.free = RegisterFile(
+        nbits,
+        nslots,
+        num_alloc_ports,
+        num_free_ports,
+        combinational_bypass,
+        dump_port=False,
+        reset_values=[ x for x in range( nslots ) ] )
     s.size = Wire( ncount_bits )
     s.head = Wire( nbits )
     s.tail = Wire( nbits )
