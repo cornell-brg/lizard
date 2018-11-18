@@ -28,51 +28,65 @@ class RegisterFile( Model ):
       s.dump_wr_en = InPort( 1 )
 
     s.regs = [ Wire( dtype ) for _ in range( nregs ) ]
-    s.regs_next = [
-        [ Wire( dtype ) for _ in range( nregs ) ] for _ in range( wr_ports )
-    ]
+    # pymtl breaks on translating nested lists due to the dreaded is_lhs
+    # error
+    # https://github.com/cornell-brg/pymtl/issues/137
+    s.regs_next = [ Wire( dtype ) for _ in range( nregs * wr_ports ) ]
     s.regs_next_last = [ Wire( dtype ) for _ in range( nregs ) ]
     s.regs_next_dump = [ Wire( dtype ) for _ in range( nregs ) ]
 
     if reset_values is None:
-      reset_values = [ 0 for _ in range( nregs ) ]
+      s.reset_values = [ 0 for _ in range( nregs ) ]
+    else:
+      s.reset_values = reset_values
 
-    for reg in range( nregs ):
+    # Clean reset values to ensure it is an array of Bits
+    # This avoid this pymtl disaster:
+    # E       AttributeError:
+    # E       Unexpected error during VerilogTranslation!
+    # E       Please contact the PyMTL devs!
+    # E       'list' object has no attribute 'is_lhs'
+    for i in range( nregs ):
+      value = s.reset_values[ i ]
+      s.reset_values[ i ] = Wire( dtype )
+      s.connect( s.reset_values[ i ], value )
+
+    for reg_i in range( nregs ):
       if wr_ports == 0:
 
         @s.combinational
-        def update_last( reg=reg ):
-          s.regs_next_last[ reg ].v = s.regs[ reg ]
+        def update_last( reg_i=reg_i ):
+          s.regs_next_last[ reg_i ].v = s.regs[ reg_i ]
       else:
 
         @s.combinational
-        def update_last( reg=reg ):
-          s.regs_next_last[ reg ].v = s.regs_next[ wr_ports - 1 ][ reg ]
+        def update_last( reg_i=reg_i, i=( wr_ports - 1 ) * nregs + reg_i ):
+          s.regs_next_last[ reg_i ].v = s.regs_next[ i ]
 
       if dump_port:
         if combinational_dump_bypass:
-          s.connect( s.regs_next_last[ reg ], s.dump_out[ reg ] )
+          s.connect( s.regs_next_last[ reg_i ], s.dump_out[ reg_i ] )
         else:
-          s.connect( s.regs[ reg ], s.dump_out[ reg ] )
+          s.connect( s.regs[ reg_i ], s.dump_out[ reg_i ] )
 
         @s.combinational
-        def update_next_dump( reg=reg ):
+        def update_next_dump( reg_i=reg_i ):
           if s.dump_wr_en:
-            s.regs_next_dump[ reg ].v = s.dump_in[ reg ]
+            s.regs_next_dump[ reg_i ].v = s.dump_in[ reg_i ]
           else:
-            s.regs_next_dump[ reg ].v = s.regs_next_last[ reg ]
+            s.regs_next_dump[ reg_i ].v = s.regs_next_last[ reg_i ]
       else:
 
         @s.combinational
-        def update_next_dump( reg=reg ):
-          s.regs_next_dump[ reg ].v = s.regs_next_last[ reg ]
+        def update_next_dump( reg_i=reg_i ):
+          s.regs_next_dump[ reg_i ].v = s.regs_next_last[ reg_i ]
 
       @s.tick_rtl
-      def update( reg=reg ):
+      def update( reg_i=reg_i ):
         if s.reset:
-          s.regs[ reg ].n = reset_values[ reg ]
+          s.regs[ reg_i ].n = s.reset_values[ reg_i ]
         else:
-          s.regs[ reg ].n = s.regs_next_dump[ reg ]
+          s.regs[ reg_i ].n = s.regs_next_dump[ reg_i ]
 
     for port in range( rd_ports ):
       if combinational_read_bypass:
@@ -85,7 +99,7 @@ class RegisterFile( Model ):
         @s.combinational
         def handle_read( port=port ):
           if s.dump_wr_en:
-            s.rd_data[ port ].v = s.dump_in[ reg ]
+            s.rd_data[ port ].v = s.dump_in[ reg_i ]
           else:
             s.rd_data[ port ].v = s.regs[ s.rd_addr[ port ] ]
       else:
@@ -94,17 +108,20 @@ class RegisterFile( Model ):
         def handle_read( port=port ):
           s.rd_data[ port ].v = s.regs[ s.rd_addr[ port ] ]
 
-    for reg in range( nregs ):
+    for reg_i in range( nregs ):
       for port in range( wr_ports ):
 
         @s.combinational
-        def handle_write( reg=reg, port=port ):
-          if s.wr_en[ port ] and s.wr_addr[ port ] == reg:
-            s.regs_next[ port ][ reg ].v = s.wr_data[ port ]
+        def handle_write( reg_i=reg_i,
+                          port=port,
+                          i=port * nregs + reg_i,
+                          j=( port - 1 ) * nregs + reg_i ):
+          if s.wr_en[ port ] and s.wr_addr[ port ] == reg_i:
+            s.regs_next[ i ].v = s.wr_data[ port ]
           elif port == 0:
-            s.regs_next[ port ][ reg ].v = s.regs[ reg ]
+            s.regs_next[ i ].v = s.regs[ reg_i ]
           else:
-            s.regs_next[ port ][ reg ].v = s.regs_next[ port - 1 ][ reg ]
+            s.regs_next[ i ].v = s.regs_next[ j ]
 
   def line_trace( s ):
     return ":".join([ "{}".format( x ) for x in s.regs ] )
