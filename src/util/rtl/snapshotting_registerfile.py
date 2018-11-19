@@ -82,11 +82,16 @@ class SnapshottingRegisterFile( Model ):
     s.taking_snapshot = Wire( 1 )
     s.snapshot_target = Wire( nsbits )
 
+    # PYMTL_BROKEN
+    s.workaround_snapshot_allocator_alloc_ports_ret_valid = Wire( 1 )
+    s.connect( s.workaround_snapshot_allocator_alloc_ports_ret_valid,
+               s.snapshot_allocator.alloc_ports[ 0 ].ret.valid )
+
     @s.combinational
     def handle_snapshot():
       if s.snapshot_port.call:
         s.snapshot_allocator.alloc_ports[ 0 ].call.v = 1
-        s.taking_snapshot.v = s.snapshot_allocator.alloc_ports[ 0 ].ret.valid
+        s.taking_snapshot.v = s.workaround_snapshot_allocator_alloc_ports_ret_valid
       else:
         s.snapshot_allocator.alloc_ports[ 0 ].call.v = 0
         s.taking_snapshot.v = 0
@@ -95,6 +100,11 @@ class SnapshottingRegisterFile( Model ):
                s.snapshot_allocator.alloc_ports[ 0 ].ret.index )
     s.connect( s.snapshot_port.ret.valid, s.taking_snapshot )
 
+    # PYMTL_BROKEN
+    s.workaround_snapshot_allocator_alloc_ports_ret_index = Wire( nsbits )
+    s.connect( s.workaround_snapshot_allocator_alloc_ports_ret_index,
+               s.snapshot_allocator.alloc_ports[ 0 ].ret.index )
+
     for i in range( nsnapshots ):
       for j in range( nregs ):
         s.connect( s.snapshots[ i ].dump_in[ j ], s.regs.dump_out[ j ] )
@@ -102,8 +112,7 @@ class SnapshottingRegisterFile( Model ):
       @s.combinational
       def handle_snapshot_save( i=i ):
         s.snapshots[
-            i ].dump_wr_en.v = s.taking_snapshot and s.snapshot_allocator.alloc_ports[
-                0 ].ret.index == i
+            i ].dump_wr_en.v = s.taking_snapshot and s.workaround_snapshot_allocator_alloc_ports_ret_index == i
 
     s.connect( s.regs.dump_wr_en, s.restore_port.call )
     for j in range( nregs ):

@@ -1,8 +1,7 @@
 from pymtl import *
 from util.test_utils import run_test_vector_sim
 from core.rtl.renametable import RenameTable
-
-pymtl_broken = True
+from test.config import test_verilog
 
 
 def test_basic():
@@ -23,4 +22,4 @@ def test_basic():
             0 ),  # read r0 and r1 as p3 and p2, restoring snapshot
       ],
       dump_vcd=None,
-      test_verilog=not pymtl_broken )
+      test_verilog=test_verilog )
