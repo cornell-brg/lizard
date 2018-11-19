@@ -1,8 +1,7 @@
 from pymtl import *
 from util.test_utils import run_test_vector_sim
 from util.rtl.freelist import FreeList
-
-pymtl_broken = False
+from test.config import test_verilog
 
 
 def test_basic():
@@ -20,7 +19,7 @@ def test_basic():
           ( 1, 1, 1, 0, 0 ),
       ],
       dump_vcd=None,
-      test_verilog=not pymtl_broken )
+      test_verilog=test_verilog )
 
 
 def test_used_initial():
@@ -35,7 +34,7 @@ def test_used_initial():
           ( 1, 0, '?', 0, 0 ),
       ],
       dump_vcd=None,
-      test_verilog=not pymtl_broken )
+      test_verilog=test_verilog )
 
 
 def test_reverse_free_order():
@@ -49,7 +48,7 @@ def test_reverse_free_order():
           ( 1, 1, 1, 0, 0 ),
       ],
       dump_vcd=None,
-      test_verilog=not pymtl_broken )
+      test_verilog=test_verilog )
 
 
 def test_bypass():
@@ -63,4 +62,4 @@ def test_bypass():
           ( 1, 1, 0, 1, 0 ),
       ],
       dump_vcd=None,
-      test_verilog=not pymtl_broken )
+      test_verilog=test_verilog )

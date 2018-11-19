@@ -65,18 +65,40 @@ class RenameTable( Model ):
     if const_zero:
       s.ZERO_TAG = Bits( s.npbits, npregs - 1 )
 
+    # PYMTL_BROKEN
+    s.workaround_read_ports_arg_areg = [
+        Wire( s.nabits ) for x in range( nread_ports )
+    ]
+    s.workaround_read_ports_ret_preg = [
+        Wire( s.npbits ) for x in range( nread_ports )
+    ]
+    for i in range( nread_ports ):
+      s.connect( s.workaround_read_ports_arg_areg[ i ],
+                 s.read_ports[ i ].arg.areg )
+      s.connect( s.workaround_read_ports_ret_preg[ i ],
+                 s.read_ports[ i ].ret.preg )
+
     for i in range( nread_ports ):
       s.connect( s.read_ports[ i ].arg.areg, s.rename_table.rd_addr[ i ] )
       if const_zero:
 
         @s.combinational
         def handle_zero_read( i=i ):
-          if s.read_ports[ i ].arg.areg == 0:
-            s.read_ports[ i ].ret.preg.v = s.ZERO_TAG
+          if s.workaround_read_ports_arg_areg[ i ] == 0:
+            s.workaround_read_ports_ret_preg[ i ].v = s.ZERO_TAG
           else:
-            s.read_ports[ i ].ret.preg.v = s.rename_table.rd_data[ i ]
+            s.workaround_read_ports_ret_preg[ i ].v = s.rename_table.rd_data[
+                i ]
       else:
         s.connect( s.read_ports[ i ].ret.preg, s.rename_table.rd_data[ i ] )
+
+    # PYMTL_BROKEN
+    s.workaround_write_ports_arg_areg = [
+        Wire( s.nabits ) for x in range( nwrite_ports )
+    ]
+    for i in range( nwrite_ports ):
+      s.connect( s.workaround_write_ports_arg_areg[ i ],
+                 s.write_ports[ i ].arg.areg )
 
     for i in range( nwrite_ports ):
       s.connect( s.write_ports[ i ].arg.areg, s.rename_table.wr_addr[ i ] )
@@ -85,7 +107,7 @@ class RenameTable( Model ):
 
         @s.combinational
         def handle_zero_write( i=i ):
-          if s.write_ports[ i ].arg.areg == 0:
+          if s.workaround_write_ports_arg_areg[ i ] == 0:
             s.rename_table.wr_en[ i ].v = 0
           else:
             s.rename_table.wr_en[ i ].v = s.write_ports[ i ].call

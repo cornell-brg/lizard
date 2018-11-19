@@ -1,8 +1,7 @@
 from pymtl import *
 from pclib.test import run_test_vector_sim
 from util.rtl.wrap_inc import WrapInc, WrapIncVar
-
-pymtl_broken = False
+from test.config import test_verilog
 
 
 def test_inc_basic():
@@ -15,7 +14,7 @@ def test_inc_basic():
           ( 3, 0 ),
       ],
       dump_vcd=None,
-      test_verilog=not pymtl_broken )
+      test_verilog=test_verilog )
 
 
 def test_dec_basic():
@@ -28,7 +27,7 @@ def test_dec_basic():
           ( 3, 2 ),
       ],
       dump_vcd=None,
-      test_verilog=not pymtl_broken )
+      test_verilog=test_verilog )
 
 
 def test_inc_multi():
@@ -41,4 +40,4 @@ def test_inc_multi():
           ( 2, 2, 0 ),
       ],
       dump_vcd=None,
-      test_verilog=not pymtl_broken )
+      test_verilog=test_verilog )

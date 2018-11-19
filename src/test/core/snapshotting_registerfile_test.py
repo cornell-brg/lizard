@@ -1,8 +1,7 @@
 from pymtl import *
 from util.test_utils import run_test_vector_sim
 from util.rtl.snapshotting_registerfile import SnapshottingRegisterFile
-
-pymtl_broken = True
+from test.config import test_verilog
 
 
 def test_basic():
@@ -27,4 +26,4 @@ def test_basic():
           ( 2, 3, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0 ),  # allocate a snapshot
       ],
       dump_vcd=None,
-      test_verilog=not pymtl_broken )
+      test_verilog=test_verilog )
