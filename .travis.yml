@@ -3,10 +3,6 @@ language: python
 python:
  - "2.7"
 
-cache:
-  directories:
-   - riscv-gnu-toolchain
-
 before_install:
  - sudo apt-get update
  - |
@@ -38,18 +34,20 @@ install:
  - export PATH=${VERILATOR_ROOT}/bin:$PATH
  - export PYMTL_VERILATOR_INCLUDE_DIR=${VERILATOR_ROOT}/include
  - verilator --version
- - pip -q install git+https://github.com/cornell-brg/pymtl.git
+ - pip -q install git+https://github.com/cornell-brg/pymtl.git@jng55-closures
  - pip -q install git+https://github.com/wizard97/yapf.git
  - pip -q install futures
  - pip -q install hypothesis
+ - pip -q install pytest-xdist
  - pip list --format=columns
 
 before_script:
  - .travis/fetch-riscv-gnu-toolchain
  - export PATH="$TRAVIS_BUILD_DIR/riscv-gnu-toolchain/bin:$PATH"
+ - src/test/core/program/build-riscv-tests
  - mkdir -p build
  - cd build
 
 script:
- - py.test --verbose ../src/test
+ - py.test -n auto --verbose ../src/test
  - ../src/format --diff

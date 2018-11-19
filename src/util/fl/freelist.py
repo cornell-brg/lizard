@@ -14,13 +14,14 @@ class FreeListFL( Model ):
     self.head = Bits( self.nbits )
     self.tail = Bits( self.nbits )
 
-  def fl_reset( self ):
-    for x in range( len( self.free_list ) ):
-      self.free_list[ x ] = Bits( self.nbits, x )
+  def xtick( self ):
+    if self.reset:
+      for x in range( len( self.free_list ) ):
+        self.free_list[ x ] = Bits( self.nbits, x )
 
-    self.head = Bits( self.nbits, 0 )
-    self.tail = Bits( self.nbits, 0 )
-    self.size = Bits( self.nbits, 0 )
+      self.head = Bits( self.nbits, 0 )
+      self.tail = Bits( self.nbits, 0 )
+      self.size = Bits( self.nbits, 0 )
 
   def wrap_incr( self, x ):
     if x == len( self.free_list ) - 1:

@@ -130,17 +130,17 @@ class ExecuteUnitCL( Model ):
         s.work.result = Bits(
             XLEN, s.current.rs1.uint() // s.current.rs2.uint(), trunc=True )
     elif s.current.inst == RV64Inst.REM:
-      if ( s.current.rs2.int() == 0 ):
+      s1, s2 = s.current.rs1.int(), s.current.rs2.int()
+      if s2 == 0:
         s.work.result = s.current.rs1
-      # Special overflow case
-      elif ( s.current.rs1.int() == -2**( XLEN - 1 ) and
-             s.current.rs2.int() == -1 ):
+      elif s1 == -2**( XLEN - 1 ) and s2 == -1:
         s.work.result = 0
       else:
-        s.work.result = Bits(
-            XLEN, s.current.rs1.int() % s.current.rs2.int(), trunc=True )
+        res = abs( s1 ) % abs( s2 )
+        sn = sign( s1 )
+        s.work.result = Bits( XLEN, sn * res, trunc=True )
     elif s.current.inst == RV64Inst.REMU:
-      if ( s.current.rs2.int() == 0 ):
+      if s.current.rs2.int() == 0:
         s.work.result = s.current.rs1
       else:
         s.work.result = Bits(
@@ -153,35 +153,46 @@ class ExecuteUnitCL( Model ):
     elif s.current.inst == RV64Inst.DIVW:
       s1 = s.current.rs1[:32 ].int()
       s2 = s.current.rs2[:32 ].int()
-      if ( s2 == 0 ):
-        s.work.result = sext( 1, XLEN )
+      if s2 == 0:
+        s.work.result = Bits( XLEN, -1, trunc=True )
       # Special overflow case
-      elif ( s1 == -2**( 32 - 1 ) and s2 == -1 ):
-        s.work.result = sext( s1, XLEN )
+      elif s1 == -2**( 32 - 1 ) and s2 == -1:
+        s.work.result = Bits( XLEN, s1 )
       else:
-        s.work.result = sext( s1 // s2, XLEN )
+        res = abs( s1 ) // abs( s2 )
+        sn = sign( s1 ) * sign( s2 )
+        s.work.result = sext( Bits( 32, sn * res, trunc=True ), XLEN )
     elif s.current.inst == RV64Inst.DIVUW:
       s1 = s.current.rs1[:32 ].uint()
       s2 = s.current.rs2[:32 ].uint()
       if ( s2 == 0 ):
-        s.work.result = sext( 1, XLEN )
+        s.work.result = Bits( XLEN, -1, trunc=True )
       else:
-        s.work.result = sext( s1 // s2, XLEN )
+        s.work.result = sext( Bits( 32, s1 // s2, trunc=True ), XLEN )
     elif s.current.inst == RV64Inst.REMW:
       s1 = s.current.rs1[:32 ].int()
       s2 = s.current.rs2[:32 ].int()
 
-      if ( s2 == 0 ):
-        s.work.result = s1
+      if s2 == 0:
+        s.work.result = sext( Bits( 32, s1 ), XLEN )
       # Special overflow case
       elif ( s1 == -2**( 32 - 1 ) and s2 == -1 ):
-        s.work.result = 0
+        s.work.result = Bits( XLEN, 0 )
       else:
-        s.work.result = sext( s1 % s2, XLEN )
+        res = abs( s1 ) % abs( s2 )
+        sn = sign( s1 )
+        s.work.result = sext( Bits( 32, sn * res, trunc=True ), XLEN )
+    elif s.current.inst == RV64Inst.REMUW:
+      s1 = s.current.rs1[:32 ].uint()
+      s2 = s.current.rs2[:32 ].uint()
+      if s2 == 0:
+        s.work.result = sext( Bits( 32, s1 ), XLEN )
+      else:
+        s.work.result = sext( Bits( 32, s1 % s2, trunc=True ), XLEN )
     elif s.current.inst == RV64Inst.REMU:
       s1 = s.current.rs1[:32 ].uint()
       s2 = s.current.rs2[:32 ].uint()
-      if ( s1 == 0 ):
+      if s1 == 0:
         s.work.result = s1
       else:
         s.work.result = sext( s1 % s2, XLEN )

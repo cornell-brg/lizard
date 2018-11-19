@@ -28,7 +28,7 @@ class IssueUnitCL( Model ):
 
   # Given packet p pick the index of the pipe to send it down
   def choose_pipe( s, p ):
-    if p.opcode == Opcode.LOAD or p.opcode == Opcode.STORE:
+    if p.opcode == Opcode.LOAD or p.opcode == Opcode.STORE or p.opcode == Opcode.MISC_MEM:
       idx = s.MEMORY_PORT_IDX
     elif p.opcode == Opcode.SYSTEM:  # TODO, only csrs
       idx = s.CSRR_PORT_IDX

@@ -16,6 +16,7 @@ PacketStatus = bit_enum(
 
 def CommonBundle( target ):
   target.status = BitField( PacketStatus.bits )
+  target.successor_invalidated = BitField( 1 )
   target.pc = BitField( XLEN )
   target.tag = BitField( INST_TAG_LEN )
   target.inst = BitField( RV64Inst.bits )
@@ -55,6 +56,7 @@ def copy_field_valid_pair( src, dst, name ):
 
 def copy_common_bundle( src, dst ):
   dst.status = src.status
+  dst.successor_invalidated = src.successor_invalidated
   dst.pc = src.pc
   dst.tag = src.tag
   dst.inst = src.inst

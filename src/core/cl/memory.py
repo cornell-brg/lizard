@@ -67,7 +67,7 @@ class MemoryUnitCL( Model ):
       # Only need to wait on a response for a load
       # Once a store has been staged, we are good
       s.in_flight.next = 1
-    else:
+    elif s.current.opcode == Opcode.STORE:
       req = MemMsg8B.req.mk_wr( 0, addr, byte_len, s.current.rs2 )
       s.memoryflow.stage( req )
 
@@ -78,6 +78,19 @@ class MemoryUnitCL( Model ):
       copy_field_valid_pair( s.current, result, 'rd' )
 
       s.result_q.enq( result )
+    elif s.current.opcode == Opcode.MISC_MEM:
+      # we have a fence
+      result = ExecutePacket()
+      copy_common_bundle( s.current, result )
+      result.opcode = s.current.opcode
+      if s.current.inst == RV64Inst.FENCE:
+        # fence for now is a NOP
+        pass
+      elif s.current.inst == RV64Inst.FENCE_I:
+        result.successor_invalidated = 1
+      s.result_q.enq( result )
+    else:
+      assert False
 
   def line_trace( s ):
     return LineBlock([

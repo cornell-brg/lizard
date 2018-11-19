@@ -75,7 +75,7 @@ RV64Inst = bit_enum(
     'OR',
     'AND',
     'FENCE',
-    'FENCE.I',
+    'FENCE_I',
     'ECALL',
     'EBREAK',
     'CSRRW',
