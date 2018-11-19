@@ -34,7 +34,7 @@ install:
  - export PATH=${VERILATOR_ROOT}/bin:$PATH
  - export PYMTL_VERILATOR_INCLUDE_DIR=${VERILATOR_ROOT}/include
  - verilator --version
- - pip -q install git+https://github.com/cornell-brg/pymtl.git
+ - pip -q install git+https://github.com/cornell-brg/pymtl.git@jng55-closures
  - pip -q install git+https://github.com/wizard97/yapf.git
  - pip -q install futures
  - pip -q install hypothesis
