@@ -8,6 +8,8 @@ autoconf
 ./configure
 
 pushd env &>/dev/null
+git clean -xdf
+git reset --hard
 git apply < "$DIR/riscv-tests-env.patch"
 popd &>/dev/null
 

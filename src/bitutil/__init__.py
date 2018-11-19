@@ -12,6 +12,14 @@ def clog2( x ):
   return i
 
 
+def clog2nz( x ):
+  result = clog2( x )
+  if result == 0:
+    return 1
+  else:
+    return result
+
+
 def sane_lookup( d ):
 
   @staticmethod

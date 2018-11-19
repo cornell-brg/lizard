@@ -56,6 +56,7 @@ class DecodeUnitCL( Model ):
         int( Opcode.AUIPC ): s.dec_auipc,
         int( Opcode.LOAD ): s.dec_load,
         int( Opcode.STORE ): s.dec_store,
+        int( Opcode.MISC_MEM ): s.dec_misc_mem,
         int( Opcode.OP_IMM_32 ): s.dec_op_imm32,
         int( Opcode.OP_32 ): s.dec_op_32,
     }
@@ -345,6 +346,15 @@ class DecodeUnitCL( Model ):
         concat( inst[ RVInstMask.S_IMM1 ], inst[ RVInstMask.S_IMM0 ] ),
         DECODED_IMM_LEN )
 
+    return res
+
+  def dec_misc_mem( s, inst, res ):
+    funct3 = int( inst[ RVInstMask.FUNCT3 ] )
+    insts = {
+        0b000: RV64Inst.FENCE,
+        0b001: RV64Inst.FENCE_I,
+    }
+    res.inst = insts[ funct3 ]
     return res
 
   def line_trace( s ):
