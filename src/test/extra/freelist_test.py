@@ -2,7 +2,7 @@ from pymtl import *
 from util.test_utils import run_test_vector_sim
 from util.rtl.freelist import FreeList
 
-pymtl_broken = True
+pymtl_broken = False
 
 
 def test_basic():

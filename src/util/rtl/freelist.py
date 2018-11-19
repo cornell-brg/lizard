@@ -68,6 +68,14 @@ class FreeList( Model ):
         WrapInc( nbits, nslots, True ) for _ in range( num_free_ports )
     ]
 
+    # PYMTL_BROKEN workaround
+    s.workaround_free_ports_arg_index = [
+        Wire( nbits ) for _ in range( num_free_ports )
+    ]
+    for port in range( num_free_ports ):
+      s.connect( s.workaround_free_ports_arg_index[ port ],
+                 s.free_ports[ port ].arg.index )
+
     for port in range( num_free_ports ):
       if port == 0:
         s.connect( s.tail_incs[ port ].in_, s.tail )
@@ -88,7 +96,7 @@ class FreeList( Model ):
           s.free.wr_addr[ port ].v = ctail
           # pymtl is broken doesn't translate: https://github.com/cornell-brg/pymtl/issues/141
           # PYMTL_BROKEN
-          s.free.wr_data[ port ].v = s.free_ports[ port ].arg.index
+          s.free.wr_data[ port ].v = s.workaround_free_ports_arg_index[ port ]
 
           s.tail_next[ port ].v = s.tail_incs[ port ].out
           s.free_size_next[ port ].v = base - 1
@@ -107,6 +115,14 @@ class FreeList( Model ):
       @s.combinational
       def handle_bypass():
         s.bypassed_size.v = s.size
+
+    # PYMTL_BROKEN workaround
+    s.workaround_alloc_ports_ret_valid = [
+        Wire( 1 ) for _ in range( num_alloc_ports )
+    ]
+    for port in range( num_alloc_ports ):
+      s.connect( s.workaround_alloc_ports_ret_valid[ port ],
+                 s.alloc_ports[ port ].ret.valid )
 
     for port in range( num_alloc_ports ):
       if port == 0:
@@ -128,11 +144,13 @@ class FreeList( Model ):
         if s.alloc_ports[ port ].call and s.bypassed_size != nslots:
           # pymtl is broken doesn't translate: https://github.com/cornell-brg/pymtl/issues/141
           # PYMTL_BROKEN
-          s.alloc_ports[ port ].ret.valid.v = 1
+          s.workaround_alloc_ports_ret_valid[ port ].v = 1
           s.head_next[ port ].v = s.head_incs[ port ].out
           s.alloc_size_next[ port ].v = base + 1
         else:
-          s.alloc_ports[ port ].ret.valid.v = 0
+          # pymtl is broken doesn't translate: https://github.com/cornell-brg/pymtl/issues/141
+          # PYMTL_BROKEN
+          s.workaround_alloc_ports_ret_valid[ port ].v = 0
           s.head_next[ port ].v = chead
           s.alloc_size_next[ port ].v = base
 
