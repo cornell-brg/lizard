@@ -75,6 +75,10 @@ class OutValRdyCLPort:
   def enq( s, msg ):
     s.port.enq( msg )
 
+  def peek( s ):
+    assert s.full()
+    return s.port.last()
+
   def msg( s ):
     if not s.port.full():
       return s.data_type()

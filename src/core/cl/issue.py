@@ -2,6 +2,7 @@ from pymtl import *
 from msg.decode import *
 from msg.issue import *
 from msg.control import *
+from msg.codes import *
 from util.cl.ports import InValRdyCLPort, OutValRdyCLPort
 from util.cl.port_groups import OutValRdyCLPortGroup
 from config.general import *
@@ -15,20 +16,29 @@ class IssueUnitCL( Model ):
     s.decoded_q = InValRdyCLPort( DecodePacket() )
 
     s.execute_q = OutValRdyCLPort( IssuePacket() )
+    s.muldiv_q = OutValRdyCLPort( IssuePacket() )
     s.memory_q = OutValRdyCLPort( IssuePacket() )
     s.csrr_q = OutValRdyCLPort( IssuePacket() )
 
-    s.issued_q = OutValRdyCLPortGroup([ s.execute_q, s.memory_q, s.csrr_q ] )
+    s.issued_q = OutValRdyCLPortGroup([ s.execute_q, s.muldiv_q, s.memory_q, s.csrr_q ] )
     s.EXECUTE_PORT_IDX = 0
-    s.MEMORY_PORT_IDX = 1
-    s.CSRR_PORT_IDX = 2
+    s.MULDIV_PORT_IDX = 1
+    s.MEMORY_PORT_IDX = 2
+    s.CSRR_PORT_IDX = 3
 
     s.dataflow = dataflow
     s.controlflow = controlflow
 
   # Given packet p pick the index of the pipe to send it down
   def choose_pipe( s, p ):
-    if p.opcode == Opcode.LOAD or p.opcode == Opcode.STORE or p.opcode == Opcode.MISC_MEM:
+    # TODO: There has to be a better way to do this. I think decode should set the pipe
+    muldivs = [RV64Inst.DIV, RV64Inst.DIVU, RV64Inst.DIVUW, RV64Inst.DIVW,
+              RV64Inst.MUL, RV64Inst.MULH, RV64Inst.MULHSU, RV64Inst.MULHU,
+              RV64Inst.MULW, RV64Inst.REM, RV64Inst.REMU, RV64Inst.REMUW,
+              RV64Inst.REMW]
+    if p.inst in muldivs:
+      idx = s.MULDIV_PORT_IDX
+    elif p.opcode == Opcode.LOAD or p.opcode == Opcode.STORE or p.opcode == Opcode.MISC_MEM:
       idx = s.MEMORY_PORT_IDX
     elif p.opcode == Opcode.SYSTEM:  # TODO, only csrs
       idx = s.CSRR_PORT_IDX
