@@ -15,9 +15,10 @@ class WritebackUnitCL( Model ):
 
   def __init__( s, dataflow, controlflow, memoryflow ):
     s.execute_q = InValRdyCLPort( ExecutePacket() )
+    s.muldiv_q = InValRdyCLPort( ExecutePacket() )
     s.memory_q = InValRdyCLPort( ExecutePacket() )
     s.csrr_q = InValRdyCLPort( ExecutePacket() )
-    s.in_ports = [ s.execute_q, s.memory_q, s.csrr_q ]
+    s.in_ports = [ s.csrr_q, s.memory_q, s.muldiv_q, s.execute_q ]
     s.result_in_q = InValRdyCLPortGroup( s.in_ports )
     s.result_out_q = OutValRdyCLPort( WritebackPacket() )
 

@@ -8,6 +8,7 @@ from core.cl.fetch import FetchUnitCL
 from core.cl.decode import DecodeUnitCL
 from core.cl.issue import IssueUnitCL
 from core.cl.execute import ExecuteUnitCL
+from core.cl.muldiv import MulDivUnitCL
 from core.cl.csrr import CSRRUnitCL
 from core.cl.memory import MemoryUnitCL
 from core.cl.writeback import WritebackUnitCL
@@ -40,6 +41,7 @@ class ProcCL( Model ):
     s.decode = DecodeUnitCL( s.controlflow )
     s.issue = IssueUnitCL( s.dataflow, s.controlflow )
     s.execute = ExecuteUnitCL( s.dataflow, s.controlflow )
+    s.muldiv = MulDivUnitCL( s.dataflow, s.controlflow )
     s.memory = MemoryUnitCL( s.dataflow, s.controlflow, s.memoryflow )
     s.csrr = CSRRUnitCL( s.dataflow, s.controlflow )
     s.writeback = WritebackUnitCL( s.dataflow, s.controlflow, s.memoryflow )
@@ -56,9 +58,11 @@ class ProcCL( Model ):
     cl_connect( s.fetch.instrs_q, s.decode.instr_q )
     cl_connect( s.decode.decoded_q, s.issue.decoded_q )
     cl_connect( s.issue.execute_q, s.execute.issued_q )
+    cl_connect( s.issue.muldiv_q, s.muldiv.issued_q )
     cl_connect( s.issue.memory_q, s.memory.issued_q )
     cl_connect( s.issue.csrr_q, s.csrr.issued_q )
     cl_connect( s.execute.result_q, s.writeback.execute_q )
+    cl_connect( s.muldiv.result_q, s.writeback.muldiv_q )
     cl_connect( s.memory.result_q, s.writeback.memory_q )
     cl_connect( s.csrr.result_q, s.writeback.csrr_q )
     cl_connect( s.writeback.result_out_q, s.commit.result_in_q )
@@ -71,6 +75,7 @@ class ProcCL( Model ):
     s.commit.xtick()
     s.writeback.xtick()
     s.execute.xtick()
+    s.muldiv.xtick()
     s.memory.xtick()
     s.csrr.xtick()
     s.issue.xtick()
