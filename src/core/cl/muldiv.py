@@ -13,7 +13,7 @@ from copy import deepcopy
 
 # The integer execute pipe
 class MulDivUnitCL( Model ):
-  NCYCLES = 4 # > 0
+  NCYCLES = 4  # > 0
 
   def __init__( s, dataflow, controlflow ):
     s.issued_q = InValRdyCLPort( IssuePacket() )
@@ -22,8 +22,8 @@ class MulDivUnitCL( Model ):
     # Set up the delay pipe
     source = InValRdyCLPort( ExecutePacket() )
     s.pipe_result_q = OutValRdyCLPort( ExecutePacket() )
-    cl_connect( s.pipe_result_q, source)
-    s.pipeline = DelayPipeCL(s.NCYCLES-1, source, s.result_q)
+    cl_connect( s.pipe_result_q, source )
+    s.pipeline = DelayPipeCL( s.NCYCLES - 1, source, s.result_q )
 
     s.dataflow = dataflow
     s.controlflow = controlflow
@@ -148,7 +148,7 @@ class MulDivUnitCL( Model ):
       # Output the finished instruction
       s.pipe_result_q.enq( s.work )
 
-    s.pipeline.tick() # Tick our delay pipe
+    s.pipeline.tick()  # Tick our delay pipe
 
     # Forward from last stage
     if s.result_q.full():
@@ -159,8 +159,6 @@ class MulDivUnitCL( Model ):
         fwd.tag = res.rd
         fwd.value = res.result
         s.dataflow.forward( fwd )
-
-
 
   def line_trace( s ):
     return LineBlock([
