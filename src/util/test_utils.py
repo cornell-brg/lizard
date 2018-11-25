@@ -173,7 +173,22 @@ def run_rdycall_test_vector_sim( model,
   else:
     method_names = test_vectors[ 0 ]
 
-  for method, param in zip( method_names, test_vectors[ 1 ] ):
+  if isinstance( test_vectors[ 1 ], str ):
+    raw_args = test_vectors[ 1 ].split()
+    args = []
+    for arg in raw_args:
+      if arg == ',':
+        args[-1 ] += arg
+      elif args and args[-1 ][-1 ] == ',':
+        args[-1 ] += arg
+      else:
+        args += [ arg ]
+  else:
+    args = test_vectors[ 1 ]
+
+  assert len( args ) == len( method_names )
+
+  for method, param in zip( method_names, args ):
     method_list = {}
     method_list[ 'method_name' ] = method
 
