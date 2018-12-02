@@ -1,6 +1,13 @@
 from pymtl import *
 
 
+def canonicalize_type( pymtl_type ):
+  if isinstance( pymtl_type, int ):
+    return Bits( pymtl_type )
+  else:
+    return pymtl_type
+
+
 class MethodCallPortBundle( PortBundle ):
   """
   Represents: a port bundle for an RTL method call.

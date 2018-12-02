@@ -29,19 +29,12 @@ class SnapshottingRegisterFile( Model ):
   def __init__( s,
                 dtype,
                 nregs,
-                rd_ports,
-                wr_ports,
+                num_rd_ports,
+                num_wr_ports,
                 combinational_read_bypass,
                 nsnapshots,
                 combinational_snapshot_bypass=False,
                 reset_values=None ):
-    addr_nbits = clog2( nregs )
-    s.rd_addr = [ InPort( addr_nbits ) for _ in range( rd_ports ) ]
-    s.rd_data = [ OutPort( dtype ) for _ in range( rd_ports ) ]
-
-    s.wr_addr = [ InPort( addr_nbits ) for _ in range( wr_ports ) ]
-    s.wr_data = [ InPort( dtype ) for _ in range( wr_ports ) ]
-    s.wr_en = [ InPort( 1 ) for _ in range( wr_ports ) ]
 
     nsbits = clog2nz( nsnapshots )
 
@@ -53,31 +46,37 @@ class SnapshottingRegisterFile( Model ):
     s.restore_port = InMethodCallPortBundle( s.RestoreRequest, None, False )
     s.free_snapshot_port = InMethodCallPortBundle( s.FreeSnapshotRequest, None,
                                                    False )
-
     s.regs = RegisterFile(
         dtype,
         nregs,
-        rd_ports,
-        wr_ports,
+        num_rd_ports,
+        num_wr_ports,
         combinational_read_bypass,
         combinational_dump_bypass=combinational_snapshot_bypass,
         combinational_dump_read_bypass=combinational_snapshot_bypass,
         dump_port=True,
         reset_values=reset_values )
+
+    s.rd_ports = [
+        InMethodCallPortBundle( s.regs.ReadRequest, s.regs.ReadResponse, False )
+        for _ in range( num_rd_ports )
+    ]
+    s.wr_ports = [
+        InMethodCallPortBundle( s.regs.WriteRequest, None, False )
+        for _ in range( num_wr_ports )
+    ]
+
     s.snapshots = [
         RegisterFile( dtype, nregs, 0, 0, False, dump_port=True )
         for _ in range( nsnapshots )
     ]
     s.snapshot_allocator = FreeList( nsnapshots, 1, 1, False )
 
-    for i in range( rd_ports ):
-      s.connect( s.rd_addr[ i ], s.regs.rd_addr[ i ] )
-      s.connect( s.rd_data[ i ], s.regs.rd_data[ i ] )
+    for i in range( num_rd_ports ):
+      s.connect( s.rd_ports[ i ], s.regs.rd_ports[ i ] )
 
-    for i in range( wr_ports ):
-      s.connect( s.wr_addr[ i ], s.regs.wr_addr[ i ] )
-      s.connect( s.wr_data[ i ], s.regs.wr_data[ i ] )
-      s.connect( s.wr_en[ i ], s.regs.wr_en[ i ] )
+    for i in range( num_wr_ports ):
+      s.connect( s.wr_ports[ i ], s.regs.wr_ports[ i ] )
 
     s.taking_snapshot = Wire( 1 )
     s.snapshot_target = Wire( nsbits )
