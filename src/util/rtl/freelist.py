@@ -76,6 +76,20 @@ class FreeList( Model ):
       s.connect( s.workaround_free_ports_arg_index[ port ],
                  s.free_ports[ port ].arg.index )
 
+    # PYMTL_BROKEN workaround
+    s.workaround_free_wr_ports_arg_addr = [
+        Wire( nbits ) for _ in range( num_free_ports )
+    ]
+    for port in range( num_free_ports ):
+      s.connect( s.workaround_free_wr_ports_arg_addr[ port ],
+                 s.free.wr_ports[ port ].arg.addr )
+    s.workaround_free_wr_ports_arg_data = [
+        Wire( nbits ) for _ in range( num_free_ports )
+    ]
+    for port in range( num_free_ports ):
+      s.connect( s.workaround_free_wr_ports_arg_data[ port ],
+                 s.free.wr_ports[ port ].arg.data )
+
     for port in range( num_free_ports ):
       if port == 0:
         s.connect( s.tail_incs[ port ].in_, s.tail )
@@ -92,16 +106,15 @@ class FreeList( Model ):
           ctail = s.tail_next[ port - 1 ]
 
         if s.free_ports[ port ].call:
-          s.free.wr_en[ port ].v = 1
-          s.free.wr_addr[ port ].v = ctail
-          # pymtl is broken doesn't translate: https://github.com/cornell-brg/pymtl/issues/141
-          # PYMTL_BROKEN
-          s.free.wr_data[ port ].v = s.workaround_free_ports_arg_index[ port ]
+          s.free.wr_ports[ port ].call.v = 1
+          s.workaround_free_wr_ports_arg_addr[ port ].v = ctail
+          s.workaround_free_wr_ports_arg_data[
+              port ].v = s.workaround_free_ports_arg_index[ port ]
 
           s.tail_next[ port ].v = s.tail_incs[ port ].out
           s.free_size_next[ port ].v = base - 1
         else:
-          s.free.wr_en[ port ].v = 0
+          s.free.wr_ports[ port ].call.v = 0
           s.tail_next[ port ].v = ctail
           s.free_size_next[ port ].v = base
 
@@ -130,7 +143,7 @@ class FreeList( Model ):
       else:
         s.connect( s.head_incs[ port ].in_, s.head_next[ port - 1 ].out )
 
-      s.connect( s.free.rd_data[ port ], s.alloc_ports[ port ].ret.index )
+      s.connect( s.free.rd_ports[ port ].ret, s.alloc_ports[ port ].ret.index )
 
       @s.combinational
       def handle_alloc( port=port ):
@@ -140,7 +153,8 @@ class FreeList( Model ):
         else:
           base = s.alloc_size_next[ port - 1 ]
           chead = s.head_next[ port - 1 ]
-        s.free.rd_addr[ port ].v = chead
+        s.free.rd_ports[ port ].arg.v = chead
+        s.free.rd_ports[ port ].call.v = 1
         if s.alloc_ports[ port ].call and s.bypassed_size != nslots:
           # pymtl is broken doesn't translate: https://github.com/cornell-brg/pymtl/issues/141
           # PYMTL_BROKEN

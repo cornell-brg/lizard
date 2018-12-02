@@ -8,7 +8,7 @@ def test_basic():
   run_test_vector_sim(
       SnapshottingRegisterFile( 8, 4, 1, 1, False, 1 ),
       [
-          ( 'rd_addr[0] rd_data[0]* wr_addr[0] wr_data[0] wr_en[0] snapshot_port.call snapshot_port.ret.id* snapshot_port.ret.valid* restore_port.call restore_port.arg.id free_snapshot_port.call free_snapshot_port.arg.id'
+          ( 'rd_ports[0].arg rd_ports[0].ret* wr_ports[0].arg.addr wr_ports[0].arg.data wr_ports[0].call snapshot_port.call snapshot_port.ret.id* snapshot_port.ret.valid* restore_port.call restore_port.arg.id free_snapshot_port.call free_snapshot_port.arg.id'
           ),
           ( 0, 0, 0, 8, 1, 0, '?', '?', 0, 0, 0, 0 ),
           ( 0, 8, 2, 3, 1, 0, '?', '?', 0, 0, 0, 0 ),

@@ -79,7 +79,7 @@ class RenameTable( Model ):
                  s.read_ports[ i ].ret.preg )
 
     for i in range( nread_ports ):
-      s.connect( s.read_ports[ i ].arg.areg, s.rename_table.rd_addr[ i ] )
+      s.connect( s.read_ports[ i ].arg.areg, s.rename_table.rd_ports[ i ].arg )
       if const_zero:
 
         @s.combinational
@@ -87,10 +87,11 @@ class RenameTable( Model ):
           if s.workaround_read_ports_arg_areg[ i ] == 0:
             s.workaround_read_ports_ret_preg[ i ].v = s.ZERO_TAG
           else:
-            s.workaround_read_ports_ret_preg[ i ].v = s.rename_table.rd_data[
-                i ]
+            s.workaround_read_ports_ret_preg[ i ].v = s.rename_table.rd_ports[
+                i ].ret
       else:
-        s.connect( s.read_ports[ i ].ret.preg, s.rename_table.rd_data[ i ] )
+        s.connect( s.read_ports[ i ].ret.preg,
+                   s.rename_table.rd_ports[ i ].ret )
 
     # PYMTL_BROKEN
     s.workaround_write_ports_arg_areg = [
@@ -101,18 +102,20 @@ class RenameTable( Model ):
                  s.write_ports[ i ].arg.areg )
 
     for i in range( nwrite_ports ):
-      s.connect( s.write_ports[ i ].arg.areg, s.rename_table.wr_addr[ i ] )
-      s.connect( s.write_ports[ i ].arg.preg, s.rename_table.wr_data[ i ] )
+      s.connect( s.write_ports[ i ].arg.areg,
+                 s.rename_table.wr_ports[ i ].arg.addr )
+      s.connect( s.write_ports[ i ].arg.preg,
+                 s.rename_table.wr_ports[ i ].arg.data )
       if const_zero:
 
         @s.combinational
         def handle_zero_write( i=i ):
           if s.workaround_write_ports_arg_areg[ i ] == 0:
-            s.rename_table.wr_en[ i ].v = 0
+            s.rename_table.wr_ports[ i ].call.v = 0
           else:
-            s.rename_table.wr_en[ i ].v = s.write_ports[ i ].call
+            s.rename_table.wr_ports[ i ].call.v = s.write_ports[ i ].call
       else:
-        s.connect( s.write_ports[ i ].call, s.rename_table.wr_en[ i ] )
+        s.connect( s.write_ports[ i ].call, s.rename_table.wr_ports[ i ].call )
 
     s.connect( s.snapshot_port, s.rename_table.snapshot_port )
     s.connect( s.restore_port, s.rename_table.restore_port )
