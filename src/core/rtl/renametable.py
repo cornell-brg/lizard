@@ -57,7 +57,7 @@ class RenameTable( Model ):
         InMethodCallPortBundle( s.WriteRequest, None, False )
         for _ in range( nwrite_ports )
     ]
-    s.snapshot_port = InMethodCallPortBundle( None, s.SnapshotResponse, False )
+    s.snapshot_port = InMethodCallPortBundle( None, s.SnapshotResponse, True )
     s.restore_port = InMethodCallPortBundle( s.RestoreRequest, None, False )
     s.free_snapshot_port = InMethodCallPortBundle( s.FreeSnapshotRequest, None,
                                                    False )

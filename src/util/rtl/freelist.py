@@ -9,7 +9,6 @@ class AllocResponse( BitStructDefinition ):
 
   def __init__( s, size ):
     s.index = BitField( size )
-    s.valid = BitField( 1 )
 
 
 class FreeRequest( BitStructDefinition ):
@@ -34,7 +33,7 @@ class FreeList( Model ):
     s.FreeRequest = FreeRequest( nbits )
 
     s.alloc_ports = [
-        InMethodCallPortBundle( None, s.AllocResponse, False )
+        InMethodCallPortBundle( None, s.AllocResponse, True )
         for _ in range( num_alloc_ports )
     ]
     s.free_ports = [
@@ -129,14 +128,6 @@ class FreeList( Model ):
       def handle_bypass():
         s.bypassed_size.v = s.size
 
-    # PYMTL_BROKEN workaround
-    s.workaround_alloc_ports_ret_valid = [
-        Wire( 1 ) for _ in range( num_alloc_ports )
-    ]
-    for port in range( num_alloc_ports ):
-      s.connect( s.workaround_alloc_ports_ret_valid[ port ],
-                 s.alloc_ports[ port ].ret.valid )
-
     for port in range( num_alloc_ports ):
       if port == 0:
         s.connect( s.head_incs[ port ].in_, s.head )
@@ -155,16 +146,11 @@ class FreeList( Model ):
           chead = s.head_next[ port - 1 ]
         s.free.rd_ports[ port ].arg.v = chead
         s.free.rd_ports[ port ].call.v = 1
-        if s.alloc_ports[ port ].call and s.bypassed_size != nslots:
-          # pymtl is broken doesn't translate: https://github.com/cornell-brg/pymtl/issues/141
-          # PYMTL_BROKEN
-          s.workaround_alloc_ports_ret_valid[ port ].v = 1
+        s.alloc_ports[ port ].rdy.v = ( s.bypassed_size != nslots )
+        if s.alloc_ports[ port ].call:
           s.head_next[ port ].v = s.head_incs[ port ].out
           s.alloc_size_next[ port ].v = base + 1
         else:
-          # pymtl is broken doesn't translate: https://github.com/cornell-brg/pymtl/issues/141
-          # PYMTL_BROKEN
-          s.workaround_alloc_ports_ret_valid[ port ].v = 0
           s.head_next[ port ].v = chead
           s.alloc_size_next[ port ].v = base
 
