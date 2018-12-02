@@ -9,7 +9,6 @@ class SnapshotResponse( BitStructDefinition ):
 
   def __init__( s, nbits ):
     s.id = BitField( nbits )
-    s.valid = BitField( 1 )
 
 
 class RestoreRequest( BitStructDefinition ):
@@ -42,7 +41,7 @@ class SnapshottingRegisterFile( Model ):
     s.RestoreRequest = RestoreRequest( nsbits )
     s.FreeSnapshotRequest = FreeSnapshotRequest( nsbits )
 
-    s.snapshot_port = InMethodCallPortBundle( None, s.SnapshotResponse, False )
+    s.snapshot_port = InMethodCallPortBundle( None, s.SnapshotResponse, True )
     s.restore_port = InMethodCallPortBundle( s.RestoreRequest, None, False )
     s.free_snapshot_port = InMethodCallPortBundle( s.FreeSnapshotRequest, None,
                                                    False )
@@ -81,23 +80,12 @@ class SnapshottingRegisterFile( Model ):
     s.taking_snapshot = Wire( 1 )
     s.snapshot_target = Wire( nsbits )
 
-    # PYMTL_BROKEN
-    s.workaround_snapshot_allocator_alloc_ports_ret_valid = Wire( 1 )
-    s.connect( s.workaround_snapshot_allocator_alloc_ports_ret_valid,
-               s.snapshot_allocator.alloc_ports[ 0 ].ret.valid )
-
-    @s.combinational
-    def handle_snapshot():
-      if s.snapshot_port.call:
-        s.snapshot_allocator.alloc_ports[ 0 ].call.v = 1
-        s.taking_snapshot.v = s.workaround_snapshot_allocator_alloc_ports_ret_valid
-      else:
-        s.snapshot_allocator.alloc_ports[ 0 ].call.v = 0
-        s.taking_snapshot.v = 0
-
+    s.connect( s.snapshot_port.rdy, s.snapshot_allocator.alloc_ports[ 0 ].rdy )
+    s.connect( s.snapshot_port.call,
+               s.snapshot_allocator.alloc_ports[ 0 ].call )
+    s.connect( s.snapshot_port.call, s.taking_snapshot )
     s.connect( s.snapshot_port.ret.id,
                s.snapshot_allocator.alloc_ports[ 0 ].ret.index )
-    s.connect( s.snapshot_port.ret.valid, s.taking_snapshot )
 
     # PYMTL_BROKEN
     s.workaround_snapshot_allocator_alloc_ports_ret_index = Wire( nsbits )
