@@ -5,7 +5,7 @@
 
 from pymtl import *
 import collections
-import re
+import re, py
 
 
 class RunTestVectorSimError( Exception ):
@@ -251,10 +251,24 @@ def run_rdycall_test_vector_sim( model,
       assert len( in_value ) == len( method[ 'ret' ] ) + len(
           method[ 'arg' ] ) + 1
 
-      exec ( "if hasattr( model.{}, 'rdy' ): assert model.{}.rdy".format(
-          method[ 'method_name' ], method[ 'method_name' ] ) )
-      exec ( "model.{}.call.v = in_value[ 0 ]".format(
-          method[ 'method_name' ] ) )
+      method_name = method[ 'method_name' ]
+
+      rdy = True
+      exec (
+          "if in_value[ 0 ] and hasattr( model.{}, 'rdy' ): rdy = model.{}.rdy"
+          .format( method_name, method_name ) ) in locals()
+
+      if not rdy:
+        error_msg = """
+        Calling method not rdy:
+        - row number     : {row_number}
+        - method name    : {method_name}
+      """
+
+        raise RunTestVectorSimError(
+            error_msg.format( row_number=row_num, method_name=method_name ) )
+
+      exec ( "model.{}.call.v = in_value[ 0 ]".format( method_name ) )
 
       if method[ 'arg_start' ] > 0:
         args = method[ 'arg' ]
@@ -262,6 +276,7 @@ def run_rdycall_test_vector_sim( model,
         for i in range( len( method[ 'arg' ] ) ):
           exec ( "model.{}.arg.{}.v = in_value[ arg_start + i ]".format(
               method[ 'method_name' ], method[ 'arg' ][ i ] ) )
+
       sim.eval_combinational()
 
     # Evaluate combinational concurrent blocks
