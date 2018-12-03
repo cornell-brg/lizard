@@ -28,14 +28,18 @@ class MethodCallPortBundle( PortBundle ):
      port will be created.
   """
 
-  def __init__( self, arg_type, ret_type, has_rdy=True ):
-    self.call = InPort( 1 )
-    if arg_type is not None:
-      self.arg = InPort( arg_type )
-    if ret_type is not None:
-      self.ret = OutPort( ret_type )
+  def __init__( self, args, rets, has_call=True, has_rdy=True ):
+    if has_call:
+      self.call = InPort( 1 )
+    self.augment( args, InPort )
+    self.augment( rets, OutPort )
     if has_rdy:
       self.rdy = OutPort( 1 )
+
+  def augment( self, port_dict, port_type ):
+    if port_dict:
+      for name, data_type in port_dict.iteritems():
+        setattr( self, name, port_type( data_type ) )
 
 
 InMethodCallPortBundle, OutMethodCallPortBundle = create_PortBundles(
