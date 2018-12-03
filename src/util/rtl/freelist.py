@@ -5,18 +5,6 @@ from util.rtl.registerfile import RegisterFile
 from bitutil import clog2, clog2nz
 
 
-class AllocResponse( BitStructDefinition ):
-
-  def __init__( s, size ):
-    s.index = BitField( size )
-
-
-class FreeRequest( BitStructDefinition ):
-
-  def __init__( s, size ):
-    s.index = BitField( size )
-
-
 class FreeList( Model ):
 
   def __init__( s,
@@ -29,16 +17,19 @@ class FreeList( Model ):
     nbits = clog2nz( nslots )
     ncount_bits = clog2( nslots + 1 )
 
-    s.AllocResponse = AllocResponse( nbits )
-    s.FreeRequest = FreeRequest( nbits )
+    s.Index = Bits( nbits )
 
     s.alloc_ports = [
-        InMethodCallPortBundle( None, s.AllocResponse, True )
+        InMethodCallPortBundle( None, { 'index': s.Index} )
         for _ in range( num_alloc_ports )
     ]
     s.free_ports = [
-        InMethodCallPortBundle( s.FreeRequest, None, False )
-        for _ in range( num_free_ports )
+        InMethodCallPortBundle({
+            'index': s.Index
+        },
+                               None,
+                               has_call=True,
+                               has_rdy=False ) for _ in range( num_free_ports )
     ]
 
     s.free = RegisterFile(
@@ -67,33 +58,18 @@ class FreeList( Model ):
         WrapInc( nbits, nslots, True ) for _ in range( num_free_ports )
     ]
 
-    # PYMTL_BROKEN workaround
-    s.workaround_free_ports_arg_index = [
+    # PYMTL_BROKEN
+    s.workaround_tail_incs_inc_out = [
         Wire( nbits ) for _ in range( num_free_ports )
     ]
-    for port in range( num_free_ports ):
-      s.connect( s.workaround_free_ports_arg_index[ port ],
-                 s.free_ports[ port ].arg.index )
-
-    # PYMTL_BROKEN workaround
-    s.workaround_free_wr_ports_arg_addr = [
-        Wire( nbits ) for _ in range( num_free_ports )
-    ]
-    for port in range( num_free_ports ):
-      s.connect( s.workaround_free_wr_ports_arg_addr[ port ],
-                 s.free.wr_ports[ port ].arg.addr )
-    s.workaround_free_wr_ports_arg_data = [
-        Wire( nbits ) for _ in range( num_free_ports )
-    ]
-    for port in range( num_free_ports ):
-      s.connect( s.workaround_free_wr_ports_arg_data[ port ],
-                 s.free.wr_ports[ port ].arg.data )
+    for i in range( num_alloc_ports ):
+      s.connect( s.tail_incs[ i ].inc.out, s.workaround_tail_incs_inc_out[ i ] )
 
     for port in range( num_free_ports ):
       if port == 0:
-        s.connect( s.tail_incs[ port ].in_, s.tail )
+        s.connect( s.tail_incs[ port ].inc.in_, s.tail )
       else:
-        s.connect( s.tail_incs[ port ].in_, s.tail_next[ port - 1 ] )
+        s.connect( s.tail_incs[ port ].inc.in_, s.tail_next[ port - 1 ] )
 
       @s.combinational
       def handle_free( port=port ):
@@ -106,11 +82,10 @@ class FreeList( Model ):
 
         if s.free_ports[ port ].call:
           s.free.wr_ports[ port ].call.v = 1
-          s.workaround_free_wr_ports_arg_addr[ port ].v = ctail
-          s.workaround_free_wr_ports_arg_data[
-              port ].v = s.workaround_free_ports_arg_index[ port ]
+          s.free.wr_ports[ port ].addr.v = ctail
+          s.free.wr_ports[ port ].data.v = s.free_ports[ port ].index
 
-          s.tail_next[ port ].v = s.tail_incs[ port ].out
+          s.tail_next[ port ].v = s.workaround_tail_incs_inc_out[ port ]
           s.free_size_next[ port ].v = base - 1
         else:
           s.free.wr_ports[ port ].call.v = 0
@@ -128,13 +103,20 @@ class FreeList( Model ):
       def handle_bypass():
         s.bypassed_size.v = s.size
 
+    # PYMTL_BROKEN
+    s.workaround_head_incs_inc_out = [
+        Wire( nbits ) for _ in range( num_alloc_ports )
+    ]
+    for i in range( num_alloc_ports ):
+      s.connect( s.head_incs[ i ].inc.out, s.workaround_head_incs_inc_out[ i ] )
+
     for port in range( num_alloc_ports ):
       if port == 0:
-        s.connect( s.head_incs[ port ].in_, s.head )
+        s.connect( s.head_incs[ port ].inc.in_, s.head )
       else:
-        s.connect( s.head_incs[ port ].in_, s.head_next[ port - 1 ].out )
+        s.connect( s.head_incs[ port ].inc.in_, s.head_next[ port - 1 ].out )
 
-      s.connect( s.free.rd_ports[ port ].ret, s.alloc_ports[ port ].ret.index )
+      s.connect( s.free.rd_ports[ port ].data, s.alloc_ports[ port ].index )
 
       @s.combinational
       def handle_alloc( port=port ):
@@ -144,11 +126,10 @@ class FreeList( Model ):
         else:
           base = s.alloc_size_next[ port - 1 ]
           chead = s.head_next[ port - 1 ]
-        s.free.rd_ports[ port ].arg.v = chead
-        s.free.rd_ports[ port ].call.v = 1
+        s.free.rd_ports[ port ].addr.v = chead
         s.alloc_ports[ port ].rdy.v = ( s.bypassed_size != nslots )
         if s.alloc_ports[ port ].call:
-          s.head_next[ port ].v = s.head_incs[ port ].out
+          s.head_next[ port ].v = s.workaround_head_incs_inc_out[ port ]
           s.alloc_size_next[ port ].v = base + 1
         else:
           s.head_next[ port ].v = chead

@@ -37,14 +37,23 @@ class SnapshottingRegisterFile( Model ):
 
     nsbits = clog2nz( nsnapshots )
 
-    s.SnapshotResponse = SnapshotResponse( nsbits )
+    s.SnapshotId = Bits( nsbits )
     s.RestoreRequest = RestoreRequest( nsbits )
     s.FreeSnapshotRequest = FreeSnapshotRequest( nsbits )
 
-    s.snapshot_port = InMethodCallPortBundle( None, s.SnapshotResponse, True )
-    s.restore_port = InMethodCallPortBundle( s.RestoreRequest, None, False )
-    s.free_snapshot_port = InMethodCallPortBundle( s.FreeSnapshotRequest, None,
-                                                   False )
+    s.snapshot_port = InMethodCallPortBundle( None, { 'id': s.SnapshotId} )
+    s.restore_port = InMethodCallPortBundle({
+        'id': s.SnapshotId
+    },
+                                            None,
+                                            has_call=True,
+                                            has_rdy=False )
+    s.free_snapshot_port = InMethodCallPortBundle({
+        'id': s.SnapshotId
+    },
+                                                  None,
+                                                  has_call=True,
+                                                  has_rdy=False )
     s.regs = RegisterFile(
         dtype,
         nregs,
@@ -57,12 +66,20 @@ class SnapshottingRegisterFile( Model ):
         reset_values=reset_values )
 
     s.rd_ports = [
-        InMethodCallPortBundle( s.regs.ReadRequest, s.regs.ReadResponse, False )
-        for _ in range( num_rd_ports )
+        InMethodCallPortBundle({
+            'addr': s.regs.Addr
+        }, { 'data': s.regs.Data},
+                               has_call=False,
+                               has_rdy=False ) for _ in range( num_rd_ports )
     ]
     s.wr_ports = [
-        InMethodCallPortBundle( s.regs.WriteRequest, None, False )
-        for _ in range( num_wr_ports )
+        InMethodCallPortBundle({
+            'addr': s.regs.Addr,
+            'data': s.regs.Data
+        },
+                               None,
+                               has_call=True,
+                               has_rdy=False ) for _ in range( num_wr_ports )
     ]
 
     s.snapshots = [
@@ -84,13 +101,7 @@ class SnapshottingRegisterFile( Model ):
     s.connect( s.snapshot_port.call,
                s.snapshot_allocator.alloc_ports[ 0 ].call )
     s.connect( s.snapshot_port.call, s.taking_snapshot )
-    s.connect( s.snapshot_port.ret.id,
-               s.snapshot_allocator.alloc_ports[ 0 ].ret.index )
-
-    # PYMTL_BROKEN
-    s.workaround_snapshot_allocator_alloc_ports_ret_index = Wire( nsbits )
-    s.connect( s.workaround_snapshot_allocator_alloc_ports_ret_index,
-               s.snapshot_allocator.alloc_ports[ 0 ].ret.index )
+    s.connect( s.snapshot_port.id, s.snapshot_allocator.alloc_ports[ 0 ].index )
 
     for i in range( nsnapshots ):
       for j in range( nregs ):
@@ -99,20 +110,20 @@ class SnapshottingRegisterFile( Model ):
       @s.combinational
       def handle_snapshot_save( i=i ):
         s.snapshots[
-            i ].dump_wr_en.v = s.taking_snapshot and s.workaround_snapshot_allocator_alloc_ports_ret_index == i
+            i ].dump_wr_en.v = s.taking_snapshot and s.snapshot_allocator.alloc_ports[
+                0 ].index == i
 
     s.connect( s.regs.dump_wr_en, s.restore_port.call )
     for j in range( nregs ):
 
       @s.combinational
       def handle_restore( j=j ):
-        s.regs.dump_in[ j ].v = s.snapshots[ s.restore_port.arg
-                                             .id ].dump_out[ j ]
+        s.regs.dump_in[ j ].v = s.snapshots[ s.restore_port.id ].dump_out[ j ]
 
     s.connect( s.free_snapshot_port.call,
                s.snapshot_allocator.free_ports[ 0 ].call )
-    s.connect( s.free_snapshot_port.arg.id,
-               s.snapshot_allocator.free_ports[ 0 ].arg.index )
+    s.connect( s.free_snapshot_port.id,
+               s.snapshot_allocator.free_ports[ 0 ].index )
 
   def line_trace( s ):
     return s.regs.line_trace()

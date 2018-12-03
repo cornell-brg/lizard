@@ -3,13 +3,6 @@ from bitutil import clog2, clog2nz
 from util.rtl.method import InMethodCallPortBundle, canonicalize_type
 
 
-class WriteRequest( BitStructDefinition ):
-
-  def __init__( s, size, dtype ):
-    s.addr = BitField( size )
-    s.data = BitField( canonicalize_type( dtype ).nbits )
-
-
 class RegisterFile( Model ):
 
   def __init__( s,
@@ -24,32 +17,39 @@ class RegisterFile( Model ):
                 reset_values=None ):
     addr_nbits = clog2nz( nregs )
 
-    s.ReadRequest = Bits( addr_nbits )
-    s.ReadResponse = dtype
-    s.WriteRequest = WriteRequest( addr_nbits, dtype )
+    s.Addr = Bits( addr_nbits )
+    s.Data = canonicalize_type( dtype )
 
     s.rd_ports = [
-        InMethodCallPortBundle( s.ReadRequest, s.ReadResponse, False )
-        for _ in range( num_rd_ports )
+        InMethodCallPortBundle({
+            'addr': s.Addr
+        }, { 'data': s.Data},
+                               has_call=False,
+                               has_rdy=False ) for _ in range( num_rd_ports )
     ]
     s.wr_ports = [
-        InMethodCallPortBundle( s.WriteRequest, None, False )
-        for _ in range( num_wr_ports )
+        InMethodCallPortBundle({
+            'addr': s.Addr,
+            'data': s.Data
+        },
+                               None,
+                               has_call=True,
+                               has_rdy=False ) for _ in range( num_wr_ports )
     ]
 
     if dump_port:
-      s.dump_out = [ OutPort( dtype ) for _ in range( nregs ) ]
-      s.dump_in = [ InPort( dtype ) for _ in range( nregs ) ]
+      s.dump_out = [ OutPort( s.Data ) for _ in range( nregs ) ]
+      s.dump_in = [ InPort( s.Data ) for _ in range( nregs ) ]
       s.dump_wr_en = InPort( 1 )
 
-    s.regs = [ Wire( dtype ) for _ in range( nregs ) ]
+    s.regs = [ Wire( s.Data ) for _ in range( nregs ) ]
     # pymtl breaks on translating nested lists due to the dreaded is_lhs
     # error
     # https://github.com/cornell-brg/pymtl/issues/137
     # PYMTL_BROKEN workaround
-    s.regs_next = [ Wire( dtype ) for _ in range( nregs * num_wr_ports ) ]
-    s.regs_next_last = [ Wire( dtype ) for _ in range( nregs ) ]
-    s.regs_next_dump = [ Wire( dtype ) for _ in range( nregs ) ]
+    s.regs_next = [ Wire( s.Data ) for _ in range( nregs * num_wr_ports ) ]
+    s.regs_next_last = [ Wire( s.Data ) for _ in range( nregs ) ]
+    s.regs_next_dump = [ Wire( s.Data ) for _ in range( nregs ) ]
 
     if reset_values is None:
       s.reset_values = [ 0 for _ in range( nregs ) ]
@@ -65,7 +65,7 @@ class RegisterFile( Model ):
     # PYMTL_BROKEN workaround
     for i in range( nregs ):
       value = s.reset_values[ i ]
-      s.reset_values[ i ] = Wire( dtype )
+      s.reset_values[ i ] = Wire( s.Data )
       s.connect( s.reset_values[ i ], value )
 
     for reg_i in range( nregs ):
@@ -110,34 +110,21 @@ class RegisterFile( Model ):
 
         @s.combinational
         def handle_read( port=port ):
-          s.rd_ports[ port ].ret.v = s.regs_next_dump[ s.rd_ports[ port ].arg ]
+          s.rd_ports[ port ].data.v = s.regs_next_dump[ s.rd_ports[ port ]
+                                                        .addr ]
       elif combinational_dump_read_bypass:
 
         @s.combinational
         def handle_read( port=port ):
           if s.dump_wr_en:
-            s.rd_ports[ port ].ret.v = s.dump_in[ reg_i ]
+            s.rd_ports[ port ].data.v = s.dump_in[ reg_i ]
           else:
-            s.rd_ports[ port ].ret.v = s.regs[ s.rd_ports[ port ].arg ]
+            s.rd_ports[ port ].data.v = s.regs[ s.rd_ports[ port ].addr ]
       else:
 
         @s.combinational
         def handle_read( port=port ):
-          s.rd_ports[ port ].ret.v = s.regs[ s.rd_ports[ port ].arg ]
-
-    # PYMTL_BROKEN workaround
-    s.workaround_wr_ports_arg_addr = [
-        Wire( addr_nbits ) for _ in range( num_wr_ports )
-    ]
-    for port in range( num_wr_ports ):
-      s.connect( s.workaround_wr_ports_arg_addr[ port ],
-                 s.wr_ports[ port ].arg.addr )
-    s.workaround_wr_ports_arg_data = [
-        Wire( dtype ) for _ in range( num_wr_ports )
-    ]
-    for port in range( num_wr_ports ):
-      s.connect( s.workaround_wr_ports_arg_data[ port ],
-                 s.wr_ports[ port ].arg.data )
+          s.rd_ports[ port ].data.v = s.regs[ s.rd_ports[ port ].addr ]
 
     for reg_i in range( nregs ):
       for port in range( num_wr_ports ):
@@ -147,9 +134,8 @@ class RegisterFile( Model ):
                           port=port,
                           i=port * nregs + reg_i,
                           j=( port - 1 ) * nregs + reg_i ):
-          if s.wr_ports[ port ].call and s.workaround_wr_ports_arg_addr[
-              port ] == reg_i:
-            s.regs_next[ i ].v = s.workaround_wr_ports_arg_data[ port ]
+          if s.wr_ports[ port ].call and s.wr_ports[ port ].addr == reg_i:
+            s.regs_next[ i ].v = s.wr_ports[ port ].data
           elif port == 0:
             s.regs_next[ i ].v = s.regs[ reg_i ]
           else:
