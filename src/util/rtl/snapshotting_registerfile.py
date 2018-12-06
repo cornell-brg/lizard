@@ -33,7 +33,8 @@ class SnapshottingRegisterFile( Model ):
                 combinational_read_bypass,
                 nsnapshots,
                 combinational_snapshot_bypass=False,
-                reset_values=None ):
+                reset_values=None,
+                external_restore=False ):
 
     nsbits = clog2nz( nsnapshots )
 
@@ -54,6 +55,10 @@ class SnapshottingRegisterFile( Model ):
                                                   None,
                                                   has_call=True,
                                                   has_rdy=False )
+    if external_restore:
+      s.external_restore_en = InPort( 1 )
+      s.external_restore_in = [ InPort( dtype ) for _ in range( nregs ) ]
+
     s.regs = RegisterFile(
         dtype,
         nregs,
@@ -116,9 +121,20 @@ class SnapshottingRegisterFile( Model ):
     s.connect( s.regs.dump_wr_en, s.restore_port.call )
     for j in range( nregs ):
 
-      @s.combinational
-      def handle_restore( j=j ):
-        s.regs.dump_in[ j ].v = s.snapshots[ s.restore_port.id ].dump_out[ j ]
+      if external_restore:
+
+        @s.combinational
+        def handle_restore( j=j ):
+          if s.external_restore_en:
+            s.regs.dump_in[ j ].v = s.external_restore_in[ j ]
+          else:
+            s.regs.dump_in[ j ].v = s.snapshots[ s.restore_port
+                                                 .id ].dump_out[ j ]
+      else:
+
+        @s.combinational
+        def handle_restore( j=j ):
+          s.regs.dump_in[ j ].v = s.snapshots[ s.restore_port.id ].dump_out[ j ]
 
     s.connect( s.free_snapshot_port.call,
                s.snapshot_allocator.free_ports[ 0 ].call )
