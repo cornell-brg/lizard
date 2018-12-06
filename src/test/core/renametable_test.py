@@ -25,11 +25,6 @@ def test_basic():
       test_verilog=test_verilog )
 
 
-"""
-How to do ready? 
-It is assumed that any method is called only when it is rdy"""
-
-
 def test_basic_rdycall():
   run_rdycall_test_vector_sim(
       RenameTable( 2, 4, 2, 1, 1, True, [ 0, 0 ] ),

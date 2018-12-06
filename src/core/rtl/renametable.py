@@ -21,7 +21,8 @@ class RenameTable( Model ):
         False,
         nsnapshots,
         combinational_snapshot_bypass=True,
-        reset_values=initial_map )
+        reset_values=initial_map,
+        external_restore=True )
 
     s.Areg = Bits( s.nabits )
     s.Preg = Bits( s.npbits )
@@ -43,20 +44,28 @@ class RenameTable( Model ):
                                has_rdy=False ) for _ in range( nwrite_ports )
     ]
 
-    s.snapshot_port = InMethodCallPortBundle(
-        None, { 'id': s.rename_table.SnapshotId} )
+    s.SnapshotId = s.rename_table.SnapshotId
+
+    s.snapshot_port = InMethodCallPortBundle( None, { 'id': s.SnapshotId} )
     s.restore_port = InMethodCallPortBundle({
-        'id': s.rename_table.SnapshotId
+        'id': s.SnapshotId
     },
                                             None,
                                             has_call=True,
                                             has_rdy=False )
     s.free_snapshot_port = InMethodCallPortBundle({
-        'id': s.rename_table.SnapshotId
+        'id': s.SnapshotId
     },
                                                   None,
                                                   has_call=True,
                                                   has_rdy=False )
+    s.external_restore_en = InPort( 1 )
+    s.external_restore_in = [ InPort( s.npbits ) for _ in range( naregs ) ]
+
+    s.connect( s.rename_table.external_restore_en, s.external_restore_en )
+    for i in range( naregs ):
+      s.connect( s.rename_table.external_restore_in[ i ],
+                 s.external_restore_in[ i ] )
 
     if const_zero:
       s.ZERO_TAG = Bits( s.npbits, npregs - 1 )
