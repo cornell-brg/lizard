@@ -1,26 +1,25 @@
 from pymtl import *
 from bitutil import clog2nz
-from util.rtl.method import InMethodCallPortBundle
-from util.rtl.registerfile import RegisterFile
+from util.rtl.method import MethodSpec
+from util.rtl.registerfile import RegisterFile, RegisterFileInterface
 from util.rtl.freelist import FreeList
 
 
-class SnapshotResponse( BitStructDefinition ):
+class SnapshottingRegisterFileInterface( RegisterFileInterface ):
 
-  def __init__( s, nbits ):
-    s.id = BitField( nbits )
+  def __init__( s, dtype, nregs, nsnapshots ):
+    super( SnapshottingRegisterFileInterface, s ).__init__( dtype, nregs )
 
+    nsbits = clog2nz( nsnapshots )
+    s.SnapshotId = Bits( nsbits )
 
-class RestoreRequest( BitStructDefinition ):
-
-  def __init__( s, nbits ):
-    s.id = BitField( nbits )
-
-
-class FreeSnapshotRequest( BitStructDefinition ):
-
-  def __init__( s, nbits ):
-    s.id = BitField( nbits )
+    s.snapshot = MethodSpec( None, {
+        'id': s.SnapshotId,
+    }, True, True )
+    s.restore = MethodSpec({
+        'id': s.SnapshotId,
+    }, None, True, False )
+    s.free_snapshot = MethodSpec({ 'id': s.SnapshotId}, None, True, False )
 
 
 class SnapshottingRegisterFile( Model ):
@@ -35,26 +34,12 @@ class SnapshottingRegisterFile( Model ):
                 combinational_snapshot_bypass=False,
                 reset_values=None,
                 external_restore=False ):
+    s.interface = SnapshottingRegisterFileInterface( dtype, nregs, nsnapshots )
 
-    nsbits = clog2nz( nsnapshots )
+    s.snapshot_port = s.interface.snapshot.in_port()
+    s.restore_port = s.interface.restore.in_port()
+    s.free_snapshot_port = s.interface.free_snapshot.in_port()
 
-    s.SnapshotId = Bits( nsbits )
-    s.RestoreRequest = RestoreRequest( nsbits )
-    s.FreeSnapshotRequest = FreeSnapshotRequest( nsbits )
-
-    s.snapshot_port = InMethodCallPortBundle( None, { 'id': s.SnapshotId} )
-    s.restore_port = InMethodCallPortBundle({
-        'id': s.SnapshotId
-    },
-                                            None,
-                                            has_call=True,
-                                            has_rdy=False )
-    s.free_snapshot_port = InMethodCallPortBundle({
-        'id': s.SnapshotId
-    },
-                                                  None,
-                                                  has_call=True,
-                                                  has_rdy=False )
     if external_restore:
       s.external_restore_en = InPort( 1 )
       s.external_restore_in = [ InPort( dtype ) for _ in range( nregs ) ]
@@ -70,22 +55,8 @@ class SnapshottingRegisterFile( Model ):
         dump_port=True,
         reset_values=reset_values )
 
-    s.rd_ports = [
-        InMethodCallPortBundle({
-            'addr': s.regs.Addr
-        }, { 'data': s.regs.Data},
-                               has_call=False,
-                               has_rdy=False ) for _ in range( num_rd_ports )
-    ]
-    s.wr_ports = [
-        InMethodCallPortBundle({
-            'addr': s.regs.Addr,
-            'data': s.regs.Data
-        },
-                               None,
-                               has_call=True,
-                               has_rdy=False ) for _ in range( num_wr_ports )
-    ]
+    s.rd_ports = [ s.interface.rd.in_port() for _ in range( num_rd_ports ) ]
+    s.wr_ports = [ s.interface.wr.in_port() for _ in range( num_wr_ports ) ]
 
     s.snapshots = [
         RegisterFile( dtype, nregs, 0, 0, False, dump_port=True )
@@ -100,7 +71,7 @@ class SnapshottingRegisterFile( Model ):
       s.connect( s.wr_ports[ i ], s.regs.wr_ports[ i ] )
 
     s.taking_snapshot = Wire( 1 )
-    s.snapshot_target = Wire( nsbits )
+    s.snapshot_target = Wire( s.interface.SnapshotId )
 
     s.connect( s.snapshot_port.rdy, s.snapshot_allocator.alloc_ports[ 0 ].rdy )
     s.connect( s.snapshot_port.call,

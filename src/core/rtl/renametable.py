@@ -1,20 +1,45 @@
 from pymtl import *
 from bitutil import clog2
-from util.rtl.method import InMethodCallPortBundle
-from util.rtl.snapshotting_registerfile import SnapshottingRegisterFile
+from util.rtl.method import MethodSpec
+from util.rtl.snapshotting_registerfile import SnapshottingRegisterFile, SnapshottingRegisterFileInterface
 from util.rtl.freelist import FreeList
+
+
+class RenameTableInterface:
+
+  def __init__( s, naregs, npregs, nsnapshots ):
+    npbits = clog2( npregs )
+
+    s.Preg = Bits( npbits )
+    s.snapshot_interface = SnapshottingRegisterFileInterface(
+        s.Preg, naregs, nsnapshots )
+    s.Areg = s.snapshot_interface.Addr
+    s.SnapshotId = s.snapshot_interface.SnapshotId
+
+    s.read = MethodSpec({
+        'areg': s.Areg,
+    }, {
+        'preg': s.Preg,
+    }, False, False )
+
+    s.write = MethodSpec({
+        'areg': s.Areg,
+        'preg': s.Preg,
+    }, None, True, False )
+
+    s.snapshot = s.snapshot_interface.snapshot
+    s.restore = s.snapshot_interface.restore
+    s.free_snapshot = s.snapshot_interface.free_snapshot
 
 
 class RenameTable( Model ):
 
   def __init__( s, naregs, npregs, nread_ports, nwrite_ports, nsnapshots,
                 const_zero, initial_map ):
-    s.nabits = clog2( naregs )
-    s.npbits = clog2( npregs )
-    s.nsbits = clog2( nsnapshots )
+    s.interface = RenameTableInterface( naregs, npregs, nsnapshots )
 
     s.rename_table = SnapshottingRegisterFile(
-        s.npbits,
+        s.interface.Preg,
         naregs,
         nread_ports,
         nwrite_ports,
@@ -24,43 +49,19 @@ class RenameTable( Model ):
         reset_values=initial_map,
         external_restore=True )
 
-    s.Areg = Bits( s.nabits )
-    s.Preg = Bits( s.npbits )
-
-    s.read_ports = [
-        InMethodCallPortBundle({
-            'areg': s.Areg
-        }, { 'preg': s.Preg},
-                               has_call=False,
-                               has_rdy=False ) for _ in range( nread_ports )
-    ]
+    s.read_ports = [ s.interface.read.in_port() for _ in range( nread_ports ) ]
     s.write_ports = [
-        InMethodCallPortBundle({
-            'areg': s.Areg,
-            'preg': s.Preg
-        },
-                               None,
-                               has_call=True,
-                               has_rdy=False ) for _ in range( nwrite_ports )
+        s.interface.write.in_port() for _ in range( nwrite_ports )
     ]
 
-    s.SnapshotId = s.rename_table.SnapshotId
+    s.snapshot_port = s.interface.snapshot.in_port()
+    s.restore_port = s.interface.restore.in_port()
+    s.free_snapshot_port = s.interface.free_snapshot.in_port()
 
-    s.snapshot_port = InMethodCallPortBundle( None, { 'id': s.SnapshotId} )
-    s.restore_port = InMethodCallPortBundle({
-        'id': s.SnapshotId
-    },
-                                            None,
-                                            has_call=True,
-                                            has_rdy=False )
-    s.free_snapshot_port = InMethodCallPortBundle({
-        'id': s.SnapshotId
-    },
-                                                  None,
-                                                  has_call=True,
-                                                  has_rdy=False )
     s.external_restore_en = InPort( 1 )
-    s.external_restore_in = [ InPort( s.npbits ) for _ in range( naregs ) ]
+    s.external_restore_in = [
+        InPort( s.interface.Preg ) for _ in range( naregs )
+    ]
 
     s.connect( s.rename_table.external_restore_en, s.external_restore_en )
     for i in range( naregs ):
@@ -68,7 +69,7 @@ class RenameTable( Model ):
                  s.external_restore_in[ i ] )
 
     if const_zero:
-      s.ZERO_TAG = Bits( s.npbits, npregs - 1 )
+      s.ZERO_TAG = Bits( s.interface.Preg.nbits, npregs - 1 )
 
     for i in range( nread_ports ):
       s.connect( s.read_ports[ i ].areg, s.rename_table.rd_ports[ i ].addr )

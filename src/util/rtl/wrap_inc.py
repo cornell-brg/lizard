@@ -1,18 +1,25 @@
 from pymtl import *
 from bitutil import clog2
-from util.rtl.method import InMethodCallPortBundle
+from util.rtl.method import MethodSpec
+
+
+class WrapIncInterface:
+
+  def __init__( s, nbits ):
+    s.Data = Bits( nbits )
+
+    s.inc = MethodSpec({
+        'in_': s.Data,
+    }, {
+        'out': s.Data,
+    }, False, False )
 
 
 class WrapInc( Model ):
 
   def __init__( s, nbits, size, up ):
-    s.Data = Bits( nbits )
-
-    s.inc = InMethodCallPortBundle({
-        'in_': s.Data
-    }, { 'out': s.Data},
-                                   has_call=False,
-                                   has_rdy=False )
+    s.interface = WrapIncInterface( nbits )
+    s.inc = s.interface.inc.in_port()
 
     if up:
 
@@ -32,19 +39,26 @@ class WrapInc( Model ):
           s.inc.out.v = s.inc.in_ - 1
 
 
-class WrapIncVar( Model ):
+class WrapIncVarInterface:
 
-  def __init__( s, nbits, size, up, max_ops ):
+  def __init__( s, nbits, max_ops ):
     s.Data = Bits( nbits )
     # +1 because we can perform [0, max_ops] ops
     s.Ops = Bits( clog2( max_ops + 1 ) )
 
-    s.inc = InMethodCallPortBundle({
+    s.inc = MethodSpec({
         'in_': s.Data,
-        'ops': s.Ops
-    }, { 'out': s.Data},
-                                   has_call=False,
-                                   has_rdy=False )
+        'ops': s.Ops,
+    }, {
+        'out': s.Data,
+    }, False, False )
+
+
+class WrapIncVar( Model ):
+
+  def __init__( s, nbits, size, up, max_ops ):
+    s.interface = WrapIncVarInterface( nbits, max_ops )
+    s.inc = s.interface.inc.in_port()
 
     s.units = [ WrapInc( nbits, size, up ) for _ in range( max_ops ) ]
     s.connect( s.inc.in_, s.units[ 0 ].inc.in_ )
@@ -52,7 +66,9 @@ class WrapIncVar( Model ):
       s.connect( s.units[ x ].inc.out, s.units[ x + 1 ].inc.in_ )
 
     # PYMTL_BROKEN
-    s.workaround_units_inc_out = [ Wire( s.Data ) for _ in range( max_ops ) ]
+    s.workaround_units_inc_out = [
+        Wire( s.interface.Data ) for _ in range( max_ops )
+    ]
     for i in range( max_ops ):
       s.connect( s.units[ i ].inc.out, s.workaround_units_inc_out[ i ] )
 

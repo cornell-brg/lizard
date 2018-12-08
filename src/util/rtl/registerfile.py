@@ -1,6 +1,26 @@
 from pymtl import *
 from bitutil import clog2, clog2nz
-from util.rtl.method import InMethodCallPortBundle, canonicalize_type
+from util.rtl.method import MethodSpec, canonicalize_type
+
+
+class RegisterFileInterface( object ):
+
+  def __init__( s, dtype, nregs ):
+    addr_nbits = clog2nz( nregs )
+
+    s.Addr = Bits( addr_nbits )
+    s.Data = canonicalize_type( dtype )
+
+    s.rd = MethodSpec({
+        'addr': s.Addr,
+    }, {
+        'data': s.Data,
+    }, False, False )
+
+    s.wr = MethodSpec({
+        'addr': s.Addr,
+        'data': s.Data,
+    }, None, True, False )
 
 
 class RegisterFile( Model ):
@@ -15,41 +35,26 @@ class RegisterFile( Model ):
                 combinational_dump_read_bypass=False,
                 dump_port=False,
                 reset_values=None ):
-    addr_nbits = clog2nz( nregs )
+    s.interface = RegisterFileInterface( dtype, nregs )
 
-    s.Addr = Bits( addr_nbits )
-    s.Data = canonicalize_type( dtype )
-
-    s.rd_ports = [
-        InMethodCallPortBundle({
-            'addr': s.Addr
-        }, { 'data': s.Data},
-                               has_call=False,
-                               has_rdy=False ) for _ in range( num_rd_ports )
-    ]
-    s.wr_ports = [
-        InMethodCallPortBundle({
-            'addr': s.Addr,
-            'data': s.Data
-        },
-                               None,
-                               has_call=True,
-                               has_rdy=False ) for _ in range( num_wr_ports )
-    ]
+    s.rd_ports = [ s.interface.rd.in_port() for _ in range( num_rd_ports ) ]
+    s.wr_ports = [ s.interface.wr.in_port() for _ in range( num_wr_ports ) ]
 
     if dump_port:
-      s.dump_out = [ OutPort( s.Data ) for _ in range( nregs ) ]
-      s.dump_in = [ InPort( s.Data ) for _ in range( nregs ) ]
+      s.dump_out = [ OutPort( s.interface.Data ) for _ in range( nregs ) ]
+      s.dump_in = [ InPort( s.interface.Data ) for _ in range( nregs ) ]
       s.dump_wr_en = InPort( 1 )
 
-    s.regs = [ Wire( s.Data ) for _ in range( nregs ) ]
+    s.regs = [ Wire( s.interface.Data ) for _ in range( nregs ) ]
     # pymtl breaks on translating nested lists due to the dreaded is_lhs
     # error
     # https://github.com/cornell-brg/pymtl/issues/137
     # PYMTL_BROKEN workaround
-    s.regs_next = [ Wire( s.Data ) for _ in range( nregs * num_wr_ports ) ]
-    s.regs_next_last = [ Wire( s.Data ) for _ in range( nregs ) ]
-    s.regs_next_dump = [ Wire( s.Data ) for _ in range( nregs ) ]
+    s.regs_next = [
+        Wire( s.interface.Data ) for _ in range( nregs * num_wr_ports )
+    ]
+    s.regs_next_last = [ Wire( s.interface.Data ) for _ in range( nregs ) ]
+    s.regs_next_dump = [ Wire( s.interface.Data ) for _ in range( nregs ) ]
 
     if reset_values is None:
       s.reset_values = [ 0 for _ in range( nregs ) ]
@@ -65,7 +70,7 @@ class RegisterFile( Model ):
     # PYMTL_BROKEN workaround
     for i in range( nregs ):
       value = s.reset_values[ i ]
-      s.reset_values[ i ] = Wire( s.Data )
+      s.reset_values[ i ] = Wire( s.interface.Data )
       s.connect( s.reset_values[ i ], value )
 
     for reg_i in range( nregs ):
