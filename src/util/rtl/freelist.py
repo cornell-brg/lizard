@@ -1,8 +1,22 @@
 from pymtl import *
-from util.rtl.method import InMethodCallPortBundle
+from util.rtl.method import MethodSpec
 from util.rtl.wrap_inc import WrapInc
 from util.rtl.registerfile import RegisterFile
 from bitutil import clog2, clog2nz
+
+
+class FreeListInterface:
+
+  def __init__( s, nslots ):
+    nbits = clog2nz( nslots )
+    s.Index = Bits( nbits )
+
+    s.alloc = MethodSpec( None, {
+        'index': s.Index,
+    }, True, True )
+    s.free = MethodSpec({
+        'index': s.Index,
+    }, None, True, False )
 
 
 class FreeList( Model ):
@@ -13,27 +27,18 @@ class FreeList( Model ):
                 num_free_ports,
                 combinational_bypass,
                 used_slots_initial=0 ):
-
-    nbits = clog2nz( nslots )
+    s.interface = FreeListInterface( nslots )
     ncount_bits = clog2( nslots + 1 )
 
-    s.Index = Bits( nbits )
-
     s.alloc_ports = [
-        InMethodCallPortBundle( None, { 'index': s.Index} )
-        for _ in range( num_alloc_ports )
+        s.interface.alloc.in_port() for _ in range( num_alloc_ports )
     ]
     s.free_ports = [
-        InMethodCallPortBundle({
-            'index': s.Index
-        },
-                               None,
-                               has_call=True,
-                               has_rdy=False ) for _ in range( num_free_ports )
+        s.interface.free.in_port() for _ in range( num_free_ports )
     ]
 
     s.free = RegisterFile(
-        nbits,
+        s.interface.Index,
         nslots,
         num_alloc_ports,
         num_free_ports,
@@ -41,26 +46,30 @@ class FreeList( Model ):
         dump_port=False,
         reset_values=[ x for x in range( nslots ) ] )
     s.size = Wire( ncount_bits )
-    s.head = Wire( nbits )
-    s.tail = Wire( nbits )
+    s.head = Wire( s.interface.Index )
+    s.tail = Wire( s.interface.Index )
 
     s.alloc_size_next = [
         Wire( ncount_bits ) for _ in range( num_alloc_ports )
     ]
     s.free_size_next = [ Wire( ncount_bits ) for _ in range( num_free_ports ) ]
     s.bypassed_size = Wire( ncount_bits )
-    s.head_next = [ Wire( nbits ) for _ in range( num_alloc_ports ) ]
-    s.tail_next = [ Wire( nbits ) for _ in range( num_free_ports ) ]
+    s.head_next = [
+        Wire( s.interface.Index ) for _ in range( num_alloc_ports )
+    ]
+    s.tail_next = [ Wire( s.interface.Index ) for _ in range( num_free_ports ) ]
     s.head_incs = [
-        WrapInc( nbits, nslots, True ) for _ in range( num_alloc_ports )
+        WrapInc( s.interface.Index.nbits, nslots, True )
+        for _ in range( num_alloc_ports )
     ]
     s.tail_incs = [
-        WrapInc( nbits, nslots, True ) for _ in range( num_free_ports )
+        WrapInc( s.interface.Index.nbits, nslots, True )
+        for _ in range( num_free_ports )
     ]
 
     # PYMTL_BROKEN
     s.workaround_tail_incs_inc_out = [
-        Wire( nbits ) for _ in range( num_free_ports )
+        Wire( s.interface.Index ) for _ in range( num_free_ports )
     ]
     for i in range( num_alloc_ports ):
       s.connect( s.tail_incs[ i ].inc.out, s.workaround_tail_incs_inc_out[ i ] )
@@ -105,7 +114,7 @@ class FreeList( Model ):
 
     # PYMTL_BROKEN
     s.workaround_head_incs_inc_out = [
-        Wire( nbits ) for _ in range( num_alloc_ports )
+        Wire( s.interface.Index ) for _ in range( num_alloc_ports )
     ]
     for i in range( num_alloc_ports ):
       s.connect( s.head_incs[ i ].inc.out, s.workaround_head_incs_inc_out[ i ] )

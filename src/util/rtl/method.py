@@ -8,27 +8,32 @@ def canonicalize_type( pymtl_type ):
     return pymtl_type
 
 
-class MethodCallPortBundle( PortBundle ):
-  """
-  Represents: a port bundle for an RTL method call.
-  At RTL method interface can have up to 4 ports:
-  1. call: 1 bit input port. Asserted to call method.
-  2. arg: arg_type input port. Argument to function. If
-     the function takes no arguments, set to None, and no
-     port will be created.
-  3. rdy: 1 bit output port. The callee must assert rdy
-     before the caller can assert call. It is illegal for 
-     a caller to assert call in a cycle where rdy is not
-     asserted. However, some callees may not have a rdy:
-     these are always rdy, and call can be asserted any time.
-     has_rdy is by default True, and this port is created.
-     Otherwise, rdy is not created.
-  4. ret: ret_type output port. The return value of the function.
-     if the function does not return anything, set to None, and no
-     port will be created.
-  """
+def canonicalize_method_spec( spec ):
+  return dict([
+      ( key, canonicalize_type( value ) ) for key, value in spec.iteritems()
+  ] )
 
-  def __init__( self, args, rets, has_call=True, has_rdy=True ):
+
+class MethodSpec:
+
+  def __init__( self, args, rets, has_call, has_rdy ):
+    self.args = canonicalize_method_spec( args or {} )
+    self.rets = canonicalize_method_spec( rets or {} )
+    self.has_call = has_call
+    self.has_rdy = has_rdy
+
+  def in_port( self ):
+    return InMethodCallPortBundle( self.args, self.rets, self.has_call,
+                                   self.has_rdy )
+
+  def out_port( self ):
+    return OutMethodCallPortBundle( self.args, self.rets, self.has_call,
+                                    self.has_rdy )
+
+
+class MethodCallPortBundle( PortBundle ):
+
+  def __init__( self, args, rets, has_call, has_rdy ):
     if has_call:
       self.call = InPort( 1 )
     self.augment( args, InPort )

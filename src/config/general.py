@@ -1,5 +1,5 @@
 from pymtl import *
-from bitutil import clog2
+from bitutil import clog2, clog2nz
 from bitutil import bit_enum
 
 XLEN = 64
