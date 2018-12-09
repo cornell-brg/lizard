@@ -2,6 +2,7 @@ from pymtl import *
 from msg.data import *
 from msg.control import *
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
+from util.rtl.method import MethodSpec
 from config.general import *
 
 
@@ -23,6 +24,35 @@ class InstrState( BitStructDefinition ):
     return str( s )
 
 
+class ControlFlowManagerInterface:
+
+  def __init__( s ):
+    s.get_epoch_start = MethodSpec({
+        'epoch': Bits( INST_TAG_LEN ),
+    }, {
+        'pc': Bits( XLEN ),
+        'valid': Bits( 1 ),
+        'current_epoch': Bits( INST_TAG_LEN ),
+    }, False, False )
+
+    s.get_head = MethodSpec( None, {
+        'head': Bits( INST_TAG_LEN ),
+    }, False, False )
+
+    s.get_curr_seq = MethodSpec( None, {
+        'seq': Bits( INST_TAG_LEN ),
+    }, False, False )
+
+    s.register = MethodSpec({
+        'succesor_pc': Bits( XLEN ),
+        'epoch': Bits( INST_TAG_LEN ),
+    }, {
+        'tag': Bits( INST_TAG_LEN ),
+        'valid': Bits( 1 ),
+        'current_epoch': Bits( INST_TAG_LEN ),
+    }, True, False )
+
+
 class ControlFlowManager( Model ):
 
   def __init__( s ):
@@ -39,16 +69,7 @@ class ControlFlowManager( Model ):
         s.epoch.n = 0
         s.epoch_start.n = RESET_VECTOR
 
-    s.get_epoch_start_port = InMethodPortBundle({
-        'epoch': Bits( INST_TAG_LEN )
-    }, {
-        'pc': Bits( XLEN ),
-        'valid': Bits( 1 ),
-        'current_epoch': Bits( INST_TAG_LEN )
-    },
-                                                has_call=False,
-                                                has_rdy=False )
-
+    s.get_epoch_start_port = s.interface.get_epoch_start.in_port()
     s.connect( s.get_epoch_start_port.pc, s.epoch_start )
 
     @s.combinational
@@ -57,25 +78,13 @@ class ControlFlowManager( Model ):
 
     s.connect( s.get_epoch_start_port.current_epoch, s.epoch )
 
-    s.get_head_port = InMethodPortBundle(
-        None, { 'head': Bits( INST_TAG_LEN )}, has_call=False, has_rdy=False )
+    s.get_head_port = s.interface.get_head.in_port()
     s.connect( s.get_head_port.head, s.head )
 
-    s.get_curr_seq_port = InMethodPortBundle(
-        None, { 'seq': Bits( INST_TAG_LEN )}, has_call=False, has_rdy=False )
+    s.get_curr_seq_port = s.interface.get_curr_seq.in_port()
     s.connect( s.get_curr_seq_port.seq, s.seq )
 
-    s.register_port = InMethodPortBundle({
-        'succesor_pc': Bits( XLEN ),
-        'epoch': Bits( INST_TAG_LEN )
-    }, {
-        'tag': Bits( INST_TAG_LEN ),
-        'valid': Bits( 1 ),
-        'current_epoch': Bits( INST_TAG_LEN )
-    },
-                                         has_call=True,
-                                         has_rdy=False )
-
+    s.register_port = s.interface.register.in_port()
     s.connect( s.register_port.tag, 42 )
 
     @s.combinational
