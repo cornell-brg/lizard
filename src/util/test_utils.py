@@ -186,6 +186,7 @@ def run_rdycall_test_vector_sim( model,
   else:
     args = test_vectors[ 1 ]
 
+  print args
   assert len( args ) == len( method_names )
 
   for method, param in zip( method_names, args ):
@@ -197,7 +198,7 @@ def run_rdycall_test_vector_sim( model,
       method_list[ 'arg' ] = [
           arg.strip() for arg in a.group( 2 ).split( "," )
       ]
-      method_list[ 'arg_start' ] = 1
+      method_list[ 'arg_start' ] = 0
     else:
       method_list[ 'arg' ] = []
       method_list[ 'arg_start' ] = -1
@@ -207,16 +208,16 @@ def run_rdycall_test_vector_sim( model,
       method_list[ 'ret' ] = [
           arg.strip() for arg in a.group( 2 ).split( "," )
       ]
-      method_list[ 'ret_start' ] = 1
+      method_list[ 'ret_start' ] = 0
     else:
       method_list[ 'ret' ] = []
       method_list[ 'ret_start' ] = -1
 
     if 'arg(' in param and 'ret(' in param:
       if param.find( 'arg(' ) < param.find( 'ret(' ):
-        method_list[ 'ret_start' ] = 1 + len( method_list[ 'arg' ] )
+        method_list[ 'ret_start' ] = len( method_list[ 'arg' ] )
       else:
-        method_list[ 'arg_start' ] = 1 + len( method_list[ 'ret' ] )
+        method_list[ 'arg_start' ] = len( method_list[ 'ret' ] )
 
     method_vector += [ method_list ]
 
@@ -249,13 +250,16 @@ def run_rdycall_test_vector_sim( model,
     # Apply test inputs
     for method, in_value in zip( method_vector, row ):
       assert len( in_value ) == len( method[ 'ret' ] ) + len(
-          method[ 'arg' ] ) + 1
+          method[ 'arg' ] ) + 1 or \
+          len( in_value ) == len( method[ 'ret' ] ) + len(
+          method[ 'arg' ] )
 
       method_name = method[ 'method_name' ]
 
       rdy = True
+      exec ( "hascall = hasattr( model.{}, 'call' )".format( method_name ) )
       exec (
-          "if in_value[ 0 ] and hasattr( model.{}, 'rdy' ): rdy = model.{}.rdy"
+          "if hascall and in_value[ -1 ] and hasattr( model.{}, 'rdy' ): rdy = model.{}.rdy"
           .format( method_name, method_name ) ) in locals()
 
       if not rdy:
@@ -268,13 +272,14 @@ def run_rdycall_test_vector_sim( model,
         raise RunTestVectorSimError(
             error_msg.format( row_number=row_num, method_name=method_name ) )
 
-      exec ( "model.{}.call.v = in_value[ 0 ]".format( method_name ) )
+      exec (
+          "if hascall: model.{}.call.v = in_value[ -1 ]".format( method_name ) )
 
-      if method[ 'arg_start' ] > 0:
+      if method[ 'arg_start' ] >= 0:
         args = method[ 'arg' ]
         arg_start = method[ 'arg_start' ]
         for i in range( len( method[ 'arg' ] ) ):
-          exec ( "model.{}.arg.{}.v = in_value[ arg_start + i ]".format(
+          exec ( "model.{}.{}.v = in_value[ arg_start + i ]".format(
               method[ 'method_name' ], method[ 'arg' ][ i ] ) )
 
       sim.eval_combinational()
@@ -291,14 +296,14 @@ def run_rdycall_test_vector_sim( model,
 
     for method, in_value in zip( method_vector, row ):
 
-      if method[ 'ret_start' ] > 0:
+      if method[ 'ret_start' ] >= 0:
         rets = method[ 'ret' ]
         ret_start = method[ 'ret_start' ]
         for i in range( len( method[ 'ret' ] ) ):
           ref_value = in_value[ ret_start + i ]
           if ref_value != '?':
-            exec ( "out_value = model.{}.ret.{}.v".format(
-                method[ 'method_name' ], method[ 'ret' ][ i ] ) )
+            exec ( "out_value = model.{}.{}".format( method[ 'method_name' ],
+                                                     method[ 'ret' ][ i ] ) )
             if ref_value != out_value:
 
               error_msg = """
@@ -313,7 +318,7 @@ def run_rdycall_test_vector_sim( model,
                   error_msg.format(
                       row_number=row_num,
                       method_name="{}".format( method[ 'method_name' ] ),
-                      ret_name="ret.{}".format( method[ 'ret' ][ i ] ),
+                      ret_name="{}".format( method[ 'ret' ][ i ] ),
                       expected_msg=ref_value,
                       actual_msg=out_value ) )
 
