@@ -1,5 +1,5 @@
 from pymtl import *
-from bitutil import clog2
+from bitutil import clog2, clog2nz
 from bitutil import bit_enum
 
 XLEN = 64
@@ -21,6 +21,6 @@ REG_TAG_LEN = clog2( REG_TAG_COUNT )
 INST_TAG_LEN = 64
 
 MAX_SPEC_DEPTH = 4
-MAX_SPEC_DEPTH_LEN = clog2( MAX_SPEC_DEPTH )
+MAX_SPEC_DEPTH_LEN = clog2nz( MAX_SPEC_DEPTH )
 
 BIT32_MASK = Bits( 32, 0xFFFFFFFF )
