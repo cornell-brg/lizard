@@ -1,118 +1,102 @@
 from pymtl import *
 from bitutil import clog2
-from util.rtl.method import InMethodCallPortBundle
-from util.rtl.snapshotting_registerfile import SnapshottingRegisterFile
+from util.rtl.method import MethodSpec
+from util.rtl.snapshotting_registerfile import SnapshottingRegisterFile, SnapshottingRegisterFileInterface
 from util.rtl.freelist import FreeList
 
 
-class ReadRequest( BitStructDefinition ):
+class RenameTableInterface:
 
-  def __init__( s, nabits ):
-    s.areg = BitField( nabits )
+  def __init__( s, naregs, npregs, nsnapshots ):
+    npbits = clog2( npregs )
 
+    s.Preg = Bits( npbits )
+    s.snapshot_interface = SnapshottingRegisterFileInterface(
+        s.Preg, naregs, nsnapshots )
+    s.Areg = s.snapshot_interface.Addr
+    s.SnapshotId = s.snapshot_interface.SnapshotId
 
-class ReadResponse( BitStructDefinition ):
+    s.read = MethodSpec({
+        'areg': s.Areg,
+    }, {
+        'preg': s.Preg,
+    }, False, False )
 
-  def __init__( s, npbits ):
-    s.preg = BitField( npbits )
+    s.write = MethodSpec({
+        'areg': s.Areg,
+        'preg': s.Preg,
+    }, None, True, False )
 
-
-class WriteRequest( BitStructDefinition ):
-
-  def __init__( s, nabits, npbits ):
-    s.areg = BitField( nabits )
-    s.preg = BitField( npbits )
+    s.snapshot = s.snapshot_interface.snapshot
+    s.restore = s.snapshot_interface.restore
+    s.free_snapshot = s.snapshot_interface.free_snapshot
 
 
 class RenameTable( Model ):
 
   def __init__( s, naregs, npregs, nread_ports, nwrite_ports, nsnapshots,
                 const_zero, initial_map ):
-    s.nabits = clog2( naregs )
-    s.npbits = clog2( npregs )
-    s.nsbits = clog2( nsnapshots )
+    s.interface = RenameTableInterface( naregs, npregs, nsnapshots )
 
     s.rename_table = SnapshottingRegisterFile(
-        s.npbits,
+        s.interface.Preg,
         naregs,
         nread_ports,
         nwrite_ports,
         False,
         nsnapshots,
         combinational_snapshot_bypass=True,
-        reset_values=initial_map )
+        reset_values=initial_map,
+        external_restore=True )
 
-    s.ReadRequest = ReadRequest( s.nabits )
-    s.ReadResponse = ReadResponse( s.npbits )
-    s.WriteRequest = WriteRequest( s.nabits, s.npbits )
-    s.SnapshotResponse = s.rename_table.SnapshotResponse
-    s.RestoreRequest = s.rename_table.RestoreRequest
-    s.FreeSnapshotRequest = s.rename_table.FreeSnapshotRequest
-
-    s.read_ports = [
-        InMethodCallPortBundle( s.ReadRequest, s.ReadResponse, False )
-        for _ in range( nread_ports )
-    ]
+    s.read_ports = [ s.interface.read.in_port() for _ in range( nread_ports ) ]
     s.write_ports = [
-        InMethodCallPortBundle( s.WriteRequest, None, False )
-        for _ in range( nwrite_ports )
+        s.interface.write.in_port() for _ in range( nwrite_ports )
     ]
-    s.snapshot_port = InMethodCallPortBundle( None, s.SnapshotResponse, False )
-    s.restore_port = InMethodCallPortBundle( s.RestoreRequest, None, False )
-    s.free_snapshot_port = InMethodCallPortBundle( s.FreeSnapshotRequest, None,
-                                                   False )
+
+    s.snapshot_port = s.interface.snapshot.in_port()
+    s.restore_port = s.interface.restore.in_port()
+    s.free_snapshot_port = s.interface.free_snapshot.in_port()
+
+    s.external_restore_en = InPort( 1 )
+    s.external_restore_in = [
+        InPort( s.interface.Preg ) for _ in range( naregs )
+    ]
+
+    s.connect( s.rename_table.external_restore_en, s.external_restore_en )
+    for i in range( naregs ):
+      s.connect( s.rename_table.external_restore_in[ i ],
+                 s.external_restore_in[ i ] )
 
     if const_zero:
-      s.ZERO_TAG = Bits( s.npbits, npregs - 1 )
-
-    # PYMTL_BROKEN
-    s.workaround_read_ports_arg_areg = [
-        Wire( s.nabits ) for x in range( nread_ports )
-    ]
-    s.workaround_read_ports_ret_preg = [
-        Wire( s.npbits ) for x in range( nread_ports )
-    ]
-    for i in range( nread_ports ):
-      s.connect( s.workaround_read_ports_arg_areg[ i ],
-                 s.read_ports[ i ].arg.areg )
-      s.connect( s.workaround_read_ports_ret_preg[ i ],
-                 s.read_ports[ i ].ret.preg )
+      s.ZERO_TAG = Bits( s.interface.Preg.nbits, npregs - 1 )
 
     for i in range( nread_ports ):
-      s.connect( s.read_ports[ i ].arg.areg, s.rename_table.rd_addr[ i ] )
+      s.connect( s.read_ports[ i ].areg, s.rename_table.rd_ports[ i ].addr )
       if const_zero:
 
         @s.combinational
         def handle_zero_read( i=i ):
-          if s.workaround_read_ports_arg_areg[ i ] == 0:
-            s.workaround_read_ports_ret_preg[ i ].v = s.ZERO_TAG
+          if s.read_ports[ i ].areg == 0:
+            s.read_ports[ i ].preg.v = s.ZERO_TAG
           else:
-            s.workaround_read_ports_ret_preg[ i ].v = s.rename_table.rd_data[
-                i ]
+            s.read_ports[ i ].preg.v = s.rename_table.rd_ports[ i ].data
       else:
-        s.connect( s.read_ports[ i ].ret.preg, s.rename_table.rd_data[ i ] )
-
-    # PYMTL_BROKEN
-    s.workaround_write_ports_arg_areg = [
-        Wire( s.nabits ) for x in range( nwrite_ports )
-    ]
-    for i in range( nwrite_ports ):
-      s.connect( s.workaround_write_ports_arg_areg[ i ],
-                 s.write_ports[ i ].arg.areg )
+        s.connect( s.read_ports[ i ].preg, s.rename_table.rd_ports[ i ].data )
 
     for i in range( nwrite_ports ):
-      s.connect( s.write_ports[ i ].arg.areg, s.rename_table.wr_addr[ i ] )
-      s.connect( s.write_ports[ i ].arg.preg, s.rename_table.wr_data[ i ] )
+      s.connect( s.write_ports[ i ].areg, s.rename_table.wr_ports[ i ].addr )
+      s.connect( s.write_ports[ i ].preg, s.rename_table.wr_ports[ i ].data )
       if const_zero:
 
         @s.combinational
         def handle_zero_write( i=i ):
-          if s.workaround_write_ports_arg_areg[ i ] == 0:
-            s.rename_table.wr_en[ i ].v = 0
+          if s.write_ports[ i ].areg == 0:
+            s.rename_table.wr_ports[ i ].call.v = 0
           else:
-            s.rename_table.wr_en[ i ].v = s.write_ports[ i ].call
+            s.rename_table.wr_ports[ i ].call.v = s.write_ports[ i ].call
       else:
-        s.connect( s.write_ports[ i ].call, s.rename_table.wr_en[ i ] )
+        s.connect( s.write_ports[ i ].call, s.rename_table.wr_ports[ i ].call )
 
     s.connect( s.snapshot_port, s.rename_table.snapshot_port )
     s.connect( s.restore_port, s.rename_table.restore_port )

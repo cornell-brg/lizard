@@ -1,5 +1,5 @@
 from pymtl import *
-from pclib.test import run_test_vector_sim
+from util.test_utils import run_test_vector_sim
 from util.rtl.wrap_inc import WrapInc, WrapIncVar
 from test.config import test_verilog
 
@@ -7,7 +7,7 @@ from test.config import test_verilog
 def test_inc_basic():
   run_test_vector_sim(
       WrapInc( 2, 4, True ), [
-          ( 'in_ out*' ),
+          ( 'inc.in_ inc.out*' ),
           ( 0, 1 ),
           ( 1, 2 ),
           ( 2, 3 ),
@@ -20,7 +20,7 @@ def test_inc_basic():
 def test_dec_basic():
   run_test_vector_sim(
       WrapInc( 2, 4, False ), [
-          ( 'in_ out*' ),
+          ( 'inc.in_ inc.out*' ),
           ( 0, 3 ),
           ( 1, 0 ),
           ( 2, 1 ),
@@ -33,7 +33,7 @@ def test_dec_basic():
 def test_inc_multi():
   run_test_vector_sim(
       WrapIncVar( 2, 4, True, 2 ), [
-          ( 'in_ ops out*' ),
+          ( 'inc.in_ inc.ops inc.out*' ),
           ( 0, 0, 0 ),
           ( 0, 1, 1 ),
           ( 0, 2, 2 ),
