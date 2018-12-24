@@ -89,8 +89,7 @@ class TestStateMachine( RuleBasedStateMachine ):
   def compare_result( self, m_result, r_result, method_name, arg ):
     if r_result:
       for k in r_result.keys():
-        exec ( "m_result_k = m_result.{}".format( k ) )
-        if not m_result_k == r_result[ k ]:
+        if not m_result[ k ] == r_result[ k ]:
           self.sim.cycle()
           print "========================== error =========================="
           error_msg = """
@@ -107,7 +106,7 @@ class TestStateMachine( RuleBasedStateMachine ):
                   arg=arg,
                   ret_name=k,
                   expected_msg=r_result[ k ],
-                  actual_msg=m_result_k ) )
+                  actual_msg=m_result[ k ] ) )
 
   def steps( self ):
     # Pick initialize rules first
@@ -222,7 +221,7 @@ class TestStateMachine( RuleBasedStateMachine ):
 # WrapperClass
 #-------------------------------------------------------------------------
 class WrapperClass:
-  methods = []
+  methods = {}
 
   def __init__( s, model ):
     s.model = model
@@ -249,10 +248,11 @@ class WrapperClass:
 class MethodSpec( object ):
   method_name = attr.ib()
   hasrdy = attr.ib()
+  hascall = attr.ib()
   islist = attr.ib( default=False )
   index = attr.ib( default=None )
   arg = attr.ib( default={} )
-  ret = attr.ib( default=[] )
+  ret = attr.ib( default={} )
 
 
 def inspect_methods( model ):
@@ -271,22 +271,29 @@ def inspect_methods( model ):
   def get_method_spec( method_name, port_bundle, islist=False, index=None ):
     # get rdy
     hasrdy = hasattr( port_bundle, 'rdy' )
+    hascall = hasattr( port_bundle, 'call' )
 
     method_spec = MethodSpec(
-        method_name=method_name, hasrdy=hasrdy, islist=islist, index=index )
+        method_name=method_name,
+        hasrdy=hasrdy,
+        hascall=hascall,
+        islist=islist,
+        index=index )
 
-    # get arg
-    hasarg = hasattr( port_bundle, 'arg' )
-    if hasarg:
-      if isinstance( port_bundle.arg.dtype, BitStruct ):
-        args = port_bundle.arg.dtype._bitfields
-        slice_nbits = {}
-        for k, v in args.items():
-          slice_nbits[ k ] = v.stop - v.start
-        method_spec.arg = slice_nbits
+    # get arg and ret
+    arg = {}
+    ret = {}
+    for port in port_bundle._ports:
+      name = port.name
+      nbits = port.nbits
+      if type( port ) == InPort:
+        if name != 'call':
+          arg[ name ] = nbits
       else:
-        raise RunTestMethodError( "Not supported argument type: {}".format(
-            type( port_bundle.arg.dtype ) ) )
+        if name != 'rdy':
+          ret[ name ] = nbits
+    method_spec.arg = arg
+    method_spec.ret = ret
 
     return method_spec
 
@@ -318,14 +325,16 @@ def add_method( cls, method_spec ):
     method_name = "{}[{}]".format( method_name, method_spec.index )
   else:
     name = method_name
-  cls.methods += [ method_name ]
+
+  cls.methods[ method_name ] = method_spec
 
   def method_call( s, *args, **kwargs ):
     # assert ready
     exec ( "assert s.{}_rdy()".format( name ) ) in locals()
 
     # set call
-    exec ( "s.model.{}.call.value = 1".format( method_name ) ) in locals()
+    if method_spec.hascall:
+      exec ( "s.model.{}.call.value = 1".format( method_name ) ) in locals()
 
     # set arg
     if method_spec.arg:
@@ -344,21 +353,21 @@ for {}_call method. Use keywords, or pass in arguments by alphabetical order.
 
           raise RunTestMethodError()
         if args:
-          exec ( "s.model.{}.arg.{}.value = args[ {} ]".format(
+          exec ( "s.model.{}.{}.value = args[ {} ]".format(
               method_name, arg, index ) ) in locals()
           index += 1
         else:
-          exec ( "s.model.{}.arg.{}.value = kwargs[ '{}' ]".format(
+          exec ( "s.model.{}.{}.value = kwargs[ '{}' ]".format(
               method_name, arg, arg ) ) in locals()
 
     s.sim.eval_combinational()
 
     # get ret
-    exec ( "has_ret = hasattr( s.model.{}, 'ret' )".format( method_name )
-         ) in locals()
-    if has_ret:
-      exec ( "ret = s.model.{}.ret".format( method_name ) ) in locals()
-      return ret
+    ret_values = {}
+    for ret in method_spec.ret.keys():
+      exec ( "ret_values[ ret ] = s.model.{}.{}".format( method_name,
+                                                         ret ) ) in locals()
+    return ret_values
 
   # add method to class
   setattr( method_call, "__name__", name + "_call" )
@@ -380,8 +389,9 @@ for {}_call method. Use keywords, or pass in arguments by alphabetical order.
 def add_clear( cls ):
 
   def clear( s ):
-    for method in cls.methods:
-      exec ( "s.model.{}.call.value = 0".format( method ) ) in locals()
+    for method, spec in cls.methods.items():
+      if spec.hascall:
+        exec ( "s.model.{}.call.value = 0".format( method ) ) in locals()
     s.sim.eval_combinational()
 
   setattr( cls, "clear", clear )
