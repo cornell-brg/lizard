@@ -25,20 +25,18 @@ class RenameTableWrapper:
 
   def read_ports_0__call( s, areg ):
     assert s.read_ports_0__rdy()
-    s.model.read_ports[ 0 ].call.value = 1
-    s.model.read_ports[ 0 ].arg.areg.value = areg
+    s.model.read_ports[ 0 ].areg.value = areg
     s.sim.eval_combinational()
-    return s.model.read_ports[ 0 ].ret
+    return { 'preg': s.model.read_ports[ 0 ].preg}
 
   def read_ports_0__rdy( s ):
     return True
 
   def read_ports_1__call( s, areg ):
     assert s.read_ports_1__rdy()
-    s.model.read_ports[ 1 ].call.value = 1
-    s.model.read_ports[ 1 ].arg.areg.value = areg
+    s.model.read_ports[ 1 ].areg.value = areg
     s.sim.eval_combinational()
-    return s.model.read_ports[ 1 ].ret
+    return { 'preg': s.model.read_ports[ 1 ].preg}
 
   def read_ports_1__rdy( s ):
     return True
@@ -46,8 +44,8 @@ class RenameTableWrapper:
   def write_ports_0__call( s, areg, preg ):
     assert s.write_ports_0__rdy()
     s.model.write_ports[ 0 ].call.value = 1
-    s.model.write_ports[ 0 ].arg.areg.value = areg
-    s.model.write_ports[ 0 ].arg.preg.value = preg
+    s.model.write_ports[ 0 ].areg.value = areg
+    s.model.write_ports[ 0 ].preg.value = preg
     s.sim.eval_combinational()
 
   def write_ports_0__rdy( s ):
@@ -57,7 +55,7 @@ class RenameTableWrapper:
     assert s.snapshot_port_rdy()
     s.model.snapshot_port.call.value = 1
     s.sim.eval_combinational()
-    return s.model.snapshot_port.ret
+    return { 'id': s.model.snapshot_port.id}
 
   def snapshot_port_rdy( s ):
     return s.model.snapshot_port.rdy
@@ -65,7 +63,7 @@ class RenameTableWrapper:
   def restore_port_call( s, id ):
     assert s.restore_port_rdy()
     s.model.restore_port.call.value = 1
-    s.model.restore_port.arg.id.value = id
+    s.model.restore_port.id.value = id
     s.sim.eval_combinational()
 
   def restore_port_rdy( s ):
@@ -81,8 +79,6 @@ class RenameTableWrapper:
     return True
 
   def clear( s ):
-    s.model.read_ports[ 0 ].call.value = 0
-    s.model.read_ports[ 1 ].call.value = 0
     s.model.write_ports[ 0 ].call.value = 0
     s.model.snapshot_port.call.value = 0
     s.model.free_snapshot_port.call.value = 0
@@ -93,37 +89,37 @@ def run_test_method_base( rename_table ):
   read_0 = rename_table.read_ports_0__call( 0 )
   read_1 = rename_table.read_ports_1__call( 1 )
   rename_table.write_ports_0__call( areg=1, preg=1 )
-  assert read_0.preg == 3
-  assert read_1.preg == 0
+  assert read_0[ 'preg' ] == 3
+  assert read_1[ 'preg' ] == 0
   rename_table.cycle()
 
   read_0 = rename_table.read_ports_0__call( 0 )
   read_1 = rename_table.read_ports_1__call( 1 )
-  assert read_0.preg == 3
-  assert read_1.preg == 1
+  assert read_0[ 'preg' ] == 3
+  assert read_1[ 'preg' ] == 1
   rename_table.cycle()
 
   read_0 = rename_table.read_ports_0__call( 0 )
   read_1 = rename_table.read_ports_1__call( 1 )
   rename_table.write_ports_0__call( 1, 2 )
   snapshot = rename_table.snapshot_port_call()
-  assert read_0.preg == 3
-  assert read_1.preg == 1
-  assert snapshot.id == 0
+  assert read_0[ 'preg' ] == 3
+  assert read_1[ 'preg' ] == 1
+  assert snapshot[ 'id' ] == 0
   rename_table.cycle()
 
   read_0 = rename_table.read_ports_0__call( 0 )
   read_1 = rename_table.read_ports_1__call( 1 )
   rename_table.write_ports_0__call( areg=1, preg=0 )
-  assert read_0.preg == 3
-  assert read_1.preg == 2
+  assert read_0[ 'preg' ] == 3
+  assert read_1[ 'preg' ] == 2
   rename_table.cycle()
 
   read_0 = rename_table.read_ports_0__call( 0 )
   read_1 = rename_table.read_ports_1__call( 1 )
   rename_table.restore_port_call( 0 )
-  assert read_0.preg == 3
-  assert read_1.preg == 2
+  assert read_0[ 'preg' ] == 3
+  assert read_1[ 'preg' ] == 2
   rename_table.cycle()
 
 
