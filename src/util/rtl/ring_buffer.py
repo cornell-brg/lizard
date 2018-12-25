@@ -73,11 +73,11 @@ class RingBuffer( Model ):
       if s.alloc_port.call:  # Alloc an entry
         s.num_next.v += 1  # Incr count
         s.data[ s.next_slot ].en.v = 1
-        s.data[ s.next_slot ].in_.v = s.alloc_port.value
+        s.data[ s.next_slot ].in_.v = s.alloc_port.value.v
         s.alloc_port.index.v = s.next_slot
       if s.update_port.call:  # Update an entry
         s.data[ s.update_port.index ].en.v = 1
-        s.data[ s.update_port.index ].in_.v = s.update_port.value
+        s.data[ s.update_port.index ].in_.v = s.update_port.value.v
       if s.remove_port.call:  # Remove head
         s.num_next.v -= 1
         s.head.in_.v = s.head.out + 1
