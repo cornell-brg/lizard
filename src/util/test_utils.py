@@ -186,7 +186,6 @@ def run_rdycall_test_vector_sim( model,
   else:
     args = test_vectors[ 1 ]
 
-  print args
   assert len( args ) == len( method_names )
 
   for method, param in zip( method_names, args ):
