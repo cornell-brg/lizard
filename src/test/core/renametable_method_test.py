@@ -1,7 +1,7 @@
 from pymtl import *
 from core.rtl.renametable import RenameTable
 from test.config import test_verilog
-from method_based import create_wrapper_class, rule, st, run_state_machine_as_test, create_test_state_machine, argument_strategy, reference_precondition, MethodOrder
+from method_based import create_wrapper_class, rule, st, run_state_machine_as_test, create_test_state_machine, argument_strategy, reference_precondition, MethodOrder, StrategySpec, MethodStrategy
 
 
 class RenameTableWrapper:
@@ -137,10 +137,24 @@ def test_wrapper():
   run_test_method_base( rename_table )
 
 
+class RenameTableStrategy( MethodStrategy ):
+
+  def __init__( s, naregs, npregs, nsnapshots ):
+    s.Areg = st.integers( min_value=0, max_value=naregs - 1 )
+    s.Preg = st.integers( min_value=0, max_value=npregs - 1 )
+    s.Id = st.integers( min_value=0, max_value=nsnapshots - 1 )
+    s.read_ports = StrategySpec( areg=s.Areg )
+    s.write_ports = StrategySpec( areg=s.Areg, preg=s.Preg )
+    s.restore_port = StrategySpec( id=s.Id )
+    s.free_snapshot_port = StrategySpec( id=s.Id )
+
+
 class RenameTableFL:
 
   def __init__( s, naregs, npregs, nread_ports, nwrite_ports, nsnapshots,
                 const_zero, initial_map ):
+    s.strategy = RenameTableStrategy(
+        naregs=naregs, npregs=npregs, nsnapshots=nsnapshots )
     s.nabits = clog2( naregs )
     s.npbits = clog2( npregs )
     s.nsbits = clog2( nsnapshots )
@@ -161,7 +175,6 @@ class RenameTableFL:
     s.snap_shot_free_list = [ n for n in range( s.nsnapshots ) ]
     s.snap_shot = [[ 0, 0 ] for _ in range( s.nsnapshots ) ]
 
-  @argument_strategy( areg=st.integers( min_value=0, max_value=1 ) )
   def read_ports_call( s, areg ):
     assert areg < s.naregs and areg >= 0
     if areg == 0:
@@ -173,9 +186,6 @@ class RenameTableFL:
   def read_ports_rdy( s ):
     return True
 
-  @argument_strategy(
-      areg=st.integers( min_value=0, max_value=1 ),
-      preg=st.integers( min_value=0, max_value=3 ) )
   def write_ports_call( s, areg, preg ):
     assert areg < s.naregs and areg >= 0
     assert preg < s.npregs and preg >= 0
@@ -197,7 +207,6 @@ class RenameTableFL:
   def snapshot_port_rdy( s ):
     return len( s.snap_shot_free_list ) > 0
 
-  @argument_strategy( id=st.integers( min_value=0, max_value=0 ) )
   def restore_port_call( s, id ):
     assert id >= 0 and id < s.nsnapshots
     assert s.restore_port_rdy()
@@ -209,7 +218,6 @@ class RenameTableFL:
   @reference_precondition(
       lambda machine, data: not data[ 'id' ] in machine.reference.snap_shot_free_list
   )
-  @argument_strategy( id=st.integers( min_value=0, max_value=0 ) )
   def free_snapshot_port_call( s, id ):
     assert id >= 0 and id < s.nsnapshots
     assert not id in s.snap_shot_free_list

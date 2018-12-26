@@ -1,7 +1,7 @@
 import hypothesis.strategies as st
 from hypothesis.stateful import *
 from hypothesis.vendor.pretty import CUnicodeIO, RepresentationPrinter
-
+from sets import Set
 from pymtl import *
 import inspect
 from util.rtl.method import InMethodCallPortBundle
@@ -179,6 +179,12 @@ class TestStateMachine( RuleBasedStateMachine ):
   @classmethod
   def add_argument_strategy( cls, method, arguments ):
     target = cls.__argument_strategies.setdefault( cls, {} )
+    if target.has_key( method ):
+      error_msg = """
+      A method cannot have two distince strategies. 
+        method_name : {method_name}
+      """.format( method_name=method )
+      raise InvalidDefinition( error_msg )
     target[ method ] = arguments
 
   @classmethod
@@ -285,13 +291,13 @@ def inspect_methods( model ):
     ret = {}
     for port in port_bundle._ports:
       name = port.name
-      nbits = port.nbits
+      dtype = port.dtype
       if type( port ) == InPort:
         if name != 'call':
-          arg[ name ] = nbits
+          arg[ name ] = dtype
       else:
         if name != 'rdy':
-          ret[ name ] = nbits
+          ret[ name ] = dtype
     method_spec.arg = arg
     method_spec.ret = ret
 
@@ -462,6 +468,15 @@ class ArgumentStrategy( object ):
 
 
 #-------------------------------------------------------------------------
+# StrategySpec
+#-------------------------------------------------------------------------
+class StrategySpec:
+
+  def __init__( s, **kwargs ):
+    s.strategy = ArgumentStrategy( kwargs )
+
+
+#-------------------------------------------------------------------------
 # argument_strategy
 #-------------------------------------------------------------------------
 ARGUMENT_STRATEGY_MARKER = u'pymtl-method-based-argument-strategy'
@@ -555,6 +570,10 @@ class MethodOrder( object ):
   order = attr.ib()
 
 
+class MethodStrategy:
+  pass
+
+
 #-------------------------------------------------------------------------
 # CompareTest
 #-------------------------------------------------------------------------
@@ -573,6 +592,7 @@ class CompareTest( TestStateMachine ):
 #-------------------------------------------------------------------------
 def create_test_state_machine( model, reference ):
   method_specs = inspect_methods( model )
+  method_set_rtl = Set([ spec.method_name for spec in method_specs ] )
   WrapperClass = create_wrapper_class( model, method_specs=method_specs )
   sim = WrapperClass( model )
 
@@ -580,8 +600,10 @@ def create_test_state_machine( model, reference ):
       type( model ).__name__ + "TestStateMachine", CompareTest.__bases__,
       dict( CompareTest.__dict__ ) )
 
+  method_set_fl = Set()
   for k, v in inspect.getmembers( reference ):
     method_name_fl = k.replace( "_call", "" )
+    method_set_fl.add( method_name_fl )
     arguments = getattr( v, ARGUMENT_STRATEGY_MARKER, None )
     if arguments:
       Test.add_argument_strategy( method_name_fl, arguments.arguments )
@@ -593,6 +615,36 @@ def create_test_state_machine( model, reference ):
     if isinstance( v, MethodOrder ):
       Test.set_order( v.order )
 
+    if isinstance( v, MethodStrategy ):
+      for method, spec in inspect.getmembers( v ):
+        if isinstance( spec, StrategySpec ):
+          Test.add_argument_strategy( method, spec.strategy.arguments )
+
+  # make sure that all RTL methods have counterpart in FL
+  difference = method_set_rtl - method_set_fl
+  if difference:
+    error_msg = """
+  Found RTL model method not in FL!
+    - method name(s)    : {method_name}
+"""
+    raise RunMethodTestError(
+        error_msg.format( method_name=", ".join( difference ) ) )
+
+  # make sure that all method arguments have strategy specified
+  error_msg = """
+  Found argument with no strategy specified!
+    - method name : {method_name}
+    - arg         : {arg} 
+"""
+  for spec in method_specs:
+    method_name = spec.method_name
+    strategies = Test.argument_strategy( method_name )
+    for arg in spec.arg.keys():
+      if not strategies.has_key( arg ):
+        raise RunMethodTestError(
+            error_msg.format( method_name=method_name, arg=arg ) )
+
+  # add rule
   for method_spec in method_specs:
     add_rule( Test, method_spec )
 
