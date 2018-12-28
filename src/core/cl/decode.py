@@ -21,6 +21,13 @@ class DecodeUnitCL( Model ):
     if s.reset:
       return
 
+    # Check if frontent being squashed
+    redirected = s.controlflow.check_redirect()
+    if redirected.valid and not s.instr_q.empty(): # Squash any waiting fetch packet
+      s.instr_q.deq()
+      return
+
+
     if s.decoded_q.full():
       return
 
@@ -32,16 +39,6 @@ class DecodeUnitCL( Model ):
     out = DecodePacket()
     copy_common_bundle( fetched, out )
 
-    # verify instruction still alive
-    creq = TagValidRequest()
-    creq.tag = fetched.tag
-    cresp = s.controlflow.tag_valid( creq )
-    if not cresp.valid:
-      out.status = PacketStatus.SQUASHED
-
-    if out.status != PacketStatus.ALIVE:
-      s.decoded_q.enq( out )
-      return
 
     inst = fetched.instr
     # Decode it and create packet

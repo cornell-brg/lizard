@@ -49,15 +49,30 @@ class IssueUnitCL( Model ):
       idx = s.EXECUTE_PORT_IDX
     return idx
 
+
   def xtick( s ):
     if s.reset:
       s.current_d = None
       return
 
+    # Check if frontent being squashed
+    redirected = s.controlflow.check_redirect()
+    if redirected.valid and not s.decoded_q.empty(): # Squash any waiting fetch packet
+      s.instr_q.deq()
+      return
+
     if s.current_d is None:
-      if s.decoded_q.empty():
+      if s.decoded_q.empty() or not s.controlflow.register_rdy():
         return
+
       s.current_d = s.decoded_q.deq()
+
+      # Register it
+      req = RegisterInstrRequest()
+      req.succesor_pc = s.current_d.pc_next
+      req.speculative = s.current_d.is_control_flow
+      s.controlflow.register(req)
+
       s.work = IssuePacket()
       copy_common_bundle( s.current_d, s.work )
       copy_decode_bundle( s.current_d, s.work )
@@ -69,6 +84,8 @@ class IssueUnitCL( Model ):
     pipe_idx = s.choose_pipe( s.current_d )
 
     # verify instruction still alive
+    # TODO instead, the instructions after a branch should all be squashed in the IQ
+    # and marked done (but invalid) in the ROB to free the pregs
     creq = TagValidRequest()
     creq.tag = s.current_d.tag
     cresp = s.controlflow.tag_valid( creq )
@@ -113,25 +130,7 @@ class IssueUnitCL( Model ):
 
     # Done if all fields are as they should be
     # and we are at the head if we have to be
-    if s.current_d.rd_valid == s.work.rd_valid and s.current_d.rs1_valid == s.work.rs1_valid and s.current_d.rs2_valid == s.work.rs2_valid and (
-        is_head if s.current_d.unique else True ):
-      # if the instruction has potential to redirect early (before commit)
-      # must declare instruction to controlflow
-      # (essentialy creates a rename table snapshot)
-      # note this happens after everything else is set -- this instruction
-      # must be part of the snapshot
-      if not s.marked_speculative and s.current_d.is_control_flow:
-        creq = MarkSpeculativeRequest()
-        creq.tag = s.current_d.tag
-        cresp = s.controlflow.mark_speculative( creq )
-        if cresp.success:
-          s.marked_speculative = True
-        else:
-          # if we failed to mark it speculative
-          # (likely because we are too deeply in speculation right now)
-          # must stall
-          return
-
+    if s.current_d.rd_valid == s.work.rd_valid and s.current_d.rs1_valid == s.work.rs1_valid and s.current_d.rs2_valid == s.work.rs2_valid:
       if not s.issued_q.get( pipe_idx ).full():
         s.issued_q.enq( s.work, pipe_idx )
         s.current_d = None

@@ -1,10 +1,13 @@
+import copy
+import inspect
 import hypothesis.strategies as st
+from pymtl import *
 from hypothesis.stateful import *
 from hypothesis.vendor.pretty import CUnicodeIO, RepresentationPrinter
 from sets import Set
-from pymtl import *
-import inspect
 from util.rtl.method import InMethodCallPortBundle
+
+debug = False
 
 
 #-------------------------------------------------------------------------
@@ -86,12 +89,39 @@ class TestStateMachine( RuleBasedStateMachine ):
     self.__stream = CUnicodeIO()
     self.__printer = RepresentationPrinter( self.__stream )
 
-  def compare_result( self, m_result, r_result, method_name, arg ):
+  def compare_result( self, m_result, r_result, method_name, arg,
+                      method_line_trace ):
     if r_result:
-      for k in r_result.keys():
-        if not m_result[ k ] == r_result[ k ]:
-          self.sim.cycle()
-          print "========================== error =========================="
+      if isinstance( r_result, dict ):
+        for k in r_result.keys():
+          if not m_result[ k ] == r_result[ k ]:
+            error_msg = """
+   test state machine received an incorrect value!
+    - method name    : {method_name}
+    - arguments      : {arg}
+    - ret name       : {ret_name}
+    - expected value : {expected_msg}
+    - actual value   : {actual_msg}
+  """
+            error_msg = error_msg.format(
+                method_name=method_name,
+                arg=arg,
+                ret_name=k,
+                expected_msg=r_result[ k ],
+                actual_msg=m_result[ k ] )
+            self.sim.cycle( method_line_trace )
+            print "========================== error =========================="
+            raise RunMethodTestError( error_msg )
+      else:
+        assert isinstance( r_result, int ) or isinstance( r_result, tuple )
+        # assume that results are in alphabetical order
+        m_result_list = [
+            value for ( key, value ) in sorted( m_result.items() )
+        ]
+        r_result_list = [ r_result ] if isinstance( r_result,
+                                                    int ) else list( r_result )
+        if not m_result_list == r_result_list:
+
           error_msg = """
  test state machine received an incorrect value!
   - method name    : {method_name}
@@ -100,13 +130,16 @@ class TestStateMachine( RuleBasedStateMachine ):
   - expected value : {expected_msg}
   - actual value   : {actual_msg}
 """
-          raise RunMethodTestError(
-              error_msg.format(
-                  method_name=method_name,
-                  arg=arg,
-                  ret_name=k,
-                  expected_msg=r_result[ k ],
-                  actual_msg=m_result[ k ] ) )
+          error_msg = error_msg.format(
+              method_name=method_name,
+              arg=arg,
+              ret_name=', '.join( sorted( m_result.keys() ) ),
+              expected_msg=r_result,
+              actual_msg=', '.join(
+                  [ str( result ) for result in m_result_list ] ) )
+          self.sim.cycle( method_line_trace )
+          print "========================== error =========================="
+          raise RunMethodTestError( error_msg )
 
   def steps( self ):
     # Pick initialize rules first
@@ -123,6 +156,8 @@ class TestStateMachine( RuleBasedStateMachine ):
     r_results = []
     method_names = []
     data_list = []
+
+    method_line_trace = []
     # go though all rules for this step
     for ruledata in step:
       rule, data = ruledata
@@ -146,7 +181,23 @@ class TestStateMachine( RuleBasedStateMachine ):
       reference_class_members = self.reference.__class__.__dict__
 
       if name + "_call" in sim_class_members.keys():
-        if sim_class_members[ name + "_rdy" ]( self.sim ):
+        hasrdy = self.sim.methods_fl[ name ].hasrdy
+        rdy = False
+        if hasrdy:
+          if sim_class_members[ name + "_rdy" ]( self.sim ):
+            assert reference_class_members[ self.method_name_fl( name ) +
+                                            "_rdy" ](
+                                                self.reference )
+            rdy = True
+        if not hasrdy or rdy:
+          if debug:
+            argument_string = []
+            for k, v in data.items():
+              argument_string += [ "{}={}".format( k, v ) ]
+            method_line_trace += [
+                "{}( {} )".format( name, ", ".join( argument_string ) )
+                if argument_string else "{}()".format( name )
+            ]
           s_results += [
               sim_class_members[ name + "_call" ]( self.sim, **data )
           ]
@@ -157,12 +208,15 @@ class TestStateMachine( RuleBasedStateMachine ):
 
       if self._initialize_rules_to_run:
         self._initialize_rules_to_run.remove( rule )
+
+    method_line_trace = ",  ".join( method_line_trace )
     for s_result, r_result, method, data in zip( s_results, r_results,
                                                  method_names, data_list ):
-      self.compare_result( s_result, r_result, method, data )
+      self.compare_result( s_result, r_result, method, data, method_line_trace )
 
-    self.sim.cycle()
-    self.reference.cycle()
+    self.sim.cycle( method_line_trace )
+    if hasattr( self.reference, 'cycle' ):
+      self.reference.cycle()
 
   def print_step( self, step ):
     pass
@@ -228,6 +282,7 @@ class TestStateMachine( RuleBasedStateMachine ):
 #-------------------------------------------------------------------------
 class WrapperClass:
   methods = {}
+  methods_fl = {}
 
   def __init__( s, model ):
     s.model = model
@@ -237,11 +292,16 @@ class WrapperClass:
     print ""
     s.cycle()
 
-  def cycle( s ):
+  def cycle( s, extra=None ):
     s.sim.cycle()
-    s.sim.print_line_trace()
+    s.print_line_trace( extra )
     s.clear()
     s.sim.eval_combinational()
+
+  def print_line_trace( self, extra=None ):
+    print "{:>3}:".format(
+        self.sim
+        .ncycles ), self.sim.model.line_trace(), "  ", extra if extra else ""
 
   def reset( s ):
     s.sim.reset()
@@ -333,10 +393,12 @@ def add_method( cls, method_spec ):
     name = method_name
 
   cls.methods[ method_name ] = method_spec
+  cls.methods_fl[ name ] = method_spec
 
   def method_call( s, *args, **kwargs ):
     # assert ready
-    exec ( "assert s.{}_rdy()".format( name ) ) in locals()
+    if method_spec.hasrdy:
+      exec ( "assert s.{}_rdy()".format( name ) ) in locals()
 
     # set call
     if method_spec.hascall:
@@ -379,14 +441,14 @@ for {}_call method. Use keywords, or pass in arguments by alphabetical order.
   setattr( method_call, "__name__", name + "_call" )
   setattr( cls, name + "_call", method_call )
 
-  def method_rdy( s ):
-    if method_spec.hasrdy:
+  if method_spec.hasrdy:
+
+    def method_rdy( s ):
       exec ( "rdy = s.model.{}.rdy".format( method_name ) ) in locals()
       return rdy
-    return True
 
-  setattr( method_rdy, "__name__", name + "_rdy" )
-  setattr( cls, name + "_rdy", method_rdy )
+    setattr( method_rdy, "__name__", name + "_rdy" )
+    setattr( cls, name + "_rdy", method_rdy )
 
 
 #-------------------------------------------------------------------------
@@ -462,18 +524,10 @@ def add_rule( cls, method_spec ):
 #-------------------------------------------------------------------------
 # ArgumentStrategy
 #-------------------------------------------------------------------------
-@attr.s()
 class ArgumentStrategy( object ):
-  arguments = attr.ib()
-
-
-#-------------------------------------------------------------------------
-# StrategySpec
-#-------------------------------------------------------------------------
-class StrategySpec:
 
   def __init__( s, **kwargs ):
-    s.strategy = ArgumentStrategy( kwargs )
+    s.arguments = kwargs
 
 
 #-------------------------------------------------------------------------
@@ -504,7 +558,7 @@ def argument_strategy(**kwargs ):
           'A function cannot be used for two distinct argument strategies.',
           Settings.default,
       )
-    arguments = ArgumentStrategy( arguments=kwargs )
+    arguments = ArgumentStrategy(**kwargs )
 
     @proxies( f )
     def arguments_wrapper(*args, **kwargs ):
@@ -616,9 +670,9 @@ def create_test_state_machine( model, reference ):
       Test.set_order( v.order )
 
     if isinstance( v, MethodStrategy ):
-      for method, spec in inspect.getmembers( v ):
-        if isinstance( spec, StrategySpec ):
-          Test.add_argument_strategy( method, spec.strategy.arguments )
+      for method, strategy in inspect.getmembers( v ):
+        if isinstance( strategy, ArgumentStrategy ):
+          Test.add_argument_strategy( method, strategy.arguments )
 
   # make sure that all RTL methods have counterpart in FL
   difference = method_set_rtl - method_set_fl

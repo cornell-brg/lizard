@@ -13,16 +13,13 @@ PacketStatus = bit_enum(
     'INTERRUPT_TRIGGERED',
 )
 
-
-def CommonBundle( target ):
+def CommonBundle(target):
   target.status = BitField( PacketStatus.bits )
-  target.successor_invalidated = BitField( 1 )
   target.pc = BitField( XLEN )
-  target.tag = BitField( INST_TAG_LEN )
-  target.inst = BitField( RV64Inst.bits )
+  target.pc_next = BitField( XLEN )
   target.instr = BitField( ILEN )
-
   ExceptionBundle( target )
+
 
 
 def ExceptionBundle( target ):
@@ -56,10 +53,7 @@ def copy_field_valid_pair( src, dst, name ):
 
 def copy_common_bundle( src, dst ):
   dst.status = src.status
-  dst.successor_invalidated = src.successor_invalidated
   dst.pc = src.pc
-  dst.tag = src.tag
-  dst.inst = src.inst
   dst.instr = src.instr
 
   copy_exception_bundle( src, dst )
