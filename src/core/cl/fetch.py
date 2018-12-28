@@ -17,68 +17,60 @@ class FetchUnitCL( Model ):
     s.instrs_q = OutValRdyCLPort( FetchPacket() )
 
     s.in_flight = Wire( 1 )
+    s.drop_mem = Wire( 1 )
 
     s.pc = Wire( XLEN )
-    s.epoch = Wire( INST_TAG_LEN )
-
     s.pc_in_flight = Wire( XLEN )
-    s.epoch_in_flight = Wire( INST_TAG_LEN )
-    s.pc_in_flight_successor = Wire( XLEN )
+
 
     s.controlflow = controlflow
 
   def xtick( s ):
     if s.reset:
-      s.epoch.next = -1
-      s.in_flight.next = 0
+      s.drop_mem = False
+
+    # Check if the controlflow is redirecting the front end
+    redirected = s.controlflow.check_redirect()
+    if redirected.valid: # Squash everything
+      # drop any mem responses
+      if (not s.resp_q.empty()):
+        s.resp_q.deq()
+      else:
+        s.drop_mem = s.in_flight
+      # Redirect PC
+      s.pc.next = redirected.target
       return
 
-    if s.instrs_q.full():
-      return
+    # Drop unit
+    if s.drop_mem and not s.resp_q.empty():
+      s.resp_q.deq()
+      drop_mem = False
+      s.in_flight = False
 
-    advance = not ( s.in_flight and s.resp_q.empty() )
 
-    # if we got one back
-    if not s.resp_q.empty():
+    # We got a memresp
+    if not s.resp_q.empty() and not s.instrs_q.full():
       mem_resp = s.resp_q.deq()
       out = FetchPacket()
       out.status = PacketStatus.ALIVE
       out.instr = mem_resp.data
       out.pc = s.pc_in_flight
+      out.pc_next = s.pc
+      s.instrs_q.enq( out )
 
-      req = RegisterInstrRequest()
-      req.succesor_pc = s.pc_in_flight_successor
-      req.epoch = s.epoch_in_flight
-      resp = s.controlflow.register( req )
-      if resp.valid:
-        out.tag = resp.tag
-        s.instrs_q.enq( out )
+      s.in_flight = False
 
-      s.in_flight.next = 0
 
-    if not s.req_q.full() and advance:
-      # check for a redirect
-      req = GetEpochStartRequest()
-      req.epoch = s.epoch.value
-      resp = s.controlflow.get_epoch_start( req )
-      if resp.valid:
-        fetch_pc = s.pc.value
-      else:
-        fetch_pc = resp.pc
-        s.epoch.next = resp.current_epoch
-
-      s.req_q.enq( MemMsg8B.req.mk_rd( 0, fetch_pc, ILEN_BYTES ) )
-      s.pc_in_flight.next = fetch_pc
-      s.epoch_in_flight = resp.current_epoch
-      s.pc_in_flight_successor.next = fetch_pc + ILEN_BYTES
-
+    if not s.in_flight: # We can send next request
+      s.req_q.enq( MemMsg8B.req.mk_rd( 0, s.pc, ILEN_BYTES ) )
+      s.in_flight = True
+      s.pc_in_flight.next = s.pc
       #TODO insert btb here, so easy!
-      s.pc.next = fetch_pc + ILEN_BYTES
+      s.pc.next = s.pc + ILEN_BYTES
 
-      s.in_flight.next = 1
 
   def line_trace( s ):
     return LineBlock([
-        'epoch: {}'.format( s.epoch ),
+        'epoch: {}'.format( 0 ),
         'pc: {}'.format( s.instrs_q.msg().pc ),
     ] ).validate( s.instrs_q.val() )
