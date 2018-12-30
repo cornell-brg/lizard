@@ -56,10 +56,12 @@ class TagValidResponse( BitStructDefinition ):
     s.valid = BitField( 1 )
 
 
-class CheckRedirectResponse( BitStructDefinition):
-    def __init__( s ):
-      s.redirected = BitField( 1 )
-      s.target = BitField( XLEN )
+class CheckRedirectResponse( BitStructDefinition ):
+
+  def __init__( s ):
+    s.redirected = BitField( 1 )
+    s.target = BitField( XLEN )
+
 
 class RetireRequest( BitStructDefinition ):
 

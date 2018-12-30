@@ -49,7 +49,6 @@ class IssueUnitCL( Model ):
       idx = s.EXECUTE_PORT_IDX
     return idx
 
-
   def xtick( s ):
     if s.reset:
       s.current_d = None
@@ -57,7 +56,8 @@ class IssueUnitCL( Model ):
 
     # Check if frontent being squashed
     redirected = s.controlflow.check_redirect()
-    if redirected.valid and not s.decoded_q.empty(): # Squash any waiting fetch packet
+    if redirected.valid and not s.decoded_q.empty(
+    ):  # Squash any waiting fetch packet
       s.instr_q.deq()
       return
 
@@ -71,7 +71,7 @@ class IssueUnitCL( Model ):
       req = RegisterInstrRequest()
       req.succesor_pc = s.current_d.pc_next
       req.speculative = s.current_d.is_control_flow
-      s.controlflow.register(req)
+      s.controlflow.register( req )
 
       s.work = IssuePacket()
       copy_common_bundle( s.current_d, s.work )

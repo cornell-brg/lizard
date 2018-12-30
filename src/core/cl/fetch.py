@@ -22,7 +22,6 @@ class FetchUnitCL( Model ):
     s.pc = Wire( XLEN )
     s.pc_in_flight = Wire( XLEN )
 
-
     s.controlflow = controlflow
 
   def xtick( s ):
@@ -31,9 +30,9 @@ class FetchUnitCL( Model ):
 
     # Check if the controlflow is redirecting the front end
     redirected = s.controlflow.check_redirect()
-    if redirected.valid: # Squash everything
+    if redirected.valid:  # Squash everything
       # drop any mem responses
-      if (not s.resp_q.empty()):
+      if ( not s.resp_q.empty() ):
         s.resp_q.deq()
       else:
         s.drop_mem = s.in_flight
@@ -47,7 +46,6 @@ class FetchUnitCL( Model ):
       drop_mem = False
       s.in_flight = False
 
-
     # We got a memresp
     if not s.resp_q.empty() and not s.instrs_q.full():
       mem_resp = s.resp_q.deq()
@@ -60,14 +58,12 @@ class FetchUnitCL( Model ):
 
       s.in_flight = False
 
-
-    if not s.in_flight: # We can send next request
+    if not s.in_flight:  # We can send next request
       s.req_q.enq( MemMsg8B.req.mk_rd( 0, s.pc, ILEN_BYTES ) )
       s.in_flight = True
       s.pc_in_flight.next = s.pc
       #TODO insert btb here, so easy!
       s.pc.next = s.pc + ILEN_BYTES
-
 
   def line_trace( s ):
     return LineBlock([

@@ -13,13 +13,21 @@ PacketStatus = bit_enum(
     'INTERRUPT_TRIGGERED',
 )
 
-def CommonBundle(target):
+
+# Frontend
+def BaseBundle( target ):
   target.status = BitField( PacketStatus.bits )
   target.pc = BitField( XLEN )
   target.pc_next = BitField( XLEN )
   target.instr = BitField( ILEN )
   ExceptionBundle( target )
 
+
+# Backend
+def CommonBundle( target ):
+  BaseBundle( target )
+  target.inst = BitField( RV64Inst.bits )
+  target.tag = BitField( INST_TAG_LEN )
 
 
 def ExceptionBundle( target ):
@@ -31,7 +39,6 @@ def DecodeBundle( target ):
   target.is_control_flow = BitField( 1 )
   target.funct3 = BitField( 3 )
   target.opcode = BitField( Opcode.bits )
-  target.unique = BitField( 1 )
 
   FieldValidPair( target, 'imm', DECODED_IMM_LEN )
   FieldValidPair( target, 'csr', CSR_SPEC_LEN )

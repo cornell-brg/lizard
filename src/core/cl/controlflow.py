@@ -27,7 +27,7 @@ class ControlFlowManagerCL( Model ):
 
   def __init__( s, dataflow ):
     # We use overflow to do mod operations
-    assert(2**INST_TAG_LEN == ROB_SIZE)
+    assert ( 2**INST_TAG_LEN == ROB_SIZE )
     s.redirect = None
 
   def xtick( s ):
@@ -35,55 +35,54 @@ class ControlFlowManagerCL( Model ):
 
     if s.reset:
       s.head = Bits( INST_TAG_LEN )
-      s.num = Bits( INST_TAG_LEN + 1)
+      s.num = Bits( INST_TAG_LEN + 1 )
       s.spec_depth = Bits( MAX_SPEC_DEPTH_LEN )
       # Track the invalid and valid seq numbers, use as ring buffer
       # TODO make FL ring buffer class
-      s.seqs =  [ False ] * (2**INST_TAG_LEN)
+      s.seqs = [ False ] * ( 2**INST_TAG_LEN )
       # CAM from seq number to snapshot
       s.snapshot = {}
       s.redirect = RESET_VECTOR
-
-
 
   def register_rdy( s ):
     return s.num < ROB_SIZE and s.spec_depth < MAX_SPEC_DEPTH
 
   def register( s, request ):
     # Assert a seq number is availible
-    assert(s.register_rdy())
+    assert ( s.register_rdy() )
     resp = RegisterInstrResponse()
-    resp.tag = s.head + s.num[:INST_TAG_LEN]
+    resp.tag = s.head + s.num[:INST_TAG_LEN ]
     # Can not have multiple insts with same seq in flight
-    assert(not s.seqs[resp.tag))
-    s.seqs[resp.tag] = True
+    assert ( not s.seqs[ resp.tag ] )
+    s.seqs[ resp.tag ] = True
     s.num += 1
-    if (request.speculative):
-      assert(s.spec_depth < MAX_SPEC_DEPTH)
+    if ( request.speculative ):
+      assert ( s.spec_depth < MAX_SPEC_DEPTH )
       # Snapshot, store the pred
-      s.snapshot[int(resp.tag)] = (s.succesor_pc, s.dataflow.get_rename_table())
+      s.snapshot[ int( resp.tag ) ] = ( s.succesor_pc,
+                                        s.dataflow.get_rename_table() )
       s.spec_depth += 1
     return resp
 
-
   def request_redirect( s, request ):
     # We ignore redirects from invalid instructions
-    if not s.seqs[request.source_tag]:
+    if not s.seqs[ request.source_tag ]:
       return
 
     # if not at commit, and not speculative, error
-    assert request.at_commit or s.snapshot[request.source_tag].rename_table is not None
+    assert request.at_commit or s.snapshot[
+        request.source_tag ].rename_table is not None
 
-    predicted, rt = s.snapshot[request.source_tag]
+    predicted, rt = s.snapshot[ request.source_tag ]
     # Guess was correct
     if predicted == request.target_pc and not request.force_redirect:
       return
 
     # invalidate all later instructions
     idx = request.source_tag + 1
-    tail = s.head + s.num[:INST_TAG_LEN]
-    while (idx != tail):
-      s.seqs[idx] = False
+    tail = s.head + s.num[:INST_TAG_LEN ]
+    while ( idx != tail ):
+      s.seqs[ idx ] = False
       s.num -= 1
 
     # Reset rename table
@@ -93,16 +92,15 @@ class ControlFlowManagerCL( Model ):
     s.redirect = request.target_pc
 
   # The frontend units continously poll for a redirect every cycle
-  def check_redirect( s):
+  def check_redirect( s ):
     resp = CheckRedirectResponse()
     resp.valid = s.redirect is not None
     resp.target = s.redirect
     return resp
 
-
   def tag_valid( s, request ):
     resp = TagValidResponse()
-    resp.valid = s.seqs[request.tag]
+    resp.valid = s.seqs[ request.tag ]
     return resp
 
   def is_head( s, request ):
@@ -111,12 +109,12 @@ class ControlFlowManagerCL( Model ):
     return resp
 
   def retire( s, request ):
-    assert(request.tag == s.head)
+    assert ( request.tag == s.head )
     # Free seq number
-    s.seqs[request.tag] = False
+    s.seqs[ request.tag ] = False
     s.head += 1
 
     # Free ROB entry
     if int( request.tag ) in s.snapshot:
       s.spec_depth -= 1
-      del s.snapshot[int( request.tag )]
+      del s.snapshot[ int( request.tag ) ]
