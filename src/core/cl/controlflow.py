@@ -47,6 +47,9 @@ class ControlFlowManagerCL( Model ):
   def register_rdy( s ):
     return s.num < ROB_SIZE and s.spec_depth < MAX_SPEC_DEPTH
 
+  def get_head( s ):
+    return s.head
+
   def register( s, request ):
     # Assert a seq number is availible
     assert ( s.register_rdy() )
@@ -95,7 +98,8 @@ class ControlFlowManagerCL( Model ):
   def check_redirect( s ):
     resp = CheckRedirectResponse()
     resp.valid = s.redirect is not None
-    resp.target = s.redirect
+    if resp.valid:
+      resp.target = s.redirect
     return resp
 
   def tag_valid( s, request ):

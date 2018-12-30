@@ -58,12 +58,18 @@ def copy_field_valid_pair( src, dst, name ):
   setattr( dst, valid_name( name ), getattr( src, valid_name( name ) ) )
 
 
-def copy_common_bundle( src, dst ):
+def copy_base_bundle( src, dst ):
   dst.status = src.status
   dst.pc = src.pc
+  dst.pc_next = src.pc_next
   dst.instr = src.instr
-
   copy_exception_bundle( src, dst )
+
+
+def copy_common_bundle( src, dst ):
+  copy_base_bundle( src, dst )
+  dst.inst = src.inst
+  dst.tag = src.tag
 
 
 def copy_exception_bundle( src, dst ):
