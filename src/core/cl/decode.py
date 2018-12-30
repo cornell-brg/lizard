@@ -23,10 +23,10 @@ class DecodeUnitCL( Model ):
 
     # Check if frontent being squashed
     redirected = s.controlflow.check_redirect()
-    if redirected.valid and not s.instr_q.empty(): # Squash any waiting fetch packet
+    if redirected.valid and not s.instr_q.empty(
+    ):  # Squash any waiting fetch packet
       s.instr_q.deq()
       return
-
 
     if s.decoded_q.full():
       return
@@ -38,7 +38,6 @@ class DecodeUnitCL( Model ):
 
     out = DecodePacket()
     copy_common_bundle( fetched, out )
-
 
     inst = fetched.instr
     # Decode it and create packet
@@ -356,7 +355,6 @@ class DecodeUnitCL( Model ):
 
   def line_trace( s ):
     return LineBlock([
-        "{}".format( s.decoded_q.msg().tag ),
         "{}".format( s.decoded_q.msg().pc ),
         "{: <8} rd({}): {}".format(
             RV64Inst.name( s.decoded_q.msg().inst ),
