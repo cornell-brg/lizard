@@ -1,8 +1,6 @@
 from pymtl import *
-from msg.decode import *
+from msg.datapath import *
 from msg.data import *
-from msg.issue import *
-from msg.execute import *
 from msg.control import *
 from util.cl.ports import InValRdyCLPort, OutValRdyCLPort, cl_connect
 from util.cl.delay_pipe import DelayPipeCL

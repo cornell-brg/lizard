@@ -1,13 +1,11 @@
 from pymtl import *
-from msg.decode import *
-from msg.issue import *
+from msg.datapath import *
 from msg.control import *
 from msg.codes import *
 from util.cl.ports import InValRdyCLPort, OutValRdyCLPort
 from util.cl.port_groups import OutValRdyCLPortGroup
 from config.general import *
 from util.line_block import LineBlock
-from msg.packet_common import *
 
 
 class IssueUnitCL( Model ):
@@ -39,7 +37,7 @@ class IssueUnitCL( Model ):
         RV64Inst.MULW, RV64Inst.REM, RV64Inst.REMU, RV64Inst.REMUW,
         RV64Inst.REMW
     ]
-    if p.inst in muldivs:
+    if p.instr_d in muldivs:
       idx = s.MULDIV_PORT_IDX
     elif p.opcode == Opcode.LOAD or p.opcode == Opcode.STORE or p.opcode == Opcode.MISC_MEM:
       idx = s.MEMORY_PORT_IDX
@@ -58,7 +56,7 @@ class IssueUnitCL( Model ):
     redirected = s.controlflow.check_redirect()
     if redirected.valid and not s.decoded_q.empty(
     ):  # Squash any waiting fetch packet
-      s.instr_q.deq()
+      s.decoded_q.deq()
       return
 
     if s.current_d is None:
@@ -75,8 +73,7 @@ class IssueUnitCL( Model ):
       resp = s.controlflow.register( req )
 
       s.work = IssuePacket()
-      copy_common_bundle( s.current_d, s.work )
-      copy_decode_bundle( s.current_d, s.work )
+      copy_decode_issue( s.current_d, s.work )
       s.work.tag = resp.tag
 
       s.current_rs1 = None
@@ -105,19 +102,19 @@ class IssueUnitCL( Model ):
       src = s.dataflow.get_src( s.current_d.rs1 )
       s.current_rs1 = src.tag
 
-    if s.current_rs1 is not None and not s.work.rs1_valid:
+    if s.current_rs1 is not None and not s.work.rs1_value_valid:
       read = s.dataflow.read_tag( s.current_rs1 )
-      s.work.rs1 = read.value
-      s.work.rs1_valid = read.ready
+      s.work.rs1_value = read.value
+      s.work.rs1_value_valid = read.ready
 
     if s.current_d.rs2_valid and s.current_rs2 is None:
       src = s.dataflow.get_src( s.current_d.rs2 )
       s.current_rs2 = src.tag
 
-    if s.current_rs2 is not None and not s.work.rs2_valid:
+    if s.current_rs2 is not None and not s.work.rs2_value_valid:
       read = s.dataflow.read_tag( s.current_rs2 )
-      s.work.rs2 = read.value
-      s.work.rs2_valid = read.ready
+      s.work.rs2_value = read.value
+      s.work.rs2_value_valid = read.ready
 
     # Must get sources before renaming destination!
     # Otherwise consider ADDI x1, x1, 1
@@ -133,7 +130,7 @@ class IssueUnitCL( Model ):
 
     # Done if all fields are as they should be
     # and we are at the head if we have to be
-    if s.current_d.rd_valid == s.work.rd_valid and s.current_d.rs1_valid == s.work.rs1_valid and s.current_d.rs2_valid == s.work.rs2_valid:
+    if s.current_d.rd_valid == s.work.rd_valid and s.current_d.rs1_valid == s.work.rs1_value_valid and s.current_d.rs2_valid == s.work.rs2_value_valid:
       if not s.issued_q.get( pipe_idx ).full():
         s.issued_q.enq( s.work, pipe_idx )
         s.current_d = None
@@ -145,12 +142,12 @@ class IssueUnitCL( Model ):
     return LineBlock([
         "{}".format( s.issued_q.msg().tag ),
         "{: <8} rd({}): {}".format(
-            RV64Inst.name( s.issued_q.msg().inst ),
+            RV64Inst.name( s.issued_q.msg().instr_d ),
             s.issued_q.msg().rd_valid,
             s.issued_q.msg().rd ),
         "imm: {}".format( s.issued_q.msg().imm ),
-        "rs1({}): {}".format( s.issued_q.msg().rs1_valid,
-                              s.issued_q.msg().rs1 ),
-        "rs2({}): {}".format( s.issued_q.msg().rs2_valid,
-                              s.issued_q.msg().rs2 ),
+        "rs1({}): {}".format( s.issued_q.msg().rs1_value_valid,
+                              s.issued_q.msg().rs1_value ),
+        "rs2({}): {}".format( s.issued_q.msg().rs2_value_valid,
+                              s.issued_q.msg().rs2_value ),
     ] ).validate( s.issued_q.val() )

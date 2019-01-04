@@ -4,7 +4,7 @@ import random
 from pymtl import *
 from harness import *
 from core.cl.fetch import FetchUnitCL
-from msg.fetch import FetchPacket
+from msg.datapath import *
 from config.general import RESET_VECTOR, ILEN
 
 

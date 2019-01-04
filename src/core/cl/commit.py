@@ -1,8 +1,5 @@
 from pymtl import *
-from msg.decode import *
-from msg.issue import *
-from msg.execute import *
-from msg.writeback import *
+from msg.datapath import *
 from msg.control import *
 from util.cl.ports import InValRdyCLPort, OutValRdyCLPort
 from util.line_block import LineBlock

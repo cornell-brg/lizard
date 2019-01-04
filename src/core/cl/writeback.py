@@ -1,9 +1,6 @@
 from pymtl import *
-from msg.decode import *
+from msg.datapath import *
 from msg.data import *
-from msg.issue import *
-from msg.execute import *
-from msg.writeback import *
 from msg.control import *
 from util.cl.ports import InValRdyCLPort, OutValRdyCLPort
 from util.cl.port_groups import InValRdyCLPortGroup
@@ -40,10 +37,7 @@ class WritebackUnitCL( Model ):
     p, _ = s.result_in_q.deq()
 
     out = WritebackPacket()
-    copy_common_bundle( p, out )
-    out.opcode = p.opcode
-    copy_field_valid_pair( p, out, 'rd' )
-    out.result = p.result
+    copy_execute_writeback( p, out )
 
     if out.status != PacketStatus.ALIVE:
       s.result_out_q.enq( out )
@@ -58,7 +52,7 @@ class WritebackUnitCL( Model ):
     return LineBlock([
         "{}".format( s.result_out_q.msg().tag ),
         "{: <8} rd({}): {}".format(
-            RV64Inst.name( s.result_out_q.msg().inst ),
+            RV64Inst.name( s.result_out_q.msg().instr_d ),
             s.result_out_q.msg().rd_valid,
             s.result_out_q.msg().rd ),
         "res: {}".format( s.result_out_q.msg().result ),
