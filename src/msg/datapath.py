@@ -144,7 +144,7 @@ def copy_execute_writeback( src, dst ):
   dst.instr_d = src.instr_d
   dst.opcode = src.opcode
   copy_field_valid_pair( src, dst, 'rd' )
-  dst.result = src.result
+  copy_field_valid_pair( src, dst, 'result' )
 
 
 class WritebackPacket( BitStructDefinition ):

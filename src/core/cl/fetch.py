@@ -26,6 +26,7 @@ class FetchUnitCL( Model ):
   def xtick( s ):
     if s.reset:
       s.drop_mem = False
+      s.in_flight = False
 
     # Check if the controlflow is redirecting the front end
     redirected = s.controlflow.check_redirect()
@@ -33,6 +34,7 @@ class FetchUnitCL( Model ):
       # drop any mem responses
       if ( not s.resp_q.empty() ):
         s.resp_q.deq()
+        s.in_flight = False
       else:
         s.drop_mem = s.in_flight
       # Redirect PC
@@ -42,7 +44,7 @@ class FetchUnitCL( Model ):
     # Drop unit
     if s.drop_mem and not s.resp_q.empty():
       s.resp_q.deq()
-      drop_mem = False
+      s.drop_mem = False
       s.in_flight = False
 
     # We got a memresp
@@ -54,7 +56,6 @@ class FetchUnitCL( Model ):
       out.pc = s.pc_in_flight
       out.pc_next = s.pc
       s.instrs_q.enq( out )
-
       s.in_flight = False
 
     if not s.in_flight:  # We can send next request
@@ -66,6 +67,5 @@ class FetchUnitCL( Model ):
 
   def line_trace( s ):
     return LineBlock([
-        'epoch: {}'.format( 0 ),
         'pc: {}'.format( s.instrs_q.msg().pc ),
     ] ).validate( s.instrs_q.val() )
