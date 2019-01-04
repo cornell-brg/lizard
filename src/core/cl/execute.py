@@ -137,7 +137,7 @@ class ExecuteUnitCL( Model ):
           XLEN,
           s.current.rs1_value[:32 ].int() >> s.current.imm.uint(),
           trunc=True )
-    elif s.current.is_control_flow:
+    elif s.current.instr_d in [RV64Inst.BEQ, RV64Inst.BNE, RV64Inst.BLT, RV64Inst.BGE, RV64Inst.BLTU, RV64Inst.BGEU, RV64Inst.JAL, RV64Inst.JALR]:
       taken = False
       base = s.current.pc
       if s.current.instr_d == RV64Inst.BEQ:

@@ -63,7 +63,7 @@ class ControlFlowManagerCL( Model ):
     if ( request.speculative ):
       assert ( s.spec_depth < MAX_SPEC_DEPTH )
       # Snapshot, store the pred
-      s.snapshot[ int( resp.tag ) ] = ( s.succesor_pc,
+      s.snapshot[ int( resp.tag ) ] = ( request.succesor_pc,
                                         s.dataflow.get_rename_table() )
       s.spec_depth += 1
     return resp
@@ -75,7 +75,7 @@ class ControlFlowManagerCL( Model ):
 
     # if not at commit, and not speculative, error
     assert request.at_commit or s.snapshot[ int(
-        request.source_tag ) ].rename_table is not None
+        request.source_tag ) ] is not None
 
     if not request.at_commit:
       predicted, rt = s.snapshot[ int( request.source_tag ) ]
