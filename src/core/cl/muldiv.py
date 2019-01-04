@@ -39,18 +39,23 @@ class MulDivUnitCL( Model ):
 
       if s.current.instr_d == RV64Inst.MUL:
         s.work.result = Bits(
-            XLEN, s.current.rs1_value.int() * s.current.rs2_value.int(), trunc=True )
+            XLEN,
+            s.current.rs1_value.int() * s.current.rs2_value.int(),
+            trunc=True )
       elif s.current.instr_d == RV64Inst.MULH:
         s.work.result = Bits(
-            XLEN, ( s.current.rs1_value.int() * s.current.rs2_value.int() ) >> XLEN,
+            XLEN,
+            ( s.current.rs1_value.int() * s.current.rs2_value.int() ) >> XLEN,
             trunc=True )
       elif s.current.instr_d == RV64Inst.MULHU:
         s.work.result = Bits(
-            XLEN, ( s.current.rs1_value.uint() * s.current.rs2_value.uint() ) >> XLEN,
+            XLEN,
+            ( s.current.rs1_value.uint() * s.current.rs2_value.uint() ) >> XLEN,
             trunc=True )
       elif s.current.instr_d == RV64Inst.MULHSU:
         s.work.result = Bits(
-            XLEN, ( s.current.rs1_value.int() * s.current.rs2_value.uint() ) >> XLEN,
+            XLEN,
+            ( s.current.rs1_value.int() * s.current.rs2_value.uint() ) >> XLEN,
             trunc=True )
       elif s.current.instr_d == RV64Inst.DIV:
         if ( s.current.rs2_value.int() == 0 ):
@@ -60,15 +65,19 @@ class MulDivUnitCL( Model ):
                s.current.rs2_value.int() == -1 ):
           s.work.result = s.current.rs1_value
         else:
-          res = abs( s.current.rs1_value.int() ) // abs( s.current.rs2_value.int() )
-          sn = sign( s.current.rs1_value.int() ) * sign( s.current.rs2_value.int() )
+          res = abs( s.current.rs1_value.int() ) // abs(
+              s.current.rs2_value.int() )
+          sn = sign( s.current.rs1_value.int() ) * sign(
+              s.current.rs2_value.int() )
           s.work.result = Bits( XLEN, sn * res, trunc=True )
       elif s.current.instr_d == RV64Inst.DIVU:
         if ( s.current.rs2_value.int() == 0 ):
           s.work.result = Bits( XLEN, -1, trunc=True )
         else:
           s.work.result = Bits(
-              XLEN, s.current.rs1_value.uint() // s.current.rs2_value.uint(), trunc=True )
+              XLEN,
+              s.current.rs1_value.uint() // s.current.rs2_value.uint(),
+              trunc=True )
       elif s.current.instr_d == RV64Inst.REM:
         s1, s2 = s.current.rs1_value.int(), s.current.rs2_value.int()
         if s2 == 0:
@@ -84,11 +93,13 @@ class MulDivUnitCL( Model ):
           s.work.result = s.current.rs1_value
         else:
           s.work.result = Bits(
-              XLEN, s.current.rs1_value.uint() % s.current.rs2_value.uint(), trunc=True )
+              XLEN,
+              s.current.rs1_value.uint() % s.current.rs2_value.uint(),
+              trunc=True )
       # W suffix instructions
       elif s.current.instr_d == RV64Inst.MULW:
-        res = (
-            s.current.rs1_value[:32 ].int() * s.current.rs2_value[:32 ].int() ) & BIT32_MASK
+        res = ( s.current.rs1_value[:32 ].int() *
+                s.current.rs2_value[:32 ].int() ) & BIT32_MASK
         s.work.result = sext( Bits( 32, res, trunc=True ), XLEN )
       elif s.current.instr_d == RV64Inst.DIVW:
         s1 = s.current.rs1_value[:32 ].int()
