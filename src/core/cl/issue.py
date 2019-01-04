@@ -65,17 +65,19 @@ class IssueUnitCL( Model ):
       if s.decoded_q.empty() or not s.controlflow.register_rdy():
         return
 
+      # Dequeue, allocate regs, and put in IQ
       s.current_d = s.decoded_q.deq()
 
       # Register it
       req = RegisterInstrRequest()
       req.succesor_pc = s.current_d.pc_next
       req.speculative = s.current_d.is_control_flow
-      s.controlflow.register( req )
+      resp = s.controlflow.register( req )
 
       s.work = IssuePacket()
       copy_common_bundle( s.current_d, s.work )
       copy_decode_bundle( s.current_d, s.work )
+      s.work.tag = resp.tag
 
       s.current_rs1 = None
       s.current_rs2 = None
@@ -87,9 +89,10 @@ class IssueUnitCL( Model ):
     # TODO instead, the instructions after a branch should all be squashed in the IQ
     # and marked done (but invalid) in the ROB to free the pregs
     creq = TagValidRequest()
-    creq.tag = s.current_d.tag
+    creq.tag = s.work.tag
     cresp = s.controlflow.tag_valid( creq )
     if not cresp.valid:
+      print( "Random squash" )
       s.work.status = PacketStatus.SQUASHED
 
     if s.work.status != PacketStatus.ALIVE:
@@ -125,7 +128,7 @@ class IssueUnitCL( Model ):
       s.work.rd = dst.tag
 
     creq = IsHeadRequest()
-    creq.tag = s.current_d.tag
+    creq.tag = s.work.tag
     is_head = s.controlflow.is_head( creq ).is_head
 
     # Done if all fields are as they should be
