@@ -29,6 +29,7 @@ class ControlFlowManagerCL( Model ):
     # We use overflow to do mod operations
     assert ( 2**INST_TAG_LEN == ROB_SIZE )
     s.redirect = None
+    s.dataflow = dataflow
 
   def xtick( s ):
     s.redirect = None
@@ -73,13 +74,14 @@ class ControlFlowManagerCL( Model ):
       return
 
     # if not at commit, and not speculative, error
-    assert request.at_commit or s.snapshot[
-        request.source_tag ].rename_table is not None
+    assert request.at_commit or s.snapshot[ int(
+        request.source_tag ) ].rename_table is not None
 
-    predicted, rt = s.snapshot[ request.source_tag ]
-    # Guess was correct
-    if predicted == request.target_pc and not request.force_redirect:
-      return
+    if not request.at_commit:
+      predicted, rt = s.snapshot[ int( request.source_tag ) ]
+      # Guess was correct
+      if predicted == request.target_pc and not request.force_redirect:
+        return
 
     # invalidate all later instructions
     idx = request.source_tag + 1
@@ -87,9 +89,13 @@ class ControlFlowManagerCL( Model ):
     while ( idx != tail ):
       s.seqs[ idx ] = False
       s.num -= 1
+      idx += 1
 
     # Reset rename table
-    s.dataflow.set_rename_table( rt )
+    if request.at_commit:
+      s.dataflow.rollback_to_arch_state()
+    else:
+      s.dataflow.set_rename_table( rt )
 
     # Notify frontend
     s.redirect = request.target_pc
@@ -104,7 +110,6 @@ class ControlFlowManagerCL( Model ):
 
   def tag_valid( s, request ):
     resp = TagValidResponse()
-    print( request.tag )
     resp.valid = s.seqs[ request.tag ]
     return resp
 

@@ -1,7 +1,6 @@
 from pymtl import *
-from msg.packet_common import *
 from msg.mem import MemMsg8B
-from msg.fetch import FetchPacket
+from msg.datapath import *
 from msg.control import *
 from util.cl.ports import InValRdyCLPort, OutValRdyCLPort
 from config.general import *

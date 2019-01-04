@@ -1,9 +1,7 @@
 from pymtl import *
 from msg.mem import MemMsg8B
 from msg.control import *
-from msg.decode import *
-from msg.issue import *
-from msg.execute import *
+from msg.datapath import *
 from util.cl.ports import InValRdyCLPort, OutValRdyCLPort
 from config.general import *
 from util.line_block import Divider, LineBlock
@@ -96,7 +94,7 @@ class MemoryUnitCL( Model ):
     return LineBlock([
         "{}".format( s.result_q.msg().tag ),
         "{: <8} rd({}): {}".format(
-            RV64Inst.name( s.result_q.msg().inst ),
+            RV64Inst.name( s.result_q.msg().instr_d ),
             s.result_q.msg().rd_valid,
             s.result_q.msg().rd ),
         "res: {}".format( s.result_q.msg().result ),

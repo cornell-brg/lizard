@@ -1,8 +1,6 @@
 from pymtl import *
-from msg.decode import *
 from msg.data import *
-from msg.issue import *
-from msg.execute import *
+from msg.datapath import *
 from msg.control import *
 from util.cl.ports import InValRdyCLPort, OutValRdyCLPort
 from util.line_block import LineBlock
@@ -39,117 +37,131 @@ class ExecuteUnitCL( Model ):
     s.current = s.issued_q.deq()
 
     s.work = ExecutePacket()
-    copy_common_bundle( s.current, s.work )
-    s.work.opcode = s.current.opcode
-    copy_field_valid_pair( s.current, s.work, 'rd' )
+    copy_issue_execute( s.current, s.work )
 
-    if s.current.inst == RV64Inst.LUI:
+    if s.current.instr_d == RV64Inst.LUI:
       s.work.result = sext( s.current.imm, XLEN )
-    elif s.current.inst == RV64Inst.AUIPC:
+    elif s.current.instr_d == RV64Inst.AUIPC:
       s.work.result = s.current.pc + sext( s.current.imm, XLEN )
-    elif s.current.inst == RV64Inst.ADDI:
-      s.work.result = s.current.rs1 + sext( s.current.imm, XLEN )
-    elif s.current.inst == RV64Inst.SLTI:
-      if s.current.rs1.int() < s.current.imm.int():
+    elif s.current.instr_d == RV64Inst.ADDI:
+      s.work.result = s.current.rs1_value + sext( s.current.imm, XLEN )
+    elif s.current.instr_d == RV64Inst.SLTI:
+      if s.current.rs1_value.int() < s.current.imm.int():
         s.work.result = 1
       else:
         s.work.result = 0
-    elif s.current.inst == RV64Inst.SLTIU:
-      if s.current.rs1.uint() < sext( s.current.imm, XLEN ).uint():
+    elif s.current.instr_d == RV64Inst.SLTIU:
+      if s.current.rs1_value.uint() < sext( s.current.imm, XLEN ).uint():
         s.work.result = 1
       else:
         s.work.result = 0
-    elif s.current.inst == RV64Inst.XORI:
-      s.work.result = s.current.rs1 ^ sext( s.current.imm, XLEN )
-    elif s.current.inst == RV64Inst.ORI:
-      s.work.result = s.current.rs1 | sext( s.current.imm, XLEN )
-    elif s.current.inst == RV64Inst.ANDI:
-      s.work.result = s.current.rs1 & sext( s.current.imm, XLEN )
-    elif s.current.inst == RV64Inst.SLLI:
-      s.work.result = s.current.rs1 << s.current.imm
-    elif s.current.inst == RV64Inst.SRLI:
-      s.work.result = Bits(
-          XLEN, s.current.rs1.uint() >> s.current.imm.uint(), trunc=True )
-    elif s.current.inst == RV64Inst.SRAI:
-      s.work.result = Bits(
-          XLEN, s.current.rs1.int() >> s.current.imm.uint(), trunc=True )
-    # Register register insts
-    elif s.current.inst == RV64Inst.ADD:
-      s.work.result = s.current.rs1 + s.current.rs2
-    elif s.current.inst == RV64Inst.SUB:
-      s.work.result = s.current.rs1 - s.current.rs2
-    elif s.current.inst == RV64Inst.SLL:
-      s.work.result = Bits(
-          XLEN, s.current.rs1 << s.current.rs2[:6 ].uint(), trunc=True )
-    elif s.current.inst == RV64Inst.SRL:
-      s.work.result = Bits(
-          XLEN, s.current.rs1.uint() >> s.current.rs2[:6 ].uint(), trunc=True )
-    elif s.current.inst == RV64Inst.SRA:
-      s.work.result = Bits(
-          XLEN, s.current.rs1.int() >> s.current.rs2[:6 ].uint(), trunc=True )
-    elif s.current.inst == RV64Inst.SLT:
-      s.work.result = int( s.current.rs1.int() < s.current.rs2.int() )
-    elif s.current.inst == RV64Inst.SLTU:
-      s.work.result = int( s.current.rs1.uint() < s.current.rs2.uint() )
-    elif s.current.inst == RV64Inst.XOR:
-      s.work.result = s.current.rs1 ^ s.current.rs2
-    elif s.current.inst == RV64Inst.OR:
-      s.work.result = s.current.rs1 | s.current.rs2
-    elif s.current.inst == RV64Inst.AND:
-      s.work.result = s.current.rs1 & s.current.rs2
-    elif s.current.inst == RV64Inst.ADDW:
-      s.work.result = sext( s.current.rs1[:32 ] + s.current.rs2[:32 ], XLEN )
-    elif s.current.inst == RV64Inst.SUBW:
-      s.work.result = sext( s.current.rs1[:32 ] - s.current.rs2[:32 ], XLEN )
-    elif s.current.inst == RV64Inst.SLLW:
-      s.work.result = sext( s.current.rs1[:32 ] << s.current.rs2[:5 ].uint(),
-                            XLEN )
-    elif s.current.inst == RV64Inst.SRLW:
-      s.work.result = sext( s.current.rs1[:32 ] >> s.current.rs2[:5 ].uint(),
-                            XLEN )
-    elif s.current.inst == RV64Inst.SRAW:
+    elif s.current.instr_d == RV64Inst.XORI:
+      s.work.result = s.current.rs1_value ^ sext( s.current.imm, XLEN )
+    elif s.current.instr_d == RV64Inst.ORI:
+      s.work.result = s.current.rs1_value | sext( s.current.imm, XLEN )
+    elif s.current.instr_d == RV64Inst.ANDI:
+      s.work.result = s.current.rs1_value & sext( s.current.imm, XLEN )
+    elif s.current.instr_d == RV64Inst.SLLI:
+      s.work.result = s.current.rs1_value << s.current.imm
+    elif s.current.instr_d == RV64Inst.SRLI:
       s.work.result = Bits(
           XLEN,
-          s.current.rs1[:32 ].int() >> s.current.rs2[:5 ].uint(),
+          s.current.rs1_value.uint() >> s.current.imm.uint(),
           trunc=True )
-    elif s.current.inst == RV64Inst.ADDIW:
-      s.work.result = sext( s.current.rs1[:32 ] + s.current.imm[:32 ], XLEN )
-    elif s.current.inst == RV64Inst.SLLIW:
+    elif s.current.instr_d == RV64Inst.SRAI:
+      s.work.result = Bits(
+          XLEN, s.current.rs1_value.int() >> s.current.imm.uint(), trunc=True )
+    # Register register insts
+    elif s.current.instr_d == RV64Inst.ADD:
+      s.work.result = s.current.rs1_value + s.current.rs2_value
+    elif s.current.instr_d == RV64Inst.SUB:
+      s.work.result = s.current.rs1_value - s.current.rs2_value
+    elif s.current.instr_d == RV64Inst.SLL:
+      s.work.result = Bits(
+          XLEN,
+          s.current.rs1_value << s.current.rs2_value[:6 ].uint(),
+          trunc=True )
+    elif s.current.instr_d == RV64Inst.SRL:
+      s.work.result = Bits(
+          XLEN,
+          s.current.rs1_value.uint() >> s.current.rs2_value[:6 ].uint(),
+          trunc=True )
+    elif s.current.instr_d == RV64Inst.SRA:
+      s.work.result = Bits(
+          XLEN,
+          s.current.rs1_value.int() >> s.current.rs2_value[:6 ].uint(),
+          trunc=True )
+    elif s.current.instr_d == RV64Inst.SLT:
+      s.work.result = int(
+          s.current.rs1_value.int() < s.current.rs2_value.int() )
+    elif s.current.instr_d == RV64Inst.SLTU:
+      s.work.result = int(
+          s.current.rs1_value.uint() < s.current.rs2_value.uint() )
+    elif s.current.instr_d == RV64Inst.XOR:
+      s.work.result = s.current.rs1_value ^ s.current.rs2_value
+    elif s.current.instr_d == RV64Inst.OR:
+      s.work.result = s.current.rs1_value | s.current.rs2_value
+    elif s.current.instr_d == RV64Inst.AND:
+      s.work.result = s.current.rs1_value & s.current.rs2_value
+    elif s.current.instr_d == RV64Inst.ADDW:
+      s.work.result = sext(
+          s.current.rs1_value[:32 ] + s.current.rs2_value[:32 ], XLEN )
+    elif s.current.instr_d == RV64Inst.SUBW:
+      s.work.result = sext(
+          s.current.rs1_value[:32 ] - s.current.rs2_value[:32 ], XLEN )
+    elif s.current.instr_d == RV64Inst.SLLW:
+      s.work.result = sext(
+          s.current.rs1_value[:32 ] << s.current.rs2_value[:5 ].uint(), XLEN )
+    elif s.current.instr_d == RV64Inst.SRLW:
+      s.work.result = sext(
+          s.current.rs1_value[:32 ] >> s.current.rs2_value[:5 ].uint(), XLEN )
+    elif s.current.instr_d == RV64Inst.SRAW:
+      s.work.result = Bits(
+          XLEN,
+          s.current.rs1_value[:32 ].int() >> s.current.rs2_value[:5 ].uint(),
+          trunc=True )
+    elif s.current.instr_d == RV64Inst.ADDIW:
+      s.work.result = sext( s.current.rs1_value[:32 ] + s.current.imm[:32 ],
+                            XLEN )
+    elif s.current.instr_d == RV64Inst.SLLIW:
       s.work.result = sext(
           Bits(
               32,
-              s.current.rs1[:32 ].int() << s.current.imm.uint(),
+              s.current.rs1_value[:32 ].int() << s.current.imm.uint(),
               trunc=True ), XLEN )
-    elif s.current.inst == RV64Inst.SRLIW:
-      s.work.result = sext( s.current.rs1[:32 ] >> s.current.imm.uint(), XLEN )
-    elif s.current.inst == RV64Inst.SRAIW:
+    elif s.current.instr_d == RV64Inst.SRLIW:
+      s.work.result = sext( s.current.rs1_value[:32 ] >> s.current.imm.uint(),
+                            XLEN )
+    elif s.current.instr_d == RV64Inst.SRAIW:
       s.work.result = Bits(
-          XLEN, s.current.rs1[:32 ].int() >> s.current.imm.uint(), trunc=True )
+          XLEN,
+          s.current.rs1_value[:32 ].int() >> s.current.imm.uint(),
+          trunc=True )
     elif s.current.is_control_flow:
       taken = False
       base = s.current.pc
-      if s.current.inst == RV64Inst.BEQ:
-        taken = s.current.rs1 == s.current.rs2
-      elif s.current.inst == RV64Inst.BNE:
-        taken = s.current.rs1 != s.current.rs2
-      elif s.current.inst == RV64Inst.BLT:
-        taken = s.current.rs1.int() < s.current.rs2.int()
-      elif s.current.inst == RV64Inst.BGE:
-        taken = s.current.rs1.int() >= s.current.rs2.int()
-      elif s.current.inst == RV64Inst.BLTU:
-        taken = s.current.rs1.uint() < s.current.rs2.uint()
-      elif s.current.inst == RV64Inst.BGEU:
-        taken = s.current.rs1.uint() >= s.current.rs2.uint()
-      elif s.current.inst == RV64Inst.JAL:
+      if s.current.instr_d == RV64Inst.BEQ:
+        taken = s.current.rs1_value == s.current.rs2_value
+      elif s.current.instr_d == RV64Inst.BNE:
+        taken = s.current.rs1_value != s.current.rs2_value
+      elif s.current.instr_d == RV64Inst.BLT:
+        taken = s.current.rs1_value.int() < s.current.rs2_value.int()
+      elif s.current.instr_d == RV64Inst.BGE:
+        taken = s.current.rs1_value.int() >= s.current.rs2_value.int()
+      elif s.current.instr_d == RV64Inst.BLTU:
+        taken = s.current.rs1_value.uint() < s.current.rs2_value.uint()
+      elif s.current.instr_d == RV64Inst.BGEU:
+        taken = s.current.rs1_value.uint() >= s.current.rs2_value.uint()
+      elif s.current.instr_d == RV64Inst.JAL:
         s.work.result = s.current.pc + ILEN_BYTES
         taken = True
-      elif s.current.inst == RV64Inst.JALR:
+      elif s.current.instr_d == RV64Inst.JALR:
         s.work.result = s.current.pc + ILEN_BYTES
         taken = True
-        base = s.current.rs1
+        base = s.current.rs1_value
       else:
         assert False, "invalid branch: {}".format(
-            RV64Inst.name( s.current.inst ) )
+            RV64Inst.name( s.current.instr_d ) )
 
       if taken:
         target_pc = base + sext( s.current.imm, XLEN )
@@ -171,7 +183,7 @@ class ExecuteUnitCL( Model ):
     else:
       raise NotImplementedError(
           'Not implemented so sad: %x ' % s.current.opcode +
-          RV64Inst.name( s.current.inst ) )
+          RV64Inst.name( s.current.instr_d ) )
 
     # Output the finished instruction
     s.result_q.enq( s.work )
@@ -186,7 +198,7 @@ class ExecuteUnitCL( Model ):
     return LineBlock([
         "{}".format( s.result_q.msg().tag ),
         "{: <8} rd({}): {}".format(
-            RV64Inst.name( s.result_q.msg().inst ),
+            RV64Inst.name( s.result_q.msg().instr_d ),
             s.result_q.msg().rd_valid,
             s.result_q.msg().rd ),
         "res: {}".format( s.result_q.msg().result ),

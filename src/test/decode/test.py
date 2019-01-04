@@ -4,9 +4,7 @@ import random
 from pymtl import *
 from harness import *
 from core.cl.decode import DecodeUnitCL
-from msg.decode import DecodePacket
-from msg.fetch import FetchPacket
-from msg.decode import *
+from msg.datapath import *
 
 
 @pytest.mark.skip( reason="needs CL test src/sink to test" )

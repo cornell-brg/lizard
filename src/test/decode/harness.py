@@ -2,12 +2,10 @@ import struct
 import inspect
 
 from pymtl import *
-
-from msg.decode import DecodePacket
 from pclib.test import TestSource, TestSink
 from pclib.cl import InValRdyQueueAdapter, OutValRdyQueueAdapter
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
-from msg.fetch import FetchPacket
+from msg.datapath import *
 
 
 class Harness( Model ):

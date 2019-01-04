@@ -1,7 +1,6 @@
 from pymtl import *
 from msg.mem import MemMsg4B
-from msg.fetch import FetchPacket
-from msg.decode import *
+from msg.datapath import *
 from msg.control import *
 from util.cl.ports import InValRdyCLPort, OutValRdyCLPort
 from config.general import *
@@ -37,7 +36,7 @@ class DecodeUnitCL( Model ):
     fetched = s.instr_q.deq()
 
     out = DecodePacket()
-    copy_common_bundle( fetched, out )
+    copy_fetch_decode( fetched, out )
 
     inst = fetched.instr
     # Decode it and create packet
@@ -96,10 +95,10 @@ class DecodeUnitCL( Model ):
     func3 = inst[ RVInstMask.FUNCT3 ].uint()
     func7_shmt = inst[ RVInstMask.FUNCT7_SHFT64 ].uint()
     if ( inst[ RVInstMask.FUNCT3 ].uint() in shamts ):
-      res.inst = shamts[ func3 ][ func7_shmt ]
+      res.instr_d = shamts[ func3 ][ func7_shmt ]
       res.imm = zext( inst[ RVInstMask.SHAMT64 ], DECODED_IMM_LEN )
     else:
-      res.inst = nshamts[ func3 ]
+      res.instr_d = nshamts[ func3 ]
       res.imm = sext( inst[ RVInstMask.I_IMM ], DECODED_IMM_LEN )
 
     return res
@@ -135,7 +134,7 @@ class DecodeUnitCL( Model ):
         ( 0b110, 0b0000001 ): RV64Inst.REM,
         ( 0b111, 0b0000001 ): RV64Inst.REMU,
     }
-    res.inst = insts[( func3, func7 ) ]
+    res.instr_d = insts[( func3, func7 ) ]
 
     return res
 
@@ -148,7 +147,7 @@ class DecodeUnitCL( Model ):
     res.rd_valid = 1
 
     if ( inst[ RVInstMask.FUNCT3 ] == 0b000 ):  # Special case for addiw
-      res.inst = RV64Inst.ADDIW
+      res.instr_d = RV64Inst.ADDIW
       res.imm = sext( inst[ RVInstMask.I_IMM ], DECODED_IMM_LEN )
     else:
       func3 = int( inst[ RVInstMask.FUNCT3 ] )
@@ -158,7 +157,7 @@ class DecodeUnitCL( Model ):
           ( 0b101, 0b0000000 ): RV64Inst.SRLIW,
           ( 0b101, 0b0100000 ): RV64Inst.SRAIW,
       }
-      res.inst = insts[( func3, func7 ) ]
+      res.instr_d = insts[( func3, func7 ) ]
       res.imm = inst[ RVInstMask.SHAMT32 ]
     return res
 
@@ -185,7 +184,7 @@ class DecodeUnitCL( Model ):
         ( 0b110, 0b0000001 ): RV64Inst.REMW,
         ( 0b111, 0b0000001 ): RV64Inst.REMUW,
     }
-    res.inst = insts[( func3, func7 ) ]
+    res.instr_d = insts[( func3, func7 ) ]
     return res
 
   def dec_system( s, inst, res ):
@@ -201,7 +200,7 @@ class DecodeUnitCL( Model ):
     }
 
     if func3 in insts:
-      res.inst = insts[ func3 ]
+      res.instr_d = insts[ func3 ]
       if func3 >> 2 == 0:
         res.rs1 = inst[ RVInstMask.RS1 ]
         res.rs1_valid = 1
@@ -223,7 +222,7 @@ class DecodeUnitCL( Model ):
           0: RV64Inst.ECALL,
           1: RV64Inst.EBREAK,
       }
-      res.inst = insts[ i_imm ]
+      res.instr_d = insts[ i_imm ]
 
     return res
 
@@ -238,7 +237,7 @@ class DecodeUnitCL( Model ):
         0b111: RV64Inst.BGEU,
     }
 
-    res.inst = insts[ func3 ]
+    res.instr_d = insts[ func3 ]
 
     res.rs1 = inst[ RVInstMask.RS1 ]
     res.rs1_valid = 1
@@ -256,7 +255,7 @@ class DecodeUnitCL( Model ):
     return res
 
   def dec_jal( s, inst, res ):
-    res.inst = RV64Inst.JAL
+    res.instr_d = RV64Inst.JAL
     res.rd = inst[ RVInstMask.RD ]
     res.rd_valid = 1
     imm = concat( inst[ RVInstMask.J_IMM3 ], inst[ RVInstMask.J_IMM2 ],
@@ -269,7 +268,7 @@ class DecodeUnitCL( Model ):
     return res
 
   def dec_jalr( s, inst, res ):
-    res.inst = RV64Inst.JALR
+    res.instr_d = RV64Inst.JALR
     res.rs1 = inst[ RVInstMask.RS1 ]
     res.rs1_valid = 1
     res.rd = inst[ RVInstMask.RD ]
@@ -282,7 +281,7 @@ class DecodeUnitCL( Model ):
     return res
 
   def dec_lui( s, inst, res ):
-    res.inst = RV64Inst.LUI
+    res.instr_d = RV64Inst.LUI
     res.rd = inst[ RVInstMask.RD ]
     res.rd_valid = 1
     imm = concat( inst[ RVInstMask.U_IMM ], Bits( 12, 0 ) )
@@ -291,7 +290,7 @@ class DecodeUnitCL( Model ):
     return res
 
   def dec_auipc( s, inst, res ):
-    res.inst = RV64Inst.AUIPC
+    res.instr_d = RV64Inst.AUIPC
     res.rd = inst[ RVInstMask.RD ]
     res.rd_valid = 1
     imm = concat( inst[ RVInstMask.U_IMM ], Bits( 12, 0 ) )
@@ -310,7 +309,7 @@ class DecodeUnitCL( Model ):
         0b101: RV64Inst.LHU,
         0b110: RV64Inst.LWU,
     }
-    res.inst = insts[ funct3 ]
+    res.instr_d = insts[ funct3 ]
     res.funct3 = funct3
 
     res.rs1 = inst[ RVInstMask.RS1 ]
@@ -330,7 +329,7 @@ class DecodeUnitCL( Model ):
         0b010: RV64Inst.SW,
         0b011: RV64Inst.SD,
     }
-    res.inst = insts[ funct3 ]
+    res.instr_d = insts[ funct3 ]
     res.funct3 = funct3
 
     res.rs1 = inst[ RVInstMask.RS1 ]
@@ -350,14 +349,14 @@ class DecodeUnitCL( Model ):
         0b000: RV64Inst.FENCE,
         0b001: RV64Inst.FENCE_I,
     }
-    res.inst = insts[ funct3 ]
+    res.instr_d = insts[ funct3 ]
     return res
 
   def line_trace( s ):
     return LineBlock([
         "{}".format( s.decoded_q.msg().pc ),
         "{: <8} rd({}): {}".format(
-            RV64Inst.name( s.decoded_q.msg().inst ),
+            RV64Inst.name( s.decoded_q.msg().instr_d ),
             s.decoded_q.msg().rd_valid,
             s.decoded_q.msg().rd ),
         "imm: {}".format( s.decoded_q.msg().imm ),
