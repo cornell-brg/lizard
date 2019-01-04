@@ -89,6 +89,7 @@ def copy_decode_issue( src, dst ):
   copy_base( src, dst )
   dst.instr_d = src.instr_d
   dst.opcode = src.opcode
+  dst.funct3 = src.funct3
   copy_field_valid_pair( src, dst, 'imm' )
   copy_field_valid_pair( src, dst, 'csr' )
 
@@ -101,6 +102,7 @@ class IssuePacket( BitStructDefinition ):
     s.tag = BitField( INST_TAG_LEN )
     s.instr_d = BitField( RV64Inst.bits )
     s.opcode = BitField( Opcode.bits )
+    s.funct3 = BitField( 3 )
     FieldValidPair( s, 'imm', DECODED_IMM_LEN )
     FieldValidPair( s, 'csr', CSR_SPEC_LEN )
     FieldValidPair( s, 'rs1_value', XLEN )
@@ -118,6 +120,7 @@ def copy_issue_execute( src, dst ):
   dst.tag = src.tag
   dst.instr_d = src.instr_d
   dst.opcode = src.opcode
+  dst.funct3 = src.funct3
   copy_field_valid_pair( src, dst, 'rd' )
 
 
