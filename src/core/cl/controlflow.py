@@ -104,6 +104,7 @@ class ControlFlowManagerCL( Model ):
 
   def tag_valid( s, request ):
     resp = TagValidResponse()
+    print( request.tag )
     resp.valid = s.seqs[ request.tag ]
     return resp
 
@@ -117,6 +118,7 @@ class ControlFlowManagerCL( Model ):
     # Free seq number
     s.seqs[ request.tag ] = False
     s.head += 1
+    s.num -= 1
 
     # Free ROB entry
     if int( request.tag ) in s.snapshot:
