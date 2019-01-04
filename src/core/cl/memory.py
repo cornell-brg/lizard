@@ -32,9 +32,7 @@ class MemoryUnitCL( Model ):
       resp = s.memoryflow.await_response()
 
       result = ExecutePacket()
-      copy_common_bundle( s.current, result )
-      result.opcode = s.current.opcode
-      copy_field_valid_pair( s.current, result, 'rd' )
+      copy_issue_execute( s.current, result )
 
       if s.current.opcode == Opcode.LOAD:
         if s.current.funct3[ 2 ] == 0:
@@ -54,7 +52,7 @@ class MemoryUnitCL( Model ):
     s.current = s.issued_q.deq()
 
     # Memory message length is number of bytes, with 0 = all (overlow)
-    addr = s.current.rs1 + sext( s.current.imm, XLEN )
+    addr = s.current.rs1_value + sext( s.current.imm, XLEN )
     byte_len = Bits(
         MemMsg8B.req.len.nbits, 2**int( s.current.funct3[ 0:2 ] ), trunc=True )
     if s.current.opcode == Opcode.LOAD:
@@ -66,25 +64,22 @@ class MemoryUnitCL( Model ):
       # Once a store has been staged, we are good
       s.in_flight.next = 1
     elif s.current.opcode == Opcode.STORE:
-      req = MemMsg8B.req.mk_wr( 0, addr, byte_len, s.current.rs2 )
+      req = MemMsg8B.req.mk_wr( 0, addr, byte_len, s.current.rs2_value )
       s.memoryflow.stage( req )
 
       # Once we stage we are done, so send to next stage
       result = ExecutePacket()
-      copy_common_bundle( s.current, result )
-      result.opcode = s.current.opcode
-      copy_field_valid_pair( s.current, result, 'rd' )
+      copy_issue_execute( s.current, result )
 
       s.result_q.enq( result )
     elif s.current.opcode == Opcode.MISC_MEM:
       # we have a fence
       result = ExecutePacket()
-      copy_common_bundle( s.current, result )
-      result.opcode = s.current.opcode
-      if s.current.inst == RV64Inst.FENCE:
+      copy_issue_execute( s.current, result )
+      if s.current.instr_d == RV64Inst.FENCE:
         # fence for now is a NOP
         pass
-      elif s.current.inst == RV64Inst.FENCE_I:
+      elif s.current.instr_d == RV64Inst.FENCE_I:
         result.successor_invalidated = 1
       s.result_q.enq( result )
     else:
