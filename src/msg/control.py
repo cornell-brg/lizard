@@ -8,7 +8,6 @@ class RegisterInstrRequest( BitStructDefinition ):
 
   def __init__( s ):
     s.succesor_pc = BitField( XLEN )
-    s.speculative = BitField( 1 )
 
 
 class RegisterInstrResponse( BitStructDefinition ):
@@ -27,6 +26,13 @@ class IsHeadResponse( BitStructDefinition ):
 
   def __init__( s ):
     s.is_head = BitField( 1 )
+
+
+class MarkSpeculativeRequest( BitStructDefinition ):
+
+  def __init__( s ):
+    s.tag = BitField( INST_TAG_LEN )
+    s.succesor_pc = BitField( XLEN )
 
 
 class RedirectRequest( BitStructDefinition ):

@@ -46,7 +46,7 @@ class ControlFlowManagerCL( Model ):
       s.redirect = RESET_VECTOR
 
   def register_rdy( s ):
-    return s.num < ROB_SIZE and s.spec_depth < MAX_SPEC_DEPTH
+    return s.num < ROB_SIZE
 
   def get_head( s ):
     return s.head
@@ -60,13 +60,17 @@ class ControlFlowManagerCL( Model ):
     assert ( not s.seqs[ resp.tag ] )
     s.seqs[ resp.tag ] = True
     s.num += 1
-    if ( request.speculative ):
-      assert ( s.spec_depth < MAX_SPEC_DEPTH )
-      # Snapshot, store the pred
-      s.snapshot[ int( resp.tag ) ] = ( request.succesor_pc,
-                                        s.dataflow.get_rename_table() )
-      s.spec_depth += 1
     return resp
+
+  def mark_speculative_rdy( s ):
+    return s.spec_depth < MAX_SPEC_DEPTH
+
+  def mark_speculative( s, request ):
+    assert ( s.spec_depth < MAX_SPEC_DEPTH )
+    # Snapshot, store the pred
+    s.snapshot[ int( request.tag ) ] = ( request.succesor_pc,
+                                         s.dataflow.get_rename_table() )
+    s.spec_depth += 1
 
   def request_redirect( s, request ):
     # We ignore redirects from invalid instructions
