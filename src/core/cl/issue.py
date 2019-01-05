@@ -68,8 +68,6 @@ class IssueUnitCL( Model ):
 
       # Register it
       req = RegisterInstrRequest()
-      req.succesor_pc = s.current_d.pc_next
-      req.speculative = s.current_d.is_control_flow
       resp = s.controlflow.register( req )
 
       s.work = IssuePacket()
@@ -89,7 +87,6 @@ class IssueUnitCL( Model ):
     creq.tag = s.work.tag
     cresp = s.controlflow.tag_valid( creq )
     if not cresp.valid:
-      print( "Random squash" )
       s.work.status = PacketStatus.SQUASHED
 
     if s.work.status != PacketStatus.ALIVE:
@@ -124,13 +121,23 @@ class IssueUnitCL( Model ):
       s.work.rd_valid = dst.success
       s.work.rd = dst.tag
 
-    creq = IsHeadRequest()
-    creq.tag = s.work.tag
-    is_head = s.controlflow.is_head( creq ).is_head
-
     # Done if all fields are as they should be
     # and we are at the head if we have to be
     if s.current_d.rd_valid == s.work.rd_valid and s.current_d.rs1_valid == s.work.rs1_value_valid and s.current_d.rs2_valid == s.work.rs2_value_valid:
+      # if the instruction has potential to redirect early (before commit)
+      # must declare instruction to controlflow
+      # (essentialy creates a rename table snapshot)
+      # note this happens after everything else is set -- this instruction
+      # must be part of the snapshot
+      if not s.marked_speculative and s.current_d.is_control_flow:
+        if not s.controlflow.mark_speculative_rdy():
+          return
+        creq = MarkSpeculativeRequest()
+        creq.tag = s.work.tag
+        creq.pc_next = s.current_d.pc_next
+        cresp = s.controlflow.mark_speculative( creq )
+        s.marked_speculative = True
+
       if not s.issued_q.get( pipe_idx ).full():
         s.issued_q.enq( s.work, pipe_idx )
         s.current_d = None

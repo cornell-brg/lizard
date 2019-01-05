@@ -64,6 +64,7 @@ class DataFlowManagerCL( Model ):
     return resp
 
   def get_dst( s, areg ):
+
     resp = GetDstResponse()
     if areg != 0:
       preg = s.free_regs.alloc()
