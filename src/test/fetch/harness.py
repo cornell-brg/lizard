@@ -4,7 +4,7 @@ import inspect
 from pymtl import *
 
 from msg.mem import MemMsg4B
-from msg.fetch import FetchPacket
+from msg.datapath import *
 from pclib.test import TestSource, TestSink
 from pclib.test import TestMemory
 
