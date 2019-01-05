@@ -92,7 +92,6 @@ class ControlFlowManagerCL( Model ):
     tail = s.head + s.num[:INST_TAG_LEN ]
     while ( idx != tail ):
       s.seqs[ idx ] = False
-      s.num -= 1
       idx += 1
 
     # Reset rename table
@@ -129,7 +128,7 @@ class ControlFlowManagerCL( Model ):
     s.head += 1
     s.num -= 1
 
-    # Free ROB entry
+    # Free snapshot entry
     if int( request.tag ) in s.snapshot:
       s.spec_depth -= 1
       del s.snapshot[ int( request.tag ) ]
