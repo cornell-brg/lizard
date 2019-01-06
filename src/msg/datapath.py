@@ -31,7 +31,6 @@ def copy_field_valid_pair( src, dst, name ):
 def add_base( s ):
   s.status = BitField( PacketStatus.bits )
   s.pc = BitField( XLEN )
-  s.pc_next = BitField( XLEN )
   s.instr = BitField( ILEN )
 
   # Exception stuff
@@ -42,7 +41,6 @@ def add_base( s ):
 def copy_base( src, dst ):
   dst.status = src.status
   dst.pc = src.pc
-  dst.pc_next = src.pc_next
   dst.instr = src.instr
   dst.mcause = src.mcause
   dst.mtval = src.mtval
@@ -52,6 +50,7 @@ class FetchPacket( BitStructDefinition ):
 
   def __init__( s ):
     add_base( s )
+    s.pc_next = BitField( XLEN )
 
   def __str__( s ):
     return "{}:{}".format( s.instr, s.pc )
@@ -59,12 +58,14 @@ class FetchPacket( BitStructDefinition ):
 
 def copy_fetch_decode( src, dst ):
   copy_base( src, dst )
+  dst.pc_next = src.pc_next
 
 
 class DecodePacket( BitStructDefinition ):
 
   def __init__( s ):
     add_base( s )
+    s.pc_next = BitField( XLEN )
     # Decoded instruction
     s.instr_d = BitField( RV64Inst.bits )
 
