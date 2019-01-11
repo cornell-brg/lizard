@@ -133,6 +133,7 @@ class ExecutePacket( BitStructDefinition ):
     s.tag = BitField( INST_TAG_LEN )
     s.instr_d = BitField( RV64Inst.bits )
     s.opcode = BitField( Opcode.bits )
+    s.successor_invalidated = BitField( 1 )
 
     FieldValidPair( s, 'rd', REG_TAG_LEN )
     FieldValidPair( s, 'result', XLEN )
@@ -147,6 +148,7 @@ def copy_execute_writeback( src, dst ):
   dst.tag = src.tag
   dst.instr_d = src.instr_d
   dst.opcode = src.opcode
+  dst.successor_invalidated = src.successor_invalidated
   copy_field_valid_pair( src, dst, 'rd' )
   copy_field_valid_pair( src, dst, 'result' )
 
@@ -159,6 +161,7 @@ class WritebackPacket( BitStructDefinition ):
     s.tag = BitField( INST_TAG_LEN )
     s.instr_d = BitField( RV64Inst.bits )
     s.opcode = BitField( Opcode.bits )
+    s.successor_invalidated = BitField( 1 )
 
     FieldValidPair( s, 'rd', REG_TAG_LEN )
     FieldValidPair( s, 'result', XLEN )

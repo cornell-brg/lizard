@@ -102,15 +102,15 @@ class CommitUnitCL( Model ):
       else:
         should_commit = True
 
-        # This is an internal fault, which means for some reason everything in the pipline
+        #This is an internal fault, which means for some reason everything in the pipline
         # after this instruction has to be redone, but this instruction commits
-        # if p.successor_invalidated:
-        #   creq = RedirectRequest()
-        #   creq.source_tag = p.tag
-        #   creq.target_pc = p.pc + ILEN_BYTES
-        #   creq.at_commit = 1
-        #   creq.force_redirect = 1
-        #   s.controlflow.request_redirect( creq )
+        if p.successor_invalidated:
+          creq = RedirectRequest()
+          creq.source_tag = p.tag
+          creq.target_pc = p.pc + ILEN_BYTES
+          creq.at_commit = 1
+          creq.force_redirect = 1
+          s.controlflow.request_redirect( creq )
 
       if should_commit:
         if p.rd_valid:
