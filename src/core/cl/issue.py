@@ -121,9 +121,16 @@ class IssueUnitCL( Model ):
       s.work.rd_valid = dst.success
       s.work.rd = dst.tag
 
+    creq = IsHeadRequest()
+    creq.tag = s.work.tag
+    is_head = s.controlflow.is_head( creq ).is_head
+
     # Done if all fields are as they should be
     # and we are at the head if we have to be
-    if s.current_d.rd_valid == s.work.rd_valid and s.current_d.rs1_valid == s.work.rs1_value_valid and s.current_d.rs2_valid == s.work.rs2_value_valid:
+    if ( s.current_d.rd_valid == s.work.rd_valid and
+         s.current_d.rs1_valid == s.work.rs1_value_valid and
+         s.current_d.rs2_valid == s.work.rs2_value_valid and
+         ( is_head if s.current_d.unique else True ) ):
       # if the instruction has potential to redirect early (before commit)
       # must declare instruction to controlflow
       # (essentialy creates a rename table snapshot)

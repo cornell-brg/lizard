@@ -72,6 +72,7 @@ class DecodePacket( BitStructDefinition ):
     s.is_control_flow = BitField( 1 )
     s.funct3 = BitField( 3 )
     s.opcode = BitField( Opcode.bits )
+    s.unique = BitField( 1 )  # Unique if only this instruction can be in flight
 
     FieldValidPair( s, 'imm', DECODED_IMM_LEN )
     FieldValidPair( s, 'csr', CSR_SPEC_LEN )
@@ -91,6 +92,7 @@ def copy_decode_issue( src, dst ):
   dst.instr_d = src.instr_d
   dst.opcode = src.opcode
   dst.funct3 = src.funct3
+  dst.unique = src.unique
   copy_field_valid_pair( src, dst, 'imm' )
   copy_field_valid_pair( src, dst, 'csr' )
 
@@ -104,6 +106,7 @@ class IssuePacket( BitStructDefinition ):
     s.instr_d = BitField( RV64Inst.bits )
     s.opcode = BitField( Opcode.bits )
     s.funct3 = BitField( 3 )
+    s.unique = BitField( 1 )
     FieldValidPair( s, 'imm', DECODED_IMM_LEN )
     FieldValidPair( s, 'csr', CSR_SPEC_LEN )
     FieldValidPair( s, 'rs1_value', XLEN )
