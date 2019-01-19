@@ -1,7 +1,7 @@
 from pymtl import *
 from util.rtl.method import MethodSpec
-from util.rtl.wrap_inc import WrapInc
-from util.rtl.registerfile import RegisterFile
+from util.rtl.onehot import OneHotEncoder
+from util.rtl.coders import PriorityDecoder
 from bitutil import clog2, clog2nz
 
 
@@ -28,7 +28,6 @@ class FreeList( Model ):
                 combinational_bypass,
                 used_slots_initial=0 ):
     s.interface = FreeListInterface( nslots )
-    ncount_bits = clog2( nslots + 1 )
 
     s.alloc_ports = [
         s.interface.alloc.in_port() for _ in range( num_alloc_ports )
@@ -37,124 +36,108 @@ class FreeList( Model ):
         s.interface.free.in_port() for _ in range( num_free_ports )
     ]
 
-    s.free = RegisterFile(
-        s.interface.Index,
-        nslots,
-        num_alloc_ports,
-        num_free_ports,
-        combinational_bypass,
-        dump_port=False,
-        reset_values=[ x for x in range( nslots ) ] )
-    s.size = Wire( ncount_bits )
-    s.head = Wire( s.interface.Index )
-    s.tail = Wire( s.interface.Index )
+    # 1 if free, 0 if not free
+    s.free = Wire( nslots )
+    s.free_next = Wire( nslots )
+    s.free_masks = [ Wire( nslots ) for _ in range( num_free_ports + 1 ) ]
+    s.alloc_inc = [ Wire( nslots ) for _ in range( num_alloc_ports + 1 ) ]
+    s.alloc_masks = [ Wire( nslots ) for _ in range( num_alloc_ports ) ]
 
-    s.alloc_size_next = [
-        Wire( ncount_bits ) for _ in range( num_alloc_ports )
+    s.free_encoders = [
+        OneHotEncoder( nslots ) for _ in range( num_free_ports )
     ]
-    s.free_size_next = [ Wire( ncount_bits ) for _ in range( num_free_ports ) ]
-    s.bypassed_size = Wire( ncount_bits )
-    s.head_next = [
-        Wire( s.interface.Index ) for _ in range( num_alloc_ports )
+    s.alloc_encoders = [
+        OneHotEncoder( nslots ) for _ in range( num_alloc_ports )
     ]
-    s.tail_next = [ Wire( s.interface.Index ) for _ in range( num_free_ports ) ]
-    s.head_incs = [
-        WrapInc( s.interface.Index.nbits, nslots, True )
-        for _ in range( num_alloc_ports )
+    s.alloc_decoders = [
+        PriorityDecoder( nslots ) for _ in range( num_alloc_ports )
     ]
-    s.tail_incs = [
-        WrapInc( s.interface.Index.nbits, nslots, True )
-        for _ in range( num_free_ports )
-    ]
+
+    @s.combinational
+    def fix_free_mask():
+      s.free_masks[ 0 ].v = 0
 
     # PYMTL_BROKEN
-    s.workaround_tail_incs_inc_out = [
-        Wire( s.interface.Index ) for _ in range( num_free_ports )
+    s.workaround_free_encoders_encode_port_onehot = [
+        Wire( nslots ) for _ in range( num_free_ports )
     ]
-    for i in range( num_alloc_ports ):
-      s.connect( s.tail_incs[ i ].inc.out, s.workaround_tail_incs_inc_out[ i ] )
-
-    for port in range( num_free_ports ):
-      if port == 0:
-        s.connect( s.tail_incs[ port ].inc.in_, s.tail )
-      else:
-        s.connect( s.tail_incs[ port ].inc.in_, s.tail_next[ port - 1 ] )
+    for i in range( num_free_ports ):
+      s.connect( s.workaround_free_encoders_encode_port_onehot[ i ],
+                 s.free_encoders[ i ].encode_port.onehot )
+      s.connect( s.free_encoders[ i ].encode_port.number,
+                 s.free_ports[ i ].index )
 
       @s.combinational
-      def handle_free( port=port ):
-        if port == 0:
-          base = s.size
-          ctail = s.tail
+      def handle_free( n=i + 1, i=i ):
+        if s.free_ports[ i ].call:
+          s.free_masks[ n ].v = s.free_masks[
+              i ] | s.workaround_free_encoders_encode_port_onehot[ i ]
         else:
-          base = s.free_size_next[ port - 1 ]
-          ctail = s.tail_next[ port - 1 ]
-
-        if s.free_ports[ port ].call:
-          s.free.wr_ports[ port ].call.v = 1
-          s.free.wr_ports[ port ].addr.v = ctail
-          s.free.wr_ports[ port ].data.v = s.free_ports[ port ].index
-
-          s.tail_next[ port ].v = s.workaround_tail_incs_inc_out[ port ]
-          s.free_size_next[ port ].v = base - 1
-        else:
-          s.free.wr_ports[ port ].call.v = 0
-          s.tail_next[ port ].v = ctail
-          s.free_size_next[ port ].v = base
+          s.free_masks[ n ].v = s.free_masks[ i ]
 
     if combinational_bypass:
 
       @s.combinational
-      def handle_bypass():
-        s.bypassed_size.v = s.free_size_next[ num_free_ports - 1 ]
+      def compute_free():
+        s.alloc_inc[ 0 ].v = s.free | s.free_masks[ num_free_ports ]
     else:
 
       @s.combinational
-      def handle_bypass():
-        s.bypassed_size.v = s.size
+      def compute_free():
+        s.alloc_inc[ 0 ].v = s.free
 
     # PYMTL_BROKEN
-    s.workaround_head_incs_inc_out = [
-        Wire( s.interface.Index ) for _ in range( num_alloc_ports )
+    s.workaround_alloc_encoders_encode_port_onehot = [
+        Wire( nslots ) for _ in range( num_alloc_ports )
     ]
     for i in range( num_alloc_ports ):
-      s.connect( s.head_incs[ i ].inc.out, s.workaround_head_incs_inc_out[ i ] )
-
-    for port in range( num_alloc_ports ):
-      if port == 0:
-        s.connect( s.head_incs[ port ].inc.in_, s.head )
-      else:
-        s.connect( s.head_incs[ port ].inc.in_, s.head_next[ port - 1 ].out )
-
-      s.connect( s.free.rd_ports[ port ].data, s.alloc_ports[ port ].index )
+      s.connect( s.workaround_alloc_encoders_encode_port_onehot[ i ],
+                 s.alloc_encoders[ i ].encode_port.onehot )
+      s.connect( s.alloc_decoders[ i ].decode_port.signal, s.alloc_inc[ i ] )
+      s.connect( s.alloc_decoders[ i ].decode_port.valid,
+                 s.alloc_ports[ i ].rdy )
+      s.connect( s.alloc_decoders[ i ].decode_port.decoded,
+                 s.alloc_ports[ i ].index )
+      s.connect( s.alloc_decoders[ i ].decode_port.decoded,
+                 s.alloc_encoders[ i ].encode_port.number )
 
       @s.combinational
-      def handle_alloc( port=port ):
-        if port == 0:
-          base = s.free_size_next[ num_free_ports - 1 ]
-          chead = s.head
+      def handle_alloc( n=i + 1, i=i ):
+        if s.alloc_ports[ i ].call:
+          s.alloc_inc[ n ].v = s.alloc_inc[ i ] & (
+              ~s.workaround_alloc_encoders_encode_port_onehot[ i ] )
         else:
-          base = s.alloc_size_next[ port - 1 ]
-          chead = s.head_next[ port - 1 ]
-        s.free.rd_ports[ port ].addr.v = chead
-        s.alloc_ports[ port ].rdy.v = ( s.bypassed_size != nslots )
-        if s.alloc_ports[ port ].call:
-          s.head_next[ port ].v = s.workaround_head_incs_inc_out[ port ]
-          s.alloc_size_next[ port ].v = base + 1
-        else:
-          s.head_next[ port ].v = chead
-          s.alloc_size_next[ port ].v = base
+          s.alloc_inc[ n ].v = s.alloc_inc[ i ]
 
-    @s.tick_rtl
-    def update():
-      if s.reset:
-        s.head.n = used_slots_initial
-        s.tail.n = 0
-        s.size.n = used_slots_initial
-      else:
-        s.head.n = s.head_next[ num_alloc_ports - 1 ]
-        s.tail.n = s.tail_next[ num_free_ports - 1 ]
-        s.size.n = s.alloc_size_next[ num_alloc_ports - 1 ]
+    if combinational_bypass:
+
+      @s.combinational
+      def compute_free():
+        s.free_next.v = s.alloc_inc[ num_alloc_ports ]
+    else:
+
+      @s.combinational
+      def compute_free():
+        s.free_next.v = s.alloc_inc[ num_alloc_ports ] | s.free_masks[
+            num_free_ports ]
+
+    for i in range( nslots ):
+      # PYMTL_BROKEN
+      # E       VerilatorCompileError:
+      # E       See "Errors and Warnings" section in the manual located here
+      # E       http://www.veripool.org/projects/verilator/wiki/Manual-verilator
+      # E       for more details on various Verilator warnings and error messages.
+      # E
+      # E       %Error: FreeList_0x746f0046bfa78af3.v:127: Can't find definition of variable: True
+      # E       %Error: Exiting due to 1 error(s)
+      # Resolved by using the ternary operator
+
+      @s.tick_rtl
+      def update( i=i, free=( 1 if i >= used_slots_initial else 0 ) ):
+        if s.reset:
+          s.free[ i ].n = free
+        else:
+          s.free[ i ].n = s.free_next[ i ]
 
   def line_trace( s ):
-    return "hd:{}tl:{}:sz:{}:ls:{}".format( s.head.v, s.tail.v, s.size.v,
-                                            s.free.line_trace() )
+    return "{}".format( s.free.bin() )
