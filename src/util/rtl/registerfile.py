@@ -59,7 +59,7 @@ class RegisterFile( Model ):
     if reset_values is None:
       s.reset_values = [ 0 for _ in range( nregs ) ]
     else:
-      s.reset_values = reset_values
+      s.reset_values = [ int( reset_value ) for reset_value in reset_values ]
 
     # Clean reset values to ensure it is an array of Bits
     # This avoid this pymtl disaster:

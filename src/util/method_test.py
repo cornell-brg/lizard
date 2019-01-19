@@ -7,14 +7,7 @@ from hypothesis.vendor.pretty import CUnicodeIO, RepresentationPrinter
 from sets import Set
 from util.rtl.method import InMethodCallPortBundle
 
-debug = False
-
-
-#-------------------------------------------------------------------------
-# RunTestMethodError
-#-------------------------------------------------------------------------
-class RunTestMethodError( Exception ):
-  pass
+debug = True
 
 
 #-------------------------------------------------------------------------
@@ -91,10 +84,29 @@ class TestStateMachine( RuleBasedStateMachine ):
 
   def compare_result( self, m_result, r_result, method_name, arg,
                       method_line_trace ):
+    if isinstance( r_result, ReturnValues ):
+      r_result = r_result.__dict__
+
     if r_result:
       if isinstance( r_result, dict ):
+        r_ret_names = set( sorted( r_result.keys() ) )
+        m_ret_names = set( sorted( m_result.keys() ) )
+        if r_ret_names != m_ret_names:
+          error_msg = """
+   Reference and model have mismatched returns!
+    - method name    : {method_name}
+    - model ret      : {model_ret}
+    - reference ret  : {reference_ret}
+  """
+          error_msg = error_msg.format(
+              method_name=method_name,
+              model_ret=", ".join( m_ret_names ),
+              reference_ret=", ".join( r_ret_names ) )
+          self.sim.cycle( method_line_trace )
+          print "========================== error =========================="
+          raise RunMethodTestError( error_msg )
         for k in r_result.keys():
-          if not m_result[ k ] == r_result[ k ]:
+          if r_result[ k ] != '?' and not m_result[ k ] == r_result[ k ]:
             error_msg = """
    test state machine received an incorrect value!
     - method name    : {method_name}
@@ -120,26 +132,28 @@ class TestStateMachine( RuleBasedStateMachine ):
         ]
         r_result_list = [ r_result ] if isinstance( r_result,
                                                     int ) else list( r_result )
-        if not m_result_list == r_result_list:
-
-          error_msg = """
- test state machine received an incorrect value!
-  - method name    : {method_name}
-  - arguments      : {arg}
-  - ret name       : {ret_name}
-  - expected value : {expected_msg}
-  - actual value   : {actual_msg}
-"""
-          error_msg = error_msg.format(
-              method_name=method_name,
-              arg=arg,
-              ret_name=', '.join( sorted( m_result.keys() ) ),
-              expected_msg=r_result,
-              actual_msg=', '.join(
-                  [ str( result ) for result in m_result_list ] ) )
-          self.sim.cycle( method_line_trace )
-          print "========================== error =========================="
-          raise RunMethodTestError( error_msg )
+        for m_result_value, r_result_value in zip( m_result_list,
+                                                   r_result_list ):
+          if r_result_value != '?' and m_result_value != r_result:
+            error_msg = """
+   test state machine received an incorrect value!
+    - method name    : {method_name}
+    - arguments      : {arg}
+    - ret name       : {ret_name}
+    - expected value : {expected_msg}
+    - actual value   : {actual_msg}
+  """
+            error_msg = error_msg.format(
+                method_name=method_name,
+                arg=arg,
+                ret_name=', '.join( sorted( m_result.keys() ) ),
+                expected_msg=', '.join(
+                    [ str( result ) for result in r_result_list ] ),
+                actual_msg=', '.join(
+                    [ str( result ) for result in m_result_list ] ) )
+            self.sim.cycle( method_line_trace )
+            print "========================== error =========================="
+            raise RunMethodTestError( error_msg )
 
   def steps( self ):
     # Pick initialize rules first
@@ -162,13 +176,14 @@ class TestStateMachine( RuleBasedStateMachine ):
     for ruledata in step:
       rule, data = ruledata
       data = dict( data )
-      data_list += [ data ]
 
       # For dependency reason we do allow rules invalid in the first place
       # to be added to step.
       # See MethodBasedRuleStrategy for more
       if not self.is_valid( rule, data ):
         continue
+
+      data_list += [ data ]
       for k, v in list( data.items() ):
         if isinstance( v, VarReference ):
           data[ k ] = self.names_to_values[ v.name ]
@@ -283,6 +298,7 @@ class TestStateMachine( RuleBasedStateMachine ):
 class WrapperClass:
   methods = {}
   methods_fl = {}
+  methods_clear = []
 
   def __init__( s, model ):
     s.model = model
@@ -308,7 +324,7 @@ class WrapperClass:
 
 
 #-------------------------------------------------------------------------
-# inspect_methods
+# MethodSpec
 #-------------------------------------------------------------------------
 @attr.s()
 class MethodSpec( object ):
@@ -321,13 +337,31 @@ class MethodSpec( object ):
   ret = attr.ib( default={} )
 
 
+#-------------------------------------------------------------------------
+# DefineMethod
+#-------------------------------------------------------------------------
+@attr.s()
+class DefineMethod( object ):
+  method_name = attr.ib()
+  method_call = attr.ib()
+  method_rdy = attr.ib( default=None )
+  method_clear = attr.ib( default=None )
+  arg = attr.ib( default={} )
+  ret = attr.ib( default={} )
+
+
+#-------------------------------------------------------------------------
+# inspect_methods
+#-------------------------------------------------------------------------
+
+
 def inspect_methods( model ):
   ''' 
   Inspect the model and return a list of method_spec that is used 
   for generating *_call and *_rdy methods in wrapper class
   
   - example method_spec: 
-  MethodSpec( method_name="read_ports", islist=True, index=0, arg={ "areg": 1 }, ret=[ "preg" ], "hasrdy": False )
+  MethodSpec( method_name="read_ports", islist=True, index=0, arg={ "areg": Bits(1) }, ret=[ "preg" ], hasrdy=False, hascall=True )
   
   By default, *_call methods created by this function 
   take in arguments in alphabetical order
@@ -384,7 +418,7 @@ def inspect_methods( model ):
 #-------------------------------------------------------------------------
 # add_method
 #-------------------------------------------------------------------------
-def add_method( cls, method_spec ):
+def add_method( cls, method_spec, method_call, method_rdy ):
   method_name = method_spec.method_name
   if method_spec.islist:
     name = "{}_{}_".format( method_name, method_spec.index )
@@ -394,6 +428,26 @@ def add_method( cls, method_spec ):
 
   cls.methods[ method_name ] = method_spec
   cls.methods_fl[ name ] = method_spec
+
+  # add method to class
+  setattr( method_call, "__name__", name + "_call" )
+  setattr( cls, name + "_call", method_call )
+
+  if method_spec.hasrdy:
+    setattr( method_rdy, "__name__", name + "_rdy" )
+    setattr( cls, name + "_rdy", method_rdy )
+
+
+#-------------------------------------------------------------------------
+# add_method_from_spec
+#-------------------------------------------------------------------------
+def add_method_from_spec( cls, method_spec ):
+  method_name = method_spec.method_name
+  if method_spec.islist:
+    name = "{}_{}_".format( method_name, method_spec.index )
+    method_name = "{}[{}]".format( method_name, method_spec.index )
+  else:
+    name = method_name
 
   def method_call( s, *args, **kwargs ):
     # assert ready
@@ -412,14 +466,14 @@ def add_method( cls, method_spec ):
 
       for arg in args_list:
         if args and kwargs:
-          raise RunTestMethodError(
+          raise RunMethodTestError(
               """Mixture of keyworded and non-keyworded arguments is not supported
 for {}_call method. Use keywords, or pass in arguments by alphabetical order. 
 """.format( name ) )
         if not len( args ) == len( args_list ) and \
           not len( kwargs ) == len( args_list ):
 
-          raise RunTestMethodError()
+          raise RunMethodTestError()
         if args:
           exec ( "s.model.{}.{}.value = args[ {} ]".format(
               method_name, arg, index ) ) in locals()
@@ -437,18 +491,11 @@ for {}_call method. Use keywords, or pass in arguments by alphabetical order.
                                                          ret ) ) in locals()
     return ret_values
 
-  # add method to class
-  setattr( method_call, "__name__", name + "_call" )
-  setattr( cls, name + "_call", method_call )
+  def method_rdy( s ):
+    exec ( "rdy = s.model.{}.rdy".format( method_name ) ) in locals()
+    return rdy
 
-  if method_spec.hasrdy:
-
-    def method_rdy( s ):
-      exec ( "rdy = s.model.{}.rdy".format( method_name ) ) in locals()
-      return rdy
-
-    setattr( method_rdy, "__name__", name + "_rdy" )
-    setattr( cls, name + "_rdy", method_rdy )
+  add_method( cls, method_spec, method_call, method_rdy )
 
 
 #-------------------------------------------------------------------------
@@ -460,6 +507,8 @@ def add_clear( cls ):
     for method, spec in cls.methods.items():
       if spec.hascall:
         exec ( "s.model.{}.call.value = 0".format( method ) ) in locals()
+    for method_clear in cls.methods_clear:
+      method_clear( s )
     s.sim.eval_combinational()
 
   setattr( cls, "clear", clear )
@@ -468,7 +517,10 @@ def add_clear( cls ):
 #-------------------------------------------------------------------------
 # create_wrapper_class
 #-------------------------------------------------------------------------
-def create_wrapper_class( model, name=None, method_specs=None ):
+def create_wrapper_class( model,
+                          name=None,
+                          method_specs=None,
+                          customized_methods=None ):
   if not method_specs:
     method_specs = inspect_methods( model )
 
@@ -479,9 +531,25 @@ def create_wrapper_class( model, name=None, method_specs=None ):
                         dict( WrapperClass.__dict__ ) )
 
   for method_spec in method_specs:
-    add_method( wrapper_class, method_spec )
+    add_method_from_spec( wrapper_class, method_spec )
+
+  if customized_methods:
+    for method_def in customized_methods:
+      method_spec = MethodSpec(
+          method_name=method_def.method_name,
+          hasrdy=( method_def.method_rdy != None ),
+          hascall=False,
+          islist=False,
+          arg=method_def.arg,
+          ret=method_def.ret )
+      method_specs += [ method_spec ]
+      add_method( wrapper_class, method_spec, method_def.method_call,
+                  method_def.method_rdy )
+      if method_def.method_clear:
+        wrapper_class.methods_clear += [ method_def.method_clear ]
+
   add_clear( wrapper_class )
-  return wrapper_class
+  return wrapper_class, method_specs
 
 
 #-------------------------------------------------------------------------
@@ -644,10 +712,11 @@ class CompareTest( TestStateMachine ):
 #-------------------------------------------------------------------------
 # create_test_state_machine
 #-------------------------------------------------------------------------
-def create_test_state_machine( model, reference ):
+def create_test_state_machine( model, reference, customized_methods=None ):
   method_specs = inspect_methods( model )
+  WrapperClass, method_specs = create_wrapper_class(
+      model, method_specs=method_specs, customized_methods=customized_methods )
   method_set_rtl = Set([ spec.method_name for spec in method_specs ] )
-  WrapperClass = create_wrapper_class( model, method_specs=method_specs )
   sim = WrapperClass( model )
 
   Test = type(
@@ -706,3 +775,54 @@ def create_test_state_machine( model, reference ):
   Test.reference = reference
 
   return Test
+
+
+#-------------------------------------------------------------------------
+# generate_methods_from_model
+#-------------------------------------------------------------------------
+def generate_methods_from_model( model ):
+  method_specs = inspect_methods( model )
+
+  # get unique methods
+  method_spec_dict = {}
+  for spec in method_specs:
+    method_spec_dict[ spec.method_name ] = spec
+
+  for method_name, spec in method_spec_dict.items():
+    arguments = ', '.join([ 's' ] + spec.arg.keys() )
+    print "  def {}_call( {} ):".format( method_name, arguments )
+    if spec.hasrdy:
+      print "    assert s.{}_rdy()".format( method_name )
+    return_list = [ "{}=0".format( ret ) for ret in spec.ret.keys() ]
+    if return_list:
+      print "    return ReturnValues( {} )".format( ", ".join( return_list ) )
+    else:
+      print "    pass"
+    print ""
+
+    if spec.hasrdy:
+      print "  def {}_rdy( s ):".format( method_name )
+      print "    return True"
+      print ""
+
+  print "  def reset( s ):"
+  print "    pass"
+
+
+#-------------------------------------------------------------------------
+# bits_strategy
+#-------------------------------------------------------------------------
+def bits_strategy( nbits ):
+  return st.integers( min_value=0, max_value=Bits( nbits )._max )
+
+
+#-------------------------------------------------------------------------
+# ReturnValues
+#-------------------------------------------------------------------------
+
+
+class ReturnValues:
+
+  def __init__( s, **kwargs ):
+    for k, v in kwargs.items():
+      setattr( s, k, v )
