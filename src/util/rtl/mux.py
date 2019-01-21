@@ -17,6 +17,27 @@ class MuxInterface:
 
 
 class Mux( Model ):
+  """An multiplexer.
+  
+  Parameters:
+    dtype: the datatype of the inputs and the output
+    nports: the number of input ports to choose from
+
+  Methods:
+    mux:
+      performs the muxing function. No call, always ready.
+      Inputs:
+        select (s.Select): the select signal. The width is clog2(nports).
+          If there is only 1 input, the select signal is 1 bit wide, and must be 0.
+      Outputs:
+        out (s.Data): the output data, of type dtype.
+
+  Inputs:
+    in_ (s.Data[nports]): the inputs to the multiplexer.
+
+  Sequencing:
+    Data from in_ read before the mux function is computed.
+  """
 
   def __init__( s, dtype, nports ):
     s.interface = MuxInterface( dtype, nports )

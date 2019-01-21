@@ -28,6 +28,58 @@ class FreeListInterface( object ):
 
 
 class FreeList( Model ):
+  """A free list.
+
+  Represents a bit-vector backed freelist, which always allocates the lowest available free
+  value.
+
+  Parameters:
+    nslots: the number of items in the free list, numbered [0, nslots)
+    num_alloc_ports: the number of alloc ports.
+    num_free_ports: the number of free ports.
+    free_alloc_bypass: if True, free operations occur before alloc operations. Otherwise,
+      alloc operations occur before free operations.
+    release_alloc_bypass: if True, a release operation occurs before all alloc operations. Otherwise,
+      alloc operations occur before release operations.
+    used_slots_initial: the number of slots that are initially not free. The used slots will be
+      slots in the range [0, used_slots_initial)
+
+  Methods:
+    alloc:
+      Allocates a free element, and returns that element. Requires a call signal. 
+      Only ready when the free list has elements available.
+      Inputs: None
+      Outputs:
+        index (Index): the ID of the allocated element
+        mask (Vector): a one-hot encoding of index
+    free:
+      Returns an element to the pool of free elements. Requires a call signal, and is always ready.
+      Inputs:
+        index (Index): the ID of the element to return to the free list.
+      Outputs: None
+    Release:
+      Frees a set of elements, indicated by a bitmask.
+      Inputs:
+        mask (Vector): a bitmask indicating which elements to free. If bit i is set, element i is freed.
+      Outputs: None
+    Set:
+      Sets the current state of the free list to the specified state.
+      Inputs:
+        state (Vector): a bit vector indicating the state of the free list. Free items are 1, used items are 0.
+      Outputs: None
+
+  Sequencing:
+    The sequencing of alloc, free, and release is controlled by the free_alloc_bypass and release_alloc_bypass parameters.
+    free_alloc_bypass controls the relative ordering between free and alloc: if True, free occurs before alloc, otherwise
+    alloc occurs before free. release_alloc_bypass controls the relative ordering between release and alloc: if True, free
+    occurs before release, otherwise alloc occurs before release.
+    Note that the relative ordering between release and free is undefined, and cannot be determined. 
+    (If both release and free happen either before or after alloc, the ordering of release and free does not matter.
+    If one happens before alloc, and one happens after alloc, due to the configuration of the bypass flags,
+    then the order of alloc, free, and release is fully defined.)
+
+    Set occurs after all other operations.
+  """
 
   def __init__( s,
                 nslots,
