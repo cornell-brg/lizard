@@ -62,7 +62,7 @@ class RenameTableWrapper:
     s.sim.eval_combinational()
 
   def set_external_restore_call( s, external_restore ):
-    assert len( external_restore ) == 2
+    assert len( external_restore ) == 4
     s.model.external_restore_en.v = 1
     for x in range( 2 ):
       s.model.external_restore_in[ x ].v = external_restore[ x ]
@@ -116,7 +116,7 @@ def run_method_test( rename_table ):
   assert read_1[ 'preg' ] == 2
   rename_table.cycle()
 
-  rename_table.set_external_restore_call([ 2, 1 ] )
+  rename_table.set_external_restore_call([ 2, 1, 2, 3 ] )
   rename_table.restore_port_call( 1 )
   read_0 = rename_table.read_ports_0__call( 0 )
   read_1 = rename_table.read_ports_1__call( 1 )
@@ -130,7 +130,7 @@ def run_method_test( rename_table ):
 #-------------------------------------------------------------------------
 def test_method():
   rename_table = RenameTableWrapper(
-      RenameTable( 2, 4, 2, 1, 4, True, [ 0, 0 ] ) )
+      RenameTable( 4, 4, 2, 1, 4, True, [ 0, 0, 0, 0 ] ) )
   run_method_test( rename_table )
 
 
@@ -138,12 +138,12 @@ def test_method():
 # test_wrapper
 #-------------------------------------------------------------------------
 def test_wrapper():
-  model = RenameTable( 2, 4, 2, 1, 4, True, [ 0, 0 ] )
+  model = RenameTable( 4, 4, 2, 1, 4, True, [ 0, 0, 0, 0 ] )
 
   def set_external_restore_call( s, external_restore ):
-    assert len( external_restore ) == 2
+    assert len( external_restore ) == 4
     s.model.external_restore_en.v = 1
-    for x in range( 2 ):
+    for x in range( 4 ):
       s.model.external_restore_in[ x ].v = external_restore[ x ]
     s.sim.eval_combinational()
 
@@ -211,7 +211,9 @@ class RenameTableFL:
     s.reg_map_next = []
     s.external_restore = []
     s.snap_shot_free_list = [ n for n in range( s.nsnapshots ) ]
-    s.snap_shot = [[ 0, 0 ] for _ in range( s.nsnapshots ) ]
+    s.snap_shot = [
+        [ 0 for _ in range( s.naregs ) ] for _ in range( s.nsnapshots )
+    ]
 
   def read_ports_call( s, areg ):
     assert areg < s.naregs and areg >= 0
@@ -233,7 +235,7 @@ class RenameTableFL:
 
     id = s.snap_shot_free_list[ 0 ]
     s.snap_shot[ id ] = s.reg_map[: ]
-    del s.snap_shot_free_list[ id ]
+    del s.snap_shot_free_list[ 0 ]
     return ReturnValues( id=id )
 
   def snapshot_port_rdy( s ):
