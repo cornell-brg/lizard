@@ -86,8 +86,27 @@ class DataFlowManager( Model ):
     # Reserve the highest tag for x0
     # Free list with 2 alloc ports, 1 free port, and REG_COUNT - 1 used slots
     # initially
-    s.free_regs = FreeList( REG_TAG_COUNT - 1, num_src_ports, num_dst_ports,
-                            False, REG_COUNT - 1 )
+    s.free_regs = FreeList(
+        REG_TAG_COUNT - 1,
+        num_src_ports,
+        num_dst_ports,
+        False,
+        used_slots_initial=REG_COUNT - 1 )
+    # arf_used_pregs tracks the physical registers used by the current architectural state
+    # arf_used_pregs[i] is 1 if preg i is used by the arf, and 0 otherwise
+    # on reset, the ARF is backed by pregs [0, REG_COUNT - 1]
+    arg_used_pregs_reset = [ Bits( 1, 0 ) for _ in range( REG_TAG_COUNT - 1 ) ]
+    for i in range( REG_COUNT ):
+      s.arg_used_pregs_reset[ i ] = Bits( 1, 1 )
+    s.arf_used_pregs = RegisterFile(
+        Bits( 1 ),
+        REG_TAG_COUNT - 1,
+        0,  # no read ports needed, only a dump port
+        num_dst_ports,  # have to write for every instruction that commits
+        False,  # no read ports, so we don't need a write-read bypass
+        dump_port=True,  # only used for reading
+        reset_valus=arf_used_pregs_reset )
+
     # Build the initial rename table.
     # x0 -> don't care
     # xn -> n-1

@@ -2,10 +2,11 @@ from pymtl import *
 from util.rtl.method import MethodSpec
 from util.rtl.onehot import OneHotEncoder
 from util.rtl.coders import PriorityDecoder
+from util.rtl.mux import Mux
 from bitutil import clog2, clog2nz
 
 
-class FreeListInterface:
+class FreeListInterface( object ):
 
   def __init__( s, nslots ):
     s.Vector = Bits( nslots )
@@ -20,6 +21,9 @@ class FreeListInterface:
     }, None, True, False )
     s.release = MethodSpec({
         'mask': s.Vector,
+    }, None, True, False )
+    s.set = MethodSpec({
+        'state': s.Vector,
     }, None, True, False )
 
 
@@ -41,6 +45,7 @@ class FreeList( Model ):
         s.interface.free.in_port() for _ in range( num_free_ports )
     ]
     s.release_port = s.interface.release.in_port()
+    s.set_port = s.interface.set.in_port()
 
     # 1 if free, 0 if not free
     s.free = Wire( nslots )
@@ -49,6 +54,7 @@ class FreeList( Model ):
     s.alloc_inc = [ Wire( nslots ) for _ in range( num_alloc_ports + 1 ) ]
     s.free_next_base = Wire( nslots )
     s.free_next = Wire( nslots )
+    s.set_mux = Mux( s.interface.Vector, 2 )
 
     s.free_encoders = [
         OneHotEncoder( nslots ) for _ in range( num_free_ports )
@@ -86,7 +92,10 @@ class FreeList( Model ):
 
       @s.combinational
       def compute_alloc_inc_base():
-        s.alloc_inc_base.v = s.free | s.release_port.mask
+        if s.release_port.call:
+          s.alloc_inc_base.v = s.free | s.release_port.mask
+        else:
+          s.alloc_inc_base.v = s.free
     else:
 
       @s.combinational
@@ -138,7 +147,11 @@ class FreeList( Model ):
 
       @s.combinational
       def compute_free_next_base():
-        s.free_next_base.v = s.alloc_inc[ num_alloc_ports ] | s.release_port.mask
+        if s.release_port.call:
+          s.free_next_base.v = s.alloc_inc[
+              num_alloc_ports ] | s.release_port.mask
+        else:
+          s.free_next_base.v = s.alloc_inc[ num_alloc_ports ]
 
     if free_alloc_bypass:
 
@@ -150,6 +163,10 @@ class FreeList( Model ):
       @s.combinational
       def compute_free():
         s.free_next.v = s.free_next_base | s.free_masks[ num_free_ports ]
+
+    s.connect( s.set_mux.in_[ 0 ], s.free_next )
+    s.connect( s.set_mux.in_[ 1 ], s.set_port.state )
+    s.connect( s.set_mux.mux_port.select, s.set_port.call )
 
     for i in range( nslots ):
       # PYMTL_BROKEN
@@ -167,7 +184,7 @@ class FreeList( Model ):
         if s.reset:
           s.free[ i ].n = free
         else:
-          s.free[ i ].n = s.free_next[ i ]
+          s.free[ i ].n = s.set_mux.mux_port.out[ i ]
 
   def line_trace( s ):
     return "{}".format( s.free.bin() )
