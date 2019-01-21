@@ -69,4 +69,31 @@ class BugMagic( Model ):
   def line_trace( s ):
     return "{}".format(s.port.out)
   
+class Helper( Model ):
+  def __init__( s ):
+    s.interface = BugInterface()
+    s.port = s.interface.port.in_port()
+
+    @s.combinational
+    def handle_bit_0():
+      s.port.out[0] = (s.port.select == 0)
+
+    @s.combinational
+    def handle_bit_1():
+      s.port.out[1] = (s.port.select == 1)
+
+
+class Bug2( Model ):
+  def __init__( s ):
+    s.interface = BugInterface()
+    s.port = s.interface.port.in_port()
+
+    s.helper = Helper()
+
+    s.connect(s.helper.port.select, s.port.select)
+    
+    @s.combinational
+    def invert():
+      s.port.out.v = ~s.helper.port.out
+
 
