@@ -1,6 +1,7 @@
 from pymtl import *
 from util.test_utils import run_test_vector_sim
 from util.rtl.bug import Bug, BugMagic, Bug2
+import pytest
 
 def run_bug(model, test_verilog):
   run_test_vector_sim(
@@ -12,6 +13,7 @@ def run_bug(model, test_verilog):
       dump_vcd=None,
       test_verilog=test_verilog)
 
+@pytest.mark.xfail
 def test_bug_pymtl():
   run_bug(Bug(), False)
 

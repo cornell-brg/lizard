@@ -48,19 +48,19 @@ class BugMagic( Model ):
     s.port = s.interface.port.in_port()
 
     s.outs = [Wire(2) for _ in range(2)]
-    s.magiczero = Wire(2)
-    s.connect(s.magiczero, 0)
-    
+    s.constone = Wire(2)
+    s.connect(s.constone, 1)
+
     @s.combinational
     def compute_1():
-      s.outs[s.magiczero].v = 1
+      s.outs[0].v = s.constone
 
     @s.combinational
     def compute_2():
       if s.port.select:
         s.outs[1].v = 3
       else:
-        s.outs[1].v = s.outs[s.magiczero].v
+        s.outs[1].v = s.outs[0].v
 
     @s.combinational
     def compute_3():
@@ -76,11 +76,11 @@ class Helper( Model ):
 
     @s.combinational
     def handle_bit_0():
-      s.port.out[0] = (s.port.select == 0)
+      s.port.out[0].v = (s.port.select == 0)
 
     @s.combinational
     def handle_bit_1():
-      s.port.out[1] = (s.port.select == 1)
+      s.port.out[1].v = (s.port.select == 1)
 
 
 class Bug2( Model ):
