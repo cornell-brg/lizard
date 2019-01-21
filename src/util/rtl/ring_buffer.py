@@ -4,7 +4,7 @@ from pclib.rtl import RegEn, RegEnRst, RegRst
 from util.rtl.method import MethodSpec
 
 
-class RingBufferInterface:
+class ReorderBufferInterface:
 
   def __init__( s, IDX_NBITS, ENTRY_BITWIDTH ):
     s.Value = Bits( ENTRY_BITWIDTH )
@@ -26,7 +26,7 @@ class RingBufferInterface:
     s.peek_port = MethodSpec( None, { 'value': s.Value}, True, True )
 
 
-class RingBuffer( Model ):
+class ReorderBuffer( Model ):
   # This stores (key, value) pairs in a finite size FIFO queue
   def __init__( s, NUM_ENTRIES, ENTRY_BITWIDTH ):
     # We want to be a power of two so mod arithmetic is efficient
