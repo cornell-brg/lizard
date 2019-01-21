@@ -62,7 +62,7 @@ class SnapshottingRegisterFile( Model ):
         RegisterFile( dtype, nregs, 0, 0, False, dump_port=True )
         for _ in range( nsnapshots )
     ]
-    s.snapshot_allocator = FreeList( nsnapshots, 1, 1, False )
+    s.snapshot_allocator = FreeList( nsnapshots, 1, 1, False, False )
 
     for i in range( num_rd_ports ):
       s.connect( s.rd_ports[ i ], s.regs.rd_ports[ i ] )

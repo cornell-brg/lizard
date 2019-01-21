@@ -122,7 +122,7 @@ class RegisterFile( Model ):
         @s.combinational
         def handle_read( port=port ):
           if s.dump_wr_en:
-            s.rd_ports[ port ].data.v = s.dump_in[ reg_i ]
+            s.rd_ports[ port ].data.v = s.dump_in[ s.rd_ports[ port ].addr ]
           else:
             s.rd_ports[ port ].data.v = s.regs[ s.rd_ports[ port ].addr ]
       else:
