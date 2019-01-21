@@ -3,6 +3,7 @@ import inspect
 import hypothesis.strategies as st
 from pymtl import *
 from hypothesis.stateful import *
+from hypothesis import settings
 from hypothesis.vendor.pretty import CUnicodeIO, RepresentationPrinter
 from sets import Set
 from util.rtl.method import InMethodCallPortBundle
@@ -125,16 +126,18 @@ class TestStateMachine( RuleBasedStateMachine ):
             print "========================== error =========================="
             raise RunMethodTestError( error_msg )
       else:
-        assert isinstance( r_result, int ) or isinstance( r_result, tuple )
+        assert isinstance( r_result, int ) or isinstance(
+            r_result, Bits ) or isinstance( r_result, tuple )
         # assume that results are in alphabetical order
         m_result_list = [
             value for ( key, value ) in sorted( m_result.items() )
         ]
-        r_result_list = [ r_result ] if isinstance( r_result,
-                                                    int ) else list( r_result )
+        r_result_list = [ r_result
+                        ] if isinstance( r_result, int ) or isinstance(
+                            r_result, Bits ) else list( r_result )
         for m_result_value, r_result_value in zip( m_result_list,
                                                    r_result_list ):
-          if r_result_value != '?' and m_result_value != r_result:
+          if r_result_value != '?' and m_result_value != r_result_value:
             error_msg = """
    test state machine received an incorrect value!
     - method name    : {method_name}
@@ -707,6 +710,8 @@ class CompareTest( TestStateMachine ):
     TestStateMachine.__init__( self )
     self.sim.reset()
     self.reference.reset()
+    self.sim.cycle()
+    self.reference.cycle()
 
 
 #-------------------------------------------------------------------------
@@ -826,3 +831,9 @@ class ReturnValues:
   def __init__( s, **kwargs ):
     for k, v in kwargs.items():
       setattr( s, k, v )
+
+
+def run_state_machine( state_machine_factory ):
+  state_machine_factory.TestCase.settings = settings(
+      max_examples=500, stateful_step_count=100, verbosity=Verbosity.verbose )
+  run_state_machine_as_test( state_machine_factory )
