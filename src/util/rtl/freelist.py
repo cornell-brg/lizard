@@ -41,7 +41,6 @@ class FreeList( Model ):
     s.free_next = Wire( nslots )
     s.free_masks = [ Wire( nslots ) for _ in range( num_free_ports + 1 ) ]
     s.alloc_inc = [ Wire( nslots ) for _ in range( num_alloc_ports + 1 ) ]
-    s.alloc_masks = [ Wire( nslots ) for _ in range( num_alloc_ports ) ]
 
     s.free_encoders = [
         OneHotEncoder( nslots ) for _ in range( num_free_ports )
