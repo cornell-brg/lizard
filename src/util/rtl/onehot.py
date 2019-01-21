@@ -26,7 +26,7 @@ class OneHotEncoder( Model ):
 
       @s.combinational
       def handle_encode( i=i ):
-        s.encode_port.onehot[ i ] = ( s.encode_port.number == i )
+        s.encode_port.onehot[ i ].v = ( s.encode_port.number == i )
 
   def line_trace( s ):
     return "i: {} o: {}".format( s.encode_port.number, s.encode_port.onehot )
