@@ -8,14 +8,18 @@ from bitutil import clog2, clog2nz
 class FreeListInterface:
 
   def __init__( s, nslots ):
-    nbits = clog2nz( nslots )
-    s.Index = Bits( nbits )
+    s.Vector = Bits( nslots )
+    s.Index = Bits( clog2nz( nslots ) )
 
     s.alloc = MethodSpec( None, {
         'index': s.Index,
+        'mask': s.Vector,
     }, True, True )
     s.free = MethodSpec({
         'index': s.Index,
+    }, None, True, False )
+    s.release = MethodSpec({
+        'mask': s.Vector,
     }, None, True, False )
 
 
@@ -25,7 +29,8 @@ class FreeList( Model ):
                 nslots,
                 num_alloc_ports,
                 num_free_ports,
-                combinational_bypass,
+                free_alloc_bypass,
+                release_alloc_bypass,
                 used_slots_initial=0 ):
     s.interface = FreeListInterface( nslots )
 
@@ -35,12 +40,15 @@ class FreeList( Model ):
     s.free_ports = [
         s.interface.free.in_port() for _ in range( num_free_ports )
     ]
+    s.release_port = s.interface.release.in_port()
 
     # 1 if free, 0 if not free
     s.free = Wire( nslots )
-    s.free_next = Wire( nslots )
     s.free_masks = [ Wire( nslots ) for _ in range( num_free_ports + 1 ) ]
+    s.alloc_inc_base = Wire( nslots )
     s.alloc_inc = [ Wire( nslots ) for _ in range( num_alloc_ports + 1 ) ]
+    s.free_next_base = Wire( nslots )
+    s.free_next = Wire( nslots )
 
     s.free_encoders = [
         OneHotEncoder( nslots ) for _ in range( num_free_ports )
@@ -74,16 +82,27 @@ class FreeList( Model ):
         else:
           s.free_masks[ n ].v = s.free_masks[ i ]
 
-    if combinational_bypass:
+    if release_alloc_bypass:
 
       @s.combinational
-      def compute_free():
-        s.alloc_inc[ 0 ].v = s.free | s.free_masks[ num_free_ports ]
+      def compute_alloc_inc_base():
+        s.alloc_inc_base.v = s.free | s.release_port.mask
     else:
 
       @s.combinational
-      def compute_free():
-        s.alloc_inc[ 0 ].v = s.free
+      def compute_alloc_inc_base():
+        s.alloc_inc_base.v = s.free
+
+    if free_alloc_bypass:
+
+      @s.combinational
+      def compute_alloc_inc_0():
+        s.alloc_inc[ 0 ].v = s.alloc_inc_base | s.free_masks[ num_free_ports ]
+    else:
+
+      @s.combinational
+      def compute_alloc_inc_0():
+        s.alloc_inc[ 0 ].v = s.alloc_inc_base
 
     # PYMTL_BROKEN
     s.workaround_alloc_encoders_encode_port_onehot = [
@@ -97,6 +116,8 @@ class FreeList( Model ):
                  s.alloc_ports[ i ].rdy )
       s.connect( s.alloc_decoders[ i ].decode_port.decoded,
                  s.alloc_ports[ i ].index )
+      s.connect( s.alloc_encoders[ i ].encode_port.onehot,
+                 s.alloc_ports[ i ].mask )
       s.connect( s.alloc_decoders[ i ].decode_port.decoded,
                  s.alloc_encoders[ i ].encode_port.number )
 
@@ -108,17 +129,27 @@ class FreeList( Model ):
         else:
           s.alloc_inc[ n ].v = s.alloc_inc[ i ]
 
-    if combinational_bypass:
+    if release_alloc_bypass:
+
+      @s.combinational
+      def compute_free_next_base():
+        s.free_next_base.v = s.alloc_inc[ num_alloc_ports ]
+    else:
+
+      @s.combinational
+      def compute_free_next_base():
+        s.free_next_base.v = s.alloc_inc[ num_alloc_ports ] | s.release_port.mask
+
+    if free_alloc_bypass:
 
       @s.combinational
       def compute_free():
-        s.free_next.v = s.alloc_inc[ num_alloc_ports ]
+        s.free_next.v = s.free_next_base
     else:
 
       @s.combinational
       def compute_free():
-        s.free_next.v = s.alloc_inc[ num_alloc_ports ] | s.free_masks[
-            num_free_ports ]
+        s.free_next.v = s.free_next_base | s.free_masks[ num_free_ports ]
 
     for i in range( nslots ):
       # PYMTL_BROKEN
