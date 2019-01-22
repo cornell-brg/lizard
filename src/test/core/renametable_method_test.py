@@ -1,7 +1,7 @@
 from pymtl import *
 from core.rtl.renametable import RenameTable
 from test.config import test_verilog
-from util.method_test import DefineMethod, ReturnValues, create_wrapper_class, rule, st, run_state_machine_as_test, create_test_state_machine, argument_strategy, reference_precondition, MethodOrder, ArgumentStrategy, MethodStrategy
+from util.method_test import DefineMethod, ReturnValues, create_wrapper_class, rule, st, run_state_machine, create_test_state_machine, argument_strategy, reference_precondition, MethodOrder, ArgumentStrategy, MethodStrategy
 
 
 #-------------------------------------------------------------------------
@@ -210,7 +210,7 @@ class RenameTableFL:
     s.reg_map = s.initial_map[: ]
     s.reg_map_next = []
     s.external_restore = []
-    s.snap_shot_free_list = [ n for n in range( s.nsnapshots ) ]
+    s.snap_shot_free_list = [ 1 for n in range( s.nsnapshots ) ]
     s.snap_shot = [
         [ 0 for _ in range( s.naregs ) ] for _ in range( s.nsnapshots )
     ]
@@ -230,36 +230,28 @@ class RenameTableFL:
 
   def snapshot_port_call( s ):
     assert s.snapshot_port_rdy()
-    if not s.snap_shot_free_list:
-      return ReturnValues( id=0 )
+    for i in range( len( s.snap_shot_free_list ) ):
+      if s.snap_shot_free_list[ i ]:
+        s.snap_shot_free_list[ i ] = 0
+        id = i
+        break
 
-    id = s.snap_shot_free_list[ 0 ]
     s.snap_shot[ id ] = s.reg_map[: ]
-    del s.snap_shot_free_list[ 0 ]
     return ReturnValues( id=id )
 
   def snapshot_port_rdy( s ):
-    return len( s.snap_shot_free_list ) > 0
+    return not all( not i for i in s.snap_shot_free_list )
 
   def restore_port_call( s, id ):
     assert id >= 0 and id < s.nsnapshots
     if s.external_restore:
-      s.reg_map_next = s.external_restore
+      s.reg_map_next = s.external_restore[: ]
     else:
       s.reg_map_next = s.snap_shot[ id ][: ]
 
-  @reference_precondition(
-      lambda machine, data: not data[ 'id' ] in machine.reference.snap_shot_free_list
-  )
   def free_snapshot_port_call( s, id ):
     assert id >= 0 and id < s.nsnapshots
-    assert not id in s.snap_shot_free_list
-    assert s.free_snapshot_port_rdy()
-    if not id in s.snap_shot_free_list:
-      s.snap_shot_free_list += [ id ]
-
-  def free_snapshot_port_rdy( s ):
-    return True
+    s.snap_shot_free_list[ id ] = 1
 
   def set_external_restore_call( s, external_restore ):
     s.external_restore = external_restore
@@ -275,7 +267,7 @@ class RenameTableFL:
 # test_fl
 #-------------------------------------------------------------------------
 def test_fl():
-  rename_table = RenameTableFL( 2, 4, 2, 1, 1, True, [ 0, 0 ] )
+  rename_table = RenameTableFL( 4, 4, 2, 1, 1, True, [ 0, 0, 0, 0 ] )
 
   read_0 = rename_table.read_ports_call( 0 )
   read_1 = rename_table.read_ports_call( 1 )
@@ -290,9 +282,9 @@ def test_fl():
 def test_state_machine():
 
   def set_external_restore_call( s, external_restore ):
-    assert len( external_restore ) == 2
+    assert len( external_restore ) == 4
     s.model.external_restore_en.v = 1
-    for x in range( 2 ):
+    for x in range( 4 ):
       s.model.external_restore_in[ x ].v = external_restore[ x ]
     s.sim.eval_combinational()
 
@@ -300,8 +292,8 @@ def test_state_machine():
     s.model.external_restore_en.v = 0
 
   RenameTableTest = create_test_state_machine(
-      RenameTable( 2, 4, 2, 1, 1, True, [ 0, 0 ] ),
-      RenameTableFL( 2, 4, 2, 1, 1, True, [ 0, 0 ] ),
+      RenameTable( 4, 4, 2, 1, 2, True, [ 0, 0, 0, 0 ] ),
+      RenameTableFL( 4, 4, 2, 1, 2, True, [ 0, 0, 0, 0 ] ),
       customized_methods=[
           DefineMethod(
               method_call=set_external_restore_call,
@@ -309,4 +301,4 @@ def test_state_machine():
               arg={ "external_restore": list},
               method_clear=clear_set_external_restore )
       ] )
-  run_state_machine_as_test( RenameTableTest )
+  run_state_machine( RenameTableTest )

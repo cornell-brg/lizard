@@ -835,5 +835,5 @@ class ReturnValues:
 
 def run_state_machine( state_machine_factory ):
   state_machine_factory.TestCase.settings = settings(
-      max_examples=500, stateful_step_count=100, verbosity=Verbosity.verbose )
+      max_examples=100, stateful_step_count=100, verbosity=Verbosity.verbose )
   run_state_machine_as_test( state_machine_factory )
