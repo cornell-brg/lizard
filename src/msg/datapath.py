@@ -75,11 +75,11 @@ class DecodePacket( BitStructDefinition ):
     s.unique = BitField( 1 )  # Unique if only this instruction can be in flight
 
     FieldValidPair( s, 'imm', DECODED_IMM_LEN )
-    FieldValidPair( s, 'csr', CSR_SPEC_LEN )
+    FieldValidPair( s, 'csr', CSR_SPEC_NBITS )
 
-    FieldValidPair( s, 'rs1', REG_SPEC_LEN )
-    FieldValidPair( s, 'rs2', REG_SPEC_LEN )
-    FieldValidPair( s, 'rd', REG_SPEC_LEN )
+    FieldValidPair( s, 'rs1', AREG_IDX_NBITS )
+    FieldValidPair( s, 'rs2', AREG_IDX_NBITS )
+    FieldValidPair( s, 'rd', AREG_IDX_NBITS )
 
   def __str__( s ):
     return 'imm:{} inst:{: <5} rs1:{} v:{} rs2:{} v:{} rd:{} v:{}'.format(
@@ -102,16 +102,16 @@ class IssuePacket( BitStructDefinition ):
   def __init__( s ):
     add_base( s )
 
-    s.tag = BitField( INST_TAG_LEN )
+    s.tag = BitField( INST_IDX_NBITS )
     s.instr_d = BitField( RV64Inst.bits )
     s.opcode = BitField( Opcode.bits )
     s.funct3 = BitField( 3 )
     s.unique = BitField( 1 )
     FieldValidPair( s, 'imm', DECODED_IMM_LEN )
-    FieldValidPair( s, 'csr', CSR_SPEC_LEN )
+    FieldValidPair( s, 'csr', CSR_SPEC_NBITS )
     FieldValidPair( s, 'rs1_value', XLEN )
     FieldValidPair( s, 'rs2_value', XLEN )
-    FieldValidPair( s, 'rd', REG_TAG_LEN )
+    FieldValidPair( s, 'rd', PREG_IDX_NBITS )
 
   def __str__( s ):
     return 'imm:{} inst:{: <5} rs1:{} v:{} rs2:{} v:{} rd:{} v:{}'.format(
@@ -133,12 +133,12 @@ class ExecutePacket( BitStructDefinition ):
   def __init__( s ):
     add_base( s )
 
-    s.tag = BitField( INST_TAG_LEN )
+    s.tag = BitField( INST_IDX_NBITS )
     s.instr_d = BitField( RV64Inst.bits )
     s.opcode = BitField( Opcode.bits )
     s.successor_invalidated = BitField( 1 )
 
-    FieldValidPair( s, 'rd', REG_TAG_LEN )
+    FieldValidPair( s, 'rd', PREG_IDX_NBITS )
     FieldValidPair( s, 'result', XLEN )
 
   def __str__( s ):
@@ -161,10 +161,10 @@ class WritebackPacket( BitStructDefinition ):
   def __init__( s ):
     add_base( s )
 
-    s.tag = BitField( INST_TAG_LEN )
+    s.tag = BitField( INST_IDX_NBITS )
     s.instr_d = BitField( RV64Inst.bits )
     s.opcode = BitField( Opcode.bits )
     s.successor_invalidated = BitField( 1 )
 
-    FieldValidPair( s, 'rd', REG_TAG_LEN )
+    FieldValidPair( s, 'rd', PREG_IDX_NBITS )
     FieldValidPair( s, 'result', XLEN )

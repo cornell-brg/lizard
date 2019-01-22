@@ -11,18 +11,18 @@ class PregState( BitStructDefinition ):
   def __init__( s ):
     s.value = BitField( XLEN )
     s.ready = BitField( 1 )
-    s.areg = BitField( REG_SPEC_LEN )
+    s.areg = BitField( AREG_IDX_NBITS )
 
 
 class DataFlowManagerCL( Model ):
 
   def __init__( s ):
     # Reserve the highest tag for x0
-    s.free_regs = FreeListFL( REG_TAG_COUNT - 1 )
-    s.zero_tag = Bits( REG_TAG_LEN, REG_TAG_COUNT - 1 )
-    s.rename_table = [ Bits( REG_TAG_LEN ) for _ in range( REG_COUNT ) ]
-    s.preg_file = [ PregState() for _ in range( REG_TAG_COUNT ) ]
-    s.areg_file = [ Bits( REG_TAG_LEN ) for _ in range( REG_COUNT ) ]
+    s.free_regs = FreeListFL( PREG_COUNT - 1 )
+    s.zero_tag = Bits( PREG_IDX_NBITS, PREG_COUNT - 1 )
+    s.rename_table = [ Bits( PREG_IDX_NBITS ) for _ in range( AREG_COUNT ) ]
+    s.preg_file = [ PregState() for _ in range( PREG_COUNT ) ]
+    s.areg_file = [ Bits( PREG_IDX_NBITS ) for _ in range( AREG_COUNT ) ]
 
     s.mngr2proc = InValRdyBundle( Bits( XLEN ) )
     s.proc2mngr = OutValRdyBundle( Bits( XLEN ) )
@@ -34,7 +34,7 @@ class DataFlowManagerCL( Model ):
   def xtick( s ):
     s.free_regs.xtick()
     if s.reset:
-      for areg in range( REG_COUNT ):
+      for areg in range( AREG_COUNT ):
         tag = s.get_dst( areg ).tag
         s.write_tag( tag, 0 )
         s.commit_tag( tag, True )

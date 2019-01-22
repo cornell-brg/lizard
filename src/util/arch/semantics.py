@@ -47,7 +47,7 @@ class ProcException( object ):
 class RegisterFile( object ):
 
   def __init__( self ):
-    self.regs = [ Bits( XLEN, 0 ) for i in xrange( REG_COUNT ) ]
+    self.regs = [ Bits( XLEN, 0 ) for i in xrange( AREG_COUNT ) ]
 
   def __getitem__( self, idx ):
     if idx == 0:

@@ -1,6 +1,6 @@
 from pymtl import *
 
-from config.general import XLEN, REG_SPEC_LEN, REG_TAG_LEN
+from config.general import XLEN, AREG_IDX_NBITS, PREG_IDX_NBITS
 
 
 # Gets the physical register specifier for a given
@@ -8,14 +8,14 @@ from config.general import XLEN, REG_SPEC_LEN, REG_TAG_LEN
 class GetSrcRequest( BitStructDefinition ):
 
   def __init__( s ):
-    s.reg = BitField( REG_SPEC_LEN )
+    s.reg = BitField( AREG_IDX_NBITS )
 
 
 class GetSrcResponse( BitStructDefinition ):
 
   def __init__( s ):
     s.ready = BitField( 1 )
-    s.tag = BitField( REG_TAG_LEN )
+    s.tag = BitField( PREG_IDX_NBITS )
 
 
 # Allocates a new physical register for a given
@@ -23,20 +23,20 @@ class GetSrcResponse( BitStructDefinition ):
 class GetDstRequest( BitStructDefinition ):
 
   def __init__( s ):
-    s.reg = BitField( REG_SPEC_LEN )
+    s.reg = BitField( AREG_IDX_NBITS )
 
 
 class GetDstResponse( BitStructDefinition ):
 
   def __init__( s ):
     s.success = BitField( 1 )
-    s.tag = BitField( REG_TAG_LEN )
+    s.tag = BitField( PREG_IDX_NBITS )
 
 
 class PostForwards( BitStructDefinition ):
 
   def __init__( s ):
-    s.tag = BitField( REG_TAG_LEN )
+    s.tag = BitField( PREG_IDX_NBITS )
     s.value = BitField( XLEN )
 
 
@@ -44,7 +44,7 @@ class PostForwards( BitStructDefinition ):
 class ReadTagRequest( BitStructDefinition ):
 
   def __init__( s ):
-    s.tag = BitField( REG_TAG_LEN )
+    s.tag = BitField( PREG_IDX_NBITS )
 
 
 class ReadTagResponse( BitStructDefinition ):
@@ -58,7 +58,7 @@ class ReadTagResponse( BitStructDefinition ):
 class WriteTagRequest( BitStructDefinition ):
 
   def __init__( s ):
-    s.tag = BitField( REG_TAG_LEN )
+    s.tag = BitField( PREG_IDX_NBITS )
     s.value = BitField( XLEN )
 
 
@@ -73,7 +73,7 @@ class WriteTagResponse( BitStructDefinition ):
 class CommitTagRequest( BitStructDefinition ):
 
   def __init__( s ):
-    s.tag = BitField( REG_TAG_LEN )
+    s.tag = BitField( PREG_IDX_NBITS )
 
 
 class CommitTagResponse( BitStructDefinition ):

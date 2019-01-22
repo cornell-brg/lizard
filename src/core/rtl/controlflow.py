@@ -12,7 +12,7 @@ class InstrState( BitStructDefinition ):
     s.succesor_pc = BitField( XLEN )
     s.valid = BitField( 1 )
     s.in_flight = BitField( 1 )
-    s.rename_table_snapshot_id = BitField( MAX_SPEC_DEPTH_LEN )
+    s.rename_table_snapshot_id = BitField( MAX_SPEC_DEPTH_NBITS )
     s.has_rename_snapshot = BitField( 1 )
 
   def __str__( s ):
@@ -28,37 +28,37 @@ class ControlFlowManagerInterface:
 
   def __init__( s ):
     s.get_epoch_start = MethodSpec({
-        'epoch': Bits( INST_TAG_LEN ),
+        'epoch': Bits( INST_IDX_NBITS ),
     }, {
         'pc': Bits( XLEN ),
         'valid': Bits( 1 ),
-        'current_epoch': Bits( INST_TAG_LEN ),
+        'current_epoch': Bits( INST_IDX_NBITS ),
     }, False, False )
 
     s.get_head = MethodSpec( None, {
-        'head': Bits( INST_TAG_LEN ),
+        'head': Bits( INST_IDX_NBITS ),
     }, False, False )
 
     s.get_curr_seq = MethodSpec( None, {
-        'seq': Bits( INST_TAG_LEN ),
+        'seq': Bits( INST_IDX_NBITS ),
     }, False, False )
 
     s.register = MethodSpec({
         'succesor_pc': Bits( XLEN ),
-        'epoch': Bits( INST_TAG_LEN ),
+        'epoch': Bits( INST_IDX_NBITS ),
     }, {
-        'tag': Bits( INST_TAG_LEN ),
+        'tag': Bits( INST_IDX_NBITS ),
         'valid': Bits( 1 ),
-        'current_epoch': Bits( INST_TAG_LEN ),
+        'current_epoch': Bits( INST_IDX_NBITS ),
     }, True, False )
 
 
 class ControlFlowManager( Model ):
 
   def __init__( s ):
-    s.seq = Wire( INST_TAG_LEN )
-    s.head = Wire( INST_TAG_LEN )
-    s.epoch = Wire( INST_TAG_LEN )
+    s.seq = Wire( INST_IDX_NBITS )
+    s.head = Wire( INST_IDX_NBITS )
+    s.epoch = Wire( INST_IDX_NBITS )
     s.epoch_start = Wire( XLEN )
 
     @s.tick_rtl
