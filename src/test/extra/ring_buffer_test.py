@@ -1,7 +1,7 @@
 from pymtl import *
 from util.method_test import create_wrapper_class, rule, st, run_state_machine_as_test, create_test_state_machine, argument_strategy, reference_precondition, MethodOrder, ArgumentStrategy, MethodStrategy
 from util.test_utils import run_rdycall_test_vector_sim
-from util.rtl.ring_buffer import RingBuffer
+from util.rtl.reorder_buffer import ReorderBuffer
 from test.config import test_verilog
 
 
@@ -10,7 +10,7 @@ from test.config import test_verilog
 #-------------------------------------------------------------------------
 def test_basic_alloc():
   run_rdycall_test_vector_sim(
-      RingBuffer( NUM_ENTRIES=4, ENTRY_BITWIDTH=16 ),
+      ReorderBuffer( NUM_ENTRIES=4, ENTRY_BITWIDTH=16 ),
       [
           ( 'alloc_port                    update_port              remove_port   peek_port       '
           ),
@@ -37,7 +37,7 @@ def test_basic_alloc():
 #-------------------------------------------------------------------------
 def test_basic_update():
   run_rdycall_test_vector_sim(
-      RingBuffer( NUM_ENTRIES=4, ENTRY_BITWIDTH=16 ),
+      ReorderBuffer( NUM_ENTRIES=4, ENTRY_BITWIDTH=16 ),
       [
           ( 'alloc_port                    update_port              remove_port   peek_port       '
           ),
@@ -68,7 +68,7 @@ def test_basic_update():
 #-------------------------------------------------------------------------
 
 
-class RingBufferStrategy( MethodStrategy ):
+class ReorderBufferStrategy( MethodStrategy ):
 
   def __init__( s, NUM_ENTRIES, ENTRY_BITWIDTH ):
     s.Index = st.integers( min_value=0, max_value=NUM_ENTRIES - 1 )
@@ -78,11 +78,11 @@ class RingBufferStrategy( MethodStrategy ):
 
 
 #-------------------------------------------------------------------------
-# RingBufferFL
+# ReorderBufferFL
 #-------------------------------------------------------------------------
 
 
-class RingBufferFL:
+class ReorderBufferFL:
 
   def __init__( s, NUM_ENTRIES, ENTRY_BITWIDTH ):
     # We want to be a power of two so mod arithmetic is efficient
@@ -92,7 +92,7 @@ class RingBufferFL:
     s.reset()
     s.order = MethodOrder(
         order=[ 'peek_port', 'alloc_port', 'update_port', 'remove_port' ] )
-    s.strategy = RingBufferStrategy( NUM_ENTRIES, ENTRY_BITWIDTH )
+    s.strategy = ReorderBufferStrategy( NUM_ENTRIES, ENTRY_BITWIDTH )
     s.data = [ 0 ] * s.NUM_ENTRIES
 
   def reset( s ):
@@ -137,12 +137,15 @@ class RingBufferFL:
   def empty( s ):
     return s.num == 0
 
+  def cycle( s ):
+    pass
+
 
 #-------------------------------------------------------------------------
 # test_fl
 #-------------------------------------------------------------------------
 def test_fl():
-  ring_buffer = RingBufferFL( NUM_ENTRIES=4, ENTRY_BITWIDTH=16 )
+  ring_buffer = ReorderBufferFL( NUM_ENTRIES=4, ENTRY_BITWIDTH=16 )
   assert ring_buffer.alloc_port_call( 0 ) == 0
   assert ring_buffer.alloc_port_call( 1 ) == 1
   assert ring_buffer.alloc_port_call( 2 ) == 2
@@ -162,7 +165,7 @@ def test_fl():
 # test_state_machine
 #-------------------------------------------------------------------------
 def test_state_machine():
-  RingBufferTest = create_test_state_machine(
-      RingBuffer( NUM_ENTRIES=4, ENTRY_BITWIDTH=16 ),
-      RingBufferFL( NUM_ENTRIES=4, ENTRY_BITWIDTH=16 ) )
-  run_state_machine_as_test( RingBufferTest )
+  ReorderBufferTest = create_test_state_machine(
+      ReorderBuffer( NUM_ENTRIES=4, ENTRY_BITWIDTH=16 ),
+      ReorderBufferFL( NUM_ENTRIES=4, ENTRY_BITWIDTH=16 ) )
+  run_state_machine_as_test( ReorderBufferTest )
