@@ -13,13 +13,13 @@ class RegisterInstrRequest( BitStructDefinition ):
 class RegisterInstrResponse( BitStructDefinition ):
 
   def __init__( s ):
-    s.tag = BitField( INST_TAG_LEN )
+    s.tag = BitField( INST_IDX_NBITS )
 
 
 class IsHeadRequest( BitStructDefinition ):
 
   def __init__( s ):
-    s.tag = BitField( INST_TAG_LEN )
+    s.tag = BitField( INST_IDX_NBITS )
 
 
 class IsHeadResponse( BitStructDefinition ):
@@ -31,14 +31,14 @@ class IsHeadResponse( BitStructDefinition ):
 class MarkSpeculativeRequest( BitStructDefinition ):
 
   def __init__( s ):
-    s.tag = BitField( INST_TAG_LEN )
+    s.tag = BitField( INST_IDX_NBITS )
     s.succesor_pc = BitField( XLEN )
 
 
 class RedirectRequest( BitStructDefinition ):
 
   def __init__( s ):
-    s.source_tag = BitField( INST_TAG_LEN )
+    s.source_tag = BitField( INST_IDX_NBITS )
     s.target_pc = BitField( XLEN )
     # if 1, then regardless of the sucessor PC,
     # the controlflow unit will force a rediredct.
@@ -53,7 +53,7 @@ class RedirectRequest( BitStructDefinition ):
 class TagValidRequest( BitStructDefinition ):
 
   def __init__( s ):
-    s.tag = BitField( INST_TAG_LEN )
+    s.tag = BitField( INST_IDX_NBITS )
 
 
 class TagValidResponse( BitStructDefinition ):
@@ -72,4 +72,4 @@ class CheckRedirectResponse( BitStructDefinition ):
 class RetireRequest( BitStructDefinition ):
 
   def __init__( s ):
-    s.tag = BitField( INST_TAG_LEN )
+    s.tag = BitField( INST_IDX_NBITS )

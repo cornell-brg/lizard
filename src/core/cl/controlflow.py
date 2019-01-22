@@ -27,7 +27,7 @@ class ControlFlowManagerCL( Model ):
 
   def __init__( s, dataflow ):
     # We use overflow to do mod operations
-    assert ( 2**INST_TAG_LEN == ROB_SIZE )
+    assert ( 2**INST_IDX_NBITS == ROB_SIZE )
     s.redirect = None
     s.dataflow = dataflow
 
@@ -35,12 +35,12 @@ class ControlFlowManagerCL( Model ):
     s.redirect = None
 
     if s.reset:
-      s.head = Bits( INST_TAG_LEN )
-      s.num = Bits( INST_TAG_LEN + 1 )
-      s.spec_depth = Bits( MAX_SPEC_DEPTH_LEN )
+      s.head = Bits( INST_IDX_NBITS )
+      s.num = Bits( INST_IDX_NBITS + 1 )
+      s.spec_depth = Bits( MAX_SPEC_DEPTH_NBITS )
       # Track the invalid and valid seq numbers, use as ring buffer
       # TODO make FL ring buffer class
-      s.seqs = [ False ] * ( 2**INST_TAG_LEN )
+      s.seqs = [ False ] * ( 2**INST_IDX_NBITS )
       # CAM from seq number to snapshot
       s.snapshot = {}
       s.redirect = RESET_VECTOR
@@ -55,7 +55,7 @@ class ControlFlowManagerCL( Model ):
     # Assert a seq number is availible
     assert ( s.register_rdy() )
     resp = RegisterInstrResponse()
-    resp.tag = s.head + s.num[:INST_TAG_LEN ]
+    resp.tag = s.head + s.num[:INST_IDX_NBITS ]
     # Can not have multiple insts with same seq in flight
     assert ( not s.seqs[ resp.tag ] )
     s.seqs[ resp.tag ] = True
@@ -89,7 +89,7 @@ class ControlFlowManagerCL( Model ):
 
     # invalidate all later instructions
     idx = request.source_tag + 1
-    tail = s.head + s.num[:INST_TAG_LEN ]
+    tail = s.head + s.num[:INST_IDX_NBITS ]
     while ( idx != tail ):
       s.seqs[ idx ] = False
       idx += 1

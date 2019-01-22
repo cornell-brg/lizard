@@ -62,14 +62,14 @@ class DataFlowManagerInterface:
     }, None, True, False )
 
     s.read_csr = MethodSpec({
-        'csr_num': Bits( CSR_SPEC_LEN ),
+        'csr_num': Bits( CSR_SPEC_NBITS ),
     }, {
         'result': Bits( XLEN ),
         'success': Bits( 1 ),
     }, True, False )
 
     s.write_csr = MethodSpec({
-        'csr_num': Bits( CSR_SPEC_LEN ),
+        'csr_num': Bits( CSR_SPEC_NBITS ),
         'value': Bits( XLEN ),
     }, {
         'success': Bits( 1 ),
@@ -80,32 +80,32 @@ class DataFlowManager( Model ):
 
   def __init__( s, num_src_ports, num_dst_ports ):
     s.interface = DataFlowManagerInterface(
-        naregs=REG_COUNT, npregs=REG_TAG_COUNT, nsnapshots=MAX_SPEC_DEPTH )
+        naregs=AREG_COUNT, npregs=PREG_COUNT, nsnapshots=MAX_SPEC_DEPTH )
 
     s.mngr2proc = InValRdyBundle( Bits( XLEN ) )
     s.proc2mngr = OutValRdyBundle( Bits( XLEN ) )
 
     # Reserve the highest tag for x0
-    # Free list with 2 alloc ports, 1 free port, and REG_COUNT - 1 used slots
+    # Free list with 2 alloc ports, 1 free port, and AREG_COUNT - 1 used slots
     # initially
     s.free_regs = FreeList(
-        REG_TAG_COUNT - 1,
+        PREG_COUNT - 1,
         num_src_ports,
         num_dst_ports,
         False,
         False,
-        used_slots_initial=REG_COUNT - 1 )
+        used_slots_initial=AREG_COUNT - 1 )
     # arf_used_pregs tracks the physical registers used by the current architectural state
     # arf_used_pregs[i] is 1 if preg i is used by the arf, and 0 otherwise
-    # on reset, the ARF is backed by pregs [0, REG_COUNT - 1]
-    arf_used_pregs_reset = [ Bits( 1, 0 ) for _ in range( REG_TAG_COUNT - 1 ) ]
+    # on reset, the ARF is backed by pregs [0, AREG_COUNT - 1]
+    arf_used_pregs_reset = [ Bits( 1, 0 ) for _ in range( PREG_COUNT - 1 ) ]
 
-    for i in range( REG_COUNT ):
+    for i in range( AREG_COUNT ):
       arf_used_pregs_reset[ i ] = Bits( 1, 1 )
 
     s.arf_used_pregs = RegisterFile(
         Bits( 1 ),
-        REG_TAG_COUNT - 1,
+        PREG_COUNT - 1,
         0,  # no read ports needed, only a dump port
         num_dst_ports,  # have to write for every instruction that commits
         False,  # no read ports, so we don't need a write-read bypass
@@ -115,38 +115,38 @@ class DataFlowManager( Model ):
     # Build the initial rename table.
     # x0 -> don't care
     # xn -> n-1
-    initial_map = [ 0 ] + [ x for x in range( REG_COUNT - 1 ) ]
-    s.rename_table = RenameTable( REG_COUNT, REG_TAG_COUNT, num_src_ports,
+    initial_map = [ 0 ] + [ x for x in range( AREG_COUNT - 1 ) ]
+    s.rename_table = RenameTable( AREG_COUNT, PREG_COUNT, num_src_ports,
                                   num_dst_ports, MAX_SPEC_DEPTH, True,
                                   initial_map )
 
-    preg_reset = [ PregState() for _ in range( REG_TAG_COUNT ) ]
-    inverse_reset = [ Bits( REG_TAG_LEN ) for _ in range( REG_TAG_COUNT ) ]
+    preg_reset = [ PregState() for _ in range( PREG_COUNT ) ]
+    inverse_reset = [ Bits( PREG_IDX_NBITS ) for _ in range( PREG_COUNT ) ]
 
     # Only non x0 registers have an initial state
-    for x in range( REG_COUNT - 1 ):
+    for x in range( AREG_COUNT - 1 ):
       preg_reset[ x ].value = 0
       preg_reset[ x ].ready = 1
       # Initially p0 is x1
       inverse_reset[ x ] = x + 1
     s.preg_file = RegisterFile(
         PregState(),
-        REG_TAG_COUNT,
+        PREG_COUNT,
         num_src_ports,
         num_dst_ports * 2,
         True,
         reset_values=preg_reset )
     s.inverse = RegisterFile(
-        Bits( REG_SPEC_LEN ),
-        REG_TAG_COUNT,
+        Bits( AREG_IDX_NBITS ),
+        PREG_COUNT,
         num_dst_ports,
         num_dst_ports,
         True,
         reset_values=inverse_reset )
 
     s.areg_file = RegisterFile(
-        Bits( REG_TAG_LEN ),
-        REG_COUNT,
+        Bits( PREG_IDX_NBITS ),
+        AREG_COUNT,
         num_dst_ports,
         num_dst_ports,
         False,
@@ -164,7 +164,7 @@ class DataFlowManager( Model ):
 
     s.rollback_port = s.interface.rollback.in_port()
     s.connect( s.rollback_port.call, s.rename_table.external_restore_en )
-    for i in range( REG_COUNT ):
+    for i in range( AREG_COUNT ):
       s.connect( s.areg_file.dump_out[ i ],
                  s.rename_table.external_restore_in[ i ] )
 

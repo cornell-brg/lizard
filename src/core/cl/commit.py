@@ -15,7 +15,7 @@ class CommitUnitCL( Model ):
     s.controlflow = controlflow
     s.memoryflow = memoryflow
 
-    s.committed = Wire( INST_TAG_LEN )
+    s.committed = Wire( INST_IDX_NBITS )
     s.valid = Wire( 1 )
     # This will be a ring buffer in the RTL
     s.reorder = [ None ] * ROB_SIZE

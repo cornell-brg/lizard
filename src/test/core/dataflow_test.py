@@ -18,7 +18,7 @@ class PregState( BitStructDefinition ):
   def __init__( s ):
     s.value = BitField( XLEN )
     s.ready = BitField( 1 )
-    s.areg = BitField( REG_SPEC_LEN )
+    s.areg = BitField( AREG_IDX_NBITS )
 
 
 class DataFlowManagerStrategy( MethodStrategy ):
@@ -29,7 +29,7 @@ class DataFlowManagerStrategy( MethodStrategy ):
     s.Preg = s.rename_table_strategy.Preg
 
     s.Value = bits_strategy( XLEN )
-    s.Csr_num = bits_strategy( CSR_SPEC_LEN )
+    s.Csr_num = bits_strategy( CSR_SPEC_NBITS )
 
     s.restore_port = s.rename_table_strategy.restore_port
     s.free_snapshot_port = s.rename_table_strategy.free_snapshot_port
@@ -50,7 +50,7 @@ generate_methods_from_model( DataFlowManager( 2, 2 ) )
 class DataFlowManagerFL:
 
   def __init__( s, num_src_ports, num_dst_ports ):
-    s.strategy = DataFlowManagerStrategy( REG_COUNT, REG_TAG_COUNT,
+    s.strategy = DataFlowManagerStrategy( AREG_COUNT, PREG_COUNT,
                                           MAX_SPEC_DEPTH )
     s.order = MethodOrder( order=[
         "rollback_port", "restore_port", "get_src_ports", "get_dst_ports",
@@ -58,16 +58,16 @@ class DataFlowManagerFL:
         "free_snapshot_port", "free_tag_ports"
     ] )
 
-    s.free_regs = FreeListFL( REG_TAG_COUNT - 1 )
-    s.zero_tag = Bits( REG_TAG_LEN, REG_TAG_COUNT - 1 )
+    s.free_regs = FreeListFL( PREG_COUNT - 1 )
+    s.zero_tag = Bits( PREG_IDX_NBITS, PREG_COUNT - 1 )
 
-    initial_map = [ 0 ] + [ x for x in range( REG_COUNT - 1 ) ]
-    s.rename_table = RenameTableFL( REG_COUNT, REG_TAG_COUNT, num_src_ports,
+    initial_map = [ 0 ] + [ x for x in range( AREG_COUNT - 1 ) ]
+    s.rename_table = RenameTableFL( AREG_COUNT, PREG_COUNT, num_src_ports,
                                     num_dst_ports, MAX_SPEC_DEPTH, True,
                                     initial_map )
 
-    s.preg_file = [ PregState() for _ in range( REG_TAG_COUNT ) ]
-    s.areg_file = [ Bits( REG_TAG_LEN ) for _ in range( REG_COUNT ) ]
+    s.preg_file = [ PregState() for _ in range( PREG_COUNT ) ]
+    s.areg_file = [ Bits( PREG_IDX_NBITS ) for _ in range( AREG_COUNT ) ]
     s.mngr2proc = InValRdyBundle( Bits( XLEN ) )
     s.proc2mngr = OutValRdyBundle( Bits( XLEN ) )
 
@@ -176,9 +176,9 @@ class DataFlowManagerFL:
     s.free_regs.reset = 1
     s.free_regs.xtick()
     s.rename_table.reset()
-    s.preg_file = [ PregState() for _ in range( REG_TAG_COUNT ) ]
-    s.areg_file = [ 0 ] + [ x for x in range( REG_COUNT - 1 ) ]
-    for areg in range( REG_COUNT ):
+    s.preg_file = [ PregState() for _ in range( PREG_COUNT ) ]
+    s.areg_file = [ 0 ] + [ x for x in range( AREG_COUNT - 1 ) ]
+    for areg in range( AREG_COUNT ):
       tag = s.get_dst_ports_call( areg ).tag
       s.write_tag_ports_call( tag, 0 )
 

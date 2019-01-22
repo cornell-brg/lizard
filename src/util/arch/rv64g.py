@@ -13,7 +13,7 @@ class RegisterFormat( FieldFormat ):
   def parse( self, sym, pc, spec ):
     assert spec.startswith( "x" )
     reg_specifier = int( spec.lstrip( "x" ) )
-    assert 0 <= reg_specifier < REG_COUNT
+    assert 0 <= reg_specifier < AREG_COUNT
     return reg_specifier
 
   def format( self, value ):
