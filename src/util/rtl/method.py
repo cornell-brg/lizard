@@ -1,20 +1,26 @@
 from pymtl import *
-
-
-def canonicalize_type( pymtl_type ):
-  if isinstance( pymtl_type, int ):
-    return Bits( pymtl_type )
-  else:
-    return pymtl_type
-
+from util.rtl.types import Array, canonicalize_type
 
 def canonicalize_method_spec( spec ):
   return dict([
       ( key, canonicalize_type( value ) ) for key, value in spec.iteritems()
   ] )
 
+def instantiate_port(data_type, port_type):
+  if isinstance(data_type, Array):
+    return [instantiate_port(data_type.Data, port_type) for _ in range(data_type.length)]
+  else:
+    return port_type(data_type)
+  
 
 class MethodSpec:
+
+  DIRECTION_IN = True
+  DIRECTION_OUT = False
+  PORTS = {
+    DIRECTION_IN: InPort,
+    DIRECTION_OUT: OutPort,
+  }
 
   def __init__( self, args, rets, has_call, has_rdy ):
     self.args = canonicalize_method_spec( args or {} )
@@ -22,30 +28,25 @@ class MethodSpec:
     self.has_call = has_call
     self.has_rdy = has_rdy
 
-  def in_port( self ):
-    return InMethodCallPortBundle( self.args, self.rets, self.has_call,
-                                   self.has_rdy )
-
-  def out_port( self ):
-    return OutMethodCallPortBundle( self.args, self.rets, self.has_call,
-                                    self.has_rdy )
-
-
-class MethodCallPortBundle( PortBundle ):
-
-  def __init__( self, args, rets, has_call, has_rdy ):
-    if has_call:
-      self.call = InPort( 1 )
-    self.augment( args, InPort )
-    self.augment( rets, OutPort )
-    if has_rdy:
-      self.rdy = OutPort( 1 )
-
-  def augment( self, port_dict, port_type ):
+  def augment( self, result, port_dict, port_type ):
     if port_dict:
       for name, data_type in port_dict.iteritems():
-        setattr( self, name, port_type( data_type ) )
+        result[name] = instantiate_port(data_type, port_type)
 
+  def generate(self, direction):
+    Incoming = PORTS[direction]
+    Outgoing = PORTS[not direction]
 
-InMethodCallPortBundle, OutMethodCallPortBundle = create_PortBundles(
-    MethodCallPortBundle )
+    result = {}
+    if self.has_call:
+      result['call'] = Incoming(1)
+    self.augment( result, args, Incoming )
+    self.augment( result, rets, Outgoing )
+    if self.has_rdy:
+      result['rdy'] = Outgoing(1)
+
+    return result
+
+  def ports(self):
+    return self.generate(DIRECTION_IN).keys()
+
