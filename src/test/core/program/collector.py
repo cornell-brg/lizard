@@ -9,6 +9,7 @@ def collect():
       os.path.basename( f.rsplit( ".", 1 )[ 0 ] )
       for f in glob.glob( dir_path + "/*.c" )
   ]
+  names = [ x for x in names if 'malloc' not in x ]
   return ( dir_path, names )
 
 
