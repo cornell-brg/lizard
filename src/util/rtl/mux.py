@@ -1,15 +1,20 @@
 from pymtl import *
-from util.rtl.method import MethodSpec, canonicalize_type
+from util.rtl.interface import Interface
+from util.rtl.method import MethodSpec
+from util.rtl.types import Array, canonicalize_type
 from bitutil import clog2, clog2nz
 
 
-class MuxInterface:
+class MuxInterface(Interface):
 
   def __init__( s, dtype, nports ):
+    super(MuxInterface, self).__init__()
+
     s.Data = canonicalize_type( dtype )
     s.Select = Bits( clog2nz( nports ) )
 
-    s.mux = MethodSpec({
+    s.add_method('mux', {
+        'in': Array(s.Data, nports),
         'select': s.Select,
     }, {
         'out': s.Data,
@@ -17,7 +22,7 @@ class MuxInterface:
 
 
 class Mux( Model ):
-  """An multiplexer.
+  """A multiplexer.
   
   Parameters:
     dtype: the datatype of the inputs and the output
@@ -27,29 +32,25 @@ class Mux( Model ):
     mux:
       performs the muxing function. No call, always ready.
       Inputs:
+        in (s.Data[nports]): the inputs.
         select (s.Select): the select signal. The width is clog2(nports).
           If there is only 1 input, the select signal is 1 bit wide, and must be 0.
       Outputs:
         out (s.Data): the output data, of type dtype.
 
-  Inputs:
-    in_ (s.Data[nports]): the inputs to the multiplexer.
-
   Sequencing:
-    Data from in_ read before the mux function is computed.
+    Data from in read before the mux function is computed.
   """
 
   def __init__( s, dtype, nports ):
     s.interface = MuxInterface( dtype, nports )
-
-    s.in_ = [ InPort( s.interface.Data ) for _ in range( nports ) ]
-    s.mux_port = s.interface.mux.in_port()
+    s.interface.apply(s)
 
     @s.combinational
     def select():
-      assert s.mux_port.select < nports
-      s.mux_port.out.v = s.in_[ s.mux_port.select ]
+      assert s.mux_select < nports
+      s.mux_out.v = s.mux_in[ s.mux_select ]
 
   def line_trace( s ):
-    return "[{}][{}]: {}".format( ', '.join([ str( x ) for x in s.in_ ] ),
-                                  s.mux_port.select, s.mux_port.out )
+    return "[{}][{}]: {}".format( ', '.join([ str( x ) for x in s.mux_in ] ),
+                                  s.mux_select, s.mux_out )
