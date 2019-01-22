@@ -19,16 +19,16 @@ class BitMaskInterface( object ):
         'index': s.Index,
     }, None, True, False )
 
-    s.reset = MethodSpec(None, None, True, False )
+    s.reset = MethodSpec( None, None, True, False )
 
-    s.get = MethodSpec(None, {
+    s.get = MethodSpec( None, {
         'mask': s.Vector,
     }, False, False )
 
 
 class BitMask( Model ):
 
-  def __init__( s, nbits):
+  def __init__( s, nbits ):
     s.interface = BitMaskInterface( nbits )
 
     s.get_port = s.interface.get_port.in_port()
@@ -36,23 +36,21 @@ class BitMask( Model ):
     s.clear_port = s.interface.clear_port.in_port()
     s.reset_port = s.interface.reset_port.in_port()
 
-    s.mask = [ Wire( 1 ) for _ in range(nbits) ]
+    s.mask = [ Wire( 1 ) for _ in range( nbits ) ]
 
-    s.mask_next = [ Wire( 1 ) for _ in range(nbits) ]
-
+    s.mask_next = [ Wire( 1 ) for _ in range( nbits ) ]
 
     @s.tick_rtl
     def seq():
       if s.reset or s.reset_port.call:
-        for i in range(nbits):
+        for i in range( nbits ):
           s.mask[ i ].v = 0
-      else
+      else:
         if s.set_port.call:
           s.mask[ s.set_port.index ].v = 1
 
         if s.clear_port.call:
           s.mask[ s.set_port.index ].v = 0
 
-
   def line_trace( s ):
-    return "{}".format( concat(reversed(s.mask)) )
+    return "{}".format( concat( reversed( s.mask ) ) )

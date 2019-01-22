@@ -38,7 +38,7 @@ class ReorderBuffer( Model ):
     s.num = RegRst( IDX_NBITS + 1, reset_value=0 )
     s.data = RegEn[ NUM_ENTRIES ]( Bits( ENTRY_BITWIDTH ) )
 
-    s.interface = RingBufferInterface( IDX_NBITS, ENTRY_BITWIDTH )
+    s.interface = ReorderBufferInterface( IDX_NBITS, ENTRY_BITWIDTH )
     # These are the methods that can be performed
     s.alloc_port = s.interface.alloc_port.in_port()
     s.update_port = s.interface.update_port.in_port()
