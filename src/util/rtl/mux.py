@@ -8,7 +8,7 @@ from bitutil import clog2, clog2nz
 class MuxInterface(Interface):
 
   def __init__( s, dtype, nports ):
-    super(MuxInterface, self).__init__()
+    super(MuxInterface, s).__init__()
 
     s.Data = canonicalize_type( dtype )
     s.Select = Bits( clog2nz( nports ) )
