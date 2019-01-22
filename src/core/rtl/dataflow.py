@@ -3,7 +3,9 @@ from config.general import *
 from msg.codes import *
 from util.rtl.method import MethodSpec
 from util.rtl.freelist import FreeList
+from util.rtl.registerfile import RegisterFile
 from core.rtl.renametable import RenameTableInterface, RenameTable
+from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 
 
 class PregState( BitStructDefinition ):
@@ -66,7 +68,7 @@ class DataFlowManagerInterface:
         'success': Bits( 1 ),
     }, True, False )
 
-    s.write_csr = MethodSped({
+    s.write_csr = MethodSpec({
         'csr_num': Bits( CSR_SPEC_LEN ),
         'value': Bits( XLEN ),
     }, {
@@ -77,8 +79,8 @@ class DataFlowManagerInterface:
 class DataFlowManager( Model ):
 
   def __init__( s, num_src_ports, num_dst_ports ):
-    s.interface = DataFlowManagerInterface( REG_COUNT, REG_TAG_COUNT,
-                                            MAX_SPEC_DEPTH )
+    s.interface = DataFlowManagerInterface(
+        naregs=REG_COUNT, npregs=REG_TAG_COUNT, nsnapshots=MAX_SPEC_DEPTH )
 
     s.mngr2proc = InValRdyBundle( Bits( XLEN ) )
     s.proc2mngr = OutValRdyBundle( Bits( XLEN ) )
@@ -91,13 +93,16 @@ class DataFlowManager( Model ):
         num_src_ports,
         num_dst_ports,
         False,
+        False,
         used_slots_initial=REG_COUNT - 1 )
     # arf_used_pregs tracks the physical registers used by the current architectural state
     # arf_used_pregs[i] is 1 if preg i is used by the arf, and 0 otherwise
     # on reset, the ARF is backed by pregs [0, REG_COUNT - 1]
-    arg_used_pregs_reset = [ Bits( 1, 0 ) for _ in range( REG_TAG_COUNT - 1 ) ]
+    arf_used_pregs_reset = [ Bits( 1, 0 ) for _ in range( REG_TAG_COUNT - 1 ) ]
+
     for i in range( REG_COUNT ):
-      s.arg_used_pregs_reset[ i ] = Bits( 1, 1 )
+      arf_used_pregs_reset[ i ] = Bits( 1, 1 )
+
     s.arf_used_pregs = RegisterFile(
         Bits( 1 ),
         REG_TAG_COUNT - 1,
@@ -105,7 +110,7 @@ class DataFlowManager( Model ):
         num_dst_ports,  # have to write for every instruction that commits
         False,  # no read ports, so we don't need a write-read bypass
         dump_port=True,  # only used for reading
-        reset_valus=arf_used_pregs_reset )
+        reset_values=arf_used_pregs_reset )
 
     # Build the initial rename table.
     # x0 -> don't care
@@ -117,12 +122,13 @@ class DataFlowManager( Model ):
 
     preg_reset = [ PregState() for _ in range( REG_TAG_COUNT ) ]
     inverse_reset = [ Bits( REG_TAG_LEN ) for _ in range( REG_TAG_COUNT ) ]
+
     # Only non x0 registers have an initial state
     for x in range( REG_COUNT - 1 ):
-      preg_state.value = 0
-      preg_state.ready = 1
+      preg_reset[ x ].value = 0
+      preg_reset[ x ].ready = 1
       # Initially p0 is x1
-      inverse_reset = x + 1
+      inverse_reset[ x ] = x + 1
     s.preg_file = RegisterFile(
         PregState(),
         REG_TAG_COUNT,
@@ -131,7 +137,7 @@ class DataFlowManager( Model ):
         True,
         reset_values=preg_reset )
     s.inverse = RegisterFile(
-        Bits( REG_TAG_LEN ),
+        Bits( REG_SPEC_LEN ),
         REG_TAG_COUNT,
         num_dst_ports,
         num_dst_ports,
@@ -166,14 +172,15 @@ class DataFlowManager( Model ):
         s.interface.get_src.in_port() for _ in range( num_src_ports )
     ]
     for i in range( num_src_ports ):
-      s.connect( s.rename_table.rd_ports[ i ].addr, s.get_src_ports[ i ].areg )
-      s.connect( s.rename_table.rd_ports[ i ].data, s.get_src_ports[ i ].preg )
+      s.connect( s.rename_table.read_ports[ i ].areg,
+                 s.get_src_ports[ i ].areg )
+      s.connect( s.rename_table.read_ports[ i ].preg,
+                 s.get_src_ports[ i ].preg )
 
     s.get_dst_ports = [
         s.interface.get_dst.in_port() for _ in range( num_dst_ports )
     ]
     for i in range( num_dst_ports ):
-      s.connect( s.get_dst_ports[ i ].areg, s.rename_table.wr_ports[ i ].addr )
       # only call free list if areg != 0 and it is ready
       @s.combinational
       def handle_dst_alloc( i=i ):
@@ -184,12 +191,14 @@ class DataFlowManager( Model ):
       # only write to the rename table if we are calling
       @s.combinational
       def handle_dst_alloc_write( i=i ):
-        s.rename_table.wr_ports[ i ].call = s.free_regs.alloc_ports[ i ].call
+        s.rename_table.write_ports[ i ].call.v = s.free_regs.alloc_ports[
+            i ].call
 
       # addr is areg and data is preg
-      s.connect( s.get_dst_ports[ i ].areg, s.rename_table.wr_ports[ i ].addr )
+      s.connect( s.get_dst_ports[ i ].areg,
+                 s.rename_table.write_ports[ i ].areg )
       s.connect( s.free_regs.alloc_ports[ i ].index,
-                 s.rename_table.wr_ports[ i ].data )
+                 s.rename_table.write_ports[ i ].preg )
 
       # result is the either the result from the free list or the zero tag
       # success is if we were able to call the free list or the areg was 0
@@ -203,14 +212,14 @@ class DataFlowManager( Model ):
           s.get_dst_ports[ i ].tag.v = s.free_regs.alloc_ports[ i ].index
 
       s.connect( s.preg_file.wr_ports[ i ].call,
-                 s.rename_table.wr_ports[ i ].call )
+                 s.rename_table.write_ports[ i ].call )
       s.connect( s.preg_file.wr_ports[ i ].addr,
                  s.free_regs.alloc_ports[ i ].index )
       s.connect( s.preg_file.wr_ports[ i ].data.value, 0 )
       s.connect( s.preg_file.wr_ports[ i ].data.ready, 0 )
 
       s.connect( s.inverse.wr_ports[ i ].call,
-                 s.rename_table.wr_ports[ i ].call )
+                 s.rename_table.write_ports[ i ].call )
       s.connect( s.inverse.wr_ports[ i ].addr,
                  s.free_regs.alloc_ports[ i ].index )
       s.connect( s.inverse.wr_ports[ i ].data, s.get_dst_ports[ i ].areg )
@@ -232,18 +241,18 @@ class DataFlowManager( Model ):
                  s.workaround_preg_file_rd_ports_data_ready[ i ] )
 
     for i in range( num_src_ports ):
-      s.connect( s.preg_file.rd_ports[ i ].addr.v, s.read_tag_ports[ i ].tag )
+      s.connect( s.preg_file.rd_ports[ i ].addr, s.read_tag_ports[ i ].tag )
 
       @s.combinational
       def handle_src_read( i=i ):
         if s.read_tag_ports[ i ].tag == s.rename_table.ZERO_TAG:
           s.read_tag_ports[ i ].ready.v = 1
-          s.read_tab_ports[ i ].value.v = 0
+          s.read_tag_ports[ i ].value.v = 0
         else:
           s.read_tag_ports[
               i ].ready.v = s.workaround_preg_file_rd_ports_data_ready[ i ]
           s.read_tag_ports[
-              i ].value.v = s.workaround_pref_file_rd_ports_data_value[ i ]
+              i ].value.v = s.workaround_preg_file_rd_ports_data_value[ i ]
 
     s.write_tag_ports = [
         s.interface.write_tag.in_port() for _ in range( num_src_ports )
@@ -256,7 +265,7 @@ class DataFlowManager( Model ):
       @s.combinational
       def handle_write_call( i=i ):
         s.preg_file.wr_ports[ i + num_dst_ports ].call.v = s.write_tag_ports[
-            i ].tag != s.rename_table.ZERO_TAG
+            i ].call and s.write_tag_ports[ i ].tag != s.rename_table.ZERO_TAG
 
       s.connect( s.preg_file.wr_ports[ i + num_dst_ports ].addr,
                  s.write_tag_ports[ i ].tag )
@@ -284,12 +293,14 @@ class DataFlowManager( Model ):
       # if committing free old tag, otherwise free input tag
       @s.combinational
       def handle_free_tag_call( i=i ):
-        s.free_regs.free_ports[ i ].call.v = s.free_tag_ports[
-            i ].call and s.free_tag_ports[ i ].tag != s.rename_table.ZERO_TAG
         if s.free_tag_ports[ i ].commit:
           s.free_regs.free_ports[ i ].index.v = s.areg_file.rd_ports[ i ].data
+          s.free_regs.free_ports[ i ].call.v = s.free_tag_ports[
+              i ].call and s.inverse.rd_ports[ i ].data != 0
         else:
           s.free_regs.free_ports[ i ].index.v = s.free_tag_ports[ i ].tag
+          s.free_regs.free_ports[ i ].call.v = s.free_tag_ports[
+              i ].call and s.free_tag_ports[ i ].tag != s.rename_table.ZERO_TAG
 
         # write into the areg file if commit
         s.areg_file.wr_ports[ i ].call.v = s.free_tag_ports[
@@ -309,7 +320,7 @@ class DataFlowManager( Model ):
           s.read_csr_port.result.v = s.mngr2proc.msg
           s.read_csr_port.success.v = s.mngr2proc.val
           # we are ready if data is valid and we made it here
-          s.mngr2proc.rdy = s.mngr2proc.val
+          s.mngr2proc.rdy.v = s.mngr2proc.val
         else:
           # no other CSRs supported return 0
           s.read_csr_port.result.v = 0
