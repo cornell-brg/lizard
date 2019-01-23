@@ -16,7 +16,7 @@ def test_basic():
           ( 0, 0, '?', '?', 1, 1 ),
           ( 1, 1, 1, 0b0010, 0, 0 ),
       ],
-      dump_vcd='foobar.vcd',
+      dump_vcd=None,
       test_verilog=test_verilog )
 
 
