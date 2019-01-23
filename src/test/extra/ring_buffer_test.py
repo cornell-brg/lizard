@@ -1,6 +1,6 @@
 from pymtl import *
 from util.method_test import create_wrapper_class, rule, st, run_state_machine_as_test, create_test_state_machine, argument_strategy, reference_precondition, MethodOrder, ArgumentStrategy, MethodStrategy
-from util.test_utils import run_rdycall_test_vector_sim
+from util.test_utils import run_rdycall_test_vector_sim, run_test_vector_sim2
 from util.rtl.reorder_buffer import ReorderBuffer
 from test.config import test_verilog
 
@@ -58,6 +58,38 @@ def test_basic_update():
           (( 3, '?', 0 ), ( 0, 0, 0 ), ( 1 ), ( 3, 1 ) ),
           (( 3, '?', 0 ), ( 0, 0, 0 ), ( 1 ), ( 5, 1 ) ),
           (( 3, '?', 0 ), ( 0, 0, 0 ), ( 1 ), ( 7, 1 ) ),
+      ],
+      dump_vcd=None,
+      test_verilog=test_verilog )
+
+
+
+
+def test_basic_update_sim2():
+  run_test_vector_sim2(
+      ReorderBuffer( NUM_ENTRIES=4, ENTRY_BITWIDTH=16 ),
+      ('alloc_port', 'update_port',      'remove_port', 'peek_port'),
+      ('call value', 'call index value', 'call',        'call'),
+      ('rdy index',  'rdy',              'rdy',         'rdy value'),
+      [
+        ((0, 0), (0, 0, 0), (0,), (0,)), ((1, '?'), (0,), (0,), (0, '?')),
+        # alloc index 1, value 1
+        ((1, 1), (0, 0, 0), (0,), (0,)), ((1, 0), (0,), (0,), (0, '?')),
+        # alloc index 2, value 1
+        ((1, 2), (0, 0, 0), (0,), (0,)), ((1, 1), (1,), (1,), (1, '?')),
+        ((1, 3), (0, 0, 0), (0,), (0,)), ((1, 2), (1,), (1,), (1, '?')),
+        ((1, 4), (0, 0, 0), (0,), (0,)), ((1, 3), (1,), (1,), (1, '?')),
+        # It is full now
+        ((0, 0), (0, 0, 0), (0,), (0,)), ((0, '?'), (1,), (1,), (1, '?')),
+        ((0, 0), (0, 0, 0), (0,), (1,)), ((0, '?'), (1,), (1,), (1, 1)),
+        # Remove the head, update, and peek at once
+        ((0, 0), (1, 1, 1234), (1,), (1,)), ((0, '?'), (1,), (1,), (1, 1)),
+        ((0, 0), (0, 0, 0), (0,), (1,)), ((1, '?'), (1,), (1,), (1, 1234)),
+        ((0, 0), (1, 3, 222), (0,), (0,)), ((1, '?'), (1,), (1,), (1, '?')),
+        ((0, 0), (0, 0, 0), (1,), (0,)), ((1, '?'), (1,), (1,), (1, '?')),
+        ((0, 0), (0, 0, 0), (1,), (0,)), ((1, '?'), (1,), (1,), (1, '?')),
+        ((0, 0), (0, 0, 0), (1,), (1,)), ((1, '?'), (1,), (1,), (1, 222)),
+        ((0, 0), (0, 0, 0), (0,), (0,)), ((1, '?'), (0,), (0,), (0, '?')),
       ],
       dump_vcd=None,
       test_verilog=test_verilog )
