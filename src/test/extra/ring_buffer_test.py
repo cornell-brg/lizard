@@ -1,5 +1,5 @@
 from pymtl import *
-from util.method_test import create_wrapper_class, rule, st, run_state_machine_as_test, create_test_state_machine, argument_strategy, reference_precondition, MethodOrder, ArgumentStrategy, MethodStrategy
+from util.method_test import create_wrapper_class, rule, st, run_state_machine_as_test, create_test_state_machine, argument_strategy, reference_precondition, MethodOrder, ArgumentStrategy, MethodStrategy, bits_strategy
 from util.test_utils import run_rdycall_test_vector_sim, run_test_vector_sim2
 from util.rtl.reorder_buffer import ReorderBuffer
 from test.config import test_verilog
@@ -104,7 +104,7 @@ class ReorderBufferStrategy( MethodStrategy ):
 
   def __init__( s, NUM_ENTRIES, ENTRY_BITWIDTH ):
     s.Index = st.integers( min_value=0, max_value=NUM_ENTRIES - 1 )
-    s.Value = st.integers( min_value=0, max_value=Bits( ENTRY_BITWIDTH )._max )
+    s.Value = bits_strategy( ENTRY_BITWIDTH )
     s.alloc_port = ArgumentStrategy( value=s.Value )
     s.update_port = ArgumentStrategy( index=s.Index, value=s.Value )
 
