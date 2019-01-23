@@ -82,7 +82,10 @@ class Interface(object):
         port_map[port_name] = [ports[i][port_name] for i in range(count)]
     
     for port_name, port in port_map.iteritems():
-      setattr(target, '{}{}_{}'.format(prefix, name, port_name), port)
+      mangled = '{}{}_{}'.format(prefix, name, port_name)
+      if hasattr(target, mangled):
+        raise ValueError('Mangled field already exists: {}'.format(mangled))
+      setattr(target, mangled, port)
 
   def apply(s, target):
     """Binds incoming ports to the target
