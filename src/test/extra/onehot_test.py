@@ -7,7 +7,7 @@ from test.config import test_verilog
 def test_basic():
   run_test_vector_sim(
       OneHotEncoder( 4 ), [
-          ( 'encode_port.number encode_port.onehot*' ),
+          ( 'encode_number encode_onehot*' ),
           ( 0, 0b0001 ),
           ( 1, 0b0010 ),
           ( 2, 0b0100 ),
