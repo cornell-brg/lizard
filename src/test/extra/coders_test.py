@@ -7,7 +7,7 @@ from test.config import test_verilog
 def test_basic():
   run_test_vector_sim(
       PriorityDecoder( 4 ), [
-          ( 'decode_port.signal decode_port.valid* decode_port.decoded*' ),
+          ( 'decode_signal decode_valid* decode_decoded*' ),
           ( 0b0000, 0, '?' ),
           ( 0b0001, 1, 0 ),
           ( 0b0010, 1, 1 ),
