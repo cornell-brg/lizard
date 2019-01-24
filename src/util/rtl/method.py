@@ -55,6 +55,13 @@ class MethodSpec:
     represents a type of Bits(n).
 
     call and rdy are either True or False.
+
+    count defines the number of instances. If None, the method
+    will only have 1 instance, the ports will not be wrapped in arrays.
+    If any number (including 0, or 1), then the ports will be wrapped 
+    in arrays of the specified length. Note the distinction between
+    1 and None: one is an array of length 1, and one is a single port
+    not wrapped in an array.
     """
     self.name = name
     self.args = canonicalize_method_spec( args or {} )
