@@ -32,9 +32,9 @@ class ReorderBuffer( Model ):
     # We want to be a power of two so mod arithmetic is efficient
     IDX_NBITS = clog2( NUM_ENTRIES )
     assert 2**IDX_NBITS == NUM_ENTRIES
-    # Dealloc from head, add onto tail
-    s.head = RegRst( IDX_NBITS, reset_value=0 )
+    # Dealloc from tail, alloc at head
     s.tail = RegRst( IDX_NBITS, reset_value=0 )
+    s.head = RegRst( IDX_NBITS, reset_value=0 )
     s.num = RegRst( IDX_NBITS + 1, reset_value=0 )
     s.data = RegEn[ NUM_ENTRIES ]( Bits( ENTRY_BITWIDTH ) )
 
@@ -58,12 +58,12 @@ class ReorderBuffer( Model ):
       s.peek_port.rdy.v = not s.empty
 
     @s.combinational
-    def update_head():
-      s.head.in_.v = ( s.head.out + 1 ) if s.remove_port.call else s.head.out
+    def update_tail():
+      s.tail.in_.v = ( s.tail.out + 1 ) if s.remove_port.call else s.tail.out
 
     @s.combinational
-    def update_tail():
-      s.tail.in_.v = ( s.tail.out + 1 ) if s.alloc_port.call else s.tail.out
+    def update_head():
+      s.head.in_.v = ( s.head.out + 1 ) if s.alloc_port.call else s.head.out
 
     @s.combinational
     def update_num():
@@ -80,10 +80,10 @@ class ReorderBuffer( Model ):
         s.data[ i ].en.v = 0
 
       # Handle alloc
-      s.alloc_port.index.v = s.tail.out
+      s.alloc_port.index.v = s.head.out
       if s.alloc_port.call:
-        s.data[ s.tail.out ].en.v = 1
-        s.data[ s.tail.out ].in_.v = s.alloc_port.value.v
+        s.data[ s.head.out ].en.v = 1
+        s.data[ s.head.out ].in_.v = s.alloc_port.value.v
 
       # Handle update
       if s.update_port.call:
@@ -91,7 +91,7 @@ class ReorderBuffer( Model ):
         s.data[ s.update_port.index ].in_.v = s.update_port.value.v
 
       # Handle peek
-      s.peek_port.value.v = s.data[ s.head.out ].out
+      s.peek_port.value.v = s.data[ s.tail.out ].out
 
   def line_trace( s ):
     return ":".join([ "{}".format( x.out ) for x in s.data ] )
