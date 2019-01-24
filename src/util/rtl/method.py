@@ -1,17 +1,22 @@
 from pymtl import *
 from util.rtl.types import Array, canonicalize_type
 
+
 def canonicalize_method_spec( spec ):
   return dict([
       ( key, canonicalize_type( value ) ) for key, value in spec.iteritems()
   ] )
 
-def instantiate_port(data_type, port_type):
-  if isinstance(data_type, Array):
-    return [instantiate_port(data_type.Data, port_type) for _ in range(data_type.length)]
+
+def instantiate_port( data_type, port_type ):
+  if isinstance( data_type, Array ):
+    return [
+        instantiate_port( data_type.Data, port_type )
+        for _ in range( data_type.length )
+    ]
   else:
-    return port_type(data_type)
-  
+    return port_type( data_type )
+
 
 class MethodSpec:
   """A hardware method specification
@@ -29,46 +34,65 @@ class MethodSpec:
   The argument and return signals are as in a normal method.
   """
 
-  DIRECTION_IN = True
-  DIRECTION_OUT = False
+  DIRECTION_CALLEE = True
+  DIRECTION_CALLER = False
   PORTS = {
-    DIRECTION_IN: InPort,
-    DIRECTION_OUT: OutPort,
+      DIRECTION_CALLEE: InPort,
+      DIRECTION_CALLER: OutPort,
   }
 
-  def __init__( self, args, rets, has_call, has_rdy ):
+  def __init__( self,
+                name,
+                args=None,
+                rets=None,
+                call=True,
+                rdy=True,
+                count=None ):
     """Creates a new method specification.
 
     args and rets are maps from argument names to types. Valid types are 
     Array, Bits, any BitStruct, or a positive integer. A positive integer n
     represents a type of Bits(n).
 
-    has_call and has_rdy are either True or False.
+    call and rdy are either True or False.
     """
+    self.name = name
     self.args = canonicalize_method_spec( args or {} )
     self.rets = canonicalize_method_spec( rets or {} )
-    self.has_call = has_call
-    self.has_rdy = has_rdy
+    self.call = call
+    self.rdy = rdy
+    self.count = count
 
-  def augment( self, result, port_dict, port_type ):
+    assert 'call' not in self.args and 'call' not in self.rets
+    assert 'rdy' not in self.args and 'rdy' not in self.rets
+
+  def _augment( self, result, port_dict, port_type ):
     if port_dict:
       for name, data_type in port_dict.iteritems():
-        result[name] = instantiate_port(data_type, port_type)
+        result[ name ] = instantiate_port( data_type, port_type )
 
-  def generate(self, direction):
-    Incoming = self.PORTS[direction]
-    Outgoing = self.PORTS[not direction]
+  def generate( self, direction ):
+    """Returns a map from port names to the corresponding port.
+    
+    The directionality of each port is determined by direction.
+    Argument ports are InPorts on the callee side,
+    and return ports are OutPorts on the callee side.
+
+    All directions are flipped on the caller side.
+    """
+    Incoming = self.PORTS[ direction ]
+    Outgoing = self.PORTS[ not direction ]
 
     result = {}
-    if self.has_call:
-      result['call'] = Incoming(1)
-    self.augment( result, self.args, Incoming )
-    self.augment( result, self.rets, Outgoing )
-    if self.has_rdy:
-      result['rdy'] = Outgoing(1)
+    if self.call:
+      result[ 'call' ] = Incoming( 1 )
+    self._augment( result, self.args, Incoming )
+    self._augment( result, self.rets, Outgoing )
+    if self.rdy:
+      result[ 'rdy' ] = Outgoing( 1 )
 
     return result
 
-  def ports(self):
-    return self.generate(self.DIRECTION_IN).keys()
-
+  def ports( self ):
+    """Returns a list of all the port names"""
+    return self.generate( self.DIRECTION_CALLEE ).keys()

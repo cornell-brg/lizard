@@ -4,26 +4,32 @@ from util.rtl.method import MethodSpec
 from util.rtl.types import Array, canonicalize_type
 from bitutil import clog2, clog2nz
 
-class OneHotEncoderInterface(Interface):
+
+class OneHotEncoderInterface( Interface ):
 
   def __init__( s, noutbits ):
-    super(OneHotEncoderInterface, s).__init__()
-
     s.Out = Bits( noutbits )
     s.In = clog2nz( noutbits )
 
-    s.add_method('encode', {
-        'number': s.In,
-    }, {
-        'onehot': s.Out,
-    }, False, False )
+    super( OneHotEncoderInterface, s ).__init__([
+        MethodSpec(
+            'encode',
+            args={
+                'number': s.In,
+            },
+            rets={
+                'onehot': s.Out,
+            },
+            call=False,
+            rdy=False ),
+    ] )
 
 
 class OneHotEncoder( Model ):
 
   def __init__( s, noutbits ):
     s.interface = OneHotEncoderInterface( noutbits )
-    s.interface.apply(s)
+    s.interface.apply( s )
 
     for i in range( noutbits ):
 

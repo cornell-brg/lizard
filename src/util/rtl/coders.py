@@ -5,33 +5,39 @@ from util.rtl.types import Array, canonicalize_type
 from bitutil import clog2, clog2nz
 
 
-class PriorityDecoderInterface(Interface):
+class PriorityDecoderInterface( Interface ):
 
   def __init__( s, inwidth ):
-    super(PriorityDecoderInterface, s).__init__()
-
     s.In = Bits( inwidth )
     s.Out = clog2nz( inwidth )
 
-    s.add_method('decode', {
-        'signal': s.In,
-    }, {
-        'decoded': s.Out,
-        'valid': Bits( 1 ),
-    }, False, False )
+    super( PriorityDecoderInterface, s ).__init__([
+        MethodSpec(
+            'decode',
+            args={
+                'signal': s.In,
+            },
+            rets={
+                'decoded': s.Out,
+                'valid': Bits( 1 ),
+            },
+            call=False,
+            rdy=False,
+        ),
+    ] )
 
 
 class PriorityDecoder( Model ):
 
   def __init__( s, inwidth ):
     s.interface = PriorityDecoderInterface( inwidth )
-    s.interface.apply(s)
+    s.interface.apply( s )
 
     s.valid = [ Wire( 1 ) for _ in range( inwidth + 1 ) ]
     s.outs = [ Wire( s.interface.Out ) for _ in range( inwidth + 1 ) ]
 
-    s.connect(s.valid[ 0 ], 0)
-    s.connect(s.outs[ 0 ], 0)
+    s.connect( s.valid[ 0 ], 0 )
+    s.connect( s.outs[ 0 ], 0 )
 
     for i in range( inwidth ):
 
