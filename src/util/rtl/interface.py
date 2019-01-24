@@ -56,16 +56,26 @@ class Interface( object ):
     """Initialize the method map.
 
     Subclasses must call this!
-    """
-    """Adds a method to the interface.
 
-    The args, rets, has_call and has_rdy are as defined by the MethodSpec
-    __init__. count defines the number of instances. If None, the method
-    will only have 1 instance, the ports will not be wrapped in arrays.
-    If any number (including 0, or 1), then the ports will be wrapped 
-    in arrays of the specified length. Note the distinction between
-    1 and None: one is an array of length 1, and one is a single port
-    not wrapped in an array.
+    spec is a list of MethodSpec objects. If ordering_chains is None,
+    the sequencing is defined by the order of spec. Methods
+    later in the list see, and overrite, the effects of earlier methods in the list
+    in a given cycle. If ordering_chains is not None, then it is a list 
+    of order requirements. An order requirement is simply a list of method names,
+    in the order in which they must be performed. For example, consider
+    3 methods a, b, and c. If a occurs before c, and also occurs before b,
+    the ordering chains expressing that constraint are:
+        ['a', 'c'] and ['a', 'b']
+    This constructor will use a topological sort to find some order
+    which satisfies the constraints. If no such order exists,
+    it will raise an exception. Note that in many cases, there are multiple 
+    orders which can satisfy a given set of constraints. In these cases,
+    the algorithm may pick any such satisfying order.
+    If a, b, and c must all happen in a specific order, one long ordering chain
+    can be used:
+        ['a', 'b', 'c']
+    That is equivelent to not specifying an ordering chain and instead listing the methods
+    in that order in spec.
     """
     names = [ method.name for method in spec ]
     if len( names ) != len( set( names ) ):
