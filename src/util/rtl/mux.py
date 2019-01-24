@@ -5,20 +5,26 @@ from util.rtl.types import Array, canonicalize_type
 from bitutil import clog2, clog2nz
 
 
-class MuxInterface(Interface):
+class MuxInterface( Interface ):
 
   def __init__( s, dtype, nports ):
-    super(MuxInterface, s).__init__()
-
     s.Data = canonicalize_type( dtype )
     s.Select = Bits( clog2nz( nports ) )
 
-    s.add_method('mux', {
-        'in': Array(s.Data, nports),
-        'select': s.Select,
-    }, {
-        'out': s.Data,
-    }, False, False )
+    super( MuxInterface, s ).__init__([
+        MethodSpec(
+            'mux',
+            args={
+                'in': Array( s.Data, nports ),
+                'select': s.Select,
+            },
+            rets={
+                'out': s.Data,
+            },
+            call=False,
+            rdy=False,
+        ),
+    ] )
 
 
 class Mux( Model ):
@@ -44,7 +50,7 @@ class Mux( Model ):
 
   def __init__( s, dtype, nports ):
     s.interface = MuxInterface( dtype, nports )
-    s.interface.apply(s)
+    s.interface.apply( s )
 
     @s.combinational
     def select():
