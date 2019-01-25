@@ -47,7 +47,8 @@ class SnapshottingFreeListInterface( Interface ):
         ],
         ordering_chains=[
             [ 'reset_alloc_tracking', 'alloc', 'revert_allocs', 'set' ],
-        ] )
+        ],
+    )
 
 
 class SnapshottingFreeList( Model ):
