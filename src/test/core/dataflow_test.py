@@ -44,7 +44,8 @@ class DataFlowManagerStrategy( MethodStrategy ):
     s.write_csr_port = ArgumentStrategy( csr_num=s.Csr_num, value=s.Value )
 
 
-generate_methods_from_model( DataFlowManager( 2, 2 ) )
+# TODO
+# generate_methods_from_model( DataFlowManager( 2, 2 ) )
 
 
 class DataFlowManagerFL:
