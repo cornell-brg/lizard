@@ -4,14 +4,15 @@ from pclib.rtl import RegEn, RegEnRst, RegRst
 from util.rtl.method import MethodSpec
 from util.rtl.coders import PriorityDecoder
 from util.rtl.mux import Mux
+from util.rtl.onehot import OneHotEncoder
 from util.rtl.packers import Packer, Unpacker
 from util.rtl.interface import Interface
-
+from util.rtl.types import Array, canonicalize_type
 
   # Must support a ready(), valid(), input(), output(), notify(), kill()
 class IssueQueueSlotInterface( Interface ):
   def __init__( s, InputType, OutputType, NotifyType, KillType ):
-    super( IssueQueueSlot, s ).__init__(
+    super( IssueQueueSlotInterface, s ).__init__(
         [
             MethodSpec(
                 'valid',
@@ -27,14 +28,14 @@ class IssueQueueSlotInterface( Interface ):
                 rdy=False ),
             MethodSpec(
                 'input',
-                args= {'input' : InputType },
+                args= {'value' : InputType },
                 rets=None,
                 call=True,
                 rdy=False ),
             MethodSpec(
                 'output',
                 args= None,
-                rets={ 'output' : OutputType },
+                rets={ 'value' : OutputType },
                 call=True,
                 rdy=False ),
             MethodSpec(
@@ -57,7 +58,7 @@ class IssueQueueSlotInterface( Interface ):
 
 class IssueQueueInterface( Interface ):
   def __init__( s, InputType, OutputType, NotifyType, KillType ):
-    super( IssueQueueSlot, s ).__init__(
+    super( IssueQueueInterface, s ).__init__(
         [
             MethodSpec(
                 'add',
@@ -108,7 +109,7 @@ class CompactingIssueQueue( Model ):
     s.idx_nbits = clog2( num_entries )
     s.KillDtype = canonicalize_type( KillType )
     s.interface = IssueQueueInterface(InputType, OutputType, NotifyType, KillType )
-    s.interface.apply()
+    s.interface.apply(s)
 
     # Create all the slots in our issue queue
     s._slots = [ create_slot() for _ in range( num_entries ) ]
@@ -135,7 +136,7 @@ class CompactingIssueQueue( Model ):
       s.connect( s._slots[ i ].input_value, s._slots[i+1].output_value )
 
     # Connect kill and notify signal to each slot
-    for i, slot in enumerate( s.slots ):
+    for i, slot in enumerate( s._slots ):
       # Kill signal
       s.connect( slot.kill_call, s.kill_call )
       s.connect( slot.kill_value, s.kill_value )

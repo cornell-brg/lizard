@@ -6,7 +6,7 @@ from test.config import test_verilog
 class IssueSlot(Model):
   def __init__(s, InputType, OutputType, NotifyType, KillType ):
     s.interface = IssueQueueSlotInterface(InputType, OutputType, NotifyType, KillType )
-    s.interface.apply()
+    s.interface.apply(s)
 
 
 #-------------------------------------------------------------------------
@@ -14,7 +14,8 @@ class IssueSlot(Model):
 #-------------------------------------------------------------------------
 def test_instatiate():
   make_slot = lambda : IssueSlot(Bits(1), Bits(1), Bits(1), Bits(1))
-  CompactingIssueQueue(make_slot, Bits(1), Bits(1), Bits(1), Bits(1))
+  make_slot()
+  CompactingIssueQueue(make_slot, Bits(1), Bits(1), Bits(1), Bits(1), 1, 1, 1)
   # run_rdycall_test_vector_sim(
   #     ReorderBuffer( NUM_ENTRIES=4, ENTRY_BITWIDTH=16 ),
   #     [
