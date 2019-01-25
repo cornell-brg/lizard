@@ -4,6 +4,34 @@ from util.rtl.method import MethodSpec
 from util.toposort import toposort
 
 
+def Include( interface ):
+  return ( interface, None )
+
+
+def IncludeSome( interface, some ):
+  return ( interface, some )
+
+
+class ResidualMethodSpec:
+
+  def __init__( s, model, spec ):
+    s.model = model
+    s.spec = spec
+
+  def connect( s, spec, target ):
+    for port_name in s.spec.ports():
+      field_name = '{}_{}'.format( spec.name, port_name )
+      s._connect_ports(
+          getattr( s.model, field_name ), getattr( target, field_name ) )
+
+  def _connect_ports( s, source_port, target_port ):
+    if isinstance( source_port, list ):
+      for sp, tp in zip( source_port, target_port ):
+        _connect_ports( sp, tp )
+    else:
+      s.model.connect( source_port, target_port )
+
+
 class Interface( object ):
   """An interface for a hardware module.
 
@@ -52,7 +80,7 @@ class Interface( object ):
   but with the prefix 'prefix_' (note the underscore is added).
   """
 
-  def __init__( s, spec, ordering_chains=None ):
+  def __init__( s, spec, bases=None, ordering_chains=None ):
     """Initialize the method map.
 
     Subclasses must call this!
@@ -77,26 +105,47 @@ class Interface( object ):
     That is equivelent to not specifying an ordering chain and instead listing the methods
     in that order in spec.
     """
+
+    # If no chains present, ordering is as given
+    if ordering_chains is None:
+      # 1 chain with all the method names
+      s.ordering_chains = [[ method.name for method in spec ] ]
+    else:
+      s.ordering_chains = ordering_chains
+
+    bases = bases or []
+    for interface, includes in bases:
+      includes = includes or interface.methods.keys()
+      for method in includes:
+        spec.append( interface[ method ] )
+      s.ordering_chains.extend( interface.get_ordering_chains( includes ) )
+
     names = [ method.name for method in spec ]
-    if len( names ) != len( set( names ) ):
+    name_set = set( names )
+    if len( names ) != len( name_set ):
       raise ValueError( 'Duplicate methods: {}'.format( names ) )
 
     # Compute the ordering based on the chains
-    # If no chains present, ordering is as given
-    if ordering_chains is None:
-      order = names
-    else:
-      # Construct a dependency graph from the ordering chains
-      graph = { name: set() for name in names }
-      for chain in ordering_chains:
-        # chains only make sense if they have at least 2 elements
-        assert len( chain ) >= 2
+
+    # Construct a dependency graph from the ordering chains
+    # Validate ordering chains
+    for chain in s.ordering_chains:
+      for name in chain:
+        if name not in name_set:
+          raise ValueError(
+              'Ordering chain contains unknown method: {} found in {}'.format(
+                  name, chain ) )
+
+    graph = { name: set() for name in names }
+    for chain in s.ordering_chains:
+      # chains only make sense if they have at least 2 elements
+      if len( chain ) >= 2:
         pred = chain[ 0 ]
         for current in chain[ 1:]:
           # Every item depends on the previous item
           graph[ current ].add( pred )
           pred = current
-      order = toposort( graph )
+    order = toposort( graph )
 
     spec_dict = { method.name: method for method in spec }
     s.methods = OrderedDict([( name, spec_dict[ name ] ) for name in order ] )
@@ -147,6 +196,7 @@ class Interface( object ):
     for name, spec in s.methods.iteritems():
       s._inject( target, '', name, spec, spec.count,
                  MethodSpec.DIRECTION_CALLEE )
+      setattr( target, name, ResidualMethodSpec( target, spec ) )
 
   def require( s, target, prefix, name, count=None ):
     """Binds an outgoing port from this interface to the target
@@ -167,3 +217,17 @@ class Interface( object ):
     # else:
     #   raise ValueError('No more ports for method left: {}'.format(name))
     s._inject( target, prefix, name, spec, count, MethodSpec.DIRECTION_CALLER )
+
+  def __getitem__( s, key ):
+    return s.methods[ key ]
+
+  def get_ordering_chains( s, methods=None ):
+    if methods is None:
+      return s.ordering_chains
+    else:
+      result = []
+      for chain in s.ordering_chains:
+        reduced = [ name for name in chain if name in methods ]
+        if len( reduced ) != 0:
+          result.append( reduced )
+      return result
