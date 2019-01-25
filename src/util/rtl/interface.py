@@ -175,7 +175,7 @@ class Interface( object ):
       port_map = spec.generate( direction )
     else:
       ports = [
-          spec.generate( MethodSpec.DIRECTION_CALLEE ) for _ in range( count )
+          spec.generate( direction ) for _ in range( count )
       ]
       port_map = {}
       for port_name in spec.ports():
