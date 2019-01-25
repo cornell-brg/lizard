@@ -82,7 +82,7 @@ class FreeList( Model ):
 
   Methods:
     alloc:
-      Allocates a free element, and returns that element. Requires a call signal. 
+      Allocates a free element, and returns that element. Requires a call signal.
       Only ready when the free list has elements available.
       Inputs: None
       Outputs:
@@ -109,7 +109,7 @@ class FreeList( Model ):
     free_alloc_bypass controls the relative ordering between free and alloc: if True, free occurs before alloc, otherwise
     alloc occurs before free. release_alloc_bypass controls the relative ordering between release and alloc: if True, free
     occurs before release, otherwise alloc occurs before release.
-    Note that the relative ordering between release and free is undefined, and cannot be determined. 
+    Note that the relative ordering between release and free is undefined, and cannot be determined.
     (If both release and free happen either before or after alloc, the ordering of release and free does not matter.
     If one happens before alloc, and one happens after alloc, due to the configuration of the bypass flags,
     then the order of alloc, free, and release is fully defined.)
@@ -226,8 +226,8 @@ class FreeList( Model ):
       def compute_free():
         s.free_next.v = s.free_next_base | s.free_masks[ num_free_ports ]
 
-    s.connect( s.set_mux.mux_in[ 0 ], s.free_next )
-    s.connect( s.set_mux.mux_in[ 1 ], s.set_state )
+    s.connect( s.set_mux.mux_in_[ 0 ], s.free_next )
+    s.connect( s.set_mux.mux_in_[ 1 ], s.set_state )
     s.connect( s.set_mux.mux_select, s.set_call )
 
     for i in range( nslots ):
