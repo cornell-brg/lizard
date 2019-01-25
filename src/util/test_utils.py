@@ -156,28 +156,28 @@ def run_test_vector_sim( model,
 
 
 def run_test_vector_sim2( model,
-                                 ports,
-                                 str_inputs,
-                                 str_outputs,
-                                 test_vectors,
-                                 dump_vcd=None,
-                                 test_verilog=False ):
-  nports = len(ports)
+                          ports,
+                          str_inputs,
+                          str_outputs,
+                          test_vectors,
+                          dump_vcd=None,
+                          test_verilog=False ):
+  nports = len( ports )
 
-  assert nports == len(str_inputs)
-  assert nports == len(str_outputs)
+  assert nports == len( str_inputs )
+  assert nports == len( str_outputs )
 
-  inputs = tuple(str_input.split() for str_input in str_inputs)
-  outputs = tuple(str_output.split() for str_output in str_outputs)
+  inputs = tuple( str_input.split() for str_input in str_inputs )
+  outputs = tuple( str_output.split() for str_output in str_outputs )
 
-  for pname, ins, outs in zip(ports, inputs, outputs):
-    assert hasattr(model, pname)
+  for pname, ins, outs in zip( ports, inputs, outputs ):
+    assert hasattr( model, pname )
     # TODO assert direction
     for input in ins:
-      exec ( "assert(hasattr( model.{}, input ))".format(pname))
+      exec ( "assert(hasattr( model.{}, input ))".format( pname ) )
 
     for output in outs:
-      exec ( "assert(hasattr( model.{}, output ))".format(pname ))
+      exec ( "assert(hasattr( model.{}, output ))".format( pname ) )
 
   # Setup the model
   model.vcd_file = dump_vcd
@@ -193,26 +193,27 @@ def run_test_vector_sim2( model,
   print ""
 
   # Run the simulation
-  for i, row in enumerate(zip(test_vectors[::2], test_vectors[1::2])):
+  for i, row in enumerate( zip( test_vectors[::2 ], test_vectors[ 1::2 ] ) ):
     sim.eval_combinational()
     cycle_inputs, cycle_outputs = row
     # Apply the test inputs for each port
-    for port, input_names, port_inputs in zip(ports, inputs, cycle_inputs):
+    for port, input_names, port_inputs in zip( ports, inputs, cycle_inputs ):
       # Set the value on each signal
-      assert len(input_names) == len(port_inputs)
-      for sname, value, in zip(input_names, port_inputs):
-        exec( "model.{}.{}.v = value".format(port, sname) )
+      assert len( input_names ) == len( port_inputs )
+      for sname, value, in zip( input_names, port_inputs ):
+        exec ( "model.{}.{}.v = value".format( port, sname ) )
 
     sim.eval_combinational()
     # Display line trace output
     sim.print_line_trace()
 
     # Check output
-    for port, output_names, port_outputs in zip(ports, outputs, cycle_outputs):
+    for port, output_names, port_outputs in zip( ports, outputs,
+                                                 cycle_outputs ):
       # Set the value on each signal
-      assert len(output_names) == len(port_outputs)
-      for sname, value, in zip(output_names, port_outputs):
-        exec ( "out_value = model.{}.{}".format( port, sname) )
+      assert len( output_names ) == len( port_outputs )
+      for sname, value, in zip( output_names, port_outputs ):
+        exec ( "out_value = model.{}.{}".format( port, sname ) )
         if value != '?' and out_value != value:
           error_msg = """
            run_rdycall_test_vector_sim received an incorrect value!
@@ -226,10 +227,9 @@ def run_test_vector_sim2( model,
               error_msg.format(
                   row_number=i,
                   method_name="{}".format( port ),
-                  ret_name="{}".format( sname),
+                  ret_name="{}".format( sname ),
                   expected_msg=value,
                   actual_msg=out_value ) )
-
 
     # Tick the simulation
     sim.cycle()
@@ -238,8 +238,6 @@ def run_test_vector_sim2( model,
   sim.cycle()
   sim.cycle()
   sim.cycle()
-
-
 
 
 #-------------------------------------------------------------------------
