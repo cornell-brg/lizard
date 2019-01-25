@@ -15,7 +15,7 @@ class PackerInterface( Interface ):
         MethodSpec(
             'pack',
             args={
-                'in': Array( s.Data, nports ),
+                'in_': Array( s.Data, nports ),
             },
             rets={
                 'packed': s.Packed,
@@ -37,10 +37,10 @@ class Packer( Model ):
       @s.combinational
       def pack( start=i * s.interface.Data.nbits,
                 end=( i + 1 ) * s.interface.Data.nbits ):
-        s.pack_packed[ start:end ].v = s.pack_in[ i ]
+        s.pack_packed[ start:end ].v = s.pack_in_[ i ]
 
   def line_trace( s ):
-    return str([ str( x ) for x in s.pack_in ] )
+    return str([ str( x ) for x in s.pack_in_ ] )
 
 
 class UnpackerInterface( Interface ):
