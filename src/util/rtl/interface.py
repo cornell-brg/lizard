@@ -5,7 +5,7 @@ from util.toposort import toposort
 from functools import partial
 
 
-def Include( interface ):
+def IncludeAll( interface ):
   return ( interface, None )
 
 
@@ -174,9 +174,7 @@ class Interface( object ):
     if count is None:
       port_map = spec.generate( direction )
     else:
-      ports = [
-          spec.generate( direction ) for _ in range( count )
-      ]
+      ports = [ spec.generate( direction ) for _ in range( count ) ]
       port_map = {}
       for port_name in spec.ports():
         port_map[ port_name ] = [
