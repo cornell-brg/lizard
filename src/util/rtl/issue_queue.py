@@ -9,9 +9,54 @@ from util.rtl.packers import Packer, Unpacker
 from util.rtl.interface import Interface
 from util.rtl.types import Array, canonicalize_type
 
+class SimpleIssueSlot(Model):
+
+  def __init__(s, PrivType, PregTagType, KillType, nports_notify=1 ):
+    s._valid = RegEnRst( Bits(1), reset_value=0)
+    s._ready = RegEnRst( Bits(1), reset_value=0 )
+    s._src0_rdy = RegEnRst( Bits(1), reset_value=0 )
+    s._src1_rdy = RegEnRst( Bits(1), reset_value=0 )
+    s._src0_valid = RegEnRst( Bits(1), reset_value=0 )
+    s._src1_valid = RegEnRst( Bits(1), reset_value=0 )
+    s._src0 = RegEn( PregTagType, reset_value=0 )
+    s._src1 = RegEn( PregTagType, reset_value=0 )
+    s._priv = RegEn(PrivType)
+
+    s._kill = Wire(1)
+
+    class InputType(BitStructDefinition):
+      def __init__(s, priv_nbits):
+        s.priv = BitField(PrivType.nbits) # PYMTL_BROKEN
+        s.src0_valid = BitField( 1 )
+        s.src0_rdy = BitField( 1 )
+        s.src0 = BitField(PregTagType.nbits)
+        s.src1_valid = BitField( 1 )
+        s.src0_rdy = BitField( 1 )
+        s.src1 = BitField(PregTagType.nbits)
+        s.kill_mask = BitField(KillType.nbits)
+
+    class OutputType(BitStructDefinition):
+      def __init__(s, priv_nbits):
+        s.priv = BitField(PrivType.nbits) # PYMTL_BROKEN
+        s.src0_valid = BitField( 1 )
+        s.src0 = BitField(PregTagType.nbits)
+        s.src1_valid = BitField( 1 )
+        s.src1 = BitField(PregTagType.nbits)
+
+    s.InputType = InputType
+    s.OutputType = OutputType
+    s.iface= IssueQueueSlotInterface(InputType, OutputType, PregTagType, KillType, nports_notify )
+    s.iface.apply(s)
+
+
+
+
+
+
   # Must support a ready(), valid(), input(), output(), notify(), kill()
 class IssueQueueSlotInterface( Interface ):
-  def __init__( s, InputType, OutputType, NotifyType, KillType ):
+  def __init__( s, InputType, OutputType, NotifyType, KillType, nports_notify ):
+
     super( IssueQueueSlotInterface, s ).__init__(
         [
             MethodSpec(
@@ -40,7 +85,7 @@ class IssueQueueSlotInterface( Interface ):
                 rdy=False ),
             MethodSpec(
                 'notify',
-                args= { 'value' : NotifyType },
+                args= { 'value' : Array(NotifyType, nports_notify) },
                 rets= None,
                 call=True,
                 rdy=False ),

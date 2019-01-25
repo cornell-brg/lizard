@@ -1,20 +1,15 @@
 from pymtl import *
-from util.rtl.issue_queue import CompactingIssueQueue, IssueQueueSlotInterface
+from util.rtl.issue_queue import CompactingIssueQueue, SimpleIssueSlot
 from test.config import test_verilog
 
-
-class IssueSlot(Model):
-  def __init__(s, InputType, OutputType, NotifyType, KillType ):
-    s.interface = IssueQueueSlotInterface(InputType, OutputType, NotifyType, KillType )
-    s.interface.apply(s)
 
 
 #-------------------------------------------------------------------------
 # test_basic_alloc
 #-------------------------------------------------------------------------
 def test_instatiate():
-  make_slot = lambda : IssueSlot(Bits(1), Bits(1), Bits(1), Bits(1))
-  make_slot()
+  make_slot = lambda : SimpleIssueSlot(Bits(1), Bits(1), Bits(1), Bits(1))
+  make_slot() # Test this
   CompactingIssueQueue(make_slot, Bits(1), Bits(1), Bits(1), Bits(1), 1, 1, 1)
   # run_rdycall_test_vector_sim(
   #     ReorderBuffer( NUM_ENTRIES=4, ENTRY_BITWIDTH=16 ),
