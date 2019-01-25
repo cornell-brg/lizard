@@ -11,10 +11,13 @@ from util.rtl.connection import Connection
 
 class SnapshottingFreeListInterface( Interface ):
 
-  def __init__( s, nslots, num_alloc_ports, num_free_ports, free_alloc_bypass,
-                release_alloc_bypass, nsnapshots ):
-    base = FreeListInterface( nslots, num_alloc_ports, num_free_ports,
-                              free_alloc_bypass, release_alloc_bypass )
+  def __init__( s, nslots, num_alloc_ports, num_free_ports, nsnapshots ):
+    base = FreeListInterface(
+        nslots,
+        num_alloc_ports,
+        num_free_ports,
+        free_alloc_bypass=False,
+        release_alloc_bypass=False )
 
     s.SnapshotId = Bits( clog2nz( nsnapshots ) )
 
@@ -43,8 +46,7 @@ class SnapshottingFreeListInterface( Interface ):
             IncludeSome( base, { 'free', 'alloc', 'set' } ),
         ],
         ordering_chains=[
-            [ 'alloc', 'revert_allocs', 'reset_alloc_tracking' ],
-            [ 'revert_allocs', 'set' ],
+            [ 'reset_alloc_tracking', 'alloc', 'revert_allocs', 'set' ],
         ] )
 
 
@@ -54,21 +56,18 @@ class SnapshottingFreeList( Model ):
                 nslots,
                 num_alloc_ports,
                 num_free_ports,
-                free_alloc_bypass,
-                release_alloc_bypass,
                 nsnapshots,
                 used_slots_initial=0 ):
-    s.interface = SnapshottingFreeListInterface(
-        nslots, num_alloc_ports, num_free_ports, free_alloc_bypass,
-        release_alloc_bypass, nsnapshots )
+    s.interface = SnapshottingFreeListInterface( nslots, num_alloc_ports,
+                                                 num_free_ports, nsnapshots )
     s.interface.apply( s )
 
     s.free_list = FreeList(
         nslots,
         num_alloc_ports,
         num_free_ports,
-        free_alloc_bypass,
-        release_alloc_bypass,
+        free_alloc_bypass=False,
+        release_alloc_bypass=False,
         used_slots_initial=used_slots_initial )
 
     for i in range( num_alloc_ports ):
@@ -90,8 +89,8 @@ class SnapshottingFreeList( Model ):
             nslots,
             0,
             num_alloc_ports,
-            write_read_bypass=True,
-            write_dump_bypass=True ) for _ in range( nsnapshots )
+            write_read_bypass=False,
+            write_dump_bypass=False ) for _ in range( nsnapshots )
     ]
 
     # pack the dump ports (arrays of 1 bit ports) into bit vectors to make
@@ -118,7 +117,7 @@ class SnapshottingFreeList( Model ):
                    s.snapshots[ i ].set_in[ j ] )
 
       @s.combinational
-      def handle_reset_alloc_tracking_dump_wr_en( i=i ):
+      def handle_reset_alloc_tracking_set_call( i=i ):
         if s.reset_alloc_tracking_call and s.reset_alloc_tracking_target_id == i:
           s.snapshots[ i ].set_call.v = 1
         else:
@@ -138,7 +137,25 @@ class SnapshottingFreeList( Model ):
       s.connect( s.revert_allocs_mux.mux_in[ i ],
                  s.snapshot_packers[ i ].pack_packed )
     s.connect( s.revert_allocs_mux.mux_select, s.revert_allocs_target_id )
-    s.connect( s.revert_allocs_mux.mux_out, s.free_list.release_mask )
+
+    # Since revert occurs after alloc, revert the current allocation as well
+    # Compute the total mask from all alloc ports
+    s.alloc_masks = [ Wire( nslots ) for _ in range( num_alloc_ports + 1 ) ]
+    s.connect( s.alloc_masks[ 0 ], 0 )
+    for i in range( num_alloc_ports ):
+
+      @s.combinational
+      def update_mask( n=i + 1, i=i ):
+        if s.alloc_call[ i ]:
+          s.alloc_masks[ n ].v = s.alloc_masks[ i ] | s.alloc_mask[ i ]
+        else:
+          s.alloc_masks[ n ].v = s.alloc_masks[ i ]
+
+    @s.combinational
+    def revert_current_alloc():
+      s.free_list.release_mask.v = s.revert_allocs_mux.mux_out | s.alloc_masks[
+          num_alloc_ports ]
+
     s.connect( s.revert_allocs_call, s.free_list.release_call )
 
   def line_trace( s ):

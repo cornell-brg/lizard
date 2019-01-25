@@ -35,7 +35,8 @@ class Packer( Model ):
     for i in range( nports ):
 
       @s.combinational
-      def pack( start=i * s.interface.Data.nbits,
+      def pack( i=i,
+                start=i * s.interface.Data.nbits,
                 end=( i + 1 ) * s.interface.Data.nbits ):
         s.pack_packed[ start:end ].v = s.pack_in[ i ]
 
@@ -72,7 +73,8 @@ class Unpacker( Model ):
     for i in range( nports ):
 
       @s.combinational
-      def unpack( start=i * s.interface.Data.nbits,
+      def unpack( i=i,
+                  start=i * s.interface.Data.nbits,
                   end=( i + 1 ) * s.interface.Data.nbits ):
         s.unpack_out[ i ].v = s.unpack_packed[ start:end ]
 
