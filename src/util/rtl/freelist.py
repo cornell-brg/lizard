@@ -1,30 +1,66 @@
 from pymtl import *
+from util.rtl.interface import Interface
 from util.rtl.method import MethodSpec
+from util.rtl.types import Array, canonicalize_type
+from util.rtl.mux import Mux
 from util.rtl.onehot import OneHotEncoder
 from util.rtl.coders import PriorityDecoder
-from util.rtl.mux import Mux
 from bitutil import clog2, clog2nz
 
 
-class FreeListInterface( object ):
+class FreeListInterface( Interface ):
 
-  def __init__( s, nslots ):
+  def __init__( s, nslots, num_alloc_ports, num_free_ports, free_alloc_bypass,
+                release_alloc_bypass ):
     s.Vector = Bits( nslots )
     s.Index = Bits( clog2nz( nslots ) )
 
-    s.alloc = MethodSpec( None, {
-        'index': s.Index,
-        'mask': s.Vector,
-    }, True, True )
-    s.free = MethodSpec({
-        'index': s.Index,
-    }, None, True, False )
-    s.release = MethodSpec({
-        'mask': s.Vector,
-    }, None, True, False )
-    s.set = MethodSpec({
-        'state': s.Vector,
-    }, None, True, False )
+    # Define the ordering
+    # Handle the free-alloc bypass, and the release-alloc bypass
+    # Require set to be last
+    ordering_chains = [
+        s.bypass_chain( 'free', 'alloc', free_alloc_bypass ),
+        s.bypass_chain( 'release', 'alloc', release_alloc_bypass ),
+    ] + s.successor( 'set', [ 'alloc', 'free', 'release' ] )
+
+    super( FreeListInterface, s ).__init__([
+        MethodSpec(
+            'free',
+            args={
+                'index': s.Index,
+            },
+            rets=None,
+            call=True,
+            rdy=False,
+            count=num_free_ports ),
+        MethodSpec(
+            'release',
+            args={
+                'mask': s.Vector,
+            },
+            rets=None,
+            call=True,
+            rdy=False ),
+        MethodSpec(
+            'alloc',
+            args=None,
+            rets={
+                'index': s.Index,
+                'mask': s.Vector,
+            },
+            call=True,
+            rdy=True,
+            count=num_alloc_ports ),
+        MethodSpec(
+            'set',
+            args={
+                'state': s.Vector,
+            },
+            rets=None,
+            call=True,
+            rdy=False ),
+    ],
+                                           ordering_chains=ordering_chains )
 
 
 class FreeList( Model ):
@@ -88,16 +124,9 @@ class FreeList( Model ):
                 free_alloc_bypass,
                 release_alloc_bypass,
                 used_slots_initial=0 ):
-    s.interface = FreeListInterface( nslots )
-
-    s.alloc_ports = [
-        s.interface.alloc.in_port() for _ in range( num_alloc_ports )
-    ]
-    s.free_ports = [
-        s.interface.free.in_port() for _ in range( num_free_ports )
-    ]
-    s.release_port = s.interface.release.in_port()
-    s.set_port = s.interface.set.in_port()
+    s.interface = FreeListInterface( nslots, num_alloc_ports, num_free_ports,
+                                     free_alloc_bypass, release_alloc_bypass )
+    s.interface.apply( s )
 
     # 1 if free, 0 if not free
     s.free = Wire( nslots )
@@ -118,25 +147,16 @@ class FreeList( Model ):
         PriorityDecoder( nslots ) for _ in range( num_alloc_ports )
     ]
 
-    @s.combinational
-    def fix_free_mask():
-      s.free_masks[ 0 ].v = 0
+    s.connect( s.free_masks[ 0 ], 0 )
 
-    # PYMTL_BROKEN
-    s.workaround_free_encoders_encode_port_onehot = [
-        Wire( nslots ) for _ in range( num_free_ports )
-    ]
     for i in range( num_free_ports ):
-      s.connect( s.workaround_free_encoders_encode_port_onehot[ i ],
-                 s.free_encoders[ i ].encode_port.onehot )
-      s.connect( s.free_encoders[ i ].encode_port.number,
-                 s.free_ports[ i ].index )
+      s.connect( s.free_encoders[ i ].encode_number, s.free_index[ i ] )
 
       @s.combinational
       def handle_free( n=i + 1, i=i ):
-        if s.free_ports[ i ].call:
-          s.free_masks[ n ].v = s.free_masks[
-              i ] | s.workaround_free_encoders_encode_port_onehot[ i ]
+        if s.free_call[ i ]:
+          s.free_masks[
+              n ].v = s.free_masks[ i ] | s.free_encoders[ i ].encode_onehot
         else:
           s.free_masks[ n ].v = s.free_masks[ i ]
 
@@ -144,8 +164,8 @@ class FreeList( Model ):
 
       @s.combinational
       def compute_alloc_inc_base():
-        if s.release_port.call:
-          s.alloc_inc_base.v = s.free | s.release_port.mask
+        if s.release_call:
+          s.alloc_inc_base.v = s.free | s.release_mask
         else:
           s.alloc_inc_base.v = s.free
     else:
@@ -165,28 +185,19 @@ class FreeList( Model ):
       def compute_alloc_inc_0():
         s.alloc_inc[ 0 ].v = s.alloc_inc_base
 
-    # PYMTL_BROKEN
-    s.workaround_alloc_encoders_encode_port_onehot = [
-        Wire( nslots ) for _ in range( num_alloc_ports )
-    ]
     for i in range( num_alloc_ports ):
-      s.connect( s.workaround_alloc_encoders_encode_port_onehot[ i ],
-                 s.alloc_encoders[ i ].encode_port.onehot )
-      s.connect( s.alloc_decoders[ i ].decode_port.signal, s.alloc_inc[ i ] )
-      s.connect( s.alloc_decoders[ i ].decode_port.valid,
-                 s.alloc_ports[ i ].rdy )
-      s.connect( s.alloc_decoders[ i ].decode_port.decoded,
-                 s.alloc_ports[ i ].index )
-      s.connect( s.alloc_encoders[ i ].encode_port.onehot,
-                 s.alloc_ports[ i ].mask )
-      s.connect( s.alloc_decoders[ i ].decode_port.decoded,
-                 s.alloc_encoders[ i ].encode_port.number )
+      s.connect( s.alloc_decoders[ i ].decode_signal, s.alloc_inc[ i ] )
+      s.connect( s.alloc_decoders[ i ].decode_valid, s.alloc_rdy[ i ] )
+      s.connect( s.alloc_decoders[ i ].decode_decoded, s.alloc_index[ i ] )
+      s.connect( s.alloc_encoders[ i ].encode_onehot, s.alloc_mask[ i ] )
+      s.connect( s.alloc_decoders[ i ].decode_decoded,
+                 s.alloc_encoders[ i ].encode_number )
 
       @s.combinational
       def handle_alloc( n=i + 1, i=i ):
-        if s.alloc_ports[ i ].call:
+        if s.alloc_call[ i ]:
           s.alloc_inc[ n ].v = s.alloc_inc[ i ] & (
-              ~s.workaround_alloc_encoders_encode_port_onehot[ i ] )
+              ~s.alloc_encoders[ i ].encode_onehot )
         else:
           s.alloc_inc[ n ].v = s.alloc_inc[ i ]
 
@@ -199,9 +210,8 @@ class FreeList( Model ):
 
       @s.combinational
       def compute_free_next_base():
-        if s.release_port.call:
-          s.free_next_base.v = s.alloc_inc[
-              num_alloc_ports ] | s.release_port.mask
+        if s.release_call:
+          s.free_next_base.v = s.alloc_inc[ num_alloc_ports ] | s.release_mask
         else:
           s.free_next_base.v = s.alloc_inc[ num_alloc_ports ]
 
@@ -216,9 +226,9 @@ class FreeList( Model ):
       def compute_free():
         s.free_next.v = s.free_next_base | s.free_masks[ num_free_ports ]
 
-    s.connect( s.set_mux.in_[ 0 ], s.free_next )
-    s.connect( s.set_mux.in_[ 1 ], s.set_port.state )
-    s.connect( s.set_mux.mux_port.select, s.set_port.call )
+    s.connect( s.set_mux.mux_in[ 0 ], s.free_next )
+    s.connect( s.set_mux.mux_in[ 1 ], s.set_state )
+    s.connect( s.set_mux.mux_select, s.set_call )
 
     for i in range( nslots ):
       # PYMTL_BROKEN
@@ -236,7 +246,7 @@ class FreeList( Model ):
         if s.reset:
           s.free[ i ].n = free
         else:
-          s.free[ i ].n = s.set_mux.mux_port.out[ i ]
+          s.free[ i ].n = s.set_mux.mux_out[ i ]
 
   def line_trace( s ):
     return "{}".format( s.free.bin() )
