@@ -15,7 +15,7 @@ class MuxInterface( Interface ):
         MethodSpec(
             'mux',
             args={
-                'in_': Array( s.Data, nports ),
+                'in': Array( s.Data, nports ),
                 'select': s.Select,
             },
             rets={
@@ -29,7 +29,7 @@ class MuxInterface( Interface ):
 
 class Mux( Model ):
   """A multiplexer.
-
+  
   Parameters:
     dtype: the datatype of the inputs and the output
     nports: the number of input ports to choose from
@@ -55,8 +55,8 @@ class Mux( Model ):
     @s.combinational
     def select():
       assert s.mux_select < nports
-      s.mux_out.v = s.mux_in_[ s.mux_select ]
+      s.mux_out.v = s.mux_in[ s.mux_select ]
 
   def line_trace( s ):
-    return "[{}][{}]: {}".format( ', '.join([ str( x ) for x in s.mux_in_ ] ),
+    return "[{}][{}]: {}".format( ', '.join([ str( x ) for x in s.mux_in ] ),
                                   s.mux_select, s.mux_out )

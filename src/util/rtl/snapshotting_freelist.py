@@ -113,9 +113,9 @@ class SnapshottingFreeList( Model ):
 
       for j in range( nslots ):
         s.connect( s.snapshots[ i ].dump_out[ j ],
-                   s.snapshot_packers[ i ].pack_in_[ j ] )
+                   s.snapshot_packers[ i ].pack_in[ j ] )
         s.connect( s.snapshot_unpacker.unpack_out[ j ],
-                   s.snapshots[ i ].set_in_[ j ] )
+                   s.snapshots[ i ].set_in[ j ] )
 
       @s.combinational
       def handle_reset_alloc_tracking_dump_wr_en( i=i ):
@@ -124,18 +124,18 @@ class SnapshottingFreeList( Model ):
         else:
           s.snapshots[ i ].set_call.v = 0
 
-      s.connect( s.dump_mux.mux_in_[ i ], s.snapshot_packers[ i ].pack_packed )
+      s.connect( s.dump_mux.mux_in[ i ], s.snapshot_packers[ i ].pack_packed )
 
     s.connect( s.dump_mux.mux_select, s.reset_alloc_tracking_source_id )
-    s.connect( s.dump_mux.mux_out, s.clean_mux.mux_in_[ 0 ] )
-    s.connect( s.clean_mux.mux_in_[ 1 ], 0 )
+    s.connect( s.dump_mux.mux_out, s.clean_mux.mux_in[ 0 ] )
+    s.connect( s.clean_mux.mux_in[ 1 ], 0 )
     s.connect( s.clean_mux.mux_select, s.reset_alloc_tracking_clean )
     s.connect( s.clean_mux.mux_out, s.snapshot_unpacker.unpack_packed )
 
     # Pick from a snapshot to revert
     s.revert_allocs_mux = Mux( Bits( nslots ), nsnapshots )
     for i in range( nsnapshots ):
-      s.connect( s.revert_allocs_mux.mux_in_[ i ],
+      s.connect( s.revert_allocs_mux.mux_in[ i ],
                  s.snapshot_packers[ i ].pack_packed )
     s.connect( s.revert_allocs_mux.mux_select, s.revert_allocs_target_id )
     s.connect( s.revert_allocs_mux.mux_out, s.free_list.release_mask )
