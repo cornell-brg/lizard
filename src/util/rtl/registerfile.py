@@ -17,48 +17,50 @@ class RegisterFileInterface( Interface ):
         s.bypass_chain( 'write', 'dump', write_dump_bypass ),
     ] + s.successor( 'set', [ 'read', 'write', 'dump' ] )
 
-    super( RegisterFileInterface, s ).__init__([
-        MethodSpec(
-            'read',
-            args={
-                'addr': s.Addr,
-            },
-            rets={
-                'data': s.Data,
-            },
-            call=False,
-            rdy=False,
-            count=num_read_ports ),
-        MethodSpec(
-            'write',
-            args={
-                'addr': s.Addr,
-                'data': s.Data,
-            },
-            rets=None,
-            call=True,
-            rdy=False,
-            count=num_write_ports ),
-        MethodSpec(
-            'dump',
-            args=None,
-            rets={
-                'out': Array( s.Data, nregs ),
-            },
-            call=False,
-            rdy=False,
-        ),
-        MethodSpec(
-            'set',
-            args={
-                'in': Array( s.Data, nregs ),
-            },
-            rets=None,
-            call=True,
-            rdy=False,
-        ),
-    ],
-                                               ordering_chains=ordering_chains )
+    super( RegisterFileInterface, s ).__init__(
+        [
+            MethodSpec(
+                'read',
+                args={
+                    'addr': s.Addr,
+                },
+                rets={
+                    'data': s.Data,
+                },
+                call=False,
+                rdy=False,
+                count=num_read_ports ),
+            MethodSpec(
+                'write',
+                args={
+                    'addr': s.Addr,
+                    'data': s.Data,
+                },
+                rets=None,
+                call=True,
+                rdy=False,
+                count=num_write_ports ),
+            MethodSpec(
+                'dump',
+                args=None,
+                rets={
+                    'out': Array( s.Data, nregs ),
+                },
+                call=False,
+                rdy=False,
+            ),
+            MethodSpec(
+                'set',
+                args={
+                    'in': Array( s.Data, nregs ),
+                },
+                rets=None,
+                call=True,
+                rdy=False,
+            ),
+        ],
+        ordering_chains=ordering_chains,
+    )
 
 
 class RegisterFile( Model ):
