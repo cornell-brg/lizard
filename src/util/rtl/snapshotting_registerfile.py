@@ -7,8 +7,8 @@ from util.rtl.freelist import FreeList
 
 class SnapshottingRegisterFileInterface( RegisterFileInterface ):
 
-  def __in_it__( s, dtype, nregs, nsnapshots ):
-    super( SnapshottingRegisterFileInterface, s ).__in_it__( dtype, nregs )
+  def __init__( s, dtype, nregs, nsnapshots ):
+    super( SnapshottingRegisterFileInterface, s ).__init__( dtype, nregs )
 
     nsbits = clog2nz( nsnapshots )
     s.SnapshotId = Bits( nsbits )
@@ -24,16 +24,16 @@ class SnapshottingRegisterFileInterface( RegisterFileInterface ):
 
 class SnapshottingRegisterFile( Model ):
 
-  def __in_it__( s,
-                 dtype,
-                 nregs,
-                 num_rd_ports,
-                 num_wr_ports,
-                 combinational_read_bypass,
-                 nsnapshots,
-                 combinational_snapshot_bypass=False,
-                 reset_values=None,
-                 external_restore=False ):
+  def __init__( s,
+                dtype,
+                nregs,
+                num_rd_ports,
+                num_wr_ports,
+                combinational_read_bypass,
+                nsnapshots,
+                combinational_snapshot_bypass=False,
+                reset_values=None,
+                external_restore=False ):
     s.interface = SnapshottingRegisterFileInterface( dtype, nregs, nsnapshots )
 
     s.snapshot_port = s.interface.snapshot.in_port()
@@ -42,7 +42,7 @@ class SnapshottingRegisterFile( Model ):
 
     if external_restore:
       s.external_restore_en = InPort( 1 )
-      s.external_restore_in_ = [ InPort( dtype ) for _ in range( nregs ) ]
+      s.external_restore_in = [ InPort( dtype ) for _ in range( nregs ) ]
 
     s.regs = RegisterFile(
         dtype,
@@ -81,7 +81,7 @@ class SnapshottingRegisterFile( Model ):
 
     for i in range( nsnapshots ):
       for j in range( nregs ):
-        s.connect( s.snapshots[ i ].dump_in__[ j ], s.regs.dump_out[ j ] )
+        s.connect( s.snapshots[ i ].dump_in[ j ], s.regs.dump_out[ j ] )
 
       @s.combinational
       def handle_snapshot_save( i=i ):
@@ -97,16 +97,15 @@ class SnapshottingRegisterFile( Model ):
         @s.combinational
         def handle_restore( j=j ):
           if s.external_restore_en:
-            s.regs.dump_in_[ j ].v = s.external_restore_in_[ j ]
+            s.regs.dump_in[ j ].v = s.external_restore_in[ j ]
           else:
-            s.regs.dump_in_[ j ].v = s.snapshots[ s.restore_port
-                                                  .id ].dump_out[ j ]
+            s.regs.dump_in[ j ].v = s.snapshots[ s.restore_port
+                                                 .id ].dump_out[ j ]
       else:
 
         @s.combinational
         def handle_restore( j=j ):
-          s.regs.dump_in_[ j ].v = s.snapshots[ s.restore_port
-                                                .id ].dump_out[ j ]
+          s.regs.dump_in[ j ].v = s.snapshots[ s.restore_port.id ].dump_out[ j ]
 
     s.connect( s.free_snapshot_port.call,
                s.snapshot_allocator.free_ports[ 0 ].call )
