@@ -81,7 +81,7 @@ class SnapshottingRegisterFile( Model ):
 
     for i in range( nsnapshots ):
       for j in range( nregs ):
-        s.connect( s.snapshots[ i ].dump_in__[ j ], s.regs.dump_out[ j ] )
+        s.connect( s.snapshots[ i ].dump_in_[ j ], s.regs.dump_out[ j ] )
 
       @s.combinational
       def handle_snapshot_save( i=i ):
