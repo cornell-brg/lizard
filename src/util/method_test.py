@@ -6,7 +6,7 @@ from hypothesis.stateful import *
 from hypothesis import settings
 from hypothesis.vendor.pretty import CUnicodeIO, RepresentationPrinter
 from sets import Set
-from util.rtl.method import InMethodCallPortBundle
+# from util.rtl.method import InMethodCallPortBundle
 
 debug = True
 
