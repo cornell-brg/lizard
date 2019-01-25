@@ -2,7 +2,6 @@ from collections import OrderedDict, namedtuple
 from pymtl import *
 from util.rtl.method import MethodSpec
 from util.toposort import toposort
-from functools import partial
 
 
 def Include( interface ):
@@ -192,8 +191,8 @@ class Interface( object ):
         raise ValueError( 'Mangled field already exists: {}'.format( mangled ) )
       setattr( target, mangled, port )
 
-    assert ( not hasattr( target, name ) )
-    setattr( target, name, partial( lambda s: port_tup, target ) )
+    call = lambda s: port_tup if count is None else ( lambda s, i: port_tup[ i ] )
+    setattr( target, name, call )
 
   def apply( s, target ):
     """Binds incoming ports to the target
@@ -203,7 +202,7 @@ class Interface( object ):
     for name, spec in s.methods.iteritems():
       s._inject( target, '', name, spec, spec.count,
                  MethodSpec.DIRECTION_CALLEE )
-      # setattr( target, name, ResidualMethodSpec( target, spec ) )
+      setattr( target, name, ResidualMethodSpec( target, spec ) )
 
   def require( s, target, prefix, name, count=None ):
     """Binds an outgoing port from this interface to the target
