@@ -11,7 +11,7 @@ class IssueSlot( Model ):
     pass
 
 
-class CollapsingIssueQueue( Model ):
+class CompactingIssueQueue( Model ):
 
   def __init__( s, create_slot, input_type, output_type, notify_type,
                 kill_type, num_entries, alloc_nports, issue_nports ):
@@ -83,7 +83,7 @@ class CollapsingIssueQueue( Model ):
     def handle_remove():
       s.remove_rdy = blah # TODO: or of all slot ready signals
       s.remove_value = s.slot_mux.mux_out
-      
+
 
   def line_trace( s ):
     return ":".join([ "{}".format( x.out ) for x in s.data ] )
