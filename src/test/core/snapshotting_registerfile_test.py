@@ -6,22 +6,59 @@ from test.config import test_verilog
 
 def test_basic():
   run_test_vector_sim(
-      SnapshottingRegisterFile( 8, 4, 1, 1, False, False, False, 1 ),
+      SnapshottingRegisterFile( 8, 4, 1, 1, False, False, 1 ),
       [
-          ( 'rd_ports[0].addr rd_ports[0].data* wr_ports[0].addr wr_ports[0].data wr_ports[0].call snapshot_port.call snapshot_port.id* snapshot_port.rdy* restore_port.call restore_port.id free_snapshot_port.call free_snapshot_port.id'
+          ( 'read_addr[0] read_data[0]* write_addr[0] write_data[0] write_call[0] snapshot_call snapshot_target_id restore_call restore_source_id'
           ),
-          ( 0, 0, 0, 8, 1, 0, '?', 1, 0, 0, 0, 0 ),
-          ( 0, 8, 2, 3, 1, 0, '?', 1, 0, 0, 0, 0 ),
-          ( 2, 3, 0, 0, 0, 0, '?', 1, 0, 0, 0, 0 ),
-          ( 2, 3, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0 ),  # allocate a snapshot
-          ( 0, 8, 0, 7, 1, 0, '?', 0, 0, 0, 0, 0 ),
-          ( 0, 7, 2, 4, 1, 0, '?', 0, 0, 0, 0, 0 ),
-          ( 2, 4, 0, 0, 0, 0, '?', 0, 0, 0, 0, 0 ),
-          ( 2, 4, 0, 0, 0, 0, '?', 0, 1, 0, 0, 0 ),  # restore the snapshot
-          ( 0, 8, 2, 3, 1, 0, '?', 0, 0, 0, 0, 0 ),
-          ( 2, 3, 0, 0, 0, 0, '?', 0, 0, 0, 0, 0 ),
-          ( 2, 3, 0, 0, 0, 0, '?', 0, 0, 0, 1, 0 ),  # free the snapshot
-          ( 2, 3, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0 ),  # allocate a snapshot
+          ( 0, 0, 0, 8, 1, 0, 0, 0, 0 ),
+          ( 0, 8, 2, 3, 1, 0, 0, 0, 0 ),
+          ( 2, 3, 0, 0, 0, 0, 0, 0, 0 ),
+          ( 2, 3, 0, 0, 0, 1, 0, 0, 0 ),  # save a snapshot into slot 0
+          ( 0, 8, 0, 7, 1, 0, 0, 0, 0 ),
+          ( 0, 7, 2, 4, 1, 0, 0, 0, 0 ),
+          ( 2, 4, 0, 0, 0, 0, 0, 0, 0 ),
+          ( 2, 4, 0, 0, 0, 0, 0, 1, 0 ),  # restore the snapshot
+          ( 0, 8, 2, 3, 1, 0, 0, 0, 0 ),
+          ( 2, 3, 0, 0, 0, 0, 0, 0, 0 ),
+      ],
+      dump_vcd=None,
+      test_verilog=test_verilog )
+
+
+def test_snapshot_write():
+  run_test_vector_sim(
+      SnapshottingRegisterFile( 8, 4, 1, 1, False, False, 1 ),
+      [
+          ( 'read_addr[0] read_data[0]* write_addr[0] write_data[0] write_call[0] snapshot_call snapshot_target_id restore_call restore_source_id'
+          ),
+          ( 0, 0, 0, 8, 1, 0, 0, 0, 0 ),
+          ( 0, 8, 2, 3, 1, 0, 0, 0, 0 ),
+          ( 0, 8, 2, 4, 1, 1, 0, 0,
+            0 ),  # save a snapshot into slot 0 (occurs before write)
+          ( 0, 8, 0, 7, 1, 0, 0, 0, 0 ),
+          ( 2, 4, 0, 0, 0, 0, 0, 1,
+            0 ),  # restore the snapshot (read old value while restoring)
+          ( 2, 3, 0, 0, 0, 0, 0, 0, 0 ),
+          ( 0, 8, 0, 0, 0, 0, 0, 0, 0 ),
+      ],
+      dump_vcd=None,
+      test_verilog=test_verilog )
+
+
+def test_snapshot_write_bypassed():
+  run_test_vector_sim(
+      SnapshottingRegisterFile( 8, 4, 1, 1, False, True, 1 ),
+      [
+          ( 'read_addr[0] read_data[0]* write_addr[0] write_data[0] write_call[0] snapshot_call snapshot_target_id restore_call restore_source_id'
+          ),
+          ( 0, 0, 0, 8, 1, 0, 0, 0, 0 ),
+          ( 0, 8, 2, 3, 1, 0, 0, 0, 0 ),
+          ( 0, 8, 2, 4, 1, 1, 0, 0,
+            0 ),  # save a snapshot into slot 0 (occurs after write)
+          ( 0, 8, 0, 7, 1, 0, 0, 0, 0 ),
+          ( 2, 4, 0, 0, 0, 0, 0, 1, 0 ),  # restore the snapshot
+          ( 2, 4, 0, 0, 0, 0, 0, 0, 0 ),
+          ( 0, 8, 0, 0, 0, 0, 0, 0, 0 ),
       ],
       dump_vcd=None,
       test_verilog=test_verilog )
