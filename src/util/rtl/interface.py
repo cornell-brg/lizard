@@ -51,21 +51,21 @@ class Interface( object ):
   allocate methods are called. If the free method precedes the allocate
   method, the free will take effect, freeing a spot, and the allocation
   will succeed. If the allocate method precedes the free method, then
-  the free list will be full, the allocation will fail, and the free
-  will take effect. A successfull allocation will then be able to
+  the free list will be full, the allocation will fail, and the free 
+  will take effect. A successfull allocation will then be able to 
   happen the next cycle.
 
-  These semantics allows for a precise translation between FL, CL,
+  These semantics allows for a precise translation between FL, CL, 
   and RTL level models. If method A precedes method B, then
   the relationship above holds in RTL. In FL and CL, in any given cycle,
   method A must be called before method B.
 
-  An interface can be used either by the implementing model, or by a
+  An interface can be used either by the implementing model, or by a 
   client model.
-
+  
   An implementing model uses an interface by applying it on itself
   by using interface.apply(model). That call will
-  instantiate the appropriate ports for every instance of every
+  instantiate the appropriate ports for every instance of every 
   method declared in the interface as fields in the model.
   Ports for a method are generated as <method name>_<port_name>.
   Ports of array type are represented as arrays of ports.
@@ -88,7 +88,7 @@ class Interface( object ):
     spec is a list of MethodSpec objects. If ordering_chains is None,
     the sequencing is defined by the order of spec. Methods
     later in the list see, and overrite, the effects of earlier methods in the list
-    in a given cycle. If ordering_chains is not None, then it is a list
+    in a given cycle. If ordering_chains is not None, then it is a list 
     of order requirements. An order requirement is simply a list of method names,
     in the order in which they must be performed. For example, consider
     3 methods a, b, and c. If a occurs before c, and also occurs before b,
@@ -96,7 +96,7 @@ class Interface( object ):
         ['a', 'c'] and ['a', 'b']
     This constructor will use a topological sort to find some order
     which satisfies the constraints. If no such order exists,
-    it will raise an exception. Note that in many cases, there are multiple
+    it will raise an exception. Note that in many cases, there are multiple 
     orders which can satisfy a given set of constraints. In these cases,
     the algorithm may pick any such satisfying order.
     If a, b, and c must all happen in a specific order, one long ordering chain
@@ -169,24 +169,24 @@ class Interface( object ):
 
     return [[ prior, last ] for prior in priors ]
 
-  def _inject( s, target, name, spec, count, direction ):
-    """
-      Injects a single method into target
-    """
+  def _inject( s, target, prefix, name, spec, count, direction ):
+    if count is None:
+      port_map = spec.generate( direction )
+    else:
+      ports = [
+          spec.generate( MethodSpec.DIRECTION_CALLEE ) for _ in range( count )
+      ]
+      port_map = {}
+      for port_name in spec.ports():
+        port_map[ port_name ] = [
+            ports[ i ][ port_name ] for i in range( count )
+        ]
 
-    # function to convert method spec into port bundle
-    def portbundle_model( name, attrs ):
-
-      def init( s ):
-        for k, v in attrs.iteritems():
-          setattr( s, k, v )
-
-      return type( '_' + name + '_portmodel', ( Model,),
-                   { '__init__': lambda s: init( s )} )
-
-    Port = portbundle_model( name, spec.generate( direction ) )
-    attr = Port() if count is None else [ Port() for _ in range( count ) ]
-    setattr( target, name, attr )
+    for port_name, port in port_map.iteritems():
+      mangled = '{}{}_{}'.format( prefix, name, port_name )
+      if hasattr( target, mangled ):
+        raise ValueError( 'Mangled field already exists: {}'.format( mangled ) )
+      setattr( target, mangled, port )
 
   def apply( s, target ):
     """Binds incoming ports to the target
@@ -198,7 +198,7 @@ class Interface( object ):
                  MethodSpec.DIRECTION_CALLEE )
       setattr( target, name, ResidualMethodSpec( target, spec ) )
 
-  def require( s, target, name, count=None ):
+  def require( s, target, prefix, name, count=None ):
     """Binds an outgoing port from this interface to the target
 
     This method should be called by client models.
@@ -216,7 +216,7 @@ class Interface( object ):
     #   available -= count
     # else:
     #   raise ValueError('No more ports for method left: {}'.format(name))
-    s._inject( target, name, spec, count, MethodSpec.DIRECTION_CALLER )
+    s._inject( target, prefix, name, spec, count, MethodSpec.DIRECTION_CALLER )
 
   def __getitem__( s, key ):
     return s.methods[ key ]
