@@ -116,12 +116,12 @@ def gen_basic_test():
 
 def gen_src0_dep_taken_test():
   return [
-      gen_br2_src0_dep_test( 5, "bne", 1, 7, True ),
-      gen_br2_src0_dep_test( 4, "bne", 2, 7, True ),
-      gen_br2_src0_dep_test( 3, "bne", 3, 7, True ),
-      gen_br2_src0_dep_test( 2, "bne", 4, 7, True ),
-      gen_br2_src0_dep_test( 1, "bne", 5, 7, True ),
-      gen_br2_src0_dep_test( 0, "bne", 6, 7, True ),
+      gen_br2_src0_dep_test(5, "bne", 1, 7, True),
+      gen_br2_src0_dep_test(4, "bne", 2, 7, True),
+      gen_br2_src0_dep_test(3, "bne", 3, 7, True),
+      gen_br2_src0_dep_test(2, "bne", 4, 7, True),
+      gen_br2_src0_dep_test(1, "bne", 5, 7, True),
+      gen_br2_src0_dep_test(0, "bne", 6, 7, True),
   ]
 
 
@@ -132,12 +132,12 @@ def gen_src0_dep_taken_test():
 
 def gen_src0_dep_nottaken_test():
   return [
-      gen_br2_src0_dep_test( 5, "bne", 1, 1, False ),
-      gen_br2_src0_dep_test( 4, "bne", 2, 2, False ),
-      gen_br2_src0_dep_test( 3, "bne", 3, 3, False ),
-      gen_br2_src0_dep_test( 2, "bne", 4, 4, False ),
-      gen_br2_src0_dep_test( 1, "bne", 5, 5, False ),
-      gen_br2_src0_dep_test( 0, "bne", 6, 6, False ),
+      gen_br2_src0_dep_test(5, "bne", 1, 1, False),
+      gen_br2_src0_dep_test(4, "bne", 2, 2, False),
+      gen_br2_src0_dep_test(3, "bne", 3, 3, False),
+      gen_br2_src0_dep_test(2, "bne", 4, 4, False),
+      gen_br2_src0_dep_test(1, "bne", 5, 5, False),
+      gen_br2_src0_dep_test(0, "bne", 6, 6, False),
   ]
 
 
@@ -148,12 +148,12 @@ def gen_src0_dep_nottaken_test():
 
 def gen_src1_dep_taken_test():
   return [
-      gen_br2_src1_dep_test( 5, "bne", 7, 1, True ),
-      gen_br2_src1_dep_test( 4, "bne", 7, 2, True ),
-      gen_br2_src1_dep_test( 3, "bne", 7, 3, True ),
-      gen_br2_src1_dep_test( 2, "bne", 7, 4, True ),
-      gen_br2_src1_dep_test( 1, "bne", 7, 5, True ),
-      gen_br2_src1_dep_test( 0, "bne", 7, 6, True ),
+      gen_br2_src1_dep_test(5, "bne", 7, 1, True),
+      gen_br2_src1_dep_test(4, "bne", 7, 2, True),
+      gen_br2_src1_dep_test(3, "bne", 7, 3, True),
+      gen_br2_src1_dep_test(2, "bne", 7, 4, True),
+      gen_br2_src1_dep_test(1, "bne", 7, 5, True),
+      gen_br2_src1_dep_test(0, "bne", 7, 6, True),
   ]
 
 
@@ -164,12 +164,12 @@ def gen_src1_dep_taken_test():
 
 def gen_src1_dep_nottaken_test():
   return [
-      gen_br2_src1_dep_test( 5, "bne", 1, 1, False ),
-      gen_br2_src1_dep_test( 4, "bne", 2, 2, False ),
-      gen_br2_src1_dep_test( 3, "bne", 3, 3, False ),
-      gen_br2_src1_dep_test( 2, "bne", 4, 4, False ),
-      gen_br2_src1_dep_test( 1, "bne", 5, 5, False ),
-      gen_br2_src1_dep_test( 0, "bne", 6, 6, False ),
+      gen_br2_src1_dep_test(5, "bne", 1, 1, False),
+      gen_br2_src1_dep_test(4, "bne", 2, 2, False),
+      gen_br2_src1_dep_test(3, "bne", 3, 3, False),
+      gen_br2_src1_dep_test(2, "bne", 4, 4, False),
+      gen_br2_src1_dep_test(1, "bne", 5, 5, False),
+      gen_br2_src1_dep_test(0, "bne", 6, 6, False),
   ]
 
 
@@ -180,12 +180,12 @@ def gen_src1_dep_nottaken_test():
 
 def gen_srcs_dep_taken_test():
   return [
-      gen_br2_srcs_dep_test( 5, "bne", 1, 2, True ),
-      gen_br2_srcs_dep_test( 4, "bne", 2, 3, True ),
-      gen_br2_srcs_dep_test( 3, "bne", 3, 4, True ),
-      gen_br2_srcs_dep_test( 2, "bne", 4, 5, True ),
-      gen_br2_srcs_dep_test( 1, "bne", 5, 6, True ),
-      gen_br2_srcs_dep_test( 0, "bne", 6, 7, True ),
+      gen_br2_srcs_dep_test(5, "bne", 1, 2, True),
+      gen_br2_srcs_dep_test(4, "bne", 2, 3, True),
+      gen_br2_srcs_dep_test(3, "bne", 3, 4, True),
+      gen_br2_srcs_dep_test(2, "bne", 4, 5, True),
+      gen_br2_srcs_dep_test(1, "bne", 5, 6, True),
+      gen_br2_srcs_dep_test(0, "bne", 6, 7, True),
   ]
 
 
@@ -196,12 +196,12 @@ def gen_srcs_dep_taken_test():
 
 def gen_srcs_dep_nottaken_test():
   return [
-      gen_br2_srcs_dep_test( 5, "bne", 1, 1, False ),
-      gen_br2_srcs_dep_test( 4, "bne", 2, 2, False ),
-      gen_br2_srcs_dep_test( 3, "bne", 3, 3, False ),
-      gen_br2_srcs_dep_test( 2, "bne", 4, 4, False ),
-      gen_br2_srcs_dep_test( 1, "bne", 5, 5, False ),
-      gen_br2_srcs_dep_test( 0, "bne", 6, 6, False ),
+      gen_br2_srcs_dep_test(5, "bne", 1, 1, False),
+      gen_br2_srcs_dep_test(4, "bne", 2, 2, False),
+      gen_br2_srcs_dep_test(3, "bne", 3, 3, False),
+      gen_br2_srcs_dep_test(2, "bne", 4, 4, False),
+      gen_br2_srcs_dep_test(1, "bne", 5, 5, False),
+      gen_br2_srcs_dep_test(0, "bne", 6, 6, False),
   ]
 
 
@@ -212,7 +212,7 @@ def gen_srcs_dep_nottaken_test():
 
 def gen_src0_eq_src1_test():
   return [
-      gen_br2_src0_eq_src1_test( "bne", 1, False ),
+      gen_br2_src0_eq_src1_test("bne", 1, False),
   ]
 
 
@@ -223,19 +223,19 @@ def gen_src0_eq_src1_test():
 
 def gen_value_test():
   return [
-      gen_br2_value_test( "bne", -1, -1, False ),
-      gen_br2_value_test( "bne", -1, 0, True ),
-      gen_br2_value_test( "bne", -1, 1, True ),
-      gen_br2_value_test( "bne", 0, -1, True ),
-      gen_br2_value_test( "bne", 0, 0, False ),
-      gen_br2_value_test( "bne", 0, 1, True ),
-      gen_br2_value_test( "bne", 1, -1, True ),
-      gen_br2_value_test( "bne", 1, 0, True ),
-      gen_br2_value_test( "bne", 1, 1, False ),
-      gen_br2_value_test( "bne", 0xfffffff7, 0xfffffff7, False ),
-      gen_br2_value_test( "bne", 0x7fffffff, 0x7fffffff, False ),
-      gen_br2_value_test( "bne", 0xfffffff7, 0x7fffffff, True ),
-      gen_br2_value_test( "bne", 0x7fffffff, 0xfffffff7, True ),
+      gen_br2_value_test("bne", -1, -1, False),
+      gen_br2_value_test("bne", -1, 0, True),
+      gen_br2_value_test("bne", -1, 1, True),
+      gen_br2_value_test("bne", 0, -1, True),
+      gen_br2_value_test("bne", 0, 0, False),
+      gen_br2_value_test("bne", 0, 1, True),
+      gen_br2_value_test("bne", 1, -1, True),
+      gen_br2_value_test("bne", 1, 0, True),
+      gen_br2_value_test("bne", 1, 1, False),
+      gen_br2_value_test("bne", 0xfffffff7, 0xfffffff7, False),
+      gen_br2_value_test("bne", 0x7fffffff, 0x7fffffff, False),
+      gen_br2_value_test("bne", 0xfffffff7, 0x7fffffff, True),
+      gen_br2_value_test("bne", 0x7fffffff, 0xfffffff7, True),
   ]
 
 
@@ -246,20 +246,19 @@ def gen_value_test():
 
 def gen_random_test():
   asm_code = []
-  for i in xrange( 25 ):
-    taken = random.choice([ True, False ] )
-    src0 = Bits( 32, random.randint( 0, 0xffffffff ) )
+  for i in xrange(25):
+    taken = random.choice([True, False])
+    src0 = Bits(32, random.randint(0, 0xffffffff))
     if taken:
       # Branch taken, operands are unequal
-      src1 = Bits( 32, random.randint( 0, 0xffffffff ) )
+      src1 = Bits(32, random.randint(0, 0xffffffff))
       # Rare case, but could happen
       if src0 == src1:
         src1 = src0 + 1
     else:
       # Branch not taken, operands are equal
       src1 = src0
-    asm_code.append(
-        gen_br2_value_test( "bne", src0.uint(), src1.uint(), taken ) )
+    asm_code.append(gen_br2_value_test("bne", src0.uint(), src1.uint(), taken))
   return asm_code
 
 

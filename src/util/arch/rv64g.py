@@ -8,190 +8,187 @@ from bitutil import bslice
 from string import translate, maketrans
 
 
-class RegisterFormat( FieldFormat ):
+class RegisterFormat(FieldFormat):
 
-  def parse( self, sym, pc, spec ):
-    assert spec.startswith( "x" )
-    reg_specifier = int( spec.lstrip( "x" ) )
+  def parse(self, sym, pc, spec):
+    assert spec.startswith("x")
+    reg_specifier = int(spec.lstrip("x"))
     assert 0 <= reg_specifier < AREG_COUNT
     return reg_specifier
 
-  def format( self, value ):
-    return "x{:0>2}".format( int( value ) )
+  def format(self, value):
+    return "x{:0>2}".format(int(value))
 
 
-class ImmFormat( FieldFormat ):
+class ImmFormat(FieldFormat):
   directives = {
-      "hi": bslice( 31, 12 ),
-      "lo": bslice( 11, 0 ),
+      "hi": bslice(31, 12),
+      "lo": bslice(11, 0),
   }
 
-  def __init__( self, allow_directives=False ):
+  def __init__(self, allow_directives=False):
     self.allow_directives = allow_directives
 
-  def parse( self, sym, pc, spec ):
-    if spec.startswith( "%" ) and self.allow_directives:
-      directive, arg = translate( spec, maketrans( "%[]",
-                                                   "   " ) ).strip().split()
-      value = Bits( XLEN, sym[ arg ] )
+  def parse(self, sym, pc, spec):
+    if spec.startswith("%") and self.allow_directives:
+      directive, arg = translate(spec, maketrans("%[]", "   ")).strip().split()
+      value = Bits(XLEN, sym[arg])
       if "_" in directive:
-        directive, variant = directive.split( "_" )
+        directive, variant = directive.split("_")
         assert variant == "pcrel"
         value -= pc
-      result = value[ self.directives[ directive ] ]
+      result = value[self.directives[directive]]
     else:
-      result = int( spec, 0 )
+      result = int(spec, 0)
     return result
 
-  def format( self, value ):
+  def format(self, value):
     return value.hex()
 
 
-class CsrnumFormat( FieldFormat ):
+class CsrnumFormat(FieldFormat):
 
-  def parse( self, sym, pc, spec ):
-    csrnum = CsrRegisters.lookup( spec )
+  def parse(self, sym, pc, spec):
+    csrnum = CsrRegisters.lookup(spec)
     if csrnum is not None:
-      return CsrRegisters.lookup( spec )
+      return CsrRegisters.lookup(spec)
     else:
-      result = int( spec, 0 )
-      assert int( spec ) < 2**CsrRegisters.bits
+      result = int(spec, 0)
+      assert int(spec) < 2**CsrRegisters.bits
       return result
 
-  def format( self, value ):
-    if CsrRegisters.contains( value ):
-      return CsrRegisters.name( value )
+  def format(self, value):
+    if CsrRegisters.contains(value):
+      return CsrRegisters.name(value)
     else:
       return value.hex()
 
 
-class TargetFormat( FieldFormat ):
+class TargetFormat(FieldFormat):
 
-  def parse( self, sym, pc, spec ):
+  def parse(self, sym, pc, spec):
     if spec in sym:
-      return sym[ spec ] - pc
+      return sym[spec] - pc
     else:
-      return int( spec, 0 )
+      return int(spec, 0)
 
-  def format( self, value ):
+  def format(self, value):
     return value.hex()
 
 
-class FenceFormat( FieldFormat ):
+class FenceFormat(FieldFormat):
   fence_spec = 'iorw'
-  fence_locs = dict([( c, i ) for c, i in enumerate( fence_spec ) ] )
+  fence_locs = dict([(c, i) for c, i in enumerate(fence_spec)])
 
-  def parse_fence_spec( self, spec ):
-    assert len( spec ) < len( fence_locs )
-    result = Bits( len( fence_locs ), 0 )
+  def parse_fence_spec(self, spec):
+    assert len(spec) < len(fence_locs)
+    result = Bits(len(fence_locs), 0)
     for c in spec:
       assert c in fence_locs
-      assert not result[ fence_locs[ c ] ]
-      result[ fence_locs[ c ] ] = 1
+      assert not result[fence_locs[c]]
+      result[fence_locs[c]] = 1
 
     return result
 
-  def format_fence_spec( self, value ):
+  def format_fence_spec(self, value):
     result = ''
     for c in fence_spec:
-      if value[ fence_locs[ c ] ]:
+      if value[fence_locs[c]]:
         result += c
     return result
 
-  def parse( self, sym, pc, spec ):
-    return parse_fence_spec( spec )
+  def parse(self, sym, pc, spec):
+    return parse_fence_spec(spec)
 
-  def format( self, value ):
-    return format_fence_spec( value )
+  def format(self, value):
+    return format_fence_spec(value)
 
 
 fields = {
     "opcode":
-        FieldSpec( 7, ImmFormat(), bslice( 6, 0 ) ),
+        FieldSpec(7, ImmFormat(), bslice(6, 0)),
     "funct2":
-        FieldSpec( 2, ImmFormat(), bslice( 26, 25 ) ),
+        FieldSpec(2, ImmFormat(), bslice(26, 25)),
     "funct3":
-        FieldSpec( 3, ImmFormat(), bslice( 14, 12 ) ),
+        FieldSpec(3, ImmFormat(), bslice(14, 12)),
     "funct7":
-        FieldSpec( 7, ImmFormat(), bslice( 31, 25 ) ),
+        FieldSpec(7, ImmFormat(), bslice(31, 25)),
     "rd":
-        FieldSpec( 5, RegisterFormat(), bslice( 11, 7 ) ),
+        FieldSpec(5, RegisterFormat(), bslice(11, 7)),
     "rs1":
-        FieldSpec( 5, RegisterFormat(), bslice( 19, 15 ) ),
+        FieldSpec(5, RegisterFormat(), bslice(19, 15)),
     "rs2":
-        FieldSpec( 5, RegisterFormat(), bslice( 24, 20 ) ),
+        FieldSpec(5, RegisterFormat(), bslice(24, 20)),
     "shamt32":
-        FieldSpec( 5, ImmFormat(), bslice( 24, 20 ) ),
+        FieldSpec(5, ImmFormat(), bslice(24, 20)),
     "shamt64":
-        FieldSpec( 6, ImmFormat(), bslice( 25, 20 ) ),
+        FieldSpec(6, ImmFormat(), bslice(25, 20)),
     "i_imm":
-        FieldSpec( 12, ImmFormat( True ), bslice( 31, 20 ) ),
+        FieldSpec(12, ImmFormat(True), bslice(31, 20)),
     "csrnum":
-        FieldSpec( 12, CsrnumFormat(), bslice( 31, 20 ) ),
+        FieldSpec(12, CsrnumFormat(), bslice(31, 20)),
     "s_imm":
-        FieldSpec( 12, ImmFormat( True ),
-                   [( bslice( 11, 7 ), bslice( 4, 0 ) ),
-                    ( bslice( 31, 25 ), bslice( 11, 5 ) ) ] ),
+        FieldSpec(12, ImmFormat(True), [(bslice(11, 7), bslice(4, 0)),
+                                        (bslice(31, 25), bslice(11, 5))]),
     "b_imm":
-        FieldSpec( 13, TargetFormat(), [( bslice( 31 ), bslice( 12 ) ),
-                                        ( bslice( 7 ), bslice( 11 ) ),
-                                        ( bslice( 30, 25 ), bslice( 10, 5 ) ),
-                                        ( bslice( 11, 8 ), bslice( 4, 1 ) ),
-                                        ( 0, bslice( 0 ) ) ] ),
+        FieldSpec(13, TargetFormat(), [(bslice(31), bslice(12)),
+                                       (bslice(7), bslice(11)),
+                                       (bslice(30, 25), bslice(10, 5)),
+                                       (bslice(11, 8), bslice(4, 1)),
+                                       (0, bslice(0))]),
     "u_imm":
-        FieldSpec( 20, ImmFormat( True ), bslice( 31, 12 ) ),
+        FieldSpec(20, ImmFormat(True), bslice(31, 12)),
     "j_imm":
-        FieldSpec( 21, TargetFormat(), [( bslice( 31 ), bslice( 20 ) ),
-                                        ( bslice( 19, 12 ), bslice( 19, 12 ) ),
-                                        ( bslice( 20 ), bslice( 11 ) ),
-                                        ( bslice( 30, 21 ), bslice( 10, 1 ) ),
-                                        ( 0, bslice( 0 ) ) ] ),
+        FieldSpec(21, TargetFormat(), [(bslice(31), bslice(20)),
+                                       (bslice(19, 12), bslice(19, 12)),
+                                       (bslice(20), bslice(11)),
+                                       (bslice(30, 21), bslice(10, 1)),
+                                       (0, bslice(0))]),
     "c_imm":
-        FieldSpec( 5, ImmFormat(), bslice( 19, 15 ) ),
+        FieldSpec(5, ImmFormat(), bslice(19, 15)),
     "pred":
-        FieldSpec( 4, FenceFormat(), bslice( 27, 24 ) ),
+        FieldSpec(4, FenceFormat(), bslice(27, 24)),
     "succ":
-        FieldSpec( 4, FenceFormat(), bslice( 23, 20 ) ),
+        FieldSpec(4, FenceFormat(), bslice(23, 20)),
     "aq":
-        FieldSpec( 1, ImmFormat(), bslice( 26 ) ),
+        FieldSpec(1, ImmFormat(), bslice(26)),
     "rl":
-        FieldSpec( 1, ImmFormat(), bslice( 25 ) ),
+        FieldSpec(1, ImmFormat(), bslice(25)),
 }
 
 
 @isa.expand_gen
-def gen_amo_consistency_variants( name, args, simple_args, opcode_mask,
-                                  opcode ):
+def gen_amo_consistency_variants(name, args, simple_args, opcode_mask, opcode):
   result = []
   amo_consistency_pairs = [
       # suffix   aq rl
-      ( "", 0, 0 ),
-      ( ".aq", 1, 0 ),
-      ( ".rl", 0, 1 ),
-      ( ".aqrl", 1, 1 ),
+      ("", 0, 0),
+      (".aq", 1, 0),
+      (".rl", 0, 1),
+      (".aqrl", 1, 1),
   ]
   for suffix, aq, rl in amo_consistency_pairs:
-    mod = Bits( ILEN, opcode )
-    fields[ "aq" ].assemble( mod, aq )
-    fields[ "rl" ].assemble( mod, rl )
-    result.append(( "{}{}".format( name, suffix ), args, simple_args,
-                    opcode_mask, int( mod ) ) )
+    mod = Bits(ILEN, opcode)
+    fields["aq"].assemble(mod, aq)
+    fields["rl"].assemble(mod, rl)
+    result.append(("{}{}".format(name, suffix), args, simple_args, opcode_mask,
+                   int(mod)))
   return result
 
 
 @isa.expand_gen
-def gen_amo_width_variants( name, args, simple_args, opcode_mask, opcode ):
+def gen_amo_width_variants(name, args, simple_args, opcode_mask, opcode):
   result = []
   amo_width_pairs = [
       # suffix funct3
-      ( ".w", 0b010 ),
-      ( ".d", 0b011 ),
+      (".w", 0b010),
+      (".d", 0b011),
   ]
   for suffix, funct3 in amo_width_pairs:
-    mod = Bits( ILEN, opcode )
-    fields[ "funct3" ].assemble( mod, funct3 )
-    result.append(( "{}{}".format( name, suffix ), args, simple_args,
-                    opcode_mask, int( mod ) ) )
+    mod = Bits(ILEN, opcode)
+    fields["funct3"].assemble(mod, funct3)
+    result.append(("{}{}".format(name, suffix), args, simple_args, opcode_mask,
+                   int(mod)))
   return result
 
 
@@ -317,14 +314,14 @@ pseudo_instruction_table = isa.expand_pseudo_spec( [
 ] )
 # yapf: enable
 
-isa = Isa( ILEN, XLEN, encoding_table, pseudo_instruction_table, fields )
+isa = Isa(ILEN, XLEN, encoding_table, pseudo_instruction_table, fields)
 
 DATA_PACK_DIRECTIVE = "<Q"
 
-TEXT_OFFSET = int( RESET_VECTOR )
+TEXT_OFFSET = int(RESET_VECTOR)
 DATA_OFFSET = 0x2000
 MNGR2PROC_OFFSET = 0x13000
 PROC2MNGR_OFFSET = 0x14000
 
-assembler = Assembler( isa, TEXT_OFFSET, DATA_OFFSET, MNGR2PROC_OFFSET,
-                       PROC2MNGR_OFFSET )
+assembler = Assembler(isa, TEXT_OFFSET, DATA_OFFSET, MNGR2PROC_OFFSET,
+                      PROC2MNGR_OFFSET)

@@ -11,20 +11,20 @@ from pymtl import *
 # Pretty print a generated assembly syntax
 
 
-def print_asm( asm_code ):
+def print_asm(asm_code):
 
   # If asm_code is a single string, then put it in a list to simplify the
   # rest of the logic.
 
   asm_code_list = asm_code
-  if isinstance( asm_code, str ):
-    asm_code_list = [ asm_code ]
+  if isinstance(asm_code, str):
+    asm_code_list = [asm_code]
 
   # Create a single list of lines
 
   asm_list = []
   for asm_seq in asm_code_list:
-    asm_list.extend( asm_seq.splitlines() )
+    asm_list.extend(asm_seq.splitlines())
 
   # Print the assembly. Remove duplicate blank lines.
 
@@ -44,9 +44,9 @@ def print_asm( asm_code ):
 #-------------------------------------------------------------------------
 
 
-def gen_nops( num_nops ):
+def gen_nops(num_nops):
   if num_nops > 0:
-    return "nop\n" + ( "    nop\n" * ( num_nops - 1 ) )
+    return "nop\n" + ("    nop\n" * (num_nops - 1))
   else:
     return ""
 
@@ -56,11 +56,11 @@ def gen_nops( num_nops ):
 #-------------------------------------------------------------------------
 
 
-def gen_word_data( data_list ):
+def gen_word_data(data_list):
 
   data_str = ".data\n"
   for data in data_list:
-    data_str += ".word {}\n".format( data )
+    data_str += ".word {}\n".format(data)
 
   return data_str
 
@@ -70,11 +70,11 @@ def gen_word_data( data_list ):
 #-------------------------------------------------------------------------
 
 
-def gen_hword_data( data_list ):
+def gen_hword_data(data_list):
 
   data_str = ".data\n"
   for data in data_list:
-    data_str += ".hword {}\n".format( data )
+    data_str += ".hword {}\n".format(data)
 
   return data_str
 
@@ -84,11 +84,11 @@ def gen_hword_data( data_list ):
 #-------------------------------------------------------------------------
 
 
-def gen_byte_data( data_list ):
+def gen_byte_data(data_list):
 
   data_str = ".data\n"
   for data in data_list:
-    data_str += ".byte {}\n".format( data )
+    data_str += ".byte {}\n".format(data)
 
   return data_str
 
@@ -106,8 +106,8 @@ def gen_byte_data( data_list ):
 # destination register.
 
 
-def gen_rr_src01_template( num_nops_src0, num_nops_src1, num_nops_dest,
-                           reg_src0, reg_src1, inst, src0, src1, result ):
+def gen_rr_src01_template(num_nops_src0, num_nops_src1, num_nops_dest, reg_src0,
+                          reg_src1, inst, src0, src1, result):
   return """
 
     # Move src0 value into register
@@ -126,10 +126,10 @@ def gen_rr_src01_template( num_nops_src0, num_nops_src1, num_nops_dest,
     csrw proc2mngr, x3 > {result}
 
   """.format(
-      nops_src0=gen_nops( num_nops_src0 ),
-      nops_src1=gen_nops( num_nops_src1 ),
-      nops_dest=gen_nops( num_nops_dest ),
-      **locals() )
+      nops_src0=gen_nops(num_nops_src0),
+      nops_src1=gen_nops(num_nops_src1),
+      nops_dest=gen_nops(num_nops_dest),
+      **locals())
 
 
 #-------------------------------------------------------------------------
@@ -139,8 +139,8 @@ def gen_rr_src01_template( num_nops_src0, num_nops_src1, num_nops_dest,
 # which we write the two src registers.
 
 
-def gen_rr_src10_template( num_nops_src0, num_nops_src1, num_nops_dest,
-                           reg_src0, reg_src1, inst, src0, src1, result ):
+def gen_rr_src10_template(num_nops_src0, num_nops_src1, num_nops_dest, reg_src0,
+                          reg_src1, inst, src0, src1, result):
   return """
 
     # Move src1 value into register
@@ -159,10 +159,10 @@ def gen_rr_src10_template( num_nops_src0, num_nops_src1, num_nops_dest,
     csrw proc2mngr, x3 > {result}
 
   """.format(
-      nops_src0=gen_nops( num_nops_src0 ),
-      nops_src1=gen_nops( num_nops_src1 ),
-      nops_dest=gen_nops( num_nops_dest ),
-      **locals() )
+      nops_src0=gen_nops(num_nops_src0),
+      nops_src1=gen_nops(num_nops_src1),
+      nops_dest=gen_nops(num_nops_dest),
+      **locals())
 
 
 #-------------------------------------------------------------------------
@@ -173,9 +173,9 @@ def gen_rr_src10_template( num_nops_src0, num_nops_src1, num_nops_dest,
 # register with a csrr instruction.
 
 
-def gen_rr_dest_dep_test( num_nops, inst, src0, src1, result ):
-  return gen_rr_src01_template( 0, 8, num_nops, "x1", "x2", inst, src0, src1,
-                                result )
+def gen_rr_dest_dep_test(num_nops, inst, src0, src1, result):
+  return gen_rr_src01_template(0, 8, num_nops, "x1", "x2", inst, src0, src1,
+                               result)
 
 
 #-------------------------------------------------------------------------
@@ -186,9 +186,9 @@ def gen_rr_dest_dep_test( num_nops, inst, src0, src1, result ):
 # instruction under test.
 
 
-def gen_rr_src1_dep_test( num_nops, inst, src0, src1, result ):
-  return gen_rr_src01_template( 8 - num_nops, num_nops, 0, "x1", "x2", inst,
-                                src0, src1, result )
+def gen_rr_src1_dep_test(num_nops, inst, src0, src1, result):
+  return gen_rr_src01_template(8 - num_nops, num_nops, 0, "x1", "x2", inst,
+                               src0, src1, result)
 
 
 #-------------------------------------------------------------------------
@@ -199,9 +199,9 @@ def gen_rr_src1_dep_test( num_nops, inst, src0, src1, result ):
 # instruction under test.
 
 
-def gen_rr_src0_dep_test( num_nops, inst, src0, src1, result ):
-  return gen_rr_src10_template( num_nops, 8 - num_nops, 0, "x1", "x2", inst,
-                                src0, src1, result )
+def gen_rr_src0_dep_test(num_nops, inst, src0, src1, result):
+  return gen_rr_src10_template(num_nops, 8 - num_nops, 0, "x1", "x2", inst,
+                               src0, src1, result)
 
 
 #-------------------------------------------------------------------------
@@ -212,9 +212,9 @@ def gen_rr_src0_dep_test( num_nops, inst, src0, src1, result ):
 # registers in the instruction under test.
 
 
-def gen_rr_srcs_dep_test( num_nops, inst, src0, src1, result ):
-  return gen_rr_src01_template( 0, num_nops, 0, "x1", "x2", inst, src0, src1,
-                                result )
+def gen_rr_srcs_dep_test(num_nops, inst, src0, src1, result):
+  return gen_rr_src01_template(0, num_nops, 0, "x1", "x2", inst, src0, src1,
+                               result)
 
 
 #-------------------------------------------------------------------------
@@ -224,8 +224,8 @@ def gen_rr_srcs_dep_test( num_nops, inst, src0, src1, result ):
 # destination register specifier.
 
 
-def gen_rr_src0_eq_dest_test( inst, src0, src1, result ):
-  return gen_rr_src01_template( 0, 0, 0, "x3", "x2", inst, src0, src1, result )
+def gen_rr_src0_eq_dest_test(inst, src0, src1, result):
+  return gen_rr_src01_template(0, 0, 0, "x3", "x2", inst, src0, src1, result)
 
 
 #-------------------------------------------------------------------------
@@ -235,8 +235,8 @@ def gen_rr_src0_eq_dest_test( inst, src0, src1, result ):
 # destination register specifier.
 
 
-def gen_rr_src1_eq_dest_test( inst, src0, src1, result ):
-  return gen_rr_src01_template( 0, 0, 0, "x1", "x3", inst, src0, src1, result )
+def gen_rr_src1_eq_dest_test(inst, src0, src1, result):
+  return gen_rr_src01_template(0, 0, 0, "x1", "x3", inst, src0, src1, result)
 
 
 #-------------------------------------------------------------------------
@@ -245,8 +245,8 @@ def gen_rr_src1_eq_dest_test( inst, src0, src1, result ):
 # Test situation where the src register specifiers are the same.
 
 
-def gen_rr_src0_eq_src1_test( inst, src, result ):
-  return gen_rr_src01_template( 0, 0, 0, "x1", "x1", inst, src, src, result )
+def gen_rr_src0_eq_src1_test(inst, src, result):
+  return gen_rr_src01_template(0, 0, 0, "x1", "x1", inst, src, src, result)
 
 
 #-------------------------------------------------------------------------
@@ -255,8 +255,8 @@ def gen_rr_src0_eq_src1_test( inst, src, result ):
 # Test situation where all three register specifiers are the same.
 
 
-def gen_rr_srcs_eq_dest_test( inst, src, result ):
-  return gen_rr_src01_template( 0, 0, 0, "x3", "x3", inst, src, src, result )
+def gen_rr_srcs_eq_dest_test(inst, src, result):
+  return gen_rr_src01_template(0, 0, 0, "x3", "x3", inst, src, src, result)
 
 
 #-------------------------------------------------------------------------
@@ -266,8 +266,8 @@ def gen_rr_srcs_eq_dest_test( inst, src, result ):
 # test. We assume that bypassing has already been tested.
 
 
-def gen_rr_value_test( inst, src0, src1, result ):
-  return gen_rr_src01_template( 0, 0, 0, "x1", "x2", inst, src0, src1, result )
+def gen_rr_value_test(inst, src0, src1, result):
+  return gen_rr_src01_template(0, 0, 0, "x1", "x2", inst, src0, src1, result)
 
 
 #-------------------------------------------------------------------------
@@ -282,8 +282,8 @@ def gen_rr_value_test( inst, src0, src1, result ):
 # and/or equal the destination register.
 
 
-def gen_rimm_template( num_nops_src, num_nops_dest, reg_src, inst, src, imm,
-                       result ):
+def gen_rimm_template(num_nops_src, num_nops_dest, reg_src, inst, src, imm,
+                      result):
   return """
 
     # Move src value into register
@@ -298,9 +298,9 @@ def gen_rimm_template( num_nops_src, num_nops_dest, reg_src, inst, src, imm,
     csrw proc2mngr, x3 > {result}
 
   """.format(
-      nops_src=gen_nops( num_nops_src ),
-      nops_dest=gen_nops( num_nops_dest ),
-      **locals() )
+      nops_src=gen_nops(num_nops_src),
+      nops_dest=gen_nops(num_nops_dest),
+      **locals())
 
 
 #-------------------------------------------------------------------------
@@ -311,8 +311,8 @@ def gen_rimm_template( num_nops_src, num_nops_dest, reg_src, inst, src, imm,
 # register with a csrr instruction.
 
 
-def gen_rimm_dest_dep_test( num_nops, inst, src, imm, result ):
-  return gen_rimm_template( 8, num_nops, "x1", inst, src, imm, result )
+def gen_rimm_dest_dep_test(num_nops, inst, src, imm, result):
+  return gen_rimm_template(8, num_nops, "x1", inst, src, imm, result)
 
 
 #-------------------------------------------------------------------------
@@ -323,8 +323,8 @@ def gen_rimm_dest_dep_test( num_nops, inst, src, imm, result ):
 # instruction under test.
 
 
-def gen_rimm_src_dep_test( num_nops, inst, src, imm, result ):
-  return gen_rimm_template( num_nops, 0, "x1", inst, src, imm, result )
+def gen_rimm_src_dep_test(num_nops, inst, src, imm, result):
+  return gen_rimm_template(num_nops, 0, "x1", inst, src, imm, result)
 
 
 #-------------------------------------------------------------------------
@@ -334,8 +334,8 @@ def gen_rimm_src_dep_test( num_nops, inst, src, imm, result ):
 # destination register specifier.
 
 
-def gen_rimm_src_eq_dest_test( inst, src, imm, result ):
-  return gen_rimm_template( 0, 0, "x3", inst, src, imm, result )
+def gen_rimm_src_eq_dest_test(inst, src, imm, result):
+  return gen_rimm_template(0, 0, "x3", inst, src, imm, result)
 
 
 #-------------------------------------------------------------------------
@@ -345,8 +345,8 @@ def gen_rimm_src_eq_dest_test( inst, src, imm, result ):
 # test. We assume that bypassing has already been tested.
 
 
-def gen_rimm_value_test( inst, src, imm, result ):
-  return gen_rimm_template( 0, 0, "x1", inst, src, imm, result )
+def gen_rimm_value_test(inst, src, imm, result):
+  return gen_rimm_template(0, 0, "x1", inst, src, imm, result)
 
 
 #-------------------------------------------------------------------------
@@ -357,7 +357,7 @@ def gen_rimm_value_test( inst, src, imm, result ):
 # testing various bypass paths.
 
 
-def gen_imm_template( num_nops_dest, inst, imm, result ):
+def gen_imm_template(num_nops_dest, inst, imm, result):
   return """
 
     # Instruction under test
@@ -368,7 +368,7 @@ def gen_imm_template( num_nops_dest, inst, imm, result ):
     csrw proc2mngr, x3 > {result}
 
   """.format(
-      nops_dest=gen_nops( num_nops_dest ), **locals() )
+      nops_dest=gen_nops(num_nops_dest), **locals())
 
 
 #-------------------------------------------------------------------------
@@ -379,8 +379,8 @@ def gen_imm_template( num_nops_dest, inst, imm, result ):
 # register with a csrr instruction.
 
 
-def gen_imm_dest_dep_test( num_nops, inst, imm, result ):
-  return gen_imm_template( num_nops, inst, imm, result )
+def gen_imm_dest_dep_test(num_nops, inst, imm, result):
+  return gen_imm_template(num_nops, inst, imm, result)
 
 
 #-------------------------------------------------------------------------
@@ -390,8 +390,8 @@ def gen_imm_dest_dep_test( num_nops, inst, imm, result ):
 # assume that bypassing has already been tested.
 
 
-def gen_imm_value_test( inst, imm, result ):
-  return gen_imm_template( 0, inst, imm, result )
+def gen_imm_value_test(inst, imm, result):
+  return gen_imm_template(0, inst, imm, result)
 
 
 #-------------------------------------------------------------------------
@@ -412,8 +412,8 @@ def gen_imm_value_test( inst, imm, result ):
 gen_br2_template_id = 0
 
 
-def gen_br2_template( num_nops_src0, num_nops_src1, reg_src0, reg_src1, inst,
-                      src0, src1, taken ):
+def gen_br2_template(num_nops_src0, num_nops_src1, reg_src0, reg_src1, inst,
+                     src0, src1, taken):
 
   # Determine the expected control flow pattern
 
@@ -425,9 +425,9 @@ def gen_br2_template( num_nops_src0, num_nops_src1, reg_src0, reg_src1, inst,
   # Create unique labels
 
   global gen_br2_template_id
-  id_a = "label_{}".format( gen_br2_template_id + 1 )
-  id_b = "label_{}".format( gen_br2_template_id + 2 )
-  id_c = "label_{}".format( gen_br2_template_id + 3 )
+  id_a = "label_{}".format(gen_br2_template_id + 1)
+  id_b = "label_{}".format(gen_br2_template_id + 2)
+  id_c = "label_{}".format(gen_br2_template_id + 3)
   gen_br2_template_id += 3
 
   return """
@@ -465,9 +465,9 @@ def gen_br2_template( num_nops_src0, num_nops_src1, reg_src0, reg_src1, inst,
     csrw   proc2mngr, x3 > {control_flow_pattern}
 
   """.format(
-      nops_src0=gen_nops( num_nops_src0 ),
-      nops_src1=gen_nops( num_nops_src1 ),
-      **locals() )
+      nops_src0=gen_nops(num_nops_src0),
+      nops_src1=gen_nops(num_nops_src1),
+      **locals())
 
 
 #-------------------------------------------------------------------------
@@ -478,9 +478,9 @@ def gen_br2_template( num_nops_src0, num_nops_src1, reg_src0, reg_src1, inst,
 # instruction under test.
 
 
-def gen_br2_src1_dep_test( num_nops, inst, src0, src1, taken ):
-  return gen_br2_template( 8 - num_nops, num_nops, "x1", "x2", inst, src0, src1,
-                           taken )
+def gen_br2_src1_dep_test(num_nops, inst, src0, src1, taken):
+  return gen_br2_template(8 - num_nops, num_nops, "x1", "x2", inst, src0, src1,
+                          taken)
 
 
 #-------------------------------------------------------------------------
@@ -491,8 +491,8 @@ def gen_br2_src1_dep_test( num_nops, inst, src0, src1, taken ):
 # instruction under test.
 
 
-def gen_br2_src0_dep_test( num_nops, inst, src0, src1, result ):
-  return gen_br2_template( num_nops, 0, "x1", "x2", inst, src0, src1, result )
+def gen_br2_src0_dep_test(num_nops, inst, src0, src1, result):
+  return gen_br2_template(num_nops, 0, "x1", "x2", inst, src0, src1, result)
 
 
 #-------------------------------------------------------------------------
@@ -503,8 +503,8 @@ def gen_br2_src0_dep_test( num_nops, inst, src0, src1, result ):
 # registers in the instruction under test.
 
 
-def gen_br2_srcs_dep_test( num_nops, inst, src0, src1, result ):
-  return gen_br2_template( 0, num_nops, "x1", "x2", inst, src0, src1, result )
+def gen_br2_srcs_dep_test(num_nops, inst, src0, src1, result):
+  return gen_br2_template(0, num_nops, "x1", "x2", inst, src0, src1, result)
 
 
 #-------------------------------------------------------------------------
@@ -513,8 +513,8 @@ def gen_br2_srcs_dep_test( num_nops, inst, src0, src1, result ):
 # Test situation where the src register specifiers are the same.
 
 
-def gen_br2_src0_eq_src1_test( inst, src, result ):
-  return gen_br2_template( 0, 0, "x1", "x1", inst, src, src, result )
+def gen_br2_src0_eq_src1_test(inst, src, result):
+  return gen_br2_template(0, 0, "x1", "x1", inst, src, src, result)
 
 
 #-------------------------------------------------------------------------
@@ -523,8 +523,8 @@ def gen_br2_src0_eq_src1_test( inst, src, result ):
 # Test the correct branch resolution based on various source values.
 
 
-def gen_br2_value_test( inst, src0, src1, taken ):
-  return gen_br2_template( 0, 0, "x1", "x2", inst, src0, src1, taken )
+def gen_br2_value_test(inst, src0, src1, taken):
+  return gen_br2_template(0, 0, "x1", "x2", inst, src0, src1, taken)
 
 
 # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
@@ -532,9 +532,9 @@ def gen_br2_value_test( inst, src0, src1, taken ):
 gen_jal_template_id = 0
 
 
-def gen_jal_dest_dep_test( num_nops_dest ):
+def gen_jal_dest_dep_test(num_nops_dest):
   global gen_jal_template_id
-  id_a = "label_{}".format( gen_jal_template_id + 1 )
+  id_a = "label_{}".format(gen_jal_template_id + 1)
   gen_jal_template_id += 1
   return """
 
@@ -554,7 +554,7 @@ def gen_jal_dest_dep_test( num_nops_dest ):
     csrw  proc2mngr, x3 > 0b10
 
   """.format(
-      nops_dest=gen_nops( num_nops_dest ), **locals() )
+      nops_dest=gen_nops(num_nops_dest), **locals())
 
 
 #-------------------------------------------------------------------------
@@ -569,8 +569,8 @@ def gen_jal_dest_dep_test( num_nops_dest ):
 # register.
 
 
-def gen_ld_template( num_nops_base, num_nops_dest, reg_base, inst, offset, base,
-                     result ):
+def gen_ld_template(num_nops_base, num_nops_dest, reg_base, inst, offset, base,
+                    result):
   return """
 
     # Move base value into register
@@ -585,9 +585,9 @@ def gen_ld_template( num_nops_base, num_nops_dest, reg_base, inst, offset, base,
     csrw proc2mngr, x3 > {result}
 
   """.format(
-      nops_base=gen_nops( num_nops_base ),
-      nops_dest=gen_nops( num_nops_dest ),
-      **locals() )
+      nops_base=gen_nops(num_nops_base),
+      nops_dest=gen_nops(num_nops_dest),
+      **locals())
 
 
 #-------------------------------------------------------------------------
@@ -598,8 +598,8 @@ def gen_ld_template( num_nops_base, num_nops_dest, reg_base, inst, offset, base,
 # register with a csrr instruction.
 
 
-def gen_ld_dest_dep_test( num_nops, inst, base, result ):
-  return gen_ld_template( 8, num_nops, "x1", inst, 0, base, result )
+def gen_ld_dest_dep_test(num_nops, inst, base, result):
+  return gen_ld_template(8, num_nops, "x1", inst, 0, base, result)
 
 
 #-------------------------------------------------------------------------
@@ -610,8 +610,8 @@ def gen_ld_dest_dep_test( num_nops, inst, base, result ):
 # the instruction under test.
 
 
-def gen_ld_base_dep_test( num_nops, inst, base, result ):
-  return gen_ld_template( num_nops, 0, "x1", inst, 0, base, result )
+def gen_ld_base_dep_test(num_nops, inst, base, result):
+  return gen_ld_template(num_nops, 0, "x1", inst, 0, base, result)
 
 
 #-------------------------------------------------------------------------
@@ -621,8 +621,8 @@ def gen_ld_base_dep_test( num_nops, inst, base, result ):
 # destination register specifier.
 
 
-def gen_ld_base_eq_dest_test( inst, base, result ):
-  return gen_ld_template( 0, 0, "x3", inst, 0, base, result )
+def gen_ld_base_eq_dest_test(inst, base, result):
+  return gen_ld_template(0, 0, "x3", inst, 0, base, result)
 
 
 #-------------------------------------------------------------------------
@@ -632,18 +632,18 @@ def gen_ld_base_eq_dest_test( inst, base, result ):
 # test. We assume that bypassing has already been tested.
 
 
-def gen_ld_value_test( inst, offset, base, result ):
-  return gen_ld_template( 0, 0, "x1", inst, offset, base, result )
+def gen_ld_value_test(inst, offset, base, result):
+  return gen_ld_template(0, 0, "x1", inst, offset, base, result)
 
 
 # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 
-def sum_i( i ):
+def sum_i(i):
   if i <= 0:
     return 0
   ret = 0
-  for j in range( 0, i + 1 ):
+  for j in range(0, i + 1):
     ret += j
   return ret
 
@@ -660,8 +660,8 @@ def sum_i( i ):
 # register.
 
 
-def gen_st_base_data_template( num_nops_data, num_nops_dest, reg_base, reg_data,
-                               inst, offset, base, data ):
+def gen_st_base_data_template(num_nops_data, num_nops_dest, reg_base, reg_data,
+                              inst, offset, base, data):
   return """
 
     # Move base value into register
@@ -678,13 +678,13 @@ def gen_st_base_data_template( num_nops_data, num_nops_dest, reg_base, reg_data,
     csrw proc2mngr, x3 > {data}
 
   """.format(
-      nops_data=gen_nops( num_nops_data ),
-      nops_dest=gen_nops( num_nops_dest ),
-      **locals() )
+      nops_data=gen_nops(num_nops_data),
+      nops_dest=gen_nops(num_nops_dest),
+      **locals())
 
 
-def gen_st_data_base_template( num_nops_base, num_nops_dest, reg_base, reg_data,
-                               inst, offset, base, data ):
+def gen_st_data_base_template(num_nops_base, num_nops_dest, reg_base, reg_data,
+                              inst, offset, base, data):
   return """
 
     # Move base value into register
@@ -701,30 +701,27 @@ def gen_st_data_base_template( num_nops_base, num_nops_dest, reg_base, reg_data,
     csrw proc2mngr, x3 > {data}
 
   """.format(
-      nops_base=gen_nops( num_nops_base ),
-      nops_dest=gen_nops( num_nops_dest ),
-      **locals() )
+      nops_base=gen_nops(num_nops_base),
+      nops_dest=gen_nops(num_nops_dest),
+      **locals())
 
 
 # test dependency in load of same address as store
-def gen_st_dest_dep_test( num_nops, inst, base, data ):
-  return gen_st_base_data_template( 8, num_nops, "x1", "x2", inst, 0, base,
-                                    data )
+def gen_st_dest_dep_test(num_nops, inst, base, data):
+  return gen_st_base_data_template(8, num_nops, "x1", "x2", inst, 0, base, data)
 
 
-def gen_st_base_dep_test( num_nops, inst, base, data ):
-  return gen_st_data_base_template( num_nops, 8, "x1", "x2", inst, 0, base,
-                                    data )
+def gen_st_base_dep_test(num_nops, inst, base, data):
+  return gen_st_data_base_template(num_nops, 8, "x1", "x2", inst, 0, base, data)
 
 
-def gen_st_data_dep_test( num_nops, inst, base, data ):
-  return gen_st_base_data_template( num_nops, 8, "x1", "x2", inst, 0, base,
-                                    data )
+def gen_st_data_dep_test(num_nops, inst, base, data):
+  return gen_st_base_data_template(num_nops, 8, "x1", "x2", inst, 0, base, data)
 
 
-def gen_st_base_eq_data_test( inst, base, data ):
-  return gen_st_base_data_template( 0, 0, "x1", "x1", inst, 0, base, data )
+def gen_st_base_eq_data_test(inst, base, data):
+  return gen_st_base_data_template(0, 0, "x1", "x1", inst, 0, base, data)
 
 
-def gen_st_value_test( inst, offset, base, data ):
-  return gen_st_base_data_template( 0, 0, "x1", "x2", inst, offset, base, data )
+def gen_st_value_test(inst, offset, base, data):
+  return gen_st_base_data_template(0, 0, "x1", "x2", inst, offset, base, data)

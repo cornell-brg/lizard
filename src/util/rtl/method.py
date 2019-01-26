@@ -2,20 +2,19 @@ from pymtl import *
 from util.rtl.types import Array, canonicalize_type
 
 
-def canonicalize_method_spec( spec ):
-  return dict([
-      ( key, canonicalize_type( value ) ) for key, value in spec.iteritems()
-  ] )
+def canonicalize_method_spec(spec):
+  return dict(
+      [(key, canonicalize_type(value)) for key, value in spec.iteritems()])
 
 
-def instantiate_port( data_type, port_type ):
-  if isinstance( data_type, Array ):
+def instantiate_port(data_type, port_type):
+  if isinstance(data_type, Array):
     return [
-        instantiate_port( data_type.Data, port_type )
-        for _ in range( data_type.length )
+        instantiate_port(data_type.Data, port_type)
+        for _ in range(data_type.length)
     ]
   else:
-    return port_type( data_type )
+    return port_type(data_type)
 
 
 class MethodSpec:
@@ -41,13 +40,13 @@ class MethodSpec:
       DIRECTION_CALLER: OutPort,
   }
 
-  def __init__( self,
-                name,
-                args=None,
-                rets=None,
-                call=True,
-                rdy=True,
-                count=None ):
+  def __init__(self,
+               name,
+               args=None,
+               rets=None,
+               call=True,
+               rdy=True,
+               count=None):
     """Creates a new method specification.
 
     args and rets are maps from argument names to types. Valid types are 
@@ -64,8 +63,8 @@ class MethodSpec:
     not wrapped in an array.
     """
     self.name = name
-    self.args = canonicalize_method_spec( args or {} )
-    self.rets = canonicalize_method_spec( rets or {} )
+    self.args = canonicalize_method_spec(args or {})
+    self.rets = canonicalize_method_spec(rets or {})
     self.call = call
     self.rdy = rdy
     self.count = count
@@ -73,12 +72,12 @@ class MethodSpec:
     assert 'call' not in self.args and 'call' not in self.rets
     assert 'rdy' not in self.args and 'rdy' not in self.rets
 
-  def _augment( self, result, port_dict, port_type ):
+  def _augment(self, result, port_dict, port_type):
     if port_dict:
       for name, data_type in port_dict.iteritems():
-        result[ name ] = instantiate_port( data_type, port_type )
+        result[name] = instantiate_port(data_type, port_type)
 
-  def generate( self, direction ):
+  def generate(self, direction):
     """Returns a map from port names to the corresponding port.
     
     The directionality of each port is determined by direction.
@@ -87,19 +86,19 @@ class MethodSpec:
 
     All directions are flipped on the caller side.
     """
-    Incoming = self.PORTS[ direction ]
-    Outgoing = self.PORTS[ not direction ]
+    Incoming = self.PORTS[direction]
+    Outgoing = self.PORTS[not direction]
 
     result = {}
     if self.call:
-      result[ 'call' ] = Incoming( 1 )
-    self._augment( result, self.args, Incoming )
-    self._augment( result, self.rets, Outgoing )
+      result['call'] = Incoming(1)
+    self._augment(result, self.args, Incoming)
+    self._augment(result, self.rets, Outgoing)
     if self.rdy:
-      result[ 'rdy' ] = Outgoing( 1 )
+      result['rdy'] = Outgoing(1)
 
     return result
 
-  def ports( self ):
+  def ports(self):
     """Returns a list of all the port names"""
-    return self.generate( self.DIRECTION_CALLEE ).keys()
+    return self.generate(self.DIRECTION_CALLEE).keys()

@@ -2,16 +2,15 @@
 from functools import reduce
 
 
-class CircularDependencyError( ValueError ):
+class CircularDependencyError(ValueError):
 
-  def __init__( self, data ):
-    s = 'No toposort exists due to a cycle: {}'.format( ', '.join(
-        '{!r}:{!r}'.format( key, value )
-        for key, value in sorted( data.items() ) ) )
-    super( CircularDependencyError, self ).__init__( s )
+  def __init__(self, data):
+    s = 'No toposort exists due to a cycle: {}'.format(', '.join(
+        '{!r}:{!r}'.format(key, value) for key, value in sorted(data.items())))
+    super(CircularDependencyError, self).__init__(s)
 
 
-def toposort( data ):
+def toposort(data):
   """Returns a toposort of a graph, or raises an exception if not possible.
   
   The graph is expressed as a dictionary. A directed edge from i to j exists
@@ -29,54 +28,48 @@ def toposort( data ):
   output by this algorithm is unspecified.
   """
 
-  if len( data ) == 0:
+  if len(data) == 0:
     return []
 
   data = data.copy()
 
   # Find all items that don't depend on anything.
-  extra_items_in_deps = reduce( set.union, data.values() ) - set( data.keys() )
+  extra_items_in_deps = reduce(set.union, data.values()) - set(data.keys())
   # Add empty dependences where needed.
-  data.update({ item: set() for item in extra_items_in_deps } )
+  data.update({item: set() for item in extra_items_in_deps})
   groups = []
   while True:
-    ordered = set( item for item, dep in data.items() if len( dep ) == 0 )
+    ordered = set(item for item, dep in data.items() if len(dep) == 0)
     if not ordered:
       break
-    groups.append( ordered )
+    groups.append(ordered)
     data = {
-        item: ( dep - ordered )
+        item: (dep - ordered)
         for item, dep in data.items()
         if item not in ordered
     }
 
-  if len( data ) != 0:
-    raise CircularDependencyError( data )
+  if len(data) != 0:
+    raise CircularDependencyError(data)
 
   result = []
   for d in groups:
-    result.extend( sorted( d ) )
+    result.extend(sorted(d))
   return result
 
 
 if __name__ == '__main__':
-  graph = {
-      'a': { 'b', 'c' },
-      'b': { 'd' },
-      'c': { 'd' },
-      'd': { 'e' },
-      'e': {}
-  }
+  graph = {'a': {'b', 'c'}, 'b': {'d'}, 'c': {'d'}, 'd': {'e'}, 'e': {}}
 
-  print( toposort( graph ) )
+  print(toposort(graph))
 
   bad = {
-      'a': { 'b', 'c' },
-      'b': { 'd' },
-      'c': { 'd' },
-      'd': { 'e' },
+      'a': {'b', 'c'},
+      'b': {'d'},
+      'c': {'d'},
+      'd': {'e'},
       'e': {},
-      'f': { 'g' },
-      'g': { 'f' },
+      'f': {'g'},
+      'g': {'f'},
   }
-  print( toposort( bad ) )
+  print(toposort(bad))

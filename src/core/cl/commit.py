@@ -6,24 +6,24 @@ from util.line_block import LineBlock
 from copy import deepcopy
 
 
-class CommitUnitCL( Model ):
+class CommitUnitCL(Model):
 
-  def __init__( s, dataflow, controlflow, memoryflow ):
-    s.result_in_q = InValRdyCLPort( WritebackPacket() )
+  def __init__(s, dataflow, controlflow, memoryflow):
+    s.result_in_q = InValRdyCLPort(WritebackPacket())
 
     s.dataflow = dataflow
     s.controlflow = controlflow
     s.memoryflow = memoryflow
 
-    s.committed = Wire( INST_IDX_NBITS )
-    s.valid = Wire( 1 )
+    s.committed = Wire(INST_IDX_NBITS)
+    s.valid = Wire(1)
     # This will be a ring buffer in the RTL
-    s.reorder = [ None ] * ROB_SIZE
+    s.reorder = [None] * ROB_SIZE
     s.rseq_num = 0
 
-  def xtick( s ):
+  def xtick(s):
     if s.reset:
-      s.reorder = [ None ] * ROB_SIZE
+      s.reorder = [None] * ROB_SIZE
       s.valid.next = 0
       return
 
@@ -33,20 +33,20 @@ class CommitUnitCL( Model ):
 
     if not s.result_in_q.empty():  # Add to reorder
       p = s.result_in_q.deq()
-      seq = int( p.tag )
-      s.reorder[ seq ] = p
+      seq = int(p.tag)
+      s.reorder[seq] = p
 
     # Every cycle, get the next seq number to be commited
-    head = int( s.controlflow.get_head() )
+    head = int(s.controlflow.get_head())
 
-    if s.reorder[ head ] is not None:  # we can commit it!
-      p = s.reorder[ head ]
-      s.reorder[ head ] = None  # Free the entry
+    if s.reorder[head] is not None:  # we can commit it!
+      p = s.reorder[head]
+      s.reorder[head] = None  # Free the entry
 
       # verify instruction still alive
       creq = TagValidRequest()
       creq.tag = p.tag
-      cresp = s.controlflow.tag_valid( creq )
+      cresp = s.controlflow.tag_valid(creq)
       if not cresp.valid:
         p.status = PacketStatus.SQUASHED
 
@@ -63,24 +63,24 @@ class CommitUnitCL( Model ):
         # An exception must also set the mcause and mtval CSR registers
         # with information about the exception
         should_commit = False
-        s.dataflow.write_csr( CsrRegisters.mcause, p.mcause )
-        s.dataflow.write_csr( CsrRegisters.mtval, p.mtval )
+        s.dataflow.write_csr(CsrRegisters.mcause, p.mcause)
+        s.dataflow.write_csr(CsrRegisters.mtval, p.mtval)
         # TODO: care needs to be taken here, as mepc can never
         # hold a PC value that would cause an instruction-address-misaligned
         # exception. This is done by forcing the 2 low bits to 0
-        s.dataflow.write_csr( CsrRegisters.mepc, p.pc )
+        s.dataflow.write_csr(CsrRegisters.mepc, p.pc)
 
         # Status is only false if the CSR is a FIFO
         # this only happens for proc2mngr and should not happen now
-        mtvec, status = s.dataflow.read_csr( CsrRegisters.mtvec )
+        mtvec, status = s.dataflow.read_csr(CsrRegisters.mtvec)
         assert status
 
-        mode = mtvec[ 0:2 ]
-        base = concat( mtvec[ 2:XLEN ], Bits( 2, 0 ) )
+        mode = mtvec[0:2]
+        base = concat(mtvec[2:XLEN], Bits(2, 0))
         if mode == MtvecMode.direct:
           target = base
         elif mode == MtvecMode.vectored:
-          target = base + ( p.mcause << 2 )
+          target = base + (p.mcause << 2)
         else:
           # this is a bad state. mtvec is curcial to handling
           # exceptions, and there is no way to handle and exception
@@ -94,7 +94,7 @@ class CommitUnitCL( Model ):
         creq.target_pc = target
         creq.at_commit = 1
         creq.force_redirect = 1
-        s.controlflow.request_redirect( creq )
+        s.controlflow.request_redirect(creq)
 
         # TODO: the the privledge mode has to be changed to M
         # at this point. Right now, the machine only runs in M
@@ -110,11 +110,11 @@ class CommitUnitCL( Model ):
           creq.target_pc = p.pc + ILEN_BYTES
           creq.at_commit = 1
           creq.force_redirect = 1
-          s.controlflow.request_redirect( creq )
+          s.controlflow.request_redirect(creq)
 
       if should_commit:
         if p.rd_valid:
-          s.dataflow.commit_tag( p.rd )
+          s.dataflow.commit_tag(p.rd)
 
         # if memory instruction commit
         if p.opcode == Opcode.STORE or p.opcode == Opcode.LOAD:
@@ -123,7 +123,7 @@ class CommitUnitCL( Model ):
         # if we allocated a destination register for this instruction,
         # we must free it
         if p.rd_valid:
-          s.dataflow.free_tag( p.rd )
+          s.dataflow.free_tag(p.rd)
 
         # if memory instruction retire
         if p.opcode == Opcode.STORE or p.opcode == Opcode.LOAD:
@@ -132,11 +132,11 @@ class CommitUnitCL( Model ):
       # retire instruction from controlflow
       creq = RetireRequest()
       creq.tag = p.tag
-      s.controlflow.retire( creq )
+      s.controlflow.retire(creq)
       s.committed.next = p.tag
       s.valid.next = 1
 
-  def line_trace( s ):
+  def line_trace(s):
     return LineBlock([
-        "{}".format( s.committed ),
-    ] ).validate( s.valid )
+        "{}".format(s.committed),
+    ]).validate(s.valid)

@@ -1,16 +1,16 @@
 import glob, os
 from subprocess import call
 
-dir_path = os.path.dirname( os.path.realpath( __file__ ) )
+dir_path = os.path.dirname(os.path.realpath(__file__))
 
 
 def collect():
   names = [
-      os.path.basename( f.rsplit( ".", 1 )[ 0 ] )
-      for f in glob.glob( dir_path + "/*.c" )
+      os.path.basename(f.rsplit(".", 1)[0])
+      for f in glob.glob(dir_path + "/*.c")
   ]
-  names = [ x for x in names if 'malloc' not in x ]
-  return ( dir_path, names )
+  names = [x for x in names if 'malloc' not in x]
+  return (dir_path, names)
 
 
 riscv_tests = """
@@ -82,14 +82,14 @@ rv64um-p-remw
 
 
 def build_riscv_tests():
-  call([ dir_path + "/build-riscv-tests" ] )
+  call([dir_path + "/build-riscv-tests"])
 
 
 def collect_riscv_tests():
   return dir_path + "/riscv-tests/isa/", riscv_tests
 
 
-def build( fname, opt_level ):
+def build(fname, opt_level):
   oname = fname + "-%d.out" % opt_level
-  call([ "make", "-C", dir_path, 'OPT_LEVEL=%d' % opt_level, oname ] )
+  call(["make", "-C", dir_path, 'OPT_LEVEL=%d' % opt_level, oname])
   return dir_path + '/' + oname

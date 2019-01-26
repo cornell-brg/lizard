@@ -6,35 +6,35 @@ from functools import partial
 import inspect
 
 
-def IncludeAll( interface ):
-  return ( interface, None )
+def IncludeAll(interface):
+  return (interface, None)
 
 
-def IncludeSome( interface, some ):
-  return ( interface, some )
+def IncludeSome(interface, some):
+  return (interface, some)
 
 
 class ResidualMethodSpec:
 
-  def __init__( s, model, spec ):
+  def __init__(s, model, spec):
     s.model = model
     s.spec = spec
 
-  def connect( s, spec, target ):
+  def connect(s, spec, target):
     for port_name in s.spec.ports():
-      field_name = '{}_{}'.format( spec.name, port_name )
+      field_name = '{}_{}'.format(spec.name, port_name)
       s._connect_ports(
-          getattr( s.model, field_name ), getattr( target, field_name ) )
+          getattr(s.model, field_name), getattr(target, field_name))
 
-  def _connect_ports( s, source_port, target_port ):
-    if isinstance( source_port, list ):
-      for sp, tp in zip( source_port, target_port ):
-        _connect_ports( sp, tp )
+  def _connect_ports(s, source_port, target_port):
+    if isinstance(source_port, list):
+      for sp, tp in zip(source_port, target_port):
+        _connect_ports(sp, tp)
     else:
-      s.model.connect( source_port, target_port )
+      s.model.connect(source_port, target_port)
 
 
-class Interface( object ):
+class Interface(object):
   """An interface for a hardware module.
 
   Represents a method-based interface to a hardware module.
@@ -82,7 +82,7 @@ class Interface( object ):
   but with the prefix 'prefix_' (note the underscore is added).
   """
 
-  def __init__( s, spec, bases=None, ordering_chains=None ):
+  def __init__(s, spec, bases=None, ordering_chains=None):
     """Initialize the method map.
 
     Subclasses must call this!
@@ -111,7 +111,7 @@ class Interface( object ):
     # If no chains present, ordering is as given
     if ordering_chains is None:
       # 1 chain with all the method names
-      s.ordering_chains = [[ method.name for method in spec ] ]
+      s.ordering_chains = [[method.name for method in spec]]
     else:
       s.ordering_chains = ordering_chains
 
@@ -119,13 +119,13 @@ class Interface( object ):
     for interface, includes in bases:
       includes = includes or interface.methods.keys()
       for method in includes:
-        spec.append( interface[ method ] )
-      s.ordering_chains.extend( interface.get_ordering_chains( includes ) )
+        spec.append(interface[method])
+      s.ordering_chains.extend(interface.get_ordering_chains(includes))
 
-    names = [ method.name for method in spec ]
-    name_set = set( names )
-    if len( names ) != len( name_set ):
-      raise ValueError( 'Duplicate methods: {}'.format( names ) )
+    names = [method.name for method in spec]
+    name_set = set(names)
+    if len(names) != len(name_set):
+      raise ValueError('Duplicate methods: {}'.format(names))
 
     # Compute the ordering based on the chains
 
@@ -136,24 +136,24 @@ class Interface( object ):
         if name not in name_set:
           raise ValueError(
               'Ordering chain contains unknown method: {} found in {}'.format(
-                  name, chain ) )
+                  name, chain))
 
-    graph = { name: set() for name in names }
+    graph = {name: set() for name in names}
     for chain in s.ordering_chains:
       # chains only make sense if they have at least 2 elements
-      if len( chain ) >= 2:
-        pred = chain[ 0 ]
-        for current in chain[ 1:]:
+      if len(chain) >= 2:
+        pred = chain[0]
+        for current in chain[1:]:
           # Every item depends on the previous item
-          graph[ current ].add( pred )
+          graph[current].add(pred)
           pred = current
-    order = toposort( graph )
+    order = toposort(graph)
 
-    spec_dict = { method.name: method for method in spec }
-    s.methods = OrderedDict([( name, spec_dict[ name ] ) for name in order ] )
+    spec_dict = {method.name: method for method in spec}
+    s.methods = OrderedDict([(name, spec_dict[name]) for name in order])
 
   @staticmethod
-  def bypass_chain( action1, action2, action1_action2_bypass ):
+  def bypass_chain(action1, action2, action1_action2_bypass):
     """Generates an ordering chain depending on a bypass flag.
 
     If the bypass flag is False, action2 happens before action1.
@@ -161,62 +161,59 @@ class Interface( object ):
     """
 
     if action1_action2_bypass:
-      return [ action1, action2 ]
+      return [action1, action2]
     else:
-      return [ action2, action1 ]
+      return [action2, action1]
 
   @staticmethod
-  def successor( last, priors ):
+  def successor(last, priors):
     """Generates a list of ordering chains placing last after priors."""
 
-    return [[ prior, last ] for prior in priors ]
+    return [[prior, last] for prior in priors]
 
   @staticmethod
-  def mangled_name( prefix, name, port_name ):
-    return '{}{}_{}'.format( prefix, name, port_name )
+  def mangled_name(prefix, name, port_name):
+    return '{}{}_{}'.format(prefix, name, port_name)
 
-  def _inject( s, target, prefix, name, spec, count, direction ):
+  def _inject(s, target, prefix, name, spec, count, direction):
     if count is None:
-      port_map = spec.generate( direction )
+      port_map = spec.generate(direction)
     else:
-      ports = [ spec.generate( direction ) for _ in range( count ) ]
+      ports = [spec.generate(direction) for _ in range(count)]
       port_map = {}
       for port_name in spec.ports():
-        port_map[ port_name ] = [
-            ports[ i ][ port_name ] for i in range( count )
-        ]
+        port_map[port_name] = [ports[i][port_name] for i in range(count)]
 
-      Ports = namedtuple( name, port_map.keys() )
-      port_tup = Ports(**port_map )
+      Ports = namedtuple(name, port_map.keys())
+      port_tup = Ports(**port_map)
 
     for port_name, port in port_map.iteritems():
-      mangled = s.mangled_name( prefix, name, port_name )
-      if hasattr( target, mangled ):
-        raise ValueError( 'Mangled field already exists: {}'.format( mangled ) )
-      setattr( target, mangled, port )
+      mangled = s.mangled_name(prefix, name, port_name)
+      if hasattr(target, mangled):
+        raise ValueError('Mangled field already exists: {}'.format(mangled))
+      setattr(target, mangled, port)
 
-    assert ( not hasattr( target, name ) )
-    setattr( target, name, partial( lambda s: port_tup, target ) )
+    assert (not hasattr(target, name))
+    setattr(target, name, partial(lambda s: port_tup, target))
 
-  def apply( s, target ):
+  def apply(s, target):
     """Binds incoming ports to the target
 
     This method should be called by implementing models.
     """
     for name, spec in s.methods.iteritems():
-      s._inject( target, '', name, spec, spec.count,
-                 MethodSpec.DIRECTION_CALLEE )
+      s._inject(target, '', name, spec, spec.count, MethodSpec.DIRECTION_CALLEE)
       # setattr( target, name, ResidualMethodSpec( target, spec ) )
 
-  def require( s, target, prefix, name, count=None ):
+  def require(s, target, prefix, name, count=None):
     """Binds an outgoing port from this interface to the target
 
     This method should be called by client models.
     """
-    if len( prefix ) > 0:
-      prefix = '{}_'.format( prefix )
+    if len(prefix) > 0:
+      prefix = '{}_'.format(prefix)
 
-    spec, available = s.methods[ name ]
+    spec, available = s.methods[name]
     # Should be possible to prevent over-allocation
     # if available is None and count is None:
     #   pass
@@ -226,9 +223,9 @@ class Interface( object ):
     #   available -= count
     # else:
     #   raise ValueError('No more ports for method left: {}'.format(name))
-    s._inject( target, prefix, name, spec, count, MethodSpec.DIRECTION_CALLER )
+    s._inject(target, prefix, name, spec, count, MethodSpec.DIRECTION_CALLER)
 
-  def require_fl_methods( s, target ):
+  def require_fl_methods(s, target):
     """Check that target FL model contains all methods specified.
 
     This method should be called by implementing models.
@@ -236,7 +233,7 @@ class Interface( object ):
     for name, spec in s.methods.iteritems():
       if spec.call:
 
-        method_call = getattr( target, "{}_call".format( name ), None )
+        method_call = getattr(target, "{}_call".format(name), None)
         error_msg = """
   Method call not implemented!
     - method name: {method_name}
@@ -245,38 +242,38 @@ class Interface( object ):
 """
         assert method_call, error_msg.format(
             method_name=name,
-            args=", ".join( spec.args.keys() ),
-            rets=", ".join( spec.rets.keys() ) )
+            args=", ".join(spec.args.keys()),
+            rets=", ".join(spec.rets.keys()))
 
-        args, _, _, _ = inspect.getargspec( method_call )
+        args, _, _, _ = inspect.getargspec(method_call)
         error_msg = """
   Method argument does not match with interface!
     - method name  : {method_name}
     - expected args: {expected_args}
     - actual args  : {actual_args}
 """
-        assert set( args ) == set( spec.args.keys() ), error_msg.format(
+        assert set(args) == set(spec.args.keys()), error_msg.format(
             method_name=name,
-            expected_args=", ".join( spec.args.keys() ),
-            actual_args=", ".join( args ) )
+            expected_args=", ".join(spec.args.keys()),
+            actual_args=", ".join(args))
       if spec.rdy:
         error_msg = """
   Method rdy not implemented!
     - method name: {method_name}
 """
-        assert hasattr( target, "{}_rdy".format( name ) ), error_msg.format(
-            method_name=name, args=", ".join( spec.args.keys() ) )
+        assert hasattr(target, "{}_rdy".format(name)), error_msg.format(
+            method_name=name, args=", ".join(spec.args.keys()))
 
-  def __getitem__( s, key ):
-    return s.methods[ key ]
+  def __getitem__(s, key):
+    return s.methods[key]
 
-  def get_ordering_chains( s, methods=None ):
+  def get_ordering_chains(s, methods=None):
     if methods is None:
       return s.ordering_chains
     else:
       result = []
       for chain in s.ordering_chains:
-        reduced = [ name for name in chain if name in methods ]
-        if len( reduced ) != 0:
-          result.append( reduced )
+        reduced = [name for name in chain if name in methods]
+        if len(reduced) != 0:
+          result.append(reduced)
       return result

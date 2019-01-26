@@ -5,80 +5,80 @@ from config.general import XLEN, AREG_IDX_NBITS, PREG_IDX_NBITS
 
 # Gets the physical register specifier for a given
 # architectural register specifier
-class GetSrcRequest( BitStructDefinition ):
+class GetSrcRequest(BitStructDefinition):
 
-  def __init__( s ):
-    s.reg = BitField( AREG_IDX_NBITS )
+  def __init__(s):
+    s.reg = BitField(AREG_IDX_NBITS)
 
 
-class GetSrcResponse( BitStructDefinition ):
+class GetSrcResponse(BitStructDefinition):
 
-  def __init__( s ):
-    s.ready = BitField( 1 )
-    s.tag = BitField( PREG_IDX_NBITS )
+  def __init__(s):
+    s.ready = BitField(1)
+    s.tag = BitField(PREG_IDX_NBITS)
 
 
 # Allocates a new physical register for a given
 # architectural register
-class GetDstRequest( BitStructDefinition ):
+class GetDstRequest(BitStructDefinition):
 
-  def __init__( s ):
-    s.reg = BitField( AREG_IDX_NBITS )
-
-
-class GetDstResponse( BitStructDefinition ):
-
-  def __init__( s ):
-    s.success = BitField( 1 )
-    s.tag = BitField( PREG_IDX_NBITS )
+  def __init__(s):
+    s.reg = BitField(AREG_IDX_NBITS)
 
 
-class PostForwards( BitStructDefinition ):
+class GetDstResponse(BitStructDefinition):
 
-  def __init__( s ):
-    s.tag = BitField( PREG_IDX_NBITS )
-    s.value = BitField( XLEN )
+  def __init__(s):
+    s.success = BitField(1)
+    s.tag = BitField(PREG_IDX_NBITS)
+
+
+class PostForwards(BitStructDefinition):
+
+  def __init__(s):
+    s.tag = BitField(PREG_IDX_NBITS)
+    s.value = BitField(XLEN)
 
 
 # Reads the value from a physical register
-class ReadTagRequest( BitStructDefinition ):
+class ReadTagRequest(BitStructDefinition):
 
-  def __init__( s ):
-    s.tag = BitField( PREG_IDX_NBITS )
+  def __init__(s):
+    s.tag = BitField(PREG_IDX_NBITS)
 
 
-class ReadTagResponse( BitStructDefinition ):
+class ReadTagResponse(BitStructDefinition):
 
-  def __init__( s ):
-    s.ready = BitField( 1 )
-    s.value = BitField( XLEN )
+  def __init__(s):
+    s.ready = BitField(1)
+    s.value = BitField(XLEN)
 
 
 # Writes to a physical register
-class WriteTagRequest( BitStructDefinition ):
+class WriteTagRequest(BitStructDefinition):
 
-  def __init__( s ):
-    s.tag = BitField( PREG_IDX_NBITS )
-    s.value = BitField( XLEN )
+  def __init__(s):
+    s.tag = BitField(PREG_IDX_NBITS)
+    s.value = BitField(XLEN)
 
 
-class WriteTagResponse( BitStructDefinition ):
+class WriteTagResponse(BitStructDefinition):
 
-  def __init__( s ):
+  def __init__(s):
     pass
 
 
 # Commits a the value currently in a tag to the corresponding
 # architectural register
-class CommitTagRequest( BitStructDefinition ):
+class CommitTagRequest(BitStructDefinition):
 
-  def __init__( s ):
-    s.tag = BitField( PREG_IDX_NBITS )
+  def __init__(s):
+    s.tag = BitField(PREG_IDX_NBITS)
 
 
-class CommitTagResponse( BitStructDefinition ):
+class CommitTagResponse(BitStructDefinition):
 
-  def __init__( s ):
+  def __init__(s):
     pass
 
 
