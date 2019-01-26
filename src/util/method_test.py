@@ -6,6 +6,8 @@ from hypothesis.stateful import *
 from hypothesis import settings
 from hypothesis.vendor.pretty import CUnicodeIO, RepresentationPrinter
 from sets import Set
+from util.rtl.interface import Interface
+from util.rtl.types import Array
 # from util.rtl.method import InMethodCallPortBundle
 
 debug = True
@@ -286,7 +288,6 @@ class TestStateMachine( RuleBasedStateMachine ):
 
   @classmethod
   def set_order( cls, order ):
-    print cls.__order
     cls.__order[ cls ] = order
 
   @classmethod
@@ -419,140 +420,229 @@ def inspect_methods( model ):
 
 
 #-------------------------------------------------------------------------
-# add_method
+# Wrapper
 #-------------------------------------------------------------------------
-def add_method( cls, method_spec, method_call, method_rdy ):
-  method_name = method_spec.method_name
-  if method_spec.islist:
-    name = "{}_{}_".format( method_name, method_spec.index )
-    method_name = "{}[{}]".format( method_name, method_spec.index )
-  else:
-    name = method_name
-
-  cls.methods[ method_name ] = method_spec
-  cls.methods_fl[ name ] = method_spec
-
-  # add method to class
-  setattr( method_call, "__name__", name + "_call" )
-  setattr( cls, name + "_call", method_call )
-
-  if method_spec.hasrdy:
-    setattr( method_rdy, "__name__", name + "_rdy" )
-    setattr( cls, name + "_rdy", method_rdy )
 
 
-#-------------------------------------------------------------------------
-# add_method_from_spec
-#-------------------------------------------------------------------------
-def add_method_from_spec( cls, method_spec ):
-  method_name = method_spec.method_name
-  if method_spec.islist:
-    name = "{}_{}_".format( method_name, method_spec.index )
-    method_name = "{}[{}]".format( method_name, method_spec.index )
-  else:
-    name = method_name
+class Wrapper:
 
-  def method_call( s, *args, **kwargs ):
-    # assert ready
-    if method_spec.hasrdy:
-      exec ( "assert s.{}_rdy()".format( name ) ) in locals()
+  @staticmethod
+  def get_wrapper_method_name( method_name, index=-1 ):
+    ''' Return the wrapper method name based on index and count
+    '''
+    if index >= 0:
+      return "{}_{}_".format( method_name, index )
+    return method_name
 
-    # set call
-    if method_spec.hascall:
-      exec ( "s.model.{}.call.value = 1".format( method_name ) ) in locals()
+  @staticmethod
+  def _get_port( method_name, port_name, index=-1 ):
+    port_name = Interface.mangled_name( "", method_name, port_name )
+    if index >= 0:
+      return "{}[{}]".format( port_name, index )
+    return port_name
 
-    # set arg
-    if method_spec.arg:
-      index = 0
-      args_list = method_spec.arg.keys()
-      args_list.sort()
+  @staticmethod
+  def _add_method( cls, method_name, method_call, method_rdy ):
+    """Add method_call and method_rdy to a wrapper cls
+    """
+    # add method to class
+    setattr( method_call, "__name__", method_name + "_call" )
+    setattr( cls, method_name + "_call", method_call )
 
-      for arg in args_list:
-        if args and kwargs:
-          raise RunMethodTestError(
-              """Mixture of keyworded and non-keyworded arguments is not supported
-for {}_call method. Use keywords, or pass in arguments by alphabetical order. 
-""".format( name ) )
-        if not len( args ) == len( args_list ) and \
-          not len( kwargs ) == len( args_list ):
+    if method_rdy:
+      setattr( method_rdy, "__name__", method_name + "_rdy" )
+      setattr( cls, method_name + "_rdy", method_rdy )
 
-          raise RunMethodTestError()
+  @staticmethod
+  def _validate_input_value( method_name, arg, dtype, value ):
+    out_of_range_msg = """
+  Input arg value out of range.
+    - method name : {method_name}
+    - arg         : {arg}
+    - nbits       : {nbits}
+    - min         : {min}
+    - max         : {max}
+    - actual value: {value}
+"""
+    if not ( value >= dtype._min and value <= dtype._max ):
+      raise ValueError(
+          out_of_range_msg.format(
+              method_name=method_name,
+              arg=arg,
+              nbits=dtype.nbits,
+              min=dtype._min,
+              max=dtype._max,
+              value=value ) )
+
+  @staticmethod
+  def _validate_input( method_name, expected_args_keys, actual_args ):
+    args_match_msg = """
+  Input args do not match with spec.
+    - method name  : {method_name}
+    - expected args: {expected_args}
+    - actual args  : {actual_args}
+"""
+    if isinstance( actual_args, dict ):
+      if not set( expected_args_keys ) == set( actual_args.keys() ):
+        raise TypeError(
+            args_match_msg.format(
+                method_name=method_name,
+                expected_args=", ".join( expected_args_keys ),
+                actual_args=", ".join( actual_args.keys() ) ) )
+    else:
+      error_msg = """
+  This method has more than one arg. Please specify by keyword. 
+    - method name: {method_name}
+    - args       : {args}
+"""
+      if len( expected_args_keys ) != 1:
+        raise TypeError(
+            error_msg.format(
+                method_name=method_name,
+                args=", ".join( expected_args_keys ) ) )
+
+      if len( actual_args ) != 1:
+        raise TypeError(
+            args_match_msg.format(
+                method_name=method_name,
+                expected_args=expected_args_keys[ 0 ],
+                actual_args=", ".join([ str( a ) for a in actual_args ] ) ) )
+
+  @staticmethod
+  def _set_input_arg( s, method_name, arg, index, dtype, value ):
+    if isinstance( dtype, Array ):
+      assert len( value ) == dtype.length
+      for i in range( dtype.length ):
+        Wrapper._validate_input_value( method_name, arg, dtype.Data,
+                                       value[ i ] )
+        port = "{}[{}]".format(
+            Wrapper._get_port( method_name, arg, index ), i )
+        exec ( "s.model.{}.v = {}".format( port, value[ i ] ) ) in locals()
+    else:
+      Wrapper._validate_input_value( method_name, arg, dtype, value )
+      exec ( "s.model.{}.v = {}".format(
+          Wrapper._get_port( method_name, arg, index ), value ) ) in locals()
+
+  @staticmethod
+  def _add_single_method( cls, method_spec, index=-1 ):
+    """Add a single method based on method_spec and index
+    index = -1 indicates that this method is not an array
+    """
+    method_name = method_spec.name
+
+    def method_call( s, *args, **kwargs ):
+      # assert ready
+      if method_spec.rdy:
+        exec ( "assert s.model.{}, 'Calling method not ready: {}'".format(
+            Wrapper._get_port( method_name, "rdy", index ),
+            method_name ) ) in locals()
+
+      # set call
+      if method_spec.call:
+        exec ( "s.model.{}.v = 1".format(
+            Wrapper._get_port( method_name, "call", index ) ) ) in locals()
+
+      # set arg
+      if method_spec.args:
         if args:
-          exec ( "s.model.{}.{}.value = args[ {} ]".format(
-              method_name, arg, index ) ) in locals()
-          index += 1
+          Wrapper._validate_input( method_name, method_spec.args.keys(), args )
+          arg, dtype = method_spec.args.items()[ 0 ]
+          Wrapper._set_input_arg( s, method_name, arg, index, dtype, args[ 0 ] )
         else:
-          exec ( "s.model.{}.{}.value = kwargs[ '{}' ]".format(
-              method_name, arg, arg ) ) in locals()
+          for key, value in kwargs.items():
+            if key[-1 ] == "_":
+              new_key = key[ 0:-1 ]
+              kwargs[ new_key ] = kwargs.pop( key )
 
-    s.sim.eval_combinational()
+          Wrapper._validate_input( method_name, method_spec.args.keys(),
+                                   kwargs )
+          for arg, dtype in method_spec.args.iteritems():
+            Wrapper._set_input_arg( s, method_name, arg, index, dtype,
+                                    kwargs[ arg ] )
 
-    # get ret
-    ret_values = {}
-    for ret in method_spec.ret.keys():
-      exec ( "ret_values[ ret ] = s.model.{}.{}".format( method_name,
-                                                         ret ) ) in locals()
-    return ret_values
+      s.sim.eval_combinational()
 
-  def method_rdy( s ):
-    exec ( "rdy = s.model.{}.rdy".format( method_name ) ) in locals()
-    return rdy
+      # get ret
+      ret_values = ReturnValues()
+      for ret in method_spec.rets.keys():
+        exec ( "ret_values.{} = s.model.{}".format(
+            ret, Wrapper._get_port( method_name, ret, index ) ) ) in locals()
+      return ret_values
 
-  add_method( cls, method_spec, method_call, method_rdy )
+    def method_rdy( s ):
+      exec ( "rdy = s.model.{}".format(
+          Wrapper._get_port( method_name, "rdy", index ) ) ) in locals()
+      return rdy
 
+    method_name_wrapper = Wrapper.get_wrapper_method_name(
+        method_spec.name, index )
+    Wrapper._add_method( cls, method_name_wrapper, method_call, method_rdy )
 
-#-------------------------------------------------------------------------
-# add_clear
-#-------------------------------------------------------------------------
-def add_clear( cls ):
+  @staticmethod
+  def _add_method_from_spec( cls, method_spec ):
+    """Add method(s) to wrapper class cls based on method_spec
+    """
+    method_name = method_spec.name
 
-  def clear( s ):
-    for method, spec in cls.methods.items():
-      if spec.hascall:
-        exec ( "s.model.{}.call.value = 0".format( method ) ) in locals()
-    for method_clear in cls.methods_clear:
-      method_clear( s )
-    s.sim.eval_combinational()
+    if not method_spec.count:
+      Wrapper._add_single_method( cls, method_spec )
+    else:
+      for i in range( method_spec.count ):
+        Wrapper._add_single_method( cls, method_spec, i )
 
-  setattr( cls, "clear", clear )
+  @staticmethod
+  def _add_clear( cls, methods ):
+    """Add method that clears call signals every cycle
+    """
 
+    def clear( s ):
+      for name, spec in methods.iteritems():
+        if spec.call:
+          if spec.count:
+            for i in range( spec.count ):
+              exec ( "s.model.{}.v = 0".format(
+                  Wrapper._get_port( name, "call", i ) ) ) in locals()
+          else:
+            exec ( "s.model.{}.v = 0".format(
+                Wrapper._get_port( name, "call" ) ) ) in locals()
+      for method_clear in cls.methods_clear:
+        method_clear( s )
+      s.sim.eval_combinational()
 
-#-------------------------------------------------------------------------
-# create_wrapper_class
-#-------------------------------------------------------------------------
-def create_wrapper_class( model,
-                          name=None,
-                          method_specs=None,
-                          customized_methods=None ):
-  if not method_specs:
-    method_specs = inspect_methods( model )
+    setattr( cls, "clear", clear )
 
-  if not name:
-    name = type( model ).__name__ + "Wrapper"
+  @staticmethod
+  def create_wrapper_class( model, name=None, customized_methods=None ):
+    """Create wrapper class for rtl model
+    """
+    methods = model.interface.methods
 
-  wrapper_class = type( name, WrapperClass.__bases__,
-                        dict( WrapperClass.__dict__ ) )
+    if not name:
+      name = type( model ).__name__ + "Wrapper"
 
-  for method_spec in method_specs:
-    add_method_from_spec( wrapper_class, method_spec )
+    wrapper_class = type( name, WrapperClass.__bases__,
+                          dict( WrapperClass.__dict__ ) )
 
-  if customized_methods:
-    for method_def in customized_methods:
-      method_spec = MethodSpec(
-          method_name=method_def.method_name,
-          hasrdy=( method_def.method_rdy != None ),
-          hascall=False,
-          islist=False,
-          arg=method_def.arg,
-          ret=method_def.ret )
-      method_specs += [ method_spec ]
-      add_method( wrapper_class, method_spec, method_def.method_call,
-                  method_def.method_rdy )
-      if method_def.method_clear:
-        wrapper_class.methods_clear += [ method_def.method_clear ]
+    for name, method_spec in methods.iteritems():
+      Wrapper._add_method_from_spec( wrapper_class, method_spec )
 
-  add_clear( wrapper_class )
-  return wrapper_class, method_specs
+    if customized_methods:
+      for method_def in customized_methods:
+        method_spec = MethodSpec(
+            method_name=method_def.method_name,
+            hasrdy=( method_def.method_rdy != None ),
+            hascall=False,
+            islist=False,
+            arg=method_def.arg,
+            ret=method_def.ret )
+        method_specs += [ method_spec ]
+        Wrapper._add_method( wrapper_class, method_spec, method_def.method_call,
+                             method_def.method_rdy )
+        if method_def.method_clear:
+          wrapper_class.methods_clear += [ method_def.method_clear ]
+
+    Wrapper._add_clear( wrapper_class, methods )
+    return wrapper_class
 
 
 #-------------------------------------------------------------------------
@@ -786,11 +876,11 @@ def create_test_state_machine( model, reference, customized_methods=None ):
 # generate_methods_from_model
 #-------------------------------------------------------------------------
 def generate_methods_from_model( model ):
-  method_specs = inspect_methods( model )
+  #method_specs = inspect_methods( model )
 
   # get unique methods
   method_spec_dict = {}
-  for spec in method_specs:
+  for name, spec in s.methods.iteritems():
     method_spec_dict[ spec.method_name ] = spec
 
   for method_name, spec in method_spec_dict.items():
