@@ -7,23 +7,23 @@ from config.general import *
 MemMsgType = bit_enum(
     'MemMsgType',
     None,
-    ( 'READ', 'rd' ),
-    ( 'WRITE', 'wr' ),
-    ( 'WRITE_INIT', 'in' ),
-    ( 'AMO_ADD', 'ad' ),
-    ( 'AMO_AND', 'an' ),
-    ( 'AMO_OR', 'or' ),
-    ( 'AMO_XCHG', 'xg' ),
-    ( 'AMO_MIN', 'mn' ),
-    ( 'AMO_MAX', 'mx' ),
+    ('READ', 'rd'),
+    ('WRITE', 'wr'),
+    ('WRITE_INIT', 'in'),
+    ('AMO_ADD', 'ad'),
+    ('AMO_AND', 'an'),
+    ('AMO_OR', 'or'),
+    ('AMO_XCHG', 'xg'),
+    ('AMO_MIN', 'mn'),
+    ('AMO_MAX', 'mx'),
 )
 
 MemMsgStatus = bit_enum(
     'MemMsgStatus',
     None,
-    ( 'OK', 'ok' ),
-    ( 'ADDRESS_MISALIGNED', 'ma' ),
-    ( 'ACCESS_FAULT', 'fa' ),
+    ('OK', 'ok'),
+    ('ADDRESS_MISALIGNED', 'ma'),
+    ('ACCESS_FAULT', 'fa'),
 )
 
 #-------------------------------------------------------------------------
@@ -51,21 +51,21 @@ MemMsgStatus = bit_enum(
 # data field.
 
 
-class MemReqMsg( BitStructDefinition ):
+class MemReqMsg(BitStructDefinition):
   # TODO: SUPER HACKY TO MAKE pclib/fl/BytesMemPortAdapter.py work
   # The BytesMemPortAdapter is questionable to begin with, it
   # can't rely on this
   TYPE_WRITE = MemMsgType.WRITE
   TYPE_READ = MemMsgType.READ
 
-  def __init__( s, opaque_nbits, addr_nbits, data_nbits ):
-    s.type_ = BitField( MemMsgType.bits )
-    s.opaque = BitField( opaque_nbits )
-    s.addr = BitField( addr_nbits )
-    s.len = BitField( clog2( data_nbits / 8 ) )
-    s.data = BitField( data_nbits )
+  def __init__(s, opaque_nbits, addr_nbits, data_nbits):
+    s.type_ = BitField(MemMsgType.bits)
+    s.opaque = BitField(opaque_nbits)
+    s.addr = BitField(addr_nbits)
+    s.len = BitField(clog2(data_nbits / 8))
+    s.data = BitField(data_nbits)
 
-  def mk_rd( s, opaque, addr, len_ ):
+  def mk_rd(s, opaque, addr, len_):
     msg = s()
     msg.type_ = MemMsgType.READ
     msg.opaque = opaque
@@ -75,7 +75,7 @@ class MemReqMsg( BitStructDefinition ):
 
     return msg
 
-  def mk_wr( s, opaque, addr, len_, data ):
+  def mk_wr(s, opaque, addr, len_, data):
     msg = s()
     msg.type_ = MemMsgType.WRITE
     msg.opaque = opaque
@@ -85,7 +85,7 @@ class MemReqMsg( BitStructDefinition ):
 
     return msg
 
-  def mk_msg( s, type_, opaque, addr, len_, data ):
+  def mk_msg(s, type_, opaque, addr, len_, data):
     msg = s()
     msg.type_ = type_
     msg.opaque = opaque
@@ -95,9 +95,9 @@ class MemReqMsg( BitStructDefinition ):
 
     return msg
 
-  def __str__( s ):
+  def __str__(s):
     return "{}:{}:{}:{}".format(
-        MemMsgType.short( s.type_ ), s.opaque, s.addr, s.data )
+        MemMsgType.short(s.type_), s.opaque, s.addr, s.data)
 
 
 #-------------------------------------------------------------------------
@@ -129,19 +129,19 @@ class MemReqMsg( BitStructDefinition ):
 # request is a cache hit or miss for testing purposes.
 
 
-class MemRespMsg( BitStructDefinition ):
+class MemRespMsg(BitStructDefinition):
   TYPE_WRITE = MemMsgType.WRITE
   TYPE_READ = MemMsgType.READ
 
-  def __init__( s, opaque_nbits, data_nbits ):
-    s.type_ = BitField( MemMsgType.bits )
-    s.opaque = BitField( opaque_nbits )
-    s.test = BitField( 2 )
-    s.stat = BitField( MemMsgStatus.bits )
-    s.len = BitField( clog2( data_nbits / 8 ) )
-    s.data = BitField( data_nbits )
+  def __init__(s, opaque_nbits, data_nbits):
+    s.type_ = BitField(MemMsgType.bits)
+    s.opaque = BitField(opaque_nbits)
+    s.test = BitField(2)
+    s.stat = BitField(MemMsgStatus.bits)
+    s.len = BitField(clog2(data_nbits / 8))
+    s.data = BitField(data_nbits)
 
-  def mk_rd( s, opaque, len_, data ):
+  def mk_rd(s, opaque, len_, data):
     msg = s()
     msg.type_ = MemMsgType.READ
     msg.opaque = opaque
@@ -152,7 +152,7 @@ class MemRespMsg( BitStructDefinition ):
 
     return msg
 
-  def mk_wr( s, opaque, len_ ):
+  def mk_wr(s, opaque, len_):
     msg = s()
     msg.type_ = MemMsgType.WRITE
     msg.opaque = opaque
@@ -164,7 +164,7 @@ class MemRespMsg( BitStructDefinition ):
 
     return msg
 
-  def mk_msg( s, type_, opaque, stat, len_, data ):
+  def mk_msg(s, type_, opaque, stat, len_, data):
     msg = s()
     msg.type_ = type_
     msg.opaque = opaque
@@ -175,9 +175,9 @@ class MemRespMsg( BitStructDefinition ):
 
     return msg
 
-  def __str__( s ):
+  def __str__(s):
     return "{}:{}:{}:{}".format(
-        MemMsgType.short( s.type_ ), s.test, s.stat, s.data )
+        MemMsgType.short(s.type_), s.test, s.stat, s.data)
 
 
 #-------------------------------------------------------------------------
@@ -189,13 +189,13 @@ class MemRespMsg( BitStructDefinition ):
 # and (2) we can pass a single object into the parameterized model.
 
 
-class MemMsg( object ):
+class MemMsg(object):
 
-  def __init__( s, opaque_nbits, addr_nbits, data_nbits ):
-    s.req = MemReqMsg( opaque_nbits, addr_nbits, data_nbits )
-    s.resp = MemRespMsg( opaque_nbits, data_nbits )
+  def __init__(s, opaque_nbits, addr_nbits, data_nbits):
+    s.req = MemReqMsg(opaque_nbits, addr_nbits, data_nbits)
+    s.resp = MemRespMsg(opaque_nbits, data_nbits)
 
 
-MemMsg4B = MemMsg( OPAQUE_SIZE, XLEN, 32 )
-MemMsg8B = MemMsg( OPAQUE_SIZE, XLEN, 64 )
-MemMsg16B = MemMsg( OPAQUE_SIZE, XLEN, 128 )
+MemMsg4B = MemMsg(OPAQUE_SIZE, XLEN, 32)
+MemMsg8B = MemMsg(OPAQUE_SIZE, XLEN, 64)
+MemMsg16B = MemMsg(OPAQUE_SIZE, XLEN, 128)

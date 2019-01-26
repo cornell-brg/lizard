@@ -62,9 +62,7 @@ def gen_basic_test():
 
 
 def gen_src0_dep_taken_test():
-  return [
-      gen_br2_src0_dep_test( i, "bgeu", 7 + i, 7, True ) for i in range( 0, 6 )
-  ]
+  return [gen_br2_src0_dep_test(i, "bgeu", 7 + i, 7, True) for i in range(0, 6)]
 
 
 #-------------------------------------------------------------------------
@@ -73,9 +71,7 @@ def gen_src0_dep_taken_test():
 
 
 def gen_src0_dep_nottaken_test():
-  return [
-      gen_br2_src0_dep_test( i, "bgeu", i, 7, False ) for i in range( 0, 6 )
-  ]
+  return [gen_br2_src0_dep_test(i, "bgeu", i, 7, False) for i in range(0, 6)]
 
 
 #-------------------------------------------------------------------------
@@ -85,8 +81,7 @@ def gen_src0_dep_nottaken_test():
 
 def gen_src1_dep_taken_test():
   return [
-      gen_br2_src1_dep_test( i, "bgeu", 0xf + i, 0xf, True )
-      for i in range( 0, 6 )
+      gen_br2_src1_dep_test(i, "bgeu", 0xf + i, 0xf, True) for i in range(0, 6)
   ]
 
 
@@ -97,8 +92,7 @@ def gen_src1_dep_taken_test():
 
 def gen_src1_dep_nottaken_test():
   return [
-      gen_br2_src1_dep_test( i, "bgeu", 0x0, i + 1, False )
-      for i in range( 0, 6 )
+      gen_br2_src1_dep_test(i, "bgeu", 0x0, i + 1, False) for i in range(0, 6)
   ]
 
 
@@ -108,9 +102,7 @@ def gen_src1_dep_nottaken_test():
 
 
 def gen_srcs_dep_taken_test():
-  return [
-      gen_br2_srcs_dep_test( i, "bgeu", 0xf0, i, True ) for i in range( 0, 6 )
-  ]
+  return [gen_br2_srcs_dep_test(i, "bgeu", 0xf0, i, True) for i in range(0, 6)]
 
 
 #-------------------------------------------------------------------------
@@ -120,8 +112,7 @@ def gen_srcs_dep_taken_test():
 
 def gen_srcs_dep_nottaken_test():
   return [
-      gen_br2_srcs_dep_test( i, "bgeu", i, i + 1, False )
-      for i in range( 0, 6 )
+      gen_br2_srcs_dep_test(i, "bgeu", i, i + 1, False) for i in range(0, 6)
   ]
 
 
@@ -132,7 +123,7 @@ def gen_srcs_dep_nottaken_test():
 
 def gen_src0_eq_src1_test():
   return [
-      gen_br2_src0_eq_src1_test( "bgeu", 1, True ),
+      gen_br2_src0_eq_src1_test("bgeu", 1, True),
   ]
 
 
@@ -143,19 +134,19 @@ def gen_src0_eq_src1_test():
 
 def gen_value_test():
   return [
-      gen_br2_value_test( "bgeu", -1, -1, True ),
-      gen_br2_value_test( "bgeu", -1, 0, True ),
-      gen_br2_value_test( "bgeu", -1, 1, True ),
-      gen_br2_value_test( "bgeu", 0, -1, False ),
-      gen_br2_value_test( "bgeu", 0, 0, True ),
-      gen_br2_value_test( "bgeu", 0, 1, False ),
-      gen_br2_value_test( "bgeu", 1, -1, False ),
-      gen_br2_value_test( "bgeu", 1, 0, True ),
-      gen_br2_value_test( "bgeu", 1, 1, True ),
-      gen_br2_value_test( "bgeu", 0xfffffff7, 0xfffffff7, True ),
-      gen_br2_value_test( "bgeu", 0x7fffffff, 0x7fffffff, True ),
-      gen_br2_value_test( "bgeu", 0xfffffff7, 0x7fffffff, True ),
-      gen_br2_value_test( "bgeu", 0x7fffffff, 0xfffffff7, False ),
+      gen_br2_value_test("bgeu", -1, -1, True),
+      gen_br2_value_test("bgeu", -1, 0, True),
+      gen_br2_value_test("bgeu", -1, 1, True),
+      gen_br2_value_test("bgeu", 0, -1, False),
+      gen_br2_value_test("bgeu", 0, 0, True),
+      gen_br2_value_test("bgeu", 0, 1, False),
+      gen_br2_value_test("bgeu", 1, -1, False),
+      gen_br2_value_test("bgeu", 1, 0, True),
+      gen_br2_value_test("bgeu", 1, 1, True),
+      gen_br2_value_test("bgeu", 0xfffffff7, 0xfffffff7, True),
+      gen_br2_value_test("bgeu", 0x7fffffff, 0x7fffffff, True),
+      gen_br2_value_test("bgeu", 0xfffffff7, 0x7fffffff, True),
+      gen_br2_value_test("bgeu", 0x7fffffff, 0xfffffff7, False),
   ]
 
 
@@ -166,15 +157,14 @@ def gen_value_test():
 
 def gen_random_test():
   asm_code = []
-  for i in xrange( 25 ):
-    taken = random.choice([ True, False ] )
-    src0 = Bits( 32, random.randint( 0, 0xffffffff ) )
+  for i in xrange(25):
+    taken = random.choice([True, False])
+    src0 = Bits(32, random.randint(0, 0xffffffff))
     if taken:
       # Branch taken, src0 >= src1
-      src1 = Bits( 32, random.randint( 0, src0.uint() + 1 ) )
+      src1 = Bits(32, random.randint(0, src0.uint() + 1))
     else:
       # Branch not taken, src0 < src1
-      src1 = Bits( 32, random.randint( src0.uint() + 1, 0xffffffff ) )
-    asm_code.append(
-        gen_br2_value_test( "bgeu", src0.uint(), src1.uint(), taken ) )
+      src1 = Bits(32, random.randint(src0.uint() + 1, 0xffffffff))
+    asm_code.append(gen_br2_value_test("bgeu", src0.uint(), src1.uint(), taken))
   return asm_code

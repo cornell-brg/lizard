@@ -4,42 +4,42 @@ from config.general import *
 
 # As soon as instruction enters backend (after decode)
 # it must be registered
-class RegisterInstrRequest( BitStructDefinition ):
+class RegisterInstrRequest(BitStructDefinition):
 
-  def __init__( s ):
-    s.succesor_pc = BitField( XLEN )
-
-
-class RegisterInstrResponse( BitStructDefinition ):
-
-  def __init__( s ):
-    s.tag = BitField( INST_IDX_NBITS )
+  def __init__(s):
+    s.succesor_pc = BitField(XLEN)
 
 
-class IsHeadRequest( BitStructDefinition ):
+class RegisterInstrResponse(BitStructDefinition):
 
-  def __init__( s ):
-    s.tag = BitField( INST_IDX_NBITS )
-
-
-class IsHeadResponse( BitStructDefinition ):
-
-  def __init__( s ):
-    s.is_head = BitField( 1 )
+  def __init__(s):
+    s.tag = BitField(INST_IDX_NBITS)
 
 
-class MarkSpeculativeRequest( BitStructDefinition ):
+class IsHeadRequest(BitStructDefinition):
 
-  def __init__( s ):
-    s.tag = BitField( INST_IDX_NBITS )
-    s.succesor_pc = BitField( XLEN )
+  def __init__(s):
+    s.tag = BitField(INST_IDX_NBITS)
 
 
-class RedirectRequest( BitStructDefinition ):
+class IsHeadResponse(BitStructDefinition):
 
-  def __init__( s ):
-    s.source_tag = BitField( INST_IDX_NBITS )
-    s.target_pc = BitField( XLEN )
+  def __init__(s):
+    s.is_head = BitField(1)
+
+
+class MarkSpeculativeRequest(BitStructDefinition):
+
+  def __init__(s):
+    s.tag = BitField(INST_IDX_NBITS)
+    s.succesor_pc = BitField(XLEN)
+
+
+class RedirectRequest(BitStructDefinition):
+
+  def __init__(s):
+    s.source_tag = BitField(INST_IDX_NBITS)
+    s.target_pc = BitField(XLEN)
     # if 1, then regardless of the sucessor PC,
     # the controlflow unit will force a rediredct.
     # This is useful if even though the right instruction
@@ -47,29 +47,29 @@ class RedirectRequest( BitStructDefinition ):
     # For example, a FENCE.I instruction must redirect
     # and fetch again regardless of what was originally
     # fetched next.
-    s.force_redirect = BitField( 1 )
+    s.force_redirect = BitField(1)
 
 
-class TagValidRequest( BitStructDefinition ):
+class TagValidRequest(BitStructDefinition):
 
-  def __init__( s ):
-    s.tag = BitField( INST_IDX_NBITS )
-
-
-class TagValidResponse( BitStructDefinition ):
-
-  def __init__( s ):
-    s.valid = BitField( 1 )
+  def __init__(s):
+    s.tag = BitField(INST_IDX_NBITS)
 
 
-class CheckRedirectResponse( BitStructDefinition ):
+class TagValidResponse(BitStructDefinition):
 
-  def __init__( s ):
-    s.redirected = BitField( 1 )
-    s.target = BitField( XLEN )
+  def __init__(s):
+    s.valid = BitField(1)
 
 
-class RetireRequest( BitStructDefinition ):
+class CheckRedirectResponse(BitStructDefinition):
 
-  def __init__( s ):
-    s.tag = BitField( INST_IDX_NBITS )
+  def __init__(s):
+    s.redirected = BitField(1)
+    s.target = BitField(XLEN)
+
+
+class RetireRequest(BitStructDefinition):
+
+  def __init__(s):
+    s.tag = BitField(INST_IDX_NBITS)

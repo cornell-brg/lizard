@@ -6,38 +6,38 @@ from test.config import test_verilog
 
 def test_inc_basic():
   run_test_vector_sim(
-      WrapInc( 2, 4, True ), [
-          ( 'inc.in_ inc.out*' ),
-          ( 0, 1 ),
-          ( 1, 2 ),
-          ( 2, 3 ),
-          ( 3, 0 ),
+      WrapInc(2, 4, True), [
+          ('inc.in_ inc.out*'),
+          (0, 1),
+          (1, 2),
+          (2, 3),
+          (3, 0),
       ],
       dump_vcd=None,
-      test_verilog=test_verilog )
+      test_verilog=test_verilog)
 
 
 def test_dec_basic():
   run_test_vector_sim(
-      WrapInc( 2, 4, False ), [
-          ( 'inc.in_ inc.out*' ),
-          ( 0, 3 ),
-          ( 1, 0 ),
-          ( 2, 1 ),
-          ( 3, 2 ),
+      WrapInc(2, 4, False), [
+          ('inc.in_ inc.out*'),
+          (0, 3),
+          (1, 0),
+          (2, 1),
+          (3, 2),
       ],
       dump_vcd=None,
-      test_verilog=test_verilog )
+      test_verilog=test_verilog)
 
 
 def test_inc_multi():
   run_test_vector_sim(
-      WrapIncVar( 2, 4, True, 2 ), [
-          ( 'inc.in_ inc.ops inc.out*' ),
-          ( 0, 0, 0 ),
-          ( 0, 1, 1 ),
-          ( 0, 2, 2 ),
-          ( 2, 2, 0 ),
+      WrapIncVar(2, 4, True, 2), [
+          ('inc.in_ inc.ops inc.out*'),
+          (0, 0, 0),
+          (0, 1, 1),
+          (0, 2, 2),
+          (2, 2, 0),
       ],
       dump_vcd=None,
-      test_verilog=test_verilog )
+      test_verilog=test_verilog)

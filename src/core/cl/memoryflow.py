@@ -5,24 +5,24 @@ from config.general import *
 from copy import deepcopy
 
 
-class MemoryFlowManagerCL( Model ):
+class MemoryFlowManagerCL(Model):
   """
   A simple memory flow manager which only accepts one request 
   in flight at once. No more requests can be accepted until
   the current request is retired.
   """
 
-  def __init__( s ):
+  def __init__(s):
     s.current = None
     s.submitted = False
     s.resp_received = True
     s.resp = None
     s.drop_count = 0
 
-    s.mem_req = OutValRdyCLPort( MemMsg8B.req )
-    s.mem_resp = InValRdyCLPort( MemMsg8B.resp )
+    s.mem_req = OutValRdyCLPort(MemMsg8B.req)
+    s.mem_resp = InValRdyCLPort(MemMsg8B.resp)
 
-  def xtick( s ):
+  def xtick(s):
     if s.reset:
       s.current = None
       s.submitted = False
@@ -39,32 +39,32 @@ class MemoryFlowManagerCL( Model ):
         s.resp_received = True
         s.resp = s.mem_resp.deq()
 
-  def busy( s ):
+  def busy(s):
     return s.current is not None or s.mem_req.full()
 
-  def stage( s, request ):
+  def stage(s, request):
     assert s.current is None
     assert request is not None
-    s.current = deepcopy( request )
+    s.current = deepcopy(request)
     s.submitted = False
     s.resp_received = False
     s.resp = None
 
-  def submit( s ):
+  def submit(s):
     assert s.current is not None
-    s.mem_req.enq( s.current )
+    s.mem_req.enq(s.current)
     s.submitted = True
 
-  def response_ready( s ):
+  def response_ready(s):
     return s.resp_received
 
-  def await_response( s ):
+  def await_response(s):
     if not s.resp_received:
       return None
     else:
       return s.resp
 
-  def retire( s ):
+  def retire(s):
     s.current = None
     # If no response has been received yet, drop it
     if not s.resp_received and s.submitted:
@@ -72,7 +72,7 @@ class MemoryFlowManagerCL( Model ):
     s.submitted = False
     # s.resp_received = True
 
-  def commit( s ):
+  def commit(s):
     if not s.submitted:
       s.submit()
     s.retire()

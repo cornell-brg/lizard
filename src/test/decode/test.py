@@ -7,7 +7,7 @@ from core.cl.decode import DecodeUnitCL
 from msg.datapath import *
 
 
-@pytest.mark.skip( reason="needs CL test src/sink to test" )
+@pytest.mark.skip(reason="needs CL test src/sink to test")
 def test_simple():
   source = FetchPacket()
   source.instr = 0b00000000000100001000000010010011  # AddI rs1, rs1, 1
@@ -18,9 +18,9 @@ def test_simple():
   result.rs1_valid = 1
   result.rd = 1
   result.rd_valid = 1
-  model = Harness( DecodeUnitCL, [ source ], [ result ], 0 )
+  model = Harness(DecodeUnitCL, [source], [result], 0)
   model.elaborate()
-  sim = SimulationTool( model )
+  sim = SimulationTool(model)
 
   sim.reset()
   max_cycles = 50

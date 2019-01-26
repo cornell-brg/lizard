@@ -4,32 +4,32 @@ from config.general import *
 
 
 class RVInstMask:
-  OPCODE = slice( 0, 7 )
-  FUNCT3 = slice( 12, 15 )
-  FUNCT7 = slice( 25, 32 )
-  FUNCT7_SHFT64 = slice( 26, 32 )
-  RD = slice( 7, 12 )
-  RS1 = slice( 15, 20 )
-  RS2 = slice( 20, 25 )
-  SHAMT32 = slice( 20, 25 )
-  SHAMT64 = slice( 20, 26 )
+  OPCODE = slice(0, 7)
+  FUNCT3 = slice(12, 15)
+  FUNCT7 = slice(25, 32)
+  FUNCT7_SHFT64 = slice(26, 32)
+  RD = slice(7, 12)
+  RS1 = slice(15, 20)
+  RS2 = slice(20, 25)
+  SHAMT32 = slice(20, 25)
+  SHAMT64 = slice(20, 26)
 
-  I_IMM = slice( 20, 32 )
-  CSRNUM = slice( 20, 32 )
-  S_IMM0 = slice( 7, 12 )
-  S_IMM1 = slice( 25, 32 )
+  I_IMM = slice(20, 32)
+  CSRNUM = slice(20, 32)
+  S_IMM0 = slice(7, 12)
+  S_IMM1 = slice(25, 32)
 
-  B_IMM0 = slice( 8, 12 )
-  B_IMM1 = slice( 25, 31 )
-  B_IMM2 = slice( 7, 8 )
-  B_IMM3 = slice( 31, 32 )
+  B_IMM0 = slice(8, 12)
+  B_IMM1 = slice(25, 31)
+  B_IMM2 = slice(7, 8)
+  B_IMM3 = slice(31, 32)
 
-  U_IMM = slice( 12, 32 )
+  U_IMM = slice(12, 32)
 
-  J_IMM0 = slice( 21, 31 )
-  J_IMM1 = slice( 20, 21 )
-  J_IMM2 = slice( 12, 20 )
-  J_IMM3 = slice( 31, 32 )
+  J_IMM0 = slice(21, 31)
+  J_IMM1 = slice(20, 21)
+  J_IMM2 = slice(12, 20)
+  J_IMM3 = slice(31, 32)
 
 
 RV64Inst = bit_enum(
@@ -400,7 +400,7 @@ CsrRegisters = bit_enum(
 )
 
 # mtvec MODE field privileged spec 3.1.12
-MtvecMode = bit_enum( 'MtvecMode', bits=2, direct=0, vectored=1 )
+MtvecMode = bit_enum('MtvecMode', bits=2, direct=0, vectored=1)
 
 InterruptCode = bit_enum(
     'InterruptCode',

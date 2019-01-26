@@ -8,36 +8,36 @@ from config.general import *
 from msg.mem import MemMsg8B
 
 
-class ProcFL( Model ):
+class ProcFL(Model):
 
-  def __init__( s, trace_regs=False, num_cores=1 ):
-    s.mngr2proc = InValRdyBundle( XLEN )
-    s.proc2mngr = OutValRdyBundle( XLEN )
+  def __init__(s, trace_regs=False, num_cores=1):
+    s.mngr2proc = InValRdyBundle(XLEN)
+    s.proc2mngr = OutValRdyBundle(XLEN)
 
-    s.imemreq = OutValRdyBundle( MemMsg8B.req )
-    s.imemresp = InValRdyBundle( MemMsg8B.resp )
+    s.imemreq = OutValRdyBundle(MemMsg8B.req)
+    s.imemresp = InValRdyBundle(MemMsg8B.resp)
 
-    s.dmemreq = OutValRdyBundle( MemMsg8B.req )
-    s.dmemresp = InValRdyBundle( MemMsg8B.resp )
+    s.dmemreq = OutValRdyBundle(MemMsg8B.req)
+    s.dmemresp = InValRdyBundle(MemMsg8B.resp)
 
-    s.mngr2proc_q = InValRdyQueueAdapter( s.mngr2proc )
-    s.proc2mngr_q = OutValRdyQueueAdapter( s.proc2mngr )
+    s.mngr2proc_q = InValRdyQueueAdapter(s.mngr2proc)
+    s.proc2mngr_q = OutValRdyQueueAdapter(s.proc2mngr)
 
-    s.imem = BytesMemPortAdapter( s.imemreq, s.imemresp )
-    s.dmem = BytesMemPortAdapter( s.dmemreq, s.dmemresp )
+    s.imem = BytesMemPortAdapter(s.imemreq, s.imemresp)
+    s.dmem = BytesMemPortAdapter(s.dmemreq, s.dmemresp)
 
     # Construct the ISA semantics object
 
-    s.isa = RV64GSemantics( s.dmem, s.mngr2proc_q, s.proc2mngr_q )
+    s.isa = RV64GSemantics(s.dmem, s.mngr2proc_q, s.proc2mngr_q)
 
     # Copies of pc and inst for line tracing
 
-    s.pc = Bits( XLEN, RESET_VECTOR )
-    s.inst = Bits( ILEN, 0x00000000 )
+    s.pc = Bits(XLEN, RESET_VECTOR)
+    s.inst = Bits(ILEN, 0x00000000)
 
     s.width = 33
 
-    def reset_trace( c=" " ):
+    def reset_trace(c=" "):
       s.trace = c * s.width
 
     @s.tick_fl
@@ -48,10 +48,10 @@ class ProcFL( Model ):
       else:
         reset_trace()
         s.pc = s.isa.PC.uint()
-        s.inst = Bits( ILEN, s.imem[ s.pc:s.pc + 4 ] )
-        s.trace = "#".ljust( s.width )
-        s.isa.execute( s.inst )
-        s.trace = "{:0>8x} {: <24}".format( s.pc, s.inst )
+        s.inst = Bits(ILEN, s.imem[s.pc:s.pc + 4])
+        s.trace = "#".ljust(s.width)
+        s.isa.execute(s.inst)
+        s.trace = "{:0>8x} {: <24}".format(s.pc, s.inst)
 
-  def line_trace( s ):
+  def line_trace(s):
     return s.trace

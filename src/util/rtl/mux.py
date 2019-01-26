@@ -5,17 +5,17 @@ from util.rtl.types import Array, canonicalize_type
 from bitutil import clog2, clog2nz
 
 
-class MuxInterface( Interface ):
+class MuxInterface(Interface):
 
-  def __init__( s, dtype, nports ):
-    s.Data = canonicalize_type( dtype )
-    s.Select = Bits( clog2nz( nports ) )
+  def __init__(s, dtype, nports):
+    s.Data = canonicalize_type(dtype)
+    s.Select = Bits(clog2nz(nports))
 
-    super( MuxInterface, s ).__init__([
+    super(MuxInterface, s).__init__([
         MethodSpec(
             'mux',
             args={
-                'in': Array( s.Data, nports ),
+                'in': Array(s.Data, nports),
                 'select': s.Select,
             },
             rets={
@@ -24,10 +24,10 @@ class MuxInterface( Interface ):
             call=False,
             rdy=False,
         ),
-    ] )
+    ])
 
 
-class Mux( Model ):
+class Mux(Model):
   """A multiplexer.
   
   Parameters:
@@ -48,15 +48,15 @@ class Mux( Model ):
     Data from in read before the mux function is computed.
   """
 
-  def __init__( s, dtype, nports ):
-    s.interface = MuxInterface( dtype, nports )
-    s.interface.apply( s )
+  def __init__(s, dtype, nports):
+    s.interface = MuxInterface(dtype, nports)
+    s.interface.apply(s)
 
     @s.combinational
     def select():
       assert s.mux_select < nports
-      s.mux_out.v = s.mux_in[ s.mux_select ]
+      s.mux_out.v = s.mux_in[s.mux_select]
 
-  def line_trace( s ):
-    return "[{}][{}]: {}".format( ', '.join([ str( x ) for x in s.mux_in ] ),
-                                  s.mux_select, s.mux_out )
+  def line_trace(s):
+    return "[{}][{}]: {}".format(', '.join([str(x) for x in s.mux_in]),
+                                 s.mux_select, s.mux_out)

@@ -67,7 +67,7 @@ def gen_bypass_test():
     csrr x1, mngr2proc   < 0xcafecafe
     csrw proc2mngr, x1   > 0xcafecafe
   """.format(
-      nops_3=gen_nops( 3 ), nops_2=gen_nops( 2 ), nops_1=gen_nops( 1 ) )
+      nops_3=gen_nops(3), nops_2=gen_nops(2), nops_1=gen_nops(1))
 
 
 def gen_csr_bypass_test():
@@ -141,14 +141,14 @@ def gen_value_test():
 def gen_random_test():
 
   asm_code = []
-  for i in xrange( 100 ):
-    value = random.randint( 0, 0xffffffff )
-    asm_code.append( """
+  for i in xrange(100):
+    value = random.randint(0, 0xffffffff)
+    asm_code.append("""
 
       csrr x1, mngr2proc   < {value}
       csrw proc2mngr, x1   > {value}
 
-    """.format(**locals() ) )
+    """.format(**locals()))
 
   return asm_code
 

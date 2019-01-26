@@ -88,12 +88,12 @@ from util.sparse_memory_image import SparseMemoryImage
 # Elf64_Half      e_shstrndx
 
 
-class ElfHeader( object ):
+class ElfHeader(object):
 
   FORMAT64 = "<16sHHIQQQIHHHHHH"
   FORMAT = "<16sHHIIIIIHHHHHH"
-  NBYTES = struct.calcsize( FORMAT )
-  NBYTES64 = struct.calcsize( FORMAT64 )
+  NBYTES = struct.calcsize(FORMAT)
+  NBYTES64 = struct.calcsize(FORMAT64)
 
   # Offsets within e_ident
 
@@ -123,7 +123,7 @@ class ElfHeader( object ):
 
   #def __init__( self, data=None ):
   #  if data != None:
-  def __init__( self, data='', is_64bit=False ):
+  def __init__(self, data='', is_64bit=False):
     self.is_64bit = is_64bit
     if is_64bit:
       self.format = ElfHeader.FORMAT64
@@ -131,34 +131,34 @@ class ElfHeader( object ):
       self.format = ElfHeader.FORMAT
 
     if data != '':
-      self.from_bytes( data )
+      self.from_bytes(data)
 
   #-----------------------------------------------------------------------
   # from_bytes
   #-----------------------------------------------------------------------
 
-  def from_bytes( self, data ):
-    ehdr_list = unpack( self.format, data )
-    self.ident = ehdr_list[ 0 ]
-    self.type = ehdr_list[ 1 ]
-    self.machine = ehdr_list[ 2 ]
-    self.version = ehdr_list[ 3 ]
-    self.entry = ehdr_list[ 4 ]
-    self.phoff = ehdr_list[ 5 ]
-    self.shoff = ehdr_list[ 6 ]
-    self.flags = ehdr_list[ 7 ]
-    self.ehsize = ehdr_list[ 8 ]
-    self.phentsize = ehdr_list[ 9 ]
-    self.phnum = ehdr_list[ 10 ]
-    self.shentsize = ehdr_list[ 11 ]
-    self.shnum = ehdr_list[ 12 ]
-    self.shstrndx = ehdr_list[ 13 ]
+  def from_bytes(self, data):
+    ehdr_list = unpack(self.format, data)
+    self.ident = ehdr_list[0]
+    self.type = ehdr_list[1]
+    self.machine = ehdr_list[2]
+    self.version = ehdr_list[3]
+    self.entry = ehdr_list[4]
+    self.phoff = ehdr_list[5]
+    self.shoff = ehdr_list[6]
+    self.flags = ehdr_list[7]
+    self.ehsize = ehdr_list[8]
+    self.phentsize = ehdr_list[9]
+    self.phnum = ehdr_list[10]
+    self.shentsize = ehdr_list[11]
+    self.shnum = ehdr_list[12]
+    self.shstrndx = ehdr_list[13]
 
   #-----------------------------------------------------------------------
   # to_bytes
   #-----------------------------------------------------------------------
 
-  def to_bytes( self ):
+  def to_bytes(self):
     return struct.pack(
         ElfHeader.FORMAT,
         self.ident,
@@ -181,7 +181,7 @@ class ElfHeader( object ):
   # __str__
   #-----------------------------------------------------------------------
 
-  def __str__( self ):
+  def __str__(self):
     return \
 """
  ElfHeader:
@@ -251,12 +251,12 @@ class ElfHeader( object ):
 # Elf64_Xword   sh_entsize
 
 
-class ElfSectionHeader( object ):
+class ElfSectionHeader(object):
 
   FORMAT = "<IIIIIIIIII"
   FORMAT64 = "<IIQQQQIIQQ"
-  NBYTES = struct.calcsize( FORMAT )
-  NBYTES64 = struct.calcsize( FORMAT64 )
+  NBYTES = struct.calcsize(FORMAT)
+  NBYTES64 = struct.calcsize(FORMAT64)
 
   # Section types. Note that we only load some of these sections.
 
@@ -291,37 +291,37 @@ class ElfSectionHeader( object ):
 
   #def __init__( self, data=None ):
   #  if data != None:
-  def __init__( self, data='', is_64bit=False ):
+  def __init__(self, data='', is_64bit=False):
     self.is_64bit = is_64bit
     if is_64bit:
       self.format = ElfSectionHeader.FORMAT64
     else:
       self.format = ElfSectionHeader.FORMAT
     if data != '':
-      self.from_bytes( data )
+      self.from_bytes(data)
 
   #-----------------------------------------------------------------------
   # from_bytes
   #-----------------------------------------------------------------------
 
-  def from_bytes( self, data ):
-    shdr_list = unpack( self.format, data )
-    self.name = shdr_list[ 0 ]
-    self.type = shdr_list[ 1 ]
-    self.flags = shdr_list[ 2 ]
-    self.addr = shdr_list[ 3 ]
-    self.offset = shdr_list[ 4 ]
-    self.size = shdr_list[ 5 ]
-    self.link = shdr_list[ 6 ]
-    self.info = shdr_list[ 7 ]
-    self.addralign = shdr_list[ 8 ]
-    self.entsize = shdr_list[ 9 ]
+  def from_bytes(self, data):
+    shdr_list = unpack(self.format, data)
+    self.name = shdr_list[0]
+    self.type = shdr_list[1]
+    self.flags = shdr_list[2]
+    self.addr = shdr_list[3]
+    self.offset = shdr_list[4]
+    self.size = shdr_list[5]
+    self.link = shdr_list[6]
+    self.info = shdr_list[7]
+    self.addralign = shdr_list[8]
+    self.entsize = shdr_list[9]
 
   #-----------------------------------------------------------------------
   # to_bytes
   #-----------------------------------------------------------------------
 
-  def to_bytes( self ):
+  def to_bytes(self):
     return struct.pack(
         ElfSectionHeader.FORMAT,
         self.name,
@@ -340,7 +340,7 @@ class ElfSectionHeader( object ):
   # __str__
   #-----------------------------------------------------------------------
 
-  def __str__( self ):
+  def __str__(self):
     return \
 """
  ElfSectionHeader:
@@ -385,10 +385,10 @@ class ElfSectionHeader( object ):
 #
 
 
-class ElfSymTabEntry( object ):
+class ElfSymTabEntry(object):
 
   FORMAT = "<IIIBBH"
-  NBYTES = struct.calcsize( FORMAT )
+  NBYTES = struct.calcsize(FORMAT)
 
   # Symbol types. Note we only load some of these types.
 
@@ -406,29 +406,29 @@ class ElfSymTabEntry( object ):
 
   #def __init__( self, data=None ):
   #  if data != None:
-  def __init__( self, data='' ):
+  def __init__(self, data=''):
     if data != '':
-      self.from_bytes( data )
+      self.from_bytes(data)
 
   #-----------------------------------------------------------------------
   # from_bytes
   #-----------------------------------------------------------------------
 
-  def from_bytes( self, data ):
+  def from_bytes(self, data):
     #sym_list = struct.unpack( ElfSymTabEntry.FORMAT, data )
-    sym_list = unpack( ElfSymTabEntry.FORMAT, data )
-    self.name = sym_list[ 0 ]
-    self.value = sym_list[ 1 ]
-    self.size = sym_list[ 2 ]
-    self.info = sym_list[ 3 ]
-    self.other = sym_list[ 4 ]
-    self.shndx = sym_list[ 5 ]
+    sym_list = unpack(ElfSymTabEntry.FORMAT, data)
+    self.name = sym_list[0]
+    self.value = sym_list[1]
+    self.size = sym_list[2]
+    self.info = sym_list[3]
+    self.other = sym_list[4]
+    self.shndx = sym_list[5]
 
   #-----------------------------------------------------------------------
   # to_bytes
   #-----------------------------------------------------------------------
 
-  def to_bytes( self ):
+  def to_bytes(self):
     return struct.pack(
         ElfSymTabEntry.FORMAT,
         self.name,
@@ -443,7 +443,7 @@ class ElfSymTabEntry( object ):
   # __str__
   #-----------------------------------------------------------------------
 
-  def __str__( self ):
+  def __str__(self):
     return \
 """
  ElfSymTabEntry:
@@ -469,35 +469,35 @@ class ElfSymTabEntry( object ):
 # Opens and parses an ELF file into a sparse memory image object.
 
 
-def elf_reader( file_obj, is_64bit=False ):
+def elf_reader(file_obj, is_64bit=False):
 
   # Read the data for the ELF header
 
-  ehdr_data = file_obj.read( ElfHeader.NBYTES64 if is_64bit else ElfHeader
-                             .NBYTES )
+  ehdr_data = file_obj.read(ElfHeader.NBYTES64 if is_64bit else ElfHeader
+                            .NBYTES)
   # Construct an ELF header object
-  ehdr = ElfHeader( ehdr_data, is_64bit=is_64bit )
+  ehdr = ElfHeader(ehdr_data, is_64bit=is_64bit)
 
   # Verify if its a known format and realy an ELF file
 
-  if ehdr.ident[ 0:4 ] != '\x7fELF':
-    raise ValueError( "Not a valid ELF file" )
+  if ehdr.ident[0:4] != '\x7fELF':
+    raise ValueError("Not a valid ELF file")
 
   # We need to find the section string table so we can figure out the
   # name of each section. We know that the section header for the section
   # string table is entry shstrndx, so we first get the data for this
   # section header.
-  file_obj.seek( intmask( ehdr.shoff ) + ehdr.shstrndx * ehdr.shentsize )
-  shdr_data = file_obj.read( ehdr.shentsize )
+  file_obj.seek(intmask(ehdr.shoff) + ehdr.shstrndx * ehdr.shentsize)
+  shdr_data = file_obj.read(ehdr.shentsize)
 
   # Construct a section header object for the section string table
 
-  shdr = ElfSectionHeader( shdr_data, is_64bit=is_64bit )
+  shdr = ElfSectionHeader(shdr_data, is_64bit=is_64bit)
 
   # Read the data for the section header table
 
-  file_obj.seek( intmask( shdr.offset ) )
-  shstrtab_data = file_obj.read( intmask( shdr.size ) )
+  file_obj.seek(intmask(shdr.offset))
+  shstrtab_data = file_obj.read(intmask(shdr.size))
 
   # Load sections
 
@@ -506,12 +506,12 @@ def elf_reader( file_obj, is_64bit=False ):
 
   mem_image = SparseMemoryImage()
 
-  for section_idx in range( ehdr.shnum ):
+  for section_idx in range(ehdr.shnum):
 
     # Read the data for the section header
 
-    file_obj.seek( intmask( ehdr.shoff ) + section_idx * ehdr.shentsize )
-    shdr_data = file_obj.read( ehdr.shentsize )
+    file_obj.seek(intmask(ehdr.shoff) + section_idx * ehdr.shentsize)
+    shdr_data = file_obj.read(ehdr.shentsize)
 
     # Pad the returned string in case the section header is not long
     # enough (otherwise the unpack function would not work)
@@ -519,33 +519,33 @@ def elf_reader( file_obj, is_64bit=False ):
     #shdr_data = shdr_data.ljust( ElfSectionHeader.NBYTES, '\0' )
     shdr_nbytes = ElfSectionHeader.NBYTES64 if is_64bit else \
                   ElfSectionHeader.NBYTES
-    fill = '\0' * ( shdr_nbytes - len( shdr_data ) )
+    fill = '\0' * (shdr_nbytes - len(shdr_data))
     shdr_data = shdr_data + fill
 
     # Construct a section header object
 
-    shdr = ElfSectionHeader( shdr_data, is_64bit=is_64bit )
+    shdr = ElfSectionHeader(shdr_data, is_64bit=is_64bit)
 
     # Find the section name
 
     #start = shstrtab_data[shdr.name:]
     idx = shdr.name
     assert idx >= 0
-    start = shstrtab_data[ idx:]
+    start = shstrtab_data[idx:]
 
     #section_name = start.partition('\0')[0]
-    section_name = start.split( '\0', 1 )[ 0 ]
+    section_name = start.split('\0', 1)[0]
 
     # only sections marked as lloc should be written to memory
 
-    if not ( shdr.flags & ElfSectionHeader.FLAGS_ALLOC ):
+    if not (shdr.flags & ElfSectionHeader.FLAGS_ALLOC):
       continue
 
     # Read the section data if it exists
 
-    if section_name not in [ '.sbss', '.bss' ]:
-      file_obj.seek( intmask( shdr.offset ) )
-      data = file_obj.read( intmask( shdr.size ) )
+    if section_name not in ['.sbss', '.bss']:
+      file_obj.seek(intmask(shdr.offset))
+      data = file_obj.read(intmask(shdr.size))
 
     # NOTE: the .bss and .sbss sections don't actually contain any
     # data in the ELF.  These sections should be initialized to zero.
@@ -569,8 +569,8 @@ def elf_reader( file_obj, is_64bit=False ):
     # Otherwise create section and append it to our list of sections
 
     else:
-      section = SparseMemoryImage.Section( section_name, shdr.addr, data )
-      mem_image.add_section( section )
+      section = SparseMemoryImage.Section(section_name, shdr.addr, data)
+      mem_image.add_section(section)
 
   # Load symbols. We skip the first symbol since it both "designates the
   # first entry in the table and serves as the undefined symbol index".
@@ -633,7 +633,7 @@ def elf_reader( file_obj, is_64bit=False ):
 #
 
 
-def elf_writer( mem_image, file_obj ):
+def elf_writer(mem_image, file_obj):
 
   # Get the sections
 
@@ -647,7 +647,7 @@ def elf_writer( mem_image, file_obj ):
 
   #ehdr.ident     = "\x7fELF\x01\x01\x01".ljust( ElfHeader.IDENT_NBYTES, '0' )
   ehdr.ident = "\x7fELF\x01\x01\x01"
-  fill = '\0' * ( ElfHeader.IDENT_NBYTES - len( ehdr.ident ) )
+  fill = '\0' * (ElfHeader.IDENT_NBYTES - len(ehdr.ident))
   ehdr.ident = ehdr.ident + fill
   ehdr.type = ElfHeader.TYPE_EXEC
   ehdr.machine = 8
@@ -660,12 +660,12 @@ def elf_writer( mem_image, file_obj ):
   ehdr.phentsize = 0
   ehdr.phnum = 0
   ehdr.shentsize = ElfSectionHeader.NBYTES  # shdrs are fixed size
-  ehdr.shnum = len( sections ) + 2  # add 2 for extra sections
-  ehdr.shstrndx = len( sections ) + 1  # location of shstrtab
+  ehdr.shnum = len(sections) + 2  # add 2 for extra sections
+  ehdr.shstrndx = len(sections) + 1  # location of shstrtab
 
   # Write the ELF header to the file
 
-  file_obj.write( ehdr.to_bytes() )
+  file_obj.write(ehdr.to_bytes())
 
   # Write the first "null" section header to the file
 
@@ -680,14 +680,14 @@ def elf_writer( mem_image, file_obj ):
   shdr.info = 0
   shdr.addralign = 0
   shdr.entsize = 0
-  file_obj.write( shdr.to_bytes() )
+  file_obj.write(shdr.to_bytes())
 
   # The section data is going to start after the ELF header and all of
   # the section headers.
 
   section_offset = ElfHeader.NBYTES  # ELF header
   section_offset += ElfSectionHeader.NBYTES  # null shdr
-  section_offset += len( sections ) * ElfSectionHeader.NBYTES  # normal shdrs
+  section_offset += len(sections) * ElfSectionHeader.NBYTES  # normal shdrs
   section_offset += 1 * ElfSectionHeader.NBYTES  # shstrtab shdr
 
   # Collect section names in a string for writing to ".shstrtab"
@@ -699,46 +699,46 @@ def elf_writer( mem_image, file_obj ):
   for section in sections:
 
     shdr = ElfSectionHeader()
-    shdr.name = len( section_names )
+    shdr.name = len(section_names)
     shdr.type = ElfSectionHeader.TYPE_PROGBITS
     shdr.flags = ElfSectionHeader.FLAGS_ALLOC
     shdr.addr = section.addr
     shdr.offset = section_offset
-    shdr.size = len( section.data )
+    shdr.size = len(section.data)
     shdr.link = 0
     shdr.info = 0
     shdr.addralign = 0
     shdr.entsize = 0
 
-    file_obj.write( shdr.to_bytes() )
+    file_obj.write(shdr.to_bytes())
 
     section_names += section.name + "\0"
-    section_offset += len( section.data )
+    section_offset += len(section.data)
 
   # Write the ".shstrtab" section header to the file
 
   shdr = ElfSectionHeader()
-  shdr.name = len( section_names )
+  shdr.name = len(section_names)
   shdr.type = ElfSectionHeader.TYPE_STRTAB
   shdr.flags = 0
   shdr.addr = 0
   shdr.offset = section_offset
-  shdr.size = len( section_names + ".shstrtab\0" )
+  shdr.size = len(section_names + ".shstrtab\0")
   shdr.link = 0
   shdr.info = 0
   shdr.addralign = 0
   shdr.entsize = 0
 
-  file_obj.write( shdr.to_bytes() )
+  file_obj.write(shdr.to_bytes())
 
   section_names += ".shstrtab\0"
-  section_offset += len( section_names )
+  section_offset += len(section_names)
 
   # Write the section data for "normal" sections
 
   for section in sections:
-    file_obj.write( section.data )
+    file_obj.write(section.data)
 
   # Write the data for the ".shstrtab" section
 
-  file_obj.write( section_names )
+  file_obj.write(section_names)

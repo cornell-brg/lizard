@@ -260,4 +260,4 @@ def gen_branch_collision_test():
 
     csrw proc2mngr, x4 > 40
   """.format(
-      nop_gen=gen_nops( 59 ),)
+      nop_gen=gen_nops(59),)

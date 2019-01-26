@@ -10,7 +10,7 @@ from collections import namedtuple
 from bitutil import bslice, byte_count
 
 
-class FieldFormat( object ):
+class FieldFormat(object):
   """
   Represents: a format for a field in an assembly instruction.
   """
@@ -18,7 +18,7 @@ class FieldFormat( object ):
   __metaclass__ = abc.ABCMeta
 
   @abc.abstractmethod
-  def parse( self, sym, pc, spec ):
+  def parse(self, sym, pc, spec):
     """
     Given a field as the string spec, the current PC,
     and a symbol table (a mapping from symbol names to addresses),
@@ -27,7 +27,7 @@ class FieldFormat( object ):
     pass
 
   @abc.abstractmethod
-  def format( self, value ):
+  def format(self, value):
     """
     Given the value, format the value in such a way such that
     format(parse({}, 0, format(value))) == format(value)
@@ -35,21 +35,21 @@ class FieldFormat( object ):
     pass
 
 
-class IntFormat( FieldFormat ):
+class IntFormat(FieldFormat):
   """
   Represents:
   A simple assembly field formatter.
   Fields are plain integers, and are formatter as integers
   """
 
-  def parse( self, sym, pc, spec ):
-    return int( spec, 0 )
+  def parse(self, sym, pc, spec):
+    return int(spec, 0)
 
-  def format( self, value ):
-    return str( value )
+  def format(self, value):
+    return str(value)
 
 
-class FieldSpec( object ):
+class FieldSpec(object):
   """
   Represents: a field specifier. A field is a value encoded into
   some positions inside an instruction.
@@ -81,71 +81,71 @@ class FieldSpec( object ):
   in the target, while the low bit must be 0.
   """
 
-  def __init__( self, width, formatter, parts ):
+  def __init__(self, width, formatter, parts):
     self.width = width
     self.formatter = formatter
-    if isinstance( parts, slice ):
-      self.parts = [( parts, bslice( self.width - 1, 0 ) ) ]
+    if isinstance(parts, slice):
+      self.parts = [(parts, bslice(self.width - 1, 0))]
     else:
       self.parts = parts
 
-  def assemble( self, target, value ):
+  def assemble(self, target, value):
     """
     Effect: copies the value into the appropriate positions in the target
     """
-    value = Bits( self.width, value )
+    value = Bits(self.width, value)
     for target_slice, field_slice in self.parts:
-      if isinstance( target_slice, slice ):
-        target[ target_slice ] = value[ field_slice ]
-      elif value[ field_slice ] != target_slice:
+      if isinstance(target_slice, slice):
+        target[target_slice] = value[field_slice]
+      elif value[field_slice] != target_slice:
         raise ValueError(
             "Incorrect value in slice {} of field {}: found: {} expected: {}"
-            .format( field_slice, value, value[ field_slice ], target_slice ) )
+            .format(field_slice, value, value[field_slice], target_slice))
 
-  def disassemble( self, source ):
+  def disassemble(self, source):
     """
     Computes the value by extracting and concatenating the individual parts from the source
     Returns: a Bits object of size width with the extracted value
     """
-    result = Bits( self.width, 0 )
+    result = Bits(self.width, 0)
     for target_slice, field_slice in self.parts:
-      if isinstance( target_slice, slice ):
-        result[ field_slice ] = source[ target_slice ]
+      if isinstance(target_slice, slice):
+        result[field_slice] = source[target_slice]
       else:
-        result[ field_slice ] = target_slice
+        result[field_slice] = target_slice
     return result
 
-  def parse( self, sym, pc, spec ):
+  def parse(self, sym, pc, spec):
     """
     Parses the given spec using the symbol table and PC with this field's
     format
     """
-    result = self.formatter.parse( sym, pc, spec )
-    assert int( result ) < 2**self.width
+    result = self.formatter.parse(sym, pc, spec)
+    assert int(result) < 2**self.width
     return result
 
-  def format( self, value ):
+  def format(self, value):
     """
     Formats the value witht this field's format.
     """
-    return self.formatter.format( value )
+    return self.formatter.format(value)
 
-  def translate( self, target, sym, pc, spec ):
+  def translate(self, target, sym, pc, spec):
     """
     Effect: parses the spec using parse, and then assembles the value
     into target.
     """
-    self.assemble( target, self.parse( sym, pc, spec ) )
+    self.assemble(target, self.parse(sym, pc, spec))
 
-  def decode( self, source ):
+  def decode(self, source):
     """
     Effect: extracts the value using disassemble, and then format it
     using format.
     """
-    return self.format( self.disassemble( source ) )
+    return self.format(self.disassemble(source))
 
 
-def split_instr( instr ):
+def split_instr(instr):
   """
   Given an instruction of the form "name arg1, arg2, ...",
   returns the pair ("name", "arg1, arg2, ...").
@@ -153,23 +153,23 @@ def split_instr( instr ):
   If the instruction has no arguments, the second element of
   the pair is the empty string.
   """
-  result = instr.split( None, 1 )
-  if len( result ) == 1:
-    return result[ 0 ], ""
+  result = instr.split(None, 1)
+  if len(result) == 1:
+    return result[0], ""
   else:
     return result
 
 
-def simplify_args( args ):
+def simplify_args(args):
   """
   Given a string argument list of the form "arg1, arg2, ...",
   or any variant such as "arg1(arg2)", returns the list
   ["arg1", "arg2", ...]
   """
-  return translate( args, maketrans( ",()", "   " ) ).split()
+  return translate(args, maketrans(",()", "   ")).split()
 
 
-def expand_gen( func ):
+def expand_gen(func):
   """
   Function decorator, which given a function func, generates a new function, g,
   that given a list of tuples, maps func over the list, and flattens the result.
@@ -177,12 +177,12 @@ def expand_gen( func ):
   Note that the tuples are splatted into func.
   """
 
-  def loop( rows ):
+  def loop(rows):
     result = []
     for row in rows:
-      temp = func(*row )
-      if not isinstance( temp, list ):
-        temp = [ temp ]
+      temp = func(*row)
+      if not isinstance(temp, list):
+        temp = [temp]
       result += temp
     return result
 
@@ -190,19 +190,19 @@ def expand_gen( func ):
 
 
 @expand_gen
-def expand_encoding( inst, opcode_mask, opcode ):
+def expand_encoding(inst, opcode_mask, opcode):
   """
   Given an instruction description of the form inst, opcode_mask, and opcode,
   computes a more usable 5 term expansion:
 
   name, args, simplify_args( args ), opcode_mask, opcode
   """
-  name, args = split_instr( inst )
-  return name, args, simplify_args( args ), opcode_mask, opcode
+  name, args = split_instr(inst)
+  return name, args, simplify_args(args), opcode_mask, opcode
 
 
 @expand_gen
-def expand_pseudo_spec( pseudo, bases ):
+def expand_pseudo_spec(pseudo, bases):
   """
   Given a pseudo instruction specificion of the form pseudo, base_list,
   computes a more usable 3 term expansion:
@@ -211,74 +211,74 @@ def expand_pseudo_spec( pseudo, bases ):
 
   where bases_expanded produced by mapoping split_instr over the base_list.
   """
-  pseudo_name, pseudo_args = split_instr( pseudo )
-  bases_expanded = [ split_instr( base ) for base in bases ]
-  return pseudo_name, simplify_args( pseudo_args ), bases_expanded
+  pseudo_name, pseudo_args = split_instr(pseudo)
+  bases_expanded = [split_instr(base) for base in bases]
+  return pseudo_name, simplify_args(pseudo_args), bases_expanded
 
 
-InstSpec = namedtuple( 'InstSpec', 'args simple_args opcode_mask opcode' )
-PseudoSpec = namedtuple( 'PseudoSpec', 'simple_args base_list' )
+InstSpec = namedtuple('InstSpec', 'args simple_args opcode_mask opcode')
+PseudoSpec = namedtuple('PseudoSpec', 'simple_args base_list')
 
 
-class Isa( object ):
+class Isa(object):
 
-  def __init__( self, ilen, xlen, inst_encoding_table, pseudo_table, fields ):
+  def __init__(self, ilen, xlen, inst_encoding_table, pseudo_table, fields):
 
     self.ilen = ilen
-    self.ilen_bytes = byte_count( ilen )
+    self.ilen_bytes = byte_count(ilen)
     self.xlen = xlen
-    self.xlen_bytes = byte_count( xlen )
+    self.xlen_bytes = byte_count(xlen)
     self.encoding = {}
     self.pseudo_map = {}
     self.fields = fields
 
     for name, args, simple_args, opcode_mask, opcode in inst_encoding_table:
-      self.encoding[ name ] = InstSpec( args, simple_args, opcode_mask, opcode )
+      self.encoding[name] = InstSpec(args, simple_args, opcode_mask, opcode)
 
     for name, simple_args, base_list in pseudo_table:
-      self.pseudo_map[ name ] = PseudoSpec( simple_args, base_list )
+      self.pseudo_map[name] = PseudoSpec(simple_args, base_list)
 
-  def expand_pseudo_instructions( self, inst_str ):
-    name, args = split_instr( inst_str )
+  def expand_pseudo_instructions(self, inst_str):
+    name, args = split_instr(inst_str)
     if name in self.encoding:
-      return [ inst_str ]
+      return [inst_str]
     elif name in self.pseudo_map:
-      simple = simplify_args( args )
-      var_names = self.pseudo_map[ name ].simple_args
-      assert len( simple ) == len( var_names )
-      arg_map = zip( var_names, simple )
+      simple = simplify_args(args)
+      var_names = self.pseudo_map[name].simple_args
+      assert len(simple) == len(var_names)
+      arg_map = zip(var_names, simple)
       result = []
-      for base_name, base_args in self.pseudo_map[ name ].base_list:
+      for base_name, base_args in self.pseudo_map[name].base_list:
         for var, value in arg_map:
-          base_args = base_args.replace( "${}".format( var ), value )
-        result.append( "{} {}".format( base_name, base_args ) )
+          base_args = base_args.replace("${}".format(var), value)
+        result.append("{} {}".format(base_name, base_args))
       return result
     else:
-      raise ValueError( "Unknown instruction: {}".format( inst_str ) )
+      raise ValueError("Unknown instruction: {}".format(inst_str))
 
-  def decode_inst_name( self, inst_bits ):
+  def decode_inst_name(self, inst_bits):
     for name, spec in self.encoding.iteritems():
-      if ( inst_bits & spec.opcode_mask ) == spec.opcode:
+      if (inst_bits & spec.opcode_mask) == spec.opcode:
         return name
     return 'invld'
 
-  def assemble_inst( self, sym, pc, inst_str ):
-    name, args = split_instr( inst_str )
-    arg_list = simplify_args( args )
+  def assemble_inst(self, sym, pc, inst_str):
+    name, args = split_instr(inst_str)
+    arg_list = simplify_args(args)
 
-    result = Bits( self.ilen, self.encoding[ name ].opcode )
+    result = Bits(self.ilen, self.encoding[name].opcode)
 
-    for asm_field_str, field_name in zip( arg_list,
-                                          self.encoding[ name ].simple_args ):
-      self.fields[ field_name ].translate( result, sym, pc, asm_field_str )
+    for asm_field_str, field_name in zip(arg_list,
+                                         self.encoding[name].simple_args):
+      self.fields[field_name].translate(result, sym, pc, asm_field_str)
     return result
 
-  def disassemble_inst( self, inst_bits ):
-    name = self.decode_inst_name( inst_bits )
+  def disassemble_inst(self, inst_bits):
+    name = self.decode_inst_name(inst_bits)
 
-    arg_str = self.encoding[ name ].args
-    for field_name in self.encoding[ name ].simple_args:
-      arg_str = arg_str.replace( field_name,
-                                 self.fields[ field_name ].decode( inst_bits ) )
+    arg_str = self.encoding[name].args
+    for field_name in self.encoding[name].simple_args:
+      arg_str = arg_str.replace(field_name,
+                                self.fields[field_name].decode(inst_bits))
 
-    return "{} {}".format( name, arg_str )
+    return "{} {}".format(name, arg_str)

@@ -48,10 +48,9 @@ def gen_basic_test():
 def gen_dest_dep_test():
   return [
       # TODO: find out what PC value is beforehand??
-      gen_imm_dest_dep_test(
-          i, "auipc", 0x0000c,
-          0x200 + i * 8 + sum_i( i - 1 ) * 4 + ( 0x0000c << 12 ) )
-      for i in range( 0, 6 )
+      gen_imm_dest_dep_test(i, "auipc", 0x0000c,
+                            0x200 + i * 8 + sum_i(i - 1) * 4 + (0x0000c << 12))
+      for i in range(0, 6)
       # 0x200 -  0 - i = 0
       # 0x208 -  8 - i = 1
       # 0x214 - 20 - i = 2
@@ -74,10 +73,10 @@ def gen_dest_dep_test():
 
 def gen_value_test():
   return [
-      gen_imm_value_test( "auipc", 0xfffff, 0xfffffffffffff200 ),
-      gen_imm_value_test( "auipc", 0x00000, 0x0000000000000208 ),
-      gen_imm_value_test( "auipc", 0x0000f, 0x000000000000f210 ),
-      gen_imm_value_test( "auipc", 0xf0000, 0xfffffffff0000218 ),
+      gen_imm_value_test("auipc", 0xfffff, 0xfffffffffffff200),
+      gen_imm_value_test("auipc", 0x00000, 0x0000000000000208),
+      gen_imm_value_test("auipc", 0x0000f, 0x000000000000f210),
+      gen_imm_value_test("auipc", 0xf0000, 0xfffffffff0000218),
   ]
 
 
@@ -88,8 +87,8 @@ def gen_value_test():
 
 def gen_random_test():
   asm_code = []
-  for i in xrange( 100 ):
-    imm = Bits( 20, random.randint( 0, 0xfffff ) )
-    dest = Bits( XLEN, 0x200 + i * 8 + ( imm.int() << 12 ) )
-    asm_code.append( gen_imm_value_test( "auipc", imm.uint(), dest.uint() ) )
+  for i in xrange(100):
+    imm = Bits(20, random.randint(0, 0xfffff))
+    dest = Bits(XLEN, 0x200 + i * 8 + (imm.int() << 12))
+    asm_code.append(gen_imm_value_test("auipc", imm.uint(), dest.uint()))
   return asm_code

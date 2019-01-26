@@ -48,8 +48,8 @@ def gen_basic_test():
 
 def gen_dest_dep_test():
   return [
-      gen_st_dest_dep_test( i, "sw", 0x2000 + i * 4, ( i * 4 << 3 ) + 12 )
-      for i in range( 0, 6 )
+      gen_st_dest_dep_test(i, "sw", 0x2000 + i * 4, (i * 4 << 3) + 12)
+      for i in range(0, 6)
   ]
 
 
@@ -60,8 +60,8 @@ def gen_dest_dep_test():
 
 def gen_base_dep_test():
   return [
-      gen_st_base_dep_test( i, "sw", 0x2000 + i * 4, ( i * 4 << 3 ) + 12 )
-      for i in range( 0, 6 )
+      gen_st_base_dep_test(i, "sw", 0x2000 + i * 4, (i * 4 << 3) + 12)
+      for i in range(0, 6)
   ]
 
 
@@ -72,8 +72,8 @@ def gen_base_dep_test():
 
 def gen_data_dest_test():
   return [
-      gen_st_data_dep_test( i, "sw", 0x2000 + i * 4, ( i * 4 << 3 ) + 12 )
-      for i in range( 0, 6 )
+      gen_st_data_dep_test(i, "sw", 0x2000 + i * 4, (i * 4 << 3) + 12)
+      for i in range(0, 6)
   ]
 
 
@@ -86,36 +86,36 @@ def gen_value_test():
   return [
 
       # Test positive offsets
-      gen_st_value_test( "sw", 0, 0x00002000, 0xdeadbeef ),
-      gen_st_value_test( "sw", 4, 0x00002000, 0x00010203 ),
-      gen_st_value_test( "sw", 8, 0x00002000, 0x04050607 ),
-      gen_st_value_test( "sw", 12, 0x00002000, 0x08090a0b ),
-      gen_st_value_test( "sw", 16, 0x00002000, 0x0c0d0e0f ),
-      gen_st_value_test( "sw", 20, 0x00002000, 0xcafecafe ),
+      gen_st_value_test("sw", 0, 0x00002000, 0xdeadbeef),
+      gen_st_value_test("sw", 4, 0x00002000, 0x00010203),
+      gen_st_value_test("sw", 8, 0x00002000, 0x04050607),
+      gen_st_value_test("sw", 12, 0x00002000, 0x08090a0b),
+      gen_st_value_test("sw", 16, 0x00002000, 0x0c0d0e0f),
+      gen_st_value_test("sw", 20, 0x00002000, 0xcafecafe),
 
       # Test negative offsets
-      gen_st_value_test( "sw", -20, 0x00002014, 0xdeadbeef ),
-      gen_st_value_test( "sw", -16, 0x00002014, 0x00010203 ),
-      gen_st_value_test( "sw", -12, 0x00002014, 0x04050607 ),
-      gen_st_value_test( "sw", -8, 0x00002014, 0x08090a0b ),
-      gen_st_value_test( "sw", -4, 0x00002014, 0x0c0d0e0f ),
-      gen_st_value_test( "sw", 0, 0x00002014, 0xcafecafe ),
+      gen_st_value_test("sw", -20, 0x00002014, 0xdeadbeef),
+      gen_st_value_test("sw", -16, 0x00002014, 0x00010203),
+      gen_st_value_test("sw", -12, 0x00002014, 0x04050607),
+      gen_st_value_test("sw", -8, 0x00002014, 0x08090a0b),
+      gen_st_value_test("sw", -4, 0x00002014, 0x0c0d0e0f),
+      gen_st_value_test("sw", 0, 0x00002014, 0xcafecafe),
 
       # Test positive offset with unaligned base
-      gen_st_value_test( "sw", 1, 0x00001fff, 0xdeadbeef ),
-      gen_st_value_test( "sw", 5, 0x00001fff, 0x00010203 ),
-      gen_st_value_test( "sw", 9, 0x00001fff, 0x04050607 ),
-      gen_st_value_test( "sw", 13, 0x00001fff, 0x08090a0b ),
-      gen_st_value_test( "sw", 17, 0x00001fff, 0x0c0d0e0f ),
-      gen_st_value_test( "sw", 21, 0x00001fff, 0xcafecafe ),
+      gen_st_value_test("sw", 1, 0x00001fff, 0xdeadbeef),
+      gen_st_value_test("sw", 5, 0x00001fff, 0x00010203),
+      gen_st_value_test("sw", 9, 0x00001fff, 0x04050607),
+      gen_st_value_test("sw", 13, 0x00001fff, 0x08090a0b),
+      gen_st_value_test("sw", 17, 0x00001fff, 0x0c0d0e0f),
+      gen_st_value_test("sw", 21, 0x00001fff, 0xcafecafe),
 
       # Test negative offset with unaligned base
-      gen_st_value_test( "sw", -21, 0x00002015, 0xdeadbeef ),
-      gen_st_value_test( "sw", -17, 0x00002015, 0x00010203 ),
-      gen_st_value_test( "sw", -13, 0x00002015, 0x04050607 ),
-      gen_st_value_test( "sw", -9, 0x00002015, 0x08090a0b ),
-      gen_st_value_test( "sw", -5, 0x00002015, 0x0c0d0e0f ),
-      gen_st_value_test( "sw", -1, 0x00002015, 0xcafecafe ),
+      gen_st_value_test("sw", -21, 0x00002015, 0xdeadbeef),
+      gen_st_value_test("sw", -17, 0x00002015, 0x00010203),
+      gen_st_value_test("sw", -13, 0x00002015, 0x04050607),
+      gen_st_value_test("sw", -9, 0x00002015, 0x08090a0b),
+      gen_st_value_test("sw", -5, 0x00002015, 0x0c0d0e0f),
+      gen_st_value_test("sw", -1, 0x00002015, 0xcafecafe),
   ]
 
 
@@ -129,23 +129,22 @@ def gen_random_test():
   # Generate some random data
 
   data = []
-  for i in xrange( 128 ):
-    data.append( random.randint( 0, 0xffffffff ) )
+  for i in xrange(128):
+    data.append(random.randint(0, 0xffffffff))
 
   # Generate random accesses to this data
 
   asm_code = []
-  for i in xrange( 100 ):
+  for i in xrange(100):
 
-    a = random.randint( 0, 127 )
-    b = random.randint( 0, 127 )
+    a = random.randint(0, 127)
+    b = random.randint(0, 127)
 
-    base = Bits( 32, 0x2000 + ( 4 * b ) )
-    offset = Bits( 16, ( 4 * ( a - b ) ) )
-    result = data[ a ]
+    base = Bits(32, 0x2000 + (4 * b))
+    offset = Bits(16, (4 * (a - b)))
+    result = data[a]
 
-    asm_code.append(
-        gen_st_value_test( "sw", offset.int(), base.uint(), result ) )
+    asm_code.append(gen_st_value_test("sw", offset.int(), base.uint(), result))
   return asm_code
 
 
