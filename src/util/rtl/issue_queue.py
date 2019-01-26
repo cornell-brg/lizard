@@ -9,137 +9,95 @@ from util.rtl.packers import Packer, Unpacker
 from util.rtl.interface import Interface
 from util.rtl.types import Array, canonicalize_type
 
-class SimpleIssueSlot(Model):
 
-  def __init__(s, PrivType, PregTagType, KillType, nports_notify=1 ):
-    s._valid = RegEnRst( Bits(1), reset_value=0)
-    s._ready = RegEnRst( Bits(1), reset_value=0 )
-    s._src0_rdy = RegEnRst( Bits(1), reset_value=0 )
-    s._src1_rdy = RegEnRst( Bits(1), reset_value=0 )
-    s._src0_valid = RegEnRst( Bits(1), reset_value=0 )
-    s._src1_valid = RegEnRst( Bits(1), reset_value=0 )
-    s._src0 = RegEn( PregTagType, reset_value=0 )
-    s._src1 = RegEn( PregTagType, reset_value=0 )
-    s._priv = RegEn(PrivType)
-
-    s._kill = Wire(1)
-
-    class InputType(BitStructDefinition):
-      def __init__(s, priv_nbits):
-        s.priv = BitField(PrivType.nbits) # PYMTL_BROKEN
-        s.src0_valid = BitField( 1 )
-        s.src0_rdy = BitField( 1 )
-        s.src0 = BitField(PregTagType.nbits)
-        s.src1_valid = BitField( 1 )
-        s.src0_rdy = BitField( 1 )
-        s.src1 = BitField(PregTagType.nbits)
-        s.kill_mask = BitField(KillType.nbits)
-
-    class OutputType(BitStructDefinition):
-      def __init__(s, priv_nbits):
-        s.priv = BitField(PrivType.nbits) # PYMTL_BROKEN
-        s.src0_valid = BitField( 1 )
-        s.src0 = BitField(PregTagType.nbits)
-        s.src1_valid = BitField( 1 )
-        s.src1 = BitField(PregTagType.nbits)
-
-    s.InputType = InputType
-    s.OutputType = OutputType
-    s.iface= IssueQueueSlotInterface(InputType, OutputType, PregTagType, KillType, nports_notify )
-    s.iface.apply(s)
-
-
-
-
-
-
-  # Must support a ready(), valid(), input(), output(), notify(), kill()
+# Must support a ready(), valid(), input(), output(), notify(), kill()
 class IssueQueueSlotInterface( Interface ):
-  def __init__( s, InputType, OutputType, NotifyType, KillType, nports_notify ):
 
-    super( IssueQueueSlotInterface, s ).__init__(
-        [
-            MethodSpec(
-                'valid',
-                args=None,
-                rets={ 'ret' : Bits(1) },
-                call=False,
-                rdy=False ),
-            MethodSpec(
-                'ready',
-                args=None,
-                rets={ 'ret' : Bits(1) },
-                call=False,
-                rdy=False ),
-            MethodSpec(
-                'input',
-                args= {'value' : InputType },
-                rets=None,
-                call=True,
-                rdy=False ),
-            MethodSpec(
-                'output',
-                args= None,
-                rets={ 'value' : OutputType },
-                call=True,
-                rdy=False ),
-            MethodSpec(
-                'notify',
-                args= { 'value' : Array(NotifyType, nports_notify) },
-                rets= None,
-                call=True,
-                rdy=False ),
-            MethodSpec(
-                'kill',
-                args= { 'value' : KillType },
-                rets= None,
-                call=True,
-                rdy=False ),
-        ],
-        ordering_chains=[
-            [ ],
-        ] )
+  def __init__( s, SlotType, NotifyType, KillType, nports_notify=1 ):
+
+    super( IssueQueueSlotInterface, s ).__init__([
+        MethodSpec(
+            'valid',
+            args=None,
+            rets={ 'ret': Bits( 1 )},
+            call=False,
+            rdy=False ),
+        MethodSpec(
+            'ready',
+            args=None,
+            rets={ 'ret': Bits( 1 )},
+            call=False,
+            rdy=False ),
+        MethodSpec(
+            'input',
+            args={ 'value': SlotType},
+            rets=None,
+            call=True,
+            rdy=False ),
+        MethodSpec(
+            'output',
+            args=None,
+            rets={ 'value': SlotType},
+            call=True,
+            rdy=False ),
+        MethodSpec(
+            'notify',
+            args={ 'value': NotifyType},
+            rets=None,
+            call=True,
+            rdy=False ),
+        MethodSpec(
+            'kill',
+            args={ 'value': KillType},
+            rets=None,
+            call=True,
+            rdy=False ),
+    ],
+                                                 ordering_chains=[
+                                                     [],
+                                                 ] )
 
 
 class IssueQueueInterface( Interface ):
-  def __init__( s, InputType, OutputType, NotifyType, KillType ):
-    super( IssueQueueInterface, s ).__init__(
-        [
-            MethodSpec(
-                'add',
-                args= { 'input' : InputType },
-                rets=None,
-                call=True,
-                rdy=True ),
-            MethodSpec(
-                'remove',
-                args=None,
-                rets={ 'output' : OutputType },
-                call=True,
-                rdy=True ),
-            MethodSpec(
-                'notify',
-                args= { 'value' : NotifyType },
-                rets= None,
-                call=True,
-                rdy=False ),
-            MethodSpec(
-                'kill',
-                args= { 'value' : KillType },
-                rets= None,
-                call=True,
-                rdy=False ),
-        ],
-        ordering_chains=[
-            [],
-        ] )
 
+  def __init__( s, SlotType, NotifyType, KillType ):
+    super( IssueQueueInterface, s ).__init__([
+        MethodSpec(
+            'add', args={ 'value': SlotType}, rets=None, call=True, rdy=True ),
+        MethodSpec(
+            'remove',
+            args=None,
+            rets={ 'value': SlotType},
+            call=True,
+            rdy=True ),
+        MethodSpec(
+            'notify',
+            args={ 'value': NotifyType},
+            rets=None,
+            call=True,
+            rdy=False ),
+        MethodSpec(
+            'kill',
+            args={ 'value': KillType},
+            rets=None,
+            call=True,
+            rdy=False ),
+    ],
+                                             ordering_chains=[
+                                                 [],
+                                             ] )
 
 
 class CompactingIssueQueue( Model ):
 
-  def __init__( s, create_slot, InputType, OutputType, NotifyType, KillType,
-                num_entries, alloc_nports, issue_nports ):
+  def __init__( s,
+                create_slot,
+                SlotType,
+                NotifyType,
+                KillType,
+                num_entries,
+                alloc_nports=1,
+                issue_nports=1 ):
     """ This model implements a generic issue queue
 
       create_slot: A function that instatiates a IssueSlot model
@@ -153,76 +111,78 @@ class CompactingIssueQueue( Model ):
 
     s.idx_nbits = clog2( num_entries )
     s.KillDtype = canonicalize_type( KillType )
-    s.interface = IssueQueueInterface(InputType, OutputType, NotifyType, KillType )
-    s.interface.apply(s)
+    s.interface = IssueQueueInterface( SlotType, NotifyType, KillType )
+    s.interface.apply( s )
 
     # Create all the slots in our issue queue
-    s._slots = [ create_slot() for _ in range( num_entries ) ]
+    s.slots_ = [ create_slot() for _ in range( num_entries ) ]
     # nth entry is shifted from nth slot to n-1 slot
-    s._do_shift = [ Wire( 1 ) for _ in range( num_entries ) ]
-    s._will_issue = [ Wire( 1 ) for _ in range( num_entries ) ]
-    s._slot_select = PriorityDecoder( num_entries )
-    s._slot_issue = OneHotEncoder( num_entries )
-    s._slot_mux = Mux( OutputType, num_entries )
-    s._decode_packer = Packer(Bits(1), s._slot_select.interface.In.nbits )
+    s.do_shift_ = [ Wire( 1 ) for _ in range( num_entries ) ]
+    s.will_issue_ = [ Wire( 1 ) for _ in range( num_entries ) ]
+    s.slot_select_ = PriorityDecoder( num_entries )
+    s.slot_issue_ = OneHotEncoder( num_entries )
+    s.slot_mux_ = Mux( SlotType, num_entries )
+    s.decode_packer_ = Packer( Bits( 1 ), s.slot_select_.interface.In.nbits )
 
     # Connect packer into slot decoder
-    s.connect(s._slot_select.decode_signal, s._decode_packer.pack_packed)
+    s.connect( s.slot_select_.decode_signal, s.decode_packer_.pack_packed )
     # Connect slot select mux to decoder
-    s.connect( s._slot_mux.mux_select, s._slot_select.decode_decoded )
+    s.connect( s.slot_mux_.mux_select, s.slot_select_.decode_decoded )
     # Also connect slot select mux to onehot encode
-    s.connect(s._slot_issue.encode_number, s._slot_select.decode_decoded )
+    s.connect( s.slot_issue_.encode_number, s.slot_select_.decode_decoded )
 
     # Slot shift connection
     for i in range( 1, num_entries ):
       # Enable signal
-      s.connect( s._slots[ i - 1 ].input_call , s._do_shift[ i ])
+      s.connect( s.slots_[ i - 1 ].input_call, s.do_shift_[ i ] )
       # Value signal
-      s.connect( s._slots[ i ].input_value, s._slots[i+1].output_value )
+      s.connect( s.slots_[ i - 1 ].input_value, s.slots_[ i ].output_value )
 
     # Connect kill and notify signal to each slot
-    for i, slot in enumerate( s._slots ):
+    for i in range( num_entries ):
       # Kill signal
-      s.connect( slot.kill_call, s.kill_call )
-      s.connect( slot.kill_value, s.kill_value )
+      s.connect( s.slots_[ i ].kill_call, s.kill_call )
+      s.connect( s.slots_[ i ].kill_value, s.kill_value )
       # Notify signal
-      s.connect( slot.notify_call, s.notify_call )
-      s.connect( slot.notify_value, s.notify_value )
+      s.connect( s.slots_[ i ].notify_call, s.notify_call )
+      s.connect( s.slots_[ i ].notify_value, s.notify_value )
       # Connect slot ready signal to packer
-      s.connect( s._decode_packer.pack_in[i], slot.ready_ret)
+      s.connect( s.decode_packer_.pack_in[ i ], s.slots_[ i ].ready_ret )
       # Connect output to mux
-      s.connect(s._slot_mux.mux_in[i], s._slots[i].output_value )
-
+      s.connect( s.slot_mux_.mux_in[ i ], s.slots_[ i ].output_value )
 
     # We call the output method on any slot that should shift or is issuing
     @s.combinational
     def call_output():
-      for i, slot in enumerate(s._slots):
-        slot.output_call = s._will_issue[i] or s._do_shift[i]
+      for i in range( num_entries ):
+        s.slots_[ i ].output_call = s.will_issue_[ i ] or s.do_shift_[ i ]
 
     # Shift if we can
     @s.combinational
     def do_shift():
-      s.do_shift[ 0 ] = 0  # Base case
+      s.do_shift_[ 0 ] = 0  # Base case
       for i in range( 1, num_entries ):
         # We can only shift if valid and the predecessor is invalid, or issuing
-        s.do_shift[ i ].v = not s._will_issue[i] and s.slots[ i ].valid_ret and (
-            not s.slots[ i - 1 ].valid_ret or s.will_issue[ i - 1 ] or
-            s.do_shift[ i - 1 ] )
+        s.do_shift_[ i ].v = not s.will_issue_[ i ] and s.slots_[
+            i ].valid_ret and ( not s.slots_[ i - 1 ].valid_ret or
+                                s.will_issue_[ i - 1 ] or s.do_shift_[ i - 1 ] )
 
     # The add call, to add something to the IQ
     @s.combinational
     def handle_add():
-      s.slots[-1 ].input_call = s.add_call
-      s.slots[-1 ].input_value = s.add_value
-      s.add_rdy = s.do_shift[-1 ] or not s.slots[-1 ].valid_ret or s.will_issue[-1]
+      s.slots_[-1 ].input_call = s.add_call
+      s.slots_[-1 ].input_value = s.add_value
+      s.add_rdy = s.do_shift_[
+          -1 ] or not s.slots_[-1 ].valid_ret or s.will_issue_[-1 ]
 
     @s.combinational
     def handle_remove():
-      s.remove_rdy =  s._slot_select.decode_valid
-      s.remove_value = s.slot_mux.mux_out
-      for i in range(num_entries):
-        s._will_issue[i] = s._slot_select.decode_valid and s.remove_call and s._slot_issue.encode_onehot[i]
+      s.remove_rdy = s.slot_select_.decode_valid
+      s.remove_value = s.slot_mux_.mux_out
+      for i in range( num_entries ):
+        s.will_issue_[
+            i ] = s.slot_select_.decode_valid and s.remove_call and s.slot_issue_.encode_onehot[
+                i ]
 
   def line_trace( s ):
     return ":".join([ "{}".format( x.out ) for x in s.data ] )

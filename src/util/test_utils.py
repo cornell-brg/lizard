@@ -12,6 +12,15 @@ class RunTestVectorSimError( Exception ):
   pass
 
 
+def run_model_translation( model ):
+  model = TranslationTool( model )
+  model.elaborate()
+  # Create a simulator
+  sim = SimulationTool( model )
+  # Reset model
+  sim.reset()
+
+
 #-------------------------------------------------------------------------
 # mk_test_case_table
 #-------------------------------------------------------------------------
