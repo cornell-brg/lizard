@@ -3,6 +3,7 @@ from pymtl import *
 from util.rtl.method import MethodSpec
 from util.toposort import toposort
 from functools import partial
+import inspect
 
 
 def IncludeAll( interface ):
@@ -170,6 +171,10 @@ class Interface( object ):
 
     return [[ prior, last ] for prior in priors ]
 
+  @staticmethod
+  def mangled_name( prefix, name, port_name ):
+    return '{}{}_{}'.format( prefix, name, port_name )
+
   def _inject( s, target, prefix, name, spec, count, direction ):
     if count is None:
       port_map = spec.generate( direction )
@@ -185,7 +190,7 @@ class Interface( object ):
       port_tup = Ports(**port_map )
 
     for port_name, port in port_map.iteritems():
-      mangled = '{}{}_{}'.format( prefix, name, port_name )
+      mangled = s.mangled_name( prefix, name, port_name )
       if hasattr( target, mangled ):
         raise ValueError( 'Mangled field already exists: {}'.format( mangled ) )
       setattr( target, mangled, port )
@@ -222,6 +227,45 @@ class Interface( object ):
     # else:
     #   raise ValueError('No more ports for method left: {}'.format(name))
     s._inject( target, prefix, name, spec, count, MethodSpec.DIRECTION_CALLER )
+
+  def require_fl_methods( s, target ):
+    """Check that target FL model contains all methods specified.
+
+    This method should be called by implementing models.
+    """
+    for name, spec in s.methods.iteritems():
+      if spec.call:
+
+        method_call = getattr( target, "{}_call".format( name ), None )
+        error_msg = """
+  Method call not implemented!
+    - method name: {method_name}
+    - args       : {args}
+    - rets       : {rets}
+"""
+        assert method_call, error_msg.format(
+            method_name=name,
+            args=", ".join( spec.args.keys() ),
+            rets=", ".join( spec.rets.keys() ) )
+
+        args, _, _, _ = inspect.getargspec( method_call )
+        error_msg = """
+  Method argument does not match with interface!
+    - method name  : {method_name}
+    - expected args: {expected_args}
+    - actual args  : {actual_args}
+"""
+        assert set( args ) == set( spec.args.keys() ), error_msg.format(
+            method_name=name,
+            expected_args=", ".join( spec.args.keys() ),
+            actual_args=", ".join( args ) )
+      if spec.rdy:
+        error_msg = """
+  Method rdy not implemented!
+    - method name: {method_name}
+"""
+        assert hasattr( target, "{}_rdy".format( name ) ), error_msg.format(
+            method_name=name, args=", ".join( spec.args.keys() ) )
 
   def __getitem__( s, key ):
     return s.methods[ key ]

@@ -1,6 +1,7 @@
 from pymtl import *
 from util.test_utils import run_test_vector_sim
-from util.rtl.freelist import FreeList
+from util.method_test import Wrapper, st, run_state_machine_as_test, create_test_state_machine, argument_strategy, reference_precondition, MethodOrder, ArgumentStrategy, MethodStrategy, bits_strategy
+from util.rtl.freelist import FreeList, FreeListInterface
 from test.config import test_verilog
 
 
@@ -78,3 +79,30 @@ def test_release():
       ],
       dump_vcd=None,
       test_verilog=test_verilog )
+
+
+def test_wrapper():
+  model = FreeList( 4, 2, 1, True, False )
+  WrapperClass = Wrapper.create_wrapper_class( model )
+  freelist = WrapperClass( model )
+  alloc = freelist.alloc_0__call()
+  assert alloc.index == 0
+  assert alloc.mask == 0b0001
+  freelist.cycle()
+
+  alloc = freelist.alloc_1__call()
+  assert alloc.index == 1
+  assert alloc.mask == 0b0010
+  freelist.cycle()
+
+  alloc = freelist.alloc_0__call()
+  release = freelist.release_call( 0b0011 )
+  assert alloc.index == 2
+  assert alloc.mask == 0b0100
+  freelist.cycle()
+
+  alloc = freelist.alloc_1__call()
+  release = freelist.free_0__call( 1 )
+  assert alloc.index == 0
+  assert alloc.mask == 0b0001
+  freelist.cycle()
