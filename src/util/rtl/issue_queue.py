@@ -8,9 +8,9 @@ from util.rtl.onehot import OneHotEncoder
 from util.rtl.packers import Packer, Unpacker
 from util.rtl.interface import Interface
 from util.rtl.types import Array, canonicalize_type
+from util.pretty_print import bitstruct_values
 
 
-# Must support a ready(), valid(), input(), output(), notify(), kill()
 class IssueQueueSlotInterface(Interface):
 
   def __init__(s, SlotType, NotifyType, BranchType, nports_notify=1):
@@ -131,6 +131,10 @@ class GenericIssueSlot(Model):
       else:
         s.curr_.src0_rdy.n = s.curr_.src0_rdy or s.src0_match_
         s.curr_.src1_rdy.n = s.curr_.src1_rdy or s.src1_match_
+
+
+  def line_trace(s):
+    return str(bitstruct_values(s.curr_))
 
 
 class CompactingIssueQueue(Model):
