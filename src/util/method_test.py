@@ -13,30 +13,24 @@ from util.rtl.types import Array
 debug = True
 
 
+def _list_string(lst):
+  return ", ".join([str(x) for x in lst])
+
+
 #-------------------------------------------------------------------------
 # MethodBasedRuleStrategy
 #-------------------------------------------------------------------------
-def get_order(cls, method_name):
-  method_name_fl = cls.method_name_fl(method_name)
-  order = cls.order()
-  if not method_name_fl in order:
-    return len(order)
-  return order.index(method_name_fl)
-
-
 class MethodBasedRuleStrategy(SearchStrategy):
 
   def __init__(self, machine):
     SearchStrategy.__init__(self)
     self.machine = machine
-    self.rules = list(machine.rules())
-
-    order = self.machine.order()
+    self.rules = machine.method_rules()
 
     self.rules.sort(
       key=lambda rule: (
-        get_order( self.machine, rule.function.__name__ ),
-        rule.function.__name__,
+        self.machine.interface.methods.keys().index( rule.fl_method_name ),
+        rule.rtl_method_name,
       )
     )
 
@@ -54,11 +48,10 @@ class MethodBasedRuleStrategy(SearchStrategy):
       rule_to_fire += [self.rules[remaining_rules[i]]]
       del remaining_rules[i]
 
-    order = self.machine.order()
     rule_to_fire.sort(
       key=lambda rule: (
-        get_order( self.machine, rule.function.__name__ ),
-        rule.function.__name__,
+        self.machine.interface.methods.keys().index( rule.fl_method_name ),
+        rule.rtl_method_name,
       )
     )
     if rule_to_fire:
@@ -74,11 +67,10 @@ class RunMethodTestError(Exception):
   pass
 
 
-class TestStateMachine(RuleBasedStateMachine):
+class TestStateMachine(GenericStateMachine):
   __argument_strategies = {}
   __preconditions = {}
-  __method_name_fl = {}
-  __order = {}
+  __method_rules = {}
 
   def __init__(self):
     super(TestStateMachine, self).__init__()
@@ -86,58 +78,66 @@ class TestStateMachine(RuleBasedStateMachine):
     self.__stream = CUnicodeIO()
     self.__printer = RepresentationPrinter(self.__stream)
 
-  def compare_result(self, m_result, r_result, method_name, arg,
-                     method_line_trace):
-    if isinstance(r_result, ReturnValues):
-      r_result = r_result.__dict__
+  def _error_line_trace(self, method_line_trace, error_msg):
+    self.sim.cycle(method_line_trace)
+    print "========================== error =========================="
+    raise RunMethodTestError(error_msg)
 
-    if r_result:
-      if isinstance(r_result, dict):
-        r_ret_names = set(sorted(r_result.keys()))
-        m_ret_names = set(sorted(m_result.keys()))
-        if r_ret_names != m_ret_names:
-          error_msg = """
+  def _validate_result(self, m_ret_names, r_ret, method_name, arg,
+                       method_line_trace):
+    type_error_msg = """
    Reference and model have mismatched returns!
     - method name    : {method_name}
     - model ret      : {model_ret}
     - reference ret  : {reference_ret}
   """
-          error_msg = error_msg.format(
-              method_name=method_name,
-              model_ret=", ".join(m_ret_names),
-              reference_ret=", ".join(r_ret_names))
-          self.sim.cycle(method_line_trace)
-          print "========================== error =========================="
-          raise RunMethodTestError(error_msg)
-        for k in r_result.keys():
-          if r_result[k] != '?' and not m_result[k] == r_result[k]:
-            error_msg = """
-   test state machine received an incorrect value!
-    - method name    : {method_name}
-    - arguments      : {arg}
-    - ret name       : {ret_name}
-    - expected value : {expected_msg}
-    - actual value   : {actual_msg}
-  """
-            error_msg = error_msg.format(
-                method_name=method_name,
-                arg=arg,
-                ret_name=k,
-                expected_msg=r_result[k],
-                actual_msg=m_result[k])
-            self.sim.cycle(method_line_trace)
-            print "========================== error =========================="
-            raise RunMethodTestError(error_msg)
+    if not r_ret:
+      if m_ret_names:
+        error_msg = type_error_msg.format(
+            method_name=method_name,
+            model_ret=_list_string(m_ret_names),
+            reference_ret="")
+        self._error_line_trace(method_line_trace, error_msg)
       else:
-        assert isinstance(r_result, int) or isinstance(
-            r_result, Bits) or isinstance(r_result, tuple)
-        # assume that results are in alphabetical order
-        m_result_list = [value for (key, value) in sorted(m_result.items())]
-        r_result_list = [r_result] if isinstance(r_result, int) or isinstance(
+        return
+
+    if isinstance(r_ret, dict):
+      r_ret_names = set(sorted(r_ret.keys()))
+      if r_ret_names != m_ret_names:
+        error_msg = type_error_msg.format(
+            method_name=method_name,
+            model_ret=_list_string(m_ret_names),
+            reference_ret=_list_string(r_ret_names))
+        self._error_line_trace(method_line_trace, error_msg)
+    else:
+      if not len(r_ret) == len(m_ret_names):
+        error_msg = type_error_msg.format(
+            method_name=method_name,
+            model_ret=_list_string(m_ret_names),
+            reference_ret=_list_string(r_ret))
+        self._error_line_trace(method_line_trace, error_msg)
+
+  def compare_result(self, m_result, r_result, method_name, arg,
+                     method_line_trace):
+    if isinstance(r_result, ReturnValues):
+      r_result = r_result.__dict__
+
+    if isinstance(m_result, ReturnValues):
+      m_result = m_result.__dict__
+
+    if r_result:
+      if not isinstance(r_result, dict):
+        r_result = [r_result] if isinstance(r_result, int) or isinstance(
             r_result, Bits) else list(r_result)
-        for m_result_value, r_result_value in zip(m_result_list, r_result_list):
-          if r_result_value != '?' and m_result_value != r_result_value:
-            error_msg = """
+        r_result_list = r_result
+      else:
+        r_result_list = [value for (key, value) in sorted(r_result.items())]
+
+    m_ret_names = set(sorted(m_result.keys()))
+    self._validate_result(m_ret_names, r_result, method_name, arg,
+                          method_line_trace)
+
+    value_error_msg = """
    test state machine received an incorrect value!
     - method name    : {method_name}
     - arguments      : {arg}
@@ -145,24 +145,21 @@ class TestStateMachine(RuleBasedStateMachine):
     - expected value : {expected_msg}
     - actual value   : {actual_msg}
   """
-            error_msg = error_msg.format(
-                method_name=method_name,
-                arg=arg,
-                ret_name=', '.join(sorted(m_result.keys())),
-                expected_msg=', '.join(
-                    [str(result) for result in r_result_list]),
-                actual_msg=', '.join([str(result) for result in m_result_list]))
-            self.sim.cycle(method_line_trace)
-            print "========================== error =========================="
-            raise RunMethodTestError(error_msg)
+
+    if r_result:
+      # assume that results are in alphabetical order
+      m_result_list = [value for (key, value) in sorted(m_result.items())]
+      for m_result_value, r_result_value in zip(m_result_list, r_result_list):
+        if r_result_value != '?' and m_result_value != r_result_value:
+          error_msg = value_error_msg.format(
+              method_name=method_name,
+              arg=arg,
+              ret_name=_list_string(sorted(m_result.keys())),
+              expected_msg=_list_string(r_result_list),
+              actual_msg=_list_string(m_result_list))
+          self._error_line_trace(method_line_trace, error_msg)
 
   def steps(self):
-    # Pick initialize rules first
-    if self._initialize_rules_to_run:
-      return one_of([
-          tuples(just(rule), fixed_dictionaries(rule.arguments))
-          for rule in self._initialize_rules_to_run
-      ])
     return self.__rules_strategy
 
   def execute_step(self, step):
@@ -188,39 +185,34 @@ class TestStateMachine(RuleBasedStateMachine):
       for k, v in list(data.items()):
         if isinstance(v, VarReference):
           data[k] = self.names_to_values[v.name]
-      result = rule.function(self, **data)
 
       # For method based interface rules, call rdy ones only
-      name = rule.function.__name__
-      method_names += [name]
+      methods = self.interface.methods
+      fl_name = rule.fl_method_name
+      rtl_name = rule.rtl_method_name
+      method_names += [rtl_name]
       sim_class_members = self.sim.__class__.__dict__
       reference_class_members = self.reference.__class__.__dict__
 
-      if name + "_call" in sim_class_members.keys():
-        hasrdy = self.sim.methods_fl[name].hasrdy
-        rdy = False
-        if hasrdy:
-          if sim_class_members[name + "_rdy"](self.sim):
-            assert reference_class_members[self.method_name_fl(name) + "_rdy"](
-                self.reference)
-            rdy = True
-        if not hasrdy or rdy:
-          if debug:
-            argument_string = []
-            for k, v in data.items():
-              argument_string += ["{}={}".format(k, v)]
-            method_line_trace += [
-                "{}( {} )".format(name, ", ".join(argument_string))
-                if argument_string else "{}()".format(name)
-            ]
-          s_results += [sim_class_members[name + "_call"](self.sim, **data)]
-          r_results += [
-              reference_class_members[self.method_name_fl(name) + "_call"](
-                  self.reference, **data)
+      hasrdy = methods[fl_name].rdy
+      rdy = False
+      if hasrdy:
+        if sim_class_members[rtl_name + "_rdy"](self.sim):
+          assert reference_class_members[fl_name + "_rdy"](self.reference)
+          rdy = True
+      if not hasrdy or rdy:
+        if debug:
+          argument_string = []
+          for k, v in data.items():
+            argument_string += ["{}={}".format(k, v)]
+          method_line_trace += [
+              "{}( {} )".format(rtl_name, _list_string(argument_string))
+              if argument_string else "{}()".format(rtl_name)
           ]
-
-      if self._initialize_rules_to_run:
-        self._initialize_rules_to_run.remove(rule)
+        s_results += [sim_class_members[rtl_name + "_call"](self.sim, **data)]
+        r_results += [
+            reference_class_members[fl_name + "_call"](self.reference, **data)
+        ]
 
     method_line_trace = ",  ".join(method_line_trace)
     for s_result, r_result, method, data in zip(s_results, r_results,
@@ -237,10 +229,6 @@ class TestStateMachine(RuleBasedStateMachine):
   def is_valid(self, rule, data):
     if rule.precondition and not rule.precondition(self, data):
       return False
-    for b in rule.bundles:
-      bundle = self.bundle(b.name)
-      if not bundle:
-        return False
     return True
 
   @classmethod
@@ -260,6 +248,16 @@ class TestStateMachine(RuleBasedStateMachine):
     return target.setdefault(method, {})
 
   @classmethod
+  def add_rule(cls, rules):
+    target = cls.__method_rules.setdefault(cls, [])
+    target += [rules]
+
+  @classmethod
+  def method_rules(cls):
+    target = cls.__method_rules.setdefault(cls, [])
+    return target
+
+  @classmethod
   def add_precondition(cls, method, precondition):
     target = cls.__preconditions.setdefault(cls, {})
     target[method] = precondition
@@ -268,25 +266,6 @@ class TestStateMachine(RuleBasedStateMachine):
   def precondition(cls, method):
     target = cls.__preconditions.setdefault(cls, {})
     return target.setdefault(method, None)
-
-  @classmethod
-  def add_method_name_fl(cls, method, method_name_fl):
-    target = cls.__method_name_fl.setdefault(cls, {})
-    target[method] = method_name_fl
-
-  @classmethod
-  def method_name_fl(cls, method):
-    target = cls.__method_name_fl.setdefault(cls, {})
-    return target.setdefault(method, method)
-
-  @classmethod
-  def set_order(cls, order):
-    cls.__order[cls] = order
-
-  @classmethod
-  def order(cls):
-    target = cls.__order.setdefault(cls, [])
-    return target
 
 
 #-------------------------------------------------------------------------
@@ -321,20 +300,6 @@ class WrapperClass:
 
 
 #-------------------------------------------------------------------------
-# MethodSpec
-#-------------------------------------------------------------------------
-@attr.s()
-class MethodSpec(object):
-  method_name = attr.ib()
-  hasrdy = attr.ib()
-  hascall = attr.ib()
-  islist = attr.ib(default=False)
-  index = attr.ib(default=None)
-  arg = attr.ib(default={})
-  ret = attr.ib(default={})
-
-
-#-------------------------------------------------------------------------
 # DefineMethod
 #-------------------------------------------------------------------------
 @attr.s()
@@ -345,71 +310,6 @@ class DefineMethod(object):
   method_clear = attr.ib(default=None)
   arg = attr.ib(default={})
   ret = attr.ib(default={})
-
-
-#-------------------------------------------------------------------------
-# inspect_methods
-#-------------------------------------------------------------------------
-
-
-def inspect_methods(model):
-  ''' 
-  Inspect the model and return a list of method_spec that is used 
-  for generating *_call and *_rdy methods in wrapper class
-  
-  - example method_spec: 
-  MethodSpec( method_name="read_ports", islist=True, index=0, arg={ "areg": Bits(1) }, ret=[ "preg" ], hasrdy=False, hascall=True )
-  
-  By default, *_call methods created by this function 
-  take in arguments in alphabetical order
-  '''
-  method_specs = []
-
-  def get_method_spec(method_name, port_bundle, islist=False, index=None):
-    # get rdy
-    hasrdy = hasattr(port_bundle, 'rdy')
-    hascall = hasattr(port_bundle, 'call')
-
-    method_spec = MethodSpec(
-        method_name=method_name,
-        hasrdy=hasrdy,
-        hascall=hascall,
-        islist=islist,
-        index=index)
-
-    # get arg and ret
-    arg = {}
-    ret = {}
-    for port in port_bundle._ports:
-      name = port.name
-      dtype = port.dtype
-      if type(port) == InPort:
-        if name != 'call':
-          arg[name] = dtype
-      else:
-        if name != 'rdy':
-          ret[name] = dtype
-    method_spec.arg = arg
-    method_spec.ret = ret
-
-    return method_spec
-
-  for k, v in inspect.getmembers(model):
-    # single method port bundle
-    if isinstance(v, InMethodCallPortBundle):
-      method_spec = get_method_spec(k, v)
-      method_specs += [method_spec]
-
-    # method port bundle list
-    if isinstance(v, list):
-      # inspect each element
-      for i in range(len(v)):
-        if k[0] != '_' and isinstance(v[i], InMethodCallPortBundle):
-          method_spec = get_method_spec(
-              method_name=k, port_bundle=v[i], islist=True, index=i)
-          method_specs += [method_spec]
-
-  return method_specs
 
 
 #-------------------------------------------------------------------------
@@ -480,8 +380,8 @@ class Wrapper:
         raise TypeError(
             args_match_msg.format(
                 method_name=method_name,
-                expected_args=", ".join(expected_args_keys),
-                actual_args=", ".join(actual_args.keys())))
+                expected_args=_list_string(expected_args_keys),
+                actual_args=_list_string(actual_args.keys())))
     else:
       error_msg = """
   This method has more than one arg. Please specify by keyword. 
@@ -491,14 +391,14 @@ class Wrapper:
       if len(expected_args_keys) != 1:
         raise TypeError(
             error_msg.format(
-                method_name=method_name, args=", ".join(expected_args_keys)))
+                method_name=method_name, args=_list_string(expected_args_keys)))
 
       if len(actual_args) != 1:
         raise TypeError(
             args_match_msg.format(
                 method_name=method_name,
                 expected_args=expected_args_keys[0],
-                actual_args=", ".join([str(a) for a in actual_args])))
+                actual_args=_list_string(actual_args)))
 
   @staticmethod
   def _set_input_arg(s, method_name, arg, index, dtype, value):
@@ -633,42 +533,93 @@ class Wrapper:
     Wrapper._add_clear(wrapper_class, methods)
     return wrapper_class
 
+  @staticmethod
+  def validate_fl_wrapper_method(spec, target):
+    method_error_msg = """
+  Method call not implemented!
+    - method name: {method_name}
+    - args       : {args}
+    - rets       : {rets}
+"""
+
+    arg_error_msg = """
+  Method argument does not match with interface!
+    - method name  : {method_name}
+    - expected args: {expected_args}
+    - actual args  : {actual_args}
+"""
+
+    rdy_error_msg = """
+  Method rdy not implemented!
+    - method name: {method_name}
+"""
+    method_call = getattr(target, "{}_call".format(spec.name), None)
+
+    if not method_call:
+      raise TypeError(
+          method_error_msg.format(
+              method_name=spec.name,
+              args=_list_string(spec.args.keys()),
+              rets=_list_string(spec.rets.keys())))
+
+    args, _, _, _ = inspect.getargspec(method_call)
+
+    if set(args[1:]) != set(spec.args.keys()):
+      raise TypeError(
+          arg_error_msg.format(
+              method_name=spec.name,
+              expected_args=_list_string(spec.args.keys()),
+              actual_args=_list_string(args)))
+    if spec.rdy:
+      if not hasattr(target, "{}_rdy".format(spec.name)):
+        raise TypeError(
+            rdy_error_msg.format(
+                method_name=spec.name, args=_list_string(spec.args.keys())))
+
+
+#-------------------------------------------------------------------------
+# MethodRule
+#-------------------------------------------------------------------------
+
+
+@attr.s()
+class MethodRule(object):
+  rtl_method_name = attr.ib()
+  fl_method_name = attr.ib()
+  arguments = attr.ib()
+  precondition = attr.ib()
+
+  def __attrs_post_init__(self):
+    self.arguments_strategy = st.fixed_dictionaries(self.arguments)
+
 
 #-------------------------------------------------------------------------
 # add_rule
 #-------------------------------------------------------------------------
 def add_rule(cls, method_spec):
-  method_name_fl = method_spec.method_name
-  if method_spec.islist:
-    name = "{}_{}_".format(method_name_fl, method_spec.index)
-    cls.add_method_name_fl(name, method_name_fl)
-  else:
-    name = method_name_fl
 
-  def rule_function(*args, **kwargs):
-    pass
+  name = method_spec.name
 
-  setattr(rule_function, "__name__", name)
-
-  existing_rule = getattr(rule_function, RULE_MARKER, None)
-  existing_initialize_rule = getattr(rule_function, INITIALIZE_RULE_MARKER,
-                                     None)
-  if existing_rule is not None or existing_initialize_rule is not None:
-    raise InvalidDefinition(
-        'A function cannot be used for two distinct rules. ',
-        Settings.default,
-    )
   #precondition = getattr(rule_function, PRECONDITION_MARKER, None)
-  arguments = cls.argument_strategy(method_name_fl)
-  precondition = cls.precondition(method_name_fl)
-  rule = Rule(
-      targets=[],
-      arguments=arguments,
-      function=rule_function,
-      precondition=precondition)
-
-  setattr(rule_function, RULE_MARKER, rule)
-  setattr(cls, name, rule_function)
+  arguments = cls.argument_strategy(name)
+  precondition = cls.precondition(name)
+  if not method_spec.count:
+    rtl_method_name = Wrapper.get_wrapper_method_name(name)
+    rule = MethodRule(
+        rtl_method_name=rtl_method_name,
+        fl_method_name=name,
+        arguments=arguments,
+        precondition=precondition)
+    cls.add_rule(rule)
+  else:
+    for i in range(method_spec.count):
+      rtl_method_name = Wrapper.get_wrapper_method_name(name, i)
+      rule = MethodRule(
+          rtl_method_name=rtl_method_name,
+          fl_method_name=name,
+          arguments=arguments,
+          precondition=precondition)
+      cls.add_rule(rule)
 
 
 #-------------------------------------------------------------------------
@@ -678,46 +629,6 @@ class ArgumentStrategy(object):
 
   def __init__(s, **kwargs):
     s.arguments = kwargs
-
-
-#-------------------------------------------------------------------------
-# argument_strategy
-#-------------------------------------------------------------------------
-ARGUMENT_STRATEGY_MARKER = u'pymtl-method-based-argument-strategy'
-
-
-def argument_strategy(**kwargs):
-  """Decorator to apply an invariant for rules in a RuleBasedStateMachine.
-    The decorated function will be run after every rule and can raise an
-    exception to indicate failed invariants.
-
-    For example::
-
-        class MyTestMachine(RuleBasedStateMachine):
-            state = 1
-
-            @invariant()
-            def is_nonzero(self):
-                assert self.state != 0
-    """
-
-  def accept(f):
-    existing_argument_strategy = getattr(f, ARGUMENT_STRATEGY_MARKER, None)
-    if existing_argument_strategy is not None:
-      raise InvalidDefinition(
-          'A function cannot be used for two distinct argument strategies.',
-          Settings.default,
-      )
-    arguments = ArgumentStrategy(**kwargs)
-
-    @proxies(f)
-    def arguments_wrapper(*args, **kwargs):
-      return f(*args, **kwargs)
-
-    setattr(arguments_wrapper, ARGUMENT_STRATEGY_MARKER, arguments)
-    return arguments_wrapper
-
-  return accept
 
 
 #-------------------------------------------------------------------------
@@ -766,14 +677,6 @@ def reference_precondition(precond):
   return accept
 
 
-#-------------------------------------------------------------------------
-# MethodOrder
-#-------------------------------------------------------------------------
-@attr.s()
-class MethodOrder(object):
-  order = attr.ib()
-
-
 class MethodStrategy:
   pass
 
@@ -790,52 +693,36 @@ class CompareTest(TestStateMachine):
     self.sim.reset()
     self.reference.reset()
     self.sim.cycle()
-    self.reference.cycle()
+    if hasattr(self.reference, 'cycle'):
+      self.reference.cycle()
 
 
 #-------------------------------------------------------------------------
 # create_test_state_machine
 #-------------------------------------------------------------------------
 def create_test_state_machine(model, reference, customized_methods=None):
-  method_specs = inspect_methods(model)
-  WrapperClass, method_specs = create_wrapper_class(
-      model, method_specs=method_specs, customized_methods=customized_methods)
-  method_set_rtl = Set([spec.method_name for spec in method_specs])
+  WrapperClass = Wrapper.create_wrapper_class(
+      model, customized_methods=customized_methods)
+
   sim = WrapperClass(model)
 
   Test = type(
       type(model).__name__ + "TestStateMachine", CompareTest.__bases__,
       dict(CompareTest.__dict__))
 
-  method_set_fl = Set()
+  Test.interface = model.interface
+  Test.interface.require_fl_methods(reference)
+
   for k, v in inspect.getmembers(reference):
-    method_name_fl = k.replace("_call", "")
-    method_set_fl.add(method_name_fl)
-    arguments = getattr(v, ARGUMENT_STRATEGY_MARKER, None)
-    if arguments:
-      Test.add_argument_strategy(method_name_fl, arguments.arguments)
     precondition = getattr(v, REFERENCE_PRECONDITION_MARKER, None)
 
     if precondition != None:
       Test.add_precondition(method_name_fl, precondition.precondition)
 
-    if isinstance(v, MethodOrder):
-      Test.set_order(v.order)
-
     if isinstance(v, MethodStrategy):
       for method, strategy in inspect.getmembers(v):
         if isinstance(strategy, ArgumentStrategy):
           Test.add_argument_strategy(method, strategy.arguments)
-
-  # make sure that all RTL methods have counterpart in FL
-  difference = method_set_rtl - method_set_fl
-  if difference:
-    error_msg = """
-  Found RTL model method not in FL!
-    - method name(s)    : {method_name}
-"""
-    raise RunMethodTestError(
-        error_msg.format(method_name=", ".join(difference)))
 
   # make sure that all method arguments have strategy specified
   error_msg = """
@@ -843,17 +730,18 @@ def create_test_state_machine(model, reference, customized_methods=None):
     - method name : {method_name}
     - arg         : {arg} 
 """
-  for spec in method_specs:
-    method_name = spec.method_name
-    strategies = Test.argument_strategy(method_name)
-    for arg in spec.arg.keys():
+  for name, spec in Test.interface.methods.iteritems():
+    strategies = Test.argument_strategy(name)
+    for arg, dtype in spec.args.iteritems():
       if not strategies.has_key(arg):
-        raise RunMethodTestError(
-            error_msg.format(method_name=method_name, arg=arg))
+        if isinstance(dtype, Bits):
+          strategies[arg] = bits_strategy(dtype.nbits)
+        else:
+          raise RunMethodTestError(error_msg.format(method_name=name, arg=arg))
 
   # add rule
-  for method_spec in method_specs:
-    add_rule(Test, method_spec)
+  for name, spec in Test.interface.methods.iteritems():
+    add_rule(Test, spec)
 
   Test.sim = sim
   Test.reference = reference
@@ -873,13 +761,13 @@ def generate_methods_from_model(model):
     method_spec_dict[spec.method_name] = spec
 
   for method_name, spec in method_spec_dict.items():
-    arguments = ', '.join(['s'] + spec.arg.keys())
+    arguments = _list_string(['s'] + spec.arg.keys())
     print "  def {}_call( {} ):".format(method_name, arguments)
     if spec.hasrdy:
       print "    assert s.{}_rdy()".format(method_name)
     return_list = ["{}=0".format(ret) for ret in spec.ret.keys()]
     if return_list:
-      print "    return ReturnValues( {} )".format(", ".join(return_list))
+      print "    return ReturnValues( {} )".format(_list_string(return_list))
     else:
       print "    pass"
     print ""
