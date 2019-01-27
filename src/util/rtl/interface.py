@@ -230,39 +230,11 @@ class Interface(object):
 
     This method should be called by implementing models.
     """
+
+    from util.method_test import Wrapper
+
     for name, spec in s.methods.iteritems():
-      if spec.call:
-
-        method_call = getattr(target, "{}_call".format(name), None)
-        error_msg = """
-  Method call not implemented!
-    - method name: {method_name}
-    - args       : {args}
-    - rets       : {rets}
-"""
-        assert method_call, error_msg.format(
-            method_name=name,
-            args=", ".join(spec.args.keys()),
-            rets=", ".join(spec.rets.keys()))
-
-        args, _, _, _ = inspect.getargspec(method_call)
-        error_msg = """
-  Method argument does not match with interface!
-    - method name  : {method_name}
-    - expected args: {expected_args}
-    - actual args  : {actual_args}
-"""
-        assert set(args) == set(spec.args.keys()), error_msg.format(
-            method_name=name,
-            expected_args=", ".join(spec.args.keys()),
-            actual_args=", ".join(args))
-      if spec.rdy:
-        error_msg = """
-  Method rdy not implemented!
-    - method name: {method_name}
-"""
-        assert hasattr(target, "{}_rdy".format(name)), error_msg.format(
-            method_name=name, args=", ".join(spec.args.keys()))
+      Wrapper.validate_fl_wrapper_method(spec, target)
 
   def __getitem__(s, key):
     return s.methods[key]
