@@ -49,5 +49,5 @@ before_script:
  - cd build
 
 script:
- - py.test -n auto --verbose ../src/test
+ - py.test -n auto --continue-on-collection-errors --verbose ../src/test
  - ../src/format --diff --sane
