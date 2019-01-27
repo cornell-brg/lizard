@@ -111,7 +111,7 @@ class GenericIssueSlot(Model):
 
     @s.combinational
     def handle_valid():
-      s.valid_.in_.v = not s.kill_ or (s.valid_.out and
+      s.valid_.in_.v = (not s.kill_ and s.valid_.out and
                                        not s.output_call) or s.input_call
 
     @s.combinational
