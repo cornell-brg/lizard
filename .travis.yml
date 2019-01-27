@@ -50,4 +50,4 @@ before_script:
 
 script:
  - py.test -n auto --verbose ../src/test
- - ../src/format --diff
+ - ../src/format --diff --sane
