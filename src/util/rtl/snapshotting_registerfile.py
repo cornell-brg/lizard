@@ -16,6 +16,8 @@ class SnapshottingRegisterFileInterface(Interface):
                                  write_read_bypass, False)
 
     s.SnapshotId = Bits(clog2nz(nsnapshots))
+    s.Addr = base.Addr
+    s.Data = base.Data
 
     ordering_chains = [
         s.bypass_chain('write', 'snapshot', write_snapshot_bypass),
