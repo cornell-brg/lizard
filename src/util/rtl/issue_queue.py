@@ -112,7 +112,7 @@ class GenericIssueSlot(Model):
     @s.combinational
     def handle_valid():
       s.valid_.in_.v = (not s.kill_ and s.valid_.out and
-                                       not s.output_call) or s.input_call
+                        not s.output_call) or s.input_call
 
     @s.combinational
     def handle_valrdy():
@@ -131,7 +131,6 @@ class GenericIssueSlot(Model):
       else:
         s.curr_.src0_rdy.n = s.curr_.src0_rdy or s.src0_match_
         s.curr_.src1_rdy.n = s.curr_.src1_rdy or s.src1_match_
-
 
   def line_trace(s):
     return str(bitstruct_values(s.curr_))
