@@ -1,10 +1,13 @@
 from msg.data import *
-from config.general import *
 from msg.codes import *
+
+from util.rtl.interface import Interface, IncludeSome
 from util.rtl.method import MethodSpec
+from util.rtl.types import Array, canonicalize_type
 from util.rtl.freelist import FreeList
 from util.rtl.registerfile import RegisterFile
 from core.rtl.renametable import RenameTableInterface, RenameTable
+
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 
 
@@ -15,64 +18,137 @@ class PregState(BitStructDefinition):
     s.ready = BitField(1)
 
 
-class DataFlowManagerInterface:
+class DataFlowManagerInterface(Interface):
 
-  def __init__(s, naregs, npregs, nsnapshots):
-    s.rename_table_interface = RenameTableInterface(naregs, npregs, nsnapshots)
+  def __init__(s, naregs, npregs, nsnapshots, num_src_ports, num_dst_ports):
+    rename_table_interface = RenameTableInterface(naregs, npregs, 0, 0,
+                                                  nsnapshots)
 
     s.Areg = s.rename_table_interface.Areg
     s.Preg = s.rename_table_interface.Preg
     s.SnapshotId = s.rename_table_interface.SnapshotId
 
-    s.snapshot = s.rename_table_interface.snapshot
-    s.restore = s.rename_table_interface.restore
-    s.free_snapshot = s.rename_table_interface.free_snapshot
-
-    s.rollback = MethodSpec(None, None, True, False)
-
-    s.get_src = MethodSpec({
-        'areg': s.Areg,
-    }, {
-        'preg': s.Preg,
-    }, False, False)
-
-    s.get_dst = MethodSpec({
-        'areg': s.Areg,
-    }, {
-        'success': Bits(1),
-        'tag': s.Preg,
-    }, True, False)
-
-    s.read_tag = MethodSpec({
-        'tag': s.Preg,
-    }, {
-        'ready': Bits(1),
-        'value': Bits(XLEN),
-    }, False, False)
-
-    s.write_tag = MethodSpec({
-        'tag': s.Preg,
-        'value': Bits(XLEN),
-    }, None, True, False)
-
-    s.free_tag = MethodSpec({
-        'tag': s.Preg,
-        'commit': Bits(1),
-    }, None, True, False)
-
-    s.read_csr = MethodSpec({
-        'csr_num': Bits(CSR_SPEC_NBITS),
-    }, {
-        'result': Bits(XLEN),
-        'success': Bits(1),
-    }, True, False)
-
-    s.write_csr = MethodSpec({
-        'csr_num': Bits(CSR_SPEC_NBITS),
-        'value': Bits(XLEN),
-    }, {
-        'success': Bits(1),
-    }, True, False)
+    super(DataFlowManagerInterface, s).__init__(
+        [
+            MethodSpec(
+                'get_src',
+                args={
+                    'areg': s.Areg,
+                },
+                rets={
+                    'preg': s.Preg,
+                },
+                call=False,
+                rdy=False,
+                count=num_src_ports,
+            ),
+            MethodSpec(
+                'get_dst',
+                args={
+                    'areg': s.Areg,
+                },
+                rets={
+                    'success': Bits(1),
+                    'tag': s.Preg,
+                },
+                call=True,
+                rdy=False,
+                count=num_dst_ports,
+            ),
+            MethodSpec(
+                'read_tag',
+                args={
+                    'tag': s.Preg,
+                },
+                rets={
+                    'ready': Bits(1),
+                    'value': Bits(XLEN),
+                },
+                call=False,
+                rdy=False,
+                count=num_src_ports,
+            ),
+            MethodSpec(
+                'write_tag',
+                args={
+                    'tag': s.Preg,
+                    'value': Bits(XLEN),
+                },
+                rets=None,
+                call=True,
+                rdy=False,
+                count=num_dst_ports,
+            ),
+            MethodSpec(
+                'commit_tag',
+                args={
+                    'tag': s.Preg,
+                },
+                rets=None,
+                call=True,
+                rdy=False,
+                count=num_dst_ports,
+            ),
+            MethodSpec(
+                'rollback',
+                args=None,
+                rets=None,
+                call=True,
+                rdy=False,
+            ),
+            MethodSpec(
+                'read_csr',
+                args={
+                    'csr_num': Bits(CSR_SPEC_NBITS),
+                },
+                rets={
+                    'result': Bits(XLEN),
+                    'success': Bits(1),
+                },
+                call=True,
+                rets=False,
+            ),
+            MethodSpec(
+                'write_csr',
+                args={
+                    'csr_num': Bits(CSR_SPEC_NBITS),
+                    'value': Bits(XLEN),
+                },
+                rets={
+                    'success': Bits(1),
+                },
+                call=True,
+                rdy=False,
+            ),
+            MethodSpec(
+                'snapshot',
+                args=None,
+                rets={
+                    'id': s.SnapshotId,
+                },
+                call=True,
+                rdy=True,
+            ),
+            MethodSpec(
+                'free_snapshot',
+                args={
+                    'id': s.SnapshotId,
+                },
+                rets=None,
+                call=True,
+                rdy=False,
+            ),
+        ],
+        bases=[
+            IncludeSome(rename_table_interface, {'restore'}),
+        ],
+        ordering_chains=[
+            [
+                'commit_tag', 'write_tag', 'get_src', 'get_dst', 'read_tag',
+                'snapshot', 'free_snapshot', 'restore', 'rollback'
+            ],
+        ],
+    )
 
 
 class DataFlowManager(Model):
