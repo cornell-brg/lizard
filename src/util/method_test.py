@@ -8,13 +8,23 @@ from hypothesis.vendor.pretty import CUnicodeIO, RepresentationPrinter
 from sets import Set
 from util.rtl.interface import Interface
 from util.rtl.types import Array
-# from util.rtl.method import InMethodCallPortBundle
+import copy
 
 debug = True
 
 
 def _list_string(lst):
   return ", ".join([str(x) for x in lst])
+
+
+def _list_string_value(lst):
+  str_list = []
+  for x in lst:
+    if isinstance(x, BitStruct):
+      str_list += [bitstruct_detail(x)]
+    else:
+      str_list += [str(x)]
+  return ", ".join(str_list)
 
 
 #-------------------------------------------------------------------------
@@ -125,7 +135,7 @@ class TestStateMachine(GenericStateMachine):
     if isinstance(m_result, ReturnValues):
       m_result = m_result.__dict__
 
-    if r_result:
+    if r_result != None:
       if not isinstance(r_result, dict):
         r_result = [r_result] if isinstance(r_result, int) or isinstance(
             r_result, Bits) else list(r_result)
@@ -155,8 +165,8 @@ class TestStateMachine(GenericStateMachine):
               method_name=method_name,
               arg=arg,
               ret_name=_list_string(sorted(m_result.keys())),
-              expected_msg=_list_string(r_result_list),
-              actual_msg=_list_string(m_result_list))
+              expected_msg=_list_string_value(r_result_list),
+              actual_msg=_list_string_value(m_result_list))
           self._error_line_trace(method_line_trace, error_msg)
 
   def steps(self):
@@ -204,6 +214,8 @@ class TestStateMachine(GenericStateMachine):
         if debug:
           argument_string = []
           for k, v in data.items():
+            if isinstance(v, BitStruct):
+              v = bitstruct_detail(v)
             argument_string += ["{}={}".format(k, v)]
           method_line_trace += [
               "{}( {} )".format(rtl_name, _list_string(argument_string))
@@ -353,17 +365,17 @@ class Wrapper:
     - method name : {method_name}
     - arg         : {arg}
     - nbits       : {nbits}
-    - min         : {min}
+    - min         : 0
     - max         : {max}
     - actual value: {value}
 """
-    if not (value >= dtype._min and value <= dtype._max):
+    if not isinstance(dtype, BitStruct) and not (value >= 0 and
+                                                 value <= dtype._max):
       raise ValueError(
           out_of_range_msg.format(
               method_name=method_name,
               arg=arg,
               nbits=dtype.nbits,
-              min=dtype._min,
               max=dtype._max,
               value=value))
 
@@ -407,11 +419,11 @@ class Wrapper:
       for i in range(dtype.length):
         Wrapper._validate_input_value(method_name, arg, dtype.Data, value[i])
         port = "{}[{}]".format(Wrapper._get_port(method_name, arg, index), i)
-        exec ("s.model.{}.v = {}".format(port, value[i])) in locals()
+        exec ("s.model.{}.v = {}".format(port, int(value[i]))) in locals()
     else:
       Wrapper._validate_input_value(method_name, arg, dtype, value)
       exec ("s.model.{}.v = {}".format(
-          Wrapper._get_port(method_name, arg, index), value)) in locals()
+          Wrapper._get_port(method_name, arg, index), int(value))) in locals()
 
   @staticmethod
   def _add_single_method(cls, method_spec, index=-1):
@@ -504,7 +516,11 @@ class Wrapper:
   def create_wrapper_class(model, name=None, customized_methods=None):
     """Create wrapper class for rtl model
     """
-    methods = model.interface.methods
+    for k, v in inspect.getmembers(model):
+      if isinstance(v, Interface):
+        interface = v
+
+    methods = interface.methods
 
     if not name:
       name = type(model).__name__ + "Wrapper"
@@ -569,7 +585,7 @@ class Wrapper:
           arg_error_msg.format(
               method_name=spec.name,
               expected_args=_list_string(spec.args.keys()),
-              actual_args=_list_string(args)))
+              actual_args=_list_string(args[1:])))
     if spec.rdy:
       if not hasattr(target, "{}_rdy".format(spec.name)):
         raise TypeError(
@@ -710,10 +726,13 @@ def create_test_state_machine(model, reference, customized_methods=None):
       type(model).__name__ + "TestStateMachine", CompareTest.__bases__,
       dict(CompareTest.__dict__))
 
-  Test.interface = model.interface
-  Test.interface.require_fl_methods(reference)
+  Test.interface = None
 
   for k, v in inspect.getmembers(reference):
+    if isinstance(v, Interface):
+      Test.interface = v
+      Test.interface.require_fl_methods(reference)
+
     precondition = getattr(v, REFERENCE_PRECONDITION_MARKER, None)
 
     if precondition != None:
@@ -724,6 +743,8 @@ def create_test_state_machine(model, reference, customized_methods=None):
         if isinstance(strategy, ArgumentStrategy):
           Test.add_argument_strategy(method, strategy.arguments)
 
+  if not Test.interface:
+    raise RunMethodTestError("Get rtl model with no interface specified! ")
   # make sure that all method arguments have strategy specified
   error_msg = """
   Found argument with no strategy specified!
@@ -734,7 +755,9 @@ def create_test_state_machine(model, reference, customized_methods=None):
     strategies = Test.argument_strategy(name)
     for arg, dtype in spec.args.iteritems():
       if not strategies.has_key(arg):
-        if isinstance(dtype, Bits):
+        if isinstance(dtype, BitStruct):
+          strategies[arg] = bitstruct_strategy(dtype)
+        elif isinstance(dtype, Bits):
           strategies[arg] = bits_strategy(dtype.nbits)
         else:
           raise RunMethodTestError(error_msg.format(method_name=name, arg=arg))
@@ -789,6 +812,26 @@ def bits_strategy(nbits):
 
 
 #-------------------------------------------------------------------------
+# get_bitstruct_strategy
+#-------------------------------------------------------------------------
+def bitstruct_strategy(bitstruct, **kwargs):
+
+  @st.composite
+  def strategy(draw):
+    new_bitstruct = copy.copy(bitstruct)
+    new_bitstruct.v = 0
+    for name, slice_ in type(bitstruct)._bitfields.iteritems():
+      if not name in kwargs.keys():
+        data = draw(bits_strategy(slice_.stop - slice_.start))
+      else:
+        data = draw(kwargs[name])
+      exec ("new_bitstruct.{} = data".format(name)) in locals()
+    return new_bitstruct
+
+  return strategy()
+
+
+#-------------------------------------------------------------------------
 # ReturnValues
 #-------------------------------------------------------------------------
 
@@ -804,3 +847,10 @@ def run_state_machine(state_machine_factory):
   state_machine_factory.TestCase.settings = settings(
       max_examples=50, deadline=None, verbosity=Verbosity.verbose)
   run_state_machine_as_test(state_machine_factory)
+
+
+def bitstruct_detail(bitstruct):
+  bitfields = []
+  for k, v in bitstruct._bitfields.iteritems():
+    bitfields += ["{}: {}".format(k, bitstruct[v.start:v.stop])]
+  return "( " + _list_string(bitfields) + " )"

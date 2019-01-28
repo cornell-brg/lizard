@@ -14,7 +14,9 @@ from util.pretty_print import bitstruct_values
 class IssueQueueSlotInterface(Interface):
 
   def __init__(s, SlotType, NotifyType, BranchType, nports_notify=1):
-    super(IssueQueueSlotInterface, s).__init__([
+    super(
+        IssueQueueSlotInterface, s
+    ).__init__([
         MethodSpec(
             'valid', args=None, rets={'ret': Bits(1)}, call=False, rdy=False),
         MethodSpec(
@@ -34,9 +36,10 @@ class IssueQueueSlotInterface(Interface):
             'kill', args={'value': BranchType}, rets=None, call=True,
             rdy=False),
     ],
-                                               ordering_chains=[
-                                                   [],
-                                               ])
+               ordering_chains=s.successor(
+                   'input', ['output', 'notify', 'kill', 'valid', 'ready']) +
+               s.successor('ready', ['notify', 'kill']) + s.successor(
+                   'notify', ['output']))
 
 
 class IssueQueueInterface(Interface):
