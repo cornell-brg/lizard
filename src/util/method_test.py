@@ -90,6 +90,8 @@ class TestStateMachine(GenericStateMachine):
 
   def _error_line_trace(self, method_line_trace, error_msg):
     self.sim.cycle(method_line_trace)
+    if hasattr(self.reference, 'cycle'):
+      self.reference.cycle()
     print "========================== error =========================="
     raise RunMethodTestError(error_msg)
 
