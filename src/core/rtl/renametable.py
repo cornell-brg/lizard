@@ -3,8 +3,6 @@ from bitutil import clog2, clog2nz
 from util.rtl.interface import Interface, IncludeSome
 from util.rtl.method import MethodSpec
 from util.rtl.types import Array, canonicalize_type
-from util.rtl.snapshotting_freelist import SnapshottingFreeList
-from util.rtl.freelist import FreeList
 from util.rtl.snapshotting_registerfile import SnapshottingRegisterFile, SnapshottingRegisterFileInterface
 
 
