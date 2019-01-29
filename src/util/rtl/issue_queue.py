@@ -48,14 +48,17 @@ class IssueQueueSlotInterface(Interface):
                 rdy=False),
             MethodSpec(
                 'kill',
-                args={'value': BranchType},
+                args={
+                    'value': BranchType,
+                    'force': Bits(1)
+                },
                 rets=None,
                 call=True,
                 rdy=False),
-        ]
-        ordering_chains=[
-            'kill', 'notify', 'valid', 'ready', 'output', 'input'
         ],
+        ordering_chains=[[
+            'kill', 'notify', 'valid', 'ready', 'output', 'input'
+        ]],
     )
 
 
@@ -74,7 +77,13 @@ class IssueQueueInterface(Interface):
             call=True,
             rdy=False),
         MethodSpec(
-            'kill', args={'value': BranchType}, rets=None, call=True,
+            'kill',
+            args={
+                'value': BranchType,
+                'force': Bits(1)
+            },
+            rets=None,
+            call=True,
             rdy=False),
     ],
                                            ordering_chains=[
@@ -127,7 +136,8 @@ class GenericIssueSlot(Model):
 
     @s.combinational
     def handle_kill():
-      s.kill_.v = reduce_or(s.kill_value & s.curr_.branch_mask) and s.kill_call
+      s.kill_.v = (s.kill_force or reduce_or(s.kill_value & s.curr_.branch_mask)
+                  ) and s.kill_call
 
     @s.combinational
     def handle_valid():
@@ -220,6 +230,7 @@ class CompactingIssueQueue(Model):
       # Kill signal
       s.connect(s.slots_[i].kill_call, s.kill_call)
       s.connect(s.slots_[i].kill_value, s.kill_value)
+      s.connect(s.slots_[i].kill_force, s.kill_force)
       # Notify signal
       s.connect(s.slots_[i].notify_call, s.notify_call)
       s.connect(s.slots_[i].notify_value, s.notify_value)

@@ -87,7 +87,7 @@ class ALU(Model):
         elif s.func_ == ALUFunc.SRA:
           s.res_.v = sext(s.s0_, TWO_XLEN) >> s.shamt_
         elif s.func_ == ALUFunc.SLT:
-          # Unsigned or both positive ints
+          # Unsigned
           if s.usign_:
             s.res_.v = s.s0_ < s.s1_
           else:
