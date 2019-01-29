@@ -1,6 +1,6 @@
 from pymtl import *
 from util.test_utils import run_test_vector_sim
-from util.method_test import Wrapper, create_test_state_machine, run_state_machine
+from util.method_test import Wrapper, create_test_state_machine, run_state_machine, ReturnValues
 from util.rtl.freelist import FreeList, FreeListInterface
 from test.config import test_verilog
 
@@ -131,7 +131,7 @@ class FreeListFL:
     for i in range(s.nslots):
       if s.bits[i]:
         s.bits[i].v = 0
-        return i, (1 << i)
+        return ReturnValues(index=i, mask=(1 << i))
 
   def alloc_rdy(s):
     return s.bits != 0
