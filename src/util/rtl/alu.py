@@ -6,33 +6,21 @@ from util.rtl.mux import Mux
 from util.rtl.interface import Interface
 from bitutil import bit_enum
 
-ALUFunc = bit_enum(
-  'ALUFunc',
-  None,
+ALUFunc = bit_enum('ALUFunc', None, 'ADD', 'SUB', 'AND', 'OR', 'XOR', 'SLL',
+                   'SRL', 'SRA', 'SLT')
 
-  'ADD',
-  'SUB',
-  'AND',
-  'OR',
-  'XOR',
-
-  'SLL',
-  'SRL',
-  'SRA',
-
-  'SLT'
-)
 
 class ALUInterface(Interface):
+
   def __init__(s, xlen):
     super(ALUInterface, s).__init__([
         MethodSpec(
             'exec',
             args={
                 'func': ALUFunc.bits,
-                'src0' : Bits(xlen),
-                'src1' : Bits(xlen),
-                'unsigned' : Bits(1),
+                'src0': Bits(xlen),
+                'src1': Bits(xlen),
+                'unsigned': Bits(1),
             },
             rets={
                 'res': xlen,
@@ -43,16 +31,16 @@ class ALUInterface(Interface):
     ])
 
 
-
 class ALU(Model):
+
   def __init__(s, xlen):
     s.inter = ALUInterface(xlen)
     s.inter.apply(s)
 
     CLOG2_XLEN = clog2(xlen)
     # PYMTL BROKEN:
-    TWO_XLEN = 2*xlen
-    XLEN_M1 = xlen -1
+    TWO_XLEN = 2 * xlen
+    XLEN_M1 = xlen - 1
 
     # Input
     s.s0_ = Wire(xlen)
@@ -105,4 +93,5 @@ class ALU(Model):
           else:
             s.res_.v = 0
             # We can invert the MSB and flip the comparison
-            s.res_.v = concat(not s.s0_[-1], s.s0_[:XLEN_M1]) > concat(not s.s1_[-1], s.s1_[0:XLEN_M1])
+            s.res_.v = concat(not s.s0_[-1], s.s0_[:XLEN_M1]) > concat(
+                not s.s1_[-1], s.s1_[0:XLEN_M1])

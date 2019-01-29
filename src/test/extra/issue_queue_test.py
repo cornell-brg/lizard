@@ -74,6 +74,7 @@ def test_slot_rdy_set():
       dump_vcd=None,
       test_verilog=test_verilog)
 
+
 class GenericIssueSlotFL:
 
   def __init__(s, SlotType):
