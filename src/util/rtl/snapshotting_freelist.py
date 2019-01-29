@@ -147,6 +147,17 @@ class SnapshottingFreeList(Model):
                 s.snapshot_packers[i].pack_packed)
     s.connect(s.revert_allocs_mux.mux_select, s.revert_allocs_target_id)
 
+    # If reset_alloc_tracking was called, and saved to the same target_id
+    # as revert_allocs_target_id, we have to bypass from the data being
+    # saved into the snapshot to the data being used to revert
+    s.reset_revert_bypass_mux = Mux(Bits(nslots), 2)
+    s.connect(s.reset_revert_bypass_mux.mux_in[0], s.revert_allocs_mux.mux_out)
+    s.connect(s.reset_revert_bypass_mux.mux_in[1], s.clean_mux.mux_out)
+
+    @s.combinational
+    def handle_reset_revert_bypass():
+      s.reset_revert_bypass_mux.mux_select.v = s.reset_alloc_tracking_call and s.revert_allocs_call and s.reset_alloc_tracking_target_id == s.revert_allocs_target_id
+
     # Since revert occurs after alloc, revert the current allocation as well
     # Compute the total mask from all alloc ports
     s.alloc_masks = [Wire(nslots) for _ in range(num_alloc_ports + 1)]
@@ -162,7 +173,7 @@ class SnapshottingFreeList(Model):
 
     @s.combinational
     def revert_current_alloc():
-      s.free_list.release_mask.v = s.revert_allocs_mux.mux_out | s.alloc_masks[
+      s.free_list.release_mask.v = s.reset_revert_bypass_mux.mux_out | s.alloc_masks[
           num_alloc_ports]
 
     s.connect(s.revert_allocs_call, s.free_list.release_call)
