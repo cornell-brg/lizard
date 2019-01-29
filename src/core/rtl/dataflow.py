@@ -106,7 +106,7 @@ class DataFlowManagerInterface(Interface):
                     'success': Bits(1),
                 },
                 call=True,
-                rets=False,
+                rdy=False,
             ),
             MethodSpec(
                 'write_csr',
