@@ -24,6 +24,13 @@ class SnapshottingFreeListInterface(Interface):
     super(SnapshottingFreeListInterface, s).__init__(
         [
             MethodSpec(
+                'copy_alloc_tracking_tables',
+                args=None,
+                rets=None,
+                call=False,
+                rdy=False,
+            ),
+            MethodSpec(
                 'reset_alloc_tracking',
                 args={
                     'clean': Bits(1),
@@ -32,7 +39,8 @@ class SnapshottingFreeListInterface(Interface):
                 },
                 rets=None,
                 call=True,
-                rdy=False),
+                rdy=False,
+            ),
             MethodSpec(
                 'revert_allocs',
                 args={
@@ -40,13 +48,17 @@ class SnapshottingFreeListInterface(Interface):
                 },
                 rets=None,
                 call=True,
-                rdy=False),
+                rdy=False,
+            ),
         ],
         bases=[
             IncludeSome(base, {'free', 'alloc', 'set'}),
         ],
         ordering_chains=[
-            ['reset_alloc_tracking', 'alloc', 'revert_allocs', 'set'],
+            [
+                'copy_alloc_tracking_tables', 'alloc', 'reset_alloc_tracking',
+                'revert_allocs', 'set'
+            ],
         ],
     )
 
