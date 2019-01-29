@@ -65,9 +65,9 @@ class SnapshottingFreeListFL:
         release_alloc_bypass=False,
         used_slots_initial=used_slots_initial)
     s.snapshot_initial = [0 for _ in range(nslots)]
-    s.snapshots = [s.snapshot_initial[:] for _ in range(nsnapshots)]
     s.nsnapshots = nsnapshots
     s.nslots = nslots
+    s.reset()
 
   def reset_alloc_tracking_call(s, clean, target_id, source_id):
     if not clean:
@@ -101,16 +101,13 @@ class SnapshottingFreeListFL:
     s.freelist.release_call(s.pack(s.snapshots_old[target_id]) | s.mask)
 
   def copy_alloc_tracking_tables_call(s):
-    pass
-
-  def cycle(s):
     s.snapshots_old = [s.snapshots[i][:] for i in range(s.nsnapshots)]
-
     s.mask = Bits(s.nslots)
 
   def reset(s):
     s.freelist.reset()
     s.snapshots = [s.snapshot_initial[:] for _ in range(s.nsnapshots)]
+    s.snapshots_old = [s.snapshot_initial[:] for _ in range(s.nsnapshots)]
     s.mask = Bits(s.nslots)
 
 
