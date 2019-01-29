@@ -1,5 +1,5 @@
 from pymtl import *
-from util.rtl.types import Array, canonicalize_type
+from util.rtl.types import Array, canonicalize_type, type_str
 
 
 def canonicalize_method_spec(spec):
@@ -102,3 +102,28 @@ class MethodSpec:
   def ports(self):
     """Returns a list of all the port names"""
     return self.generate(self.DIRECTION_CALLEE).keys()
+
+  @staticmethod
+  def str_spec_dict(spec_dict):
+    temp = [
+        '{}: {}'.format(name, type_str(pymtl_type))
+        for name, pymtl_type in spec_dict.iteritems()
+    ]
+    return '({})'.format(', '.join(temp))
+
+  def __str__(self):
+    count_spec = ''
+    if self.count is not None:
+      count_spec = '[{}]'.format(self.count)
+
+    cr_spec = ''
+    if self.call:
+      cr_spec += 'C'
+    if self.rdy:
+      cr_spec += 'R'
+    if len(cr_spec) != 0:
+      cr_spec = ' <{}>'.format(cr_spec)
+
+    return '{}{}{} {} -> {}'.format(self.name, count_spec, cr_spec,
+                                    self.str_spec_dict(self.args),
+                                    self.str_spec_dict(self.rets))

@@ -1,6 +1,22 @@
 from pymtl import *
 
 
+def type_str(pymtl_type):
+  dim_spec = ''
+  current = pymtl_type
+  while isinstance(current, Array):
+    dim_spec = '{}[{}]'.format(dim_spec, current.length)
+    current = current.Data
+
+  if len(dim_spec) != 0:
+    dim_spec = ' {}'.format(dim_spec)
+
+  if isinstance(current, Bits):
+    return 'Bits({}){}'.format(current.nbits, dim_spec)
+  else:
+    raise ValueError('Unknown type: {}'.format(pymtl_type))
+
+
 class Array(object):
   """Represents an array type for hardware modeling
   """

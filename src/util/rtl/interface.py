@@ -249,3 +249,6 @@ class Interface(object):
         if len(reduced) != 0:
           result.append(reduced)
       return result
+
+  def __str__(s):
+    return '\n'.join(str(method) for method in s.methods.values())
