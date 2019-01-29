@@ -53,10 +53,9 @@ class IssueQueueSlotInterface(Interface):
                 call=True,
                 rdy=False),
         ]
-        # ordering_chains=s.successor(
-        #     'input', ['output', 'notify', 'kill', 'valid', 'ready']) +
-        # s.successor('ready', ['notify', 'kill']) + s.successor(
-        #     'notify', ['output'])
+        ordering_chains=[
+            'kill', 'notify', 'valid', 'ready', 'output', 'input'
+        ],
     )
 
 
