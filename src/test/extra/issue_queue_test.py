@@ -115,10 +115,11 @@ class GenericIssueSlotFL:
         s.src1_ready = 1
         s.curr.src1_rdy = 1
 
-  def kill_call(s, value):
-    if value & s.curr.branch_mask:
+  def kill_call(s, force, value):
+    if value & s.curr.branch_mask or force:
       s.valid_next = 0
       s.ready = 0
+
 
   def cycle(s):
     s.valid = s.valid_next
