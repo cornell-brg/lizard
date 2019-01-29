@@ -70,8 +70,8 @@ class ComparatorInterface(Model):
     def invert_signed():
       s.s0_.v = s.cmp_src0
       s.s1_.v = s.cmp_src1
-      # If unsigned we invert the MSB
-      if s.usign_:
+      # If signed we invert the MSB
+      if not s.usign_:
         s.s0_.v = concat(not s.s0_[-1], s.s0_[:XLEN_M1])
         s.s1_.v = concat(not s.s1_[-1], s.s1_[:XLEN_M1])
 
