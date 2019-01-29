@@ -14,32 +14,50 @@ from util.pretty_print import bitstruct_values
 class IssueQueueSlotInterface(Interface):
 
   def __init__(s, SlotType, NotifyType, BranchType, nports_notify=1):
-    super(
-        IssueQueueSlotInterface, s
-    ).__init__([
-        MethodSpec(
-            'valid', args=None, rets={'ret': Bits(1)}, call=False, rdy=False),
-        MethodSpec(
-            'ready', args=None, rets={'ret': Bits(1)}, call=False, rdy=False),
-        MethodSpec(
-            'input', args={'value': SlotType}, rets=None, call=True, rdy=False),
-        MethodSpec(
-            'output', args=None, rets={'value': SlotType}, call=True,
-            rdy=False),
-        MethodSpec(
-            'notify',
-            args={'value': NotifyType},
-            rets=None,
-            call=True,
-            rdy=False),
-        MethodSpec(
-            'kill', args={'value': BranchType}, rets=None, call=True,
-            rdy=False),
-    ],
-               ordering_chains=s.successor(
-                   'input', ['output', 'notify', 'kill', 'valid', 'ready']) +
-               s.successor('ready', ['notify', 'kill']) + s.successor(
-                   'notify', ['output']))
+    super(IssueQueueSlotInterface, s).__init__(
+        [
+            MethodSpec(
+                'valid',
+                args=None,
+                rets={'ret': Bits(1)},
+                call=False,
+                rdy=False),
+            MethodSpec(
+                'ready',
+                args=None,
+                rets={'ret': Bits(1)},
+                call=False,
+                rdy=False),
+            MethodSpec(
+                'input',
+                args={'value': SlotType},
+                rets=None,
+                call=True,
+                rdy=False),
+            MethodSpec(
+                'output',
+                args=None,
+                rets={'value': SlotType},
+                call=True,
+                rdy=False),
+            MethodSpec(
+                'notify',
+                args={'value': NotifyType},
+                rets=None,
+                call=True,
+                rdy=False),
+            MethodSpec(
+                'kill',
+                args={'value': BranchType},
+                rets=None,
+                call=True,
+                rdy=False),
+        ]
+        # ordering_chains=s.successor(
+        #     'input', ['output', 'notify', 'kill', 'valid', 'ready']) +
+        # s.successor('ready', ['notify', 'kill']) + s.successor(
+        #     'notify', ['output'])
+    )
 
 
 class IssueQueueInterface(Interface):
