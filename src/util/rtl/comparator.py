@@ -7,25 +7,27 @@ from util.rtl.interface import Interface
 from bitutil import bit_enum
 
 CompareFunc = bit_enum(
-  'CompareFunc',
-  None,
-  'EQ',
-  'NE',
-  # Can be used unsigned
-  'LT',
-  'GE',
+    'CompareFunc',
+    None,
+    'EQ',
+    'NE',
+    # Can be used unsigned
+    'LT',
+    'GE',
 )
 
+
 class ComparatorInterface(Interface):
+
   def __init__(s, xlen):
     super(ComparatorInterface, s).__init__([
         MethodSpec(
             'cmp',
             args={
                 'func': CompareFunc.bits,
-                'src0' : Bits(xlen),
-                'src1' : Bits(xlen),
-                'unsigned' : Bits(1),
+                'src0': Bits(xlen),
+                'src1': Bits(xlen),
+                'unsigned': Bits(1),
             },
             rets={
                 'res': Bits(1),
@@ -36,13 +38,13 @@ class ComparatorInterface(Interface):
     ])
 
 
-
 class ComparatorInterface(Model):
+
   def __init__(s, xlen):
     s.inter = ComparatorInterface(xlen)
     s.inter.apply(s)
 
-    XLEN_M1 = xlen -1
+    XLEN_M1 = xlen - 1
 
     # Input
     s.s0_ = Wire(xlen)
@@ -72,7 +74,6 @@ class ComparatorInterface(Model):
       if s.usign_:
         s.s0_.v = concat(not s.s1_[-1], s.s1_[:XLEN_M1])
         s.s1_.v = concat(not s.s0_[-1], s.s0_[:XLEN_M1])
-
 
     @s.combinational
     def cycle():
