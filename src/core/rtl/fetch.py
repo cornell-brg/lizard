@@ -6,6 +6,30 @@ from core.rtl.controlflow import ControlFlowManagerInterface
 
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 from msg.mem import MemMsg8B
+from config.general import *
+
+
+class FetchInterface(Interface):
+
+  def __init__(s):
+    super(FetchInterface, s).__init__(
+        [
+            MethodSpec(
+                'get',
+                args={},
+                rets={
+                    'inst' : Bits(ILEN),
+                },
+                call=True,
+                rdy=True,
+            ),
+        ],
+        ordering_chains=[
+          [],
+        ],
+    )
+
+
 
 class Fetch(Model):
 
