@@ -82,28 +82,14 @@ class GenericIssueSlotFL:
                                       SlotType().src0.nbits,
                                       SlotType().branch_mask.nbits)
     s.iface.require_fl_methods(s)
-    s.curr = SlotType()
     s.valid = 0
+    s.curr = SlotType()
     s.reset()
 
-  def valid_call(s):
-    return s.valid
-
-  def ready_call(s):
-    if not s.valid or not s.ready:
-      return 0
-    return s.src0_ready and s.src1_ready
-
-  def input_call(s, value):
-    s.valid_next = 1
-    s.ready = 1
-    s.curr = value
-    s.src0_ready = not value.src0_valid or value.src0_rdy
-    s.src1_ready = not value.src1_valid or value.src1_rdy
-
-  def output_call(s):
-    s.valid_next = 0
-    return s.curr[:]
+  def kill_call(s, value, force):
+    if (value & s.curr.branch_mask) or force:
+      s.valid = 0
+      s.ready = 0
 
   def notify_call(s, value):
     if s.curr.src0_valid:
@@ -115,17 +101,31 @@ class GenericIssueSlotFL:
         s.src1_ready = 1
         s.curr.src1_rdy = 1
 
-  def kill_call(s, force, value):
-    if value & s.curr.branch_mask or force:
-      s.valid_next = 0
-      s.ready = 0
+  def valid_call(s):
+    return s.old_valid
 
+  def ready_call(s):
+    if not s.old_valid or not s.ready:
+      return 0
+    return s.src0_ready and s.src1_ready
+
+  def output_call(s):
+    s.valid = 0
+    return s.old_curr[:]
+
+  def input_call(s, value):
+    s.valid = 1
+    s.ready = 1
+    s.curr = value
+    s.src0_ready = not value.src0_valid or value.src0_rdy
+    s.src1_ready = not value.src1_valid or value.src1_rdy
 
   def cycle(s):
-    s.valid = s.valid_next
+    s.old_curr = s.curr[:]
+    s.old_valid = s.valid
 
   def reset(s):
-    s.valid_next = 0
+    s.valid = 0
 
 
 def test_state_machine():
