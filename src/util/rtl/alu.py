@@ -88,10 +88,9 @@ class ALU(Model):
           s.res_.v = sext(s.s0_, TWO_XLEN) >> s.shamt_
         elif s.func_ == ALUFunc.SLT:
           # Unsigned or both positive ints
-          if s.usign_ or not (s.s0_[-1] or s.s1_[-1]):
+          if s.usign_:
             s.res_.v = s.s0_ < s.s1_
           else:
-            s.res_.v = 0
             # We can invert the MSB and then compre
             s.res_.v = concat(not s.s0_[-1], s.s0_[:XLEN_M1]) < concat(
                 not s.s1_[-1], s.s1_[0:XLEN_M1])
