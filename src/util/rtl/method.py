@@ -17,7 +17,7 @@ def instantiate_port(data_type, port_type):
     return port_type(data_type)
 
 
-class MethodSpec:
+class MethodSpec(object):
   """A hardware method specification
 
   Represents a method with opptional call and rdy signals which can
@@ -49,7 +49,7 @@ class MethodSpec:
                count=None):
     """Creates a new method specification.
 
-    args and rets are maps from argument names to types. Valid types are 
+    args and rets are maps from argument names to types. Valid types are
     Array, Bits, any BitStruct, or a positive integer. A positive integer n
     represents a type of Bits(n).
 
@@ -57,7 +57,7 @@ class MethodSpec:
 
     count defines the number of instances. If None, the method
     will only have 1 instance, the ports will not be wrapped in arrays.
-    If any number (including 0, or 1), then the ports will be wrapped 
+    If any number (including 0, or 1), then the ports will be wrapped
     in arrays of the specified length. Note the distinction between
     1 and None: one is an array of length 1, and one is a single port
     not wrapped in an array.
@@ -79,7 +79,7 @@ class MethodSpec:
 
   def generate(self, direction):
     """Returns a map from port names to the corresponding port.
-    
+
     The directionality of each port is determined by direction.
     Argument ports are InPorts on the callee side,
     and return ports are OutPorts on the callee side.
