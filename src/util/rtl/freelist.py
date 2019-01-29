@@ -23,40 +23,50 @@ class FreeListInterface(Interface):
         s.bypass_chain('release', 'alloc', release_alloc_bypass),
     ] + s.successor('set', ['alloc', 'free', 'release'])
 
-    super(FreeListInterface, s).__init__([
-        MethodSpec(
-            'free',
-            args={
-                'index': s.Index,
-            },
-            rets=None,
-            call=True,
-            rdy=False,
-            count=num_free_ports),
-        MethodSpec(
-            'release',
-            args={
-                'mask': s.Vector,
-            },
-            rets=None,
-            call=True,
-            rdy=False),
-        MethodSpec(
-            'alloc',
-            args=None,
-            rets={
-                'index': s.Index,
-                'mask': s.Vector,
-            },
-            call=True,
-            rdy=True,
-            count=num_alloc_ports),
-        MethodSpec(
-            'set', args={
-                'state': s.Vector,
-            }, rets=None, call=True, rdy=False),
-    ],
-                                         ordering_chains=ordering_chains)
+    super(FreeListInterface, s).__init__(
+        [
+            MethodSpec(
+                'free',
+                args={
+                    'index': s.Index,
+                },
+                rets=None,
+                call=True,
+                rdy=False,
+                count=num_free_ports,
+            ),
+            MethodSpec(
+                'release',
+                args={
+                    'mask': s.Vector,
+                },
+                rets=None,
+                call=True,
+                rdy=False,
+            ),
+            MethodSpec(
+                'alloc',
+                args=None,
+                rets={
+                    'index': s.Index,
+                    'mask': s.Vector,
+                },
+                call=True,
+                rdy=True,
+                count=num_alloc_ports,
+            ),
+            MethodSpec(
+                'set',
+                args={
+                    'state': s.Vector,
+                },
+                rets=None,
+                call=True,
+                rdy=False,
+            ),
+        ],
+        ordering_chains=ordering_chains,
+    )
 
 
 class FreeList(Model):
