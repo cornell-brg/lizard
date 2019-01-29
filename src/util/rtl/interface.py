@@ -53,21 +53,21 @@ class Interface(object):
   allocate methods are called. If the free method precedes the allocate
   method, the free will take effect, freeing a spot, and the allocation
   will succeed. If the allocate method precedes the free method, then
-  the free list will be full, the allocation will fail, and the free 
-  will take effect. A successfull allocation will then be able to 
+  the free list will be full, the allocation will fail, and the free
+  will take effect. A successfull allocation will then be able to
   happen the next cycle.
 
-  These semantics allows for a precise translation between FL, CL, 
+  These semantics allows for a precise translation between FL, CL,
   and RTL level models. If method A precedes method B, then
   the relationship above holds in RTL. In FL and CL, in any given cycle,
   method A must be called before method B.
 
-  An interface can be used either by the implementing model, or by a 
+  An interface can be used either by the implementing model, or by a
   client model.
-  
+
   An implementing model uses an interface by applying it on itself
   by using interface.apply(model). That call will
-  instantiate the appropriate ports for every instance of every 
+  instantiate the appropriate ports for every instance of every
   method declared in the interface as fields in the model.
   Ports for a method are generated as <method name>_<port_name>.
   Ports of array type are represented as arrays of ports.
@@ -90,7 +90,7 @@ class Interface(object):
     spec is a list of MethodSpec objects. If ordering_chains is None,
     the sequencing is defined by the order of spec. Methods
     later in the list see, and overrite, the effects of earlier methods in the list
-    in a given cycle. If ordering_chains is not None, then it is a list 
+    in a given cycle. If ordering_chains is not None, then it is a list
     of order requirements. An order requirement is simply a list of method names,
     in the order in which they must be performed. For example, consider
     3 methods a, b, and c. If a occurs before c, and also occurs before b,
@@ -98,7 +98,7 @@ class Interface(object):
         ['a', 'c'] and ['a', 'b']
     This constructor will use a topological sort to find some order
     which satisfies the constraints. If no such order exists,
-    it will raise an exception. Note that in many cases, there are multiple 
+    it will raise an exception. Note that in many cases, there are multiple
     orders which can satisfy a given set of constraints. In these cases,
     the algorithm may pick any such satisfying order.
     If a, b, and c must all happen in a specific order, one long ordering chain
@@ -213,7 +213,9 @@ class Interface(object):
     if len(prefix) > 0:
       prefix = '{}_'.format(prefix)
 
-    spec, available = s.methods[name]
+    assert name in s.methods
+
+    spec = s.methods[name]
     # Should be possible to prevent over-allocation
     # if available is None and count is None:
     #   pass

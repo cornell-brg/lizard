@@ -38,7 +38,7 @@ class ComparatorInterface(Interface):
     ])
 
 
-class ComparatorInterface(Model):
+class Comparator(Model):
 
   def __init__(s, xlen):
     s.inter = ComparatorInterface(xlen)
@@ -70,17 +70,17 @@ class ComparatorInterface(Model):
     def invert_signed():
       s.s0_.v = s.cmp_src0
       s.s1_.v = s.cmp_src1
-      # If signed we invert the MSB
-      if not s.usign_:
-        s.s0_.v = concat(not s.s0_[-1], s.s0_[:XLEN_M1])
-        s.s1_.v = concat(not s.s1_[-1], s.s1_[:XLEN_M1])
+      # If unsigned we invert the MSB and swap
+      if s.usign_:
+        s.s0_.v = concat(not s.s1_[-1], s.s1_[:XLEN_M1])
+        s.s1_.v = concat(not s.s0_[-1], s.s0_[:XLEN_M1])
 
     @s.combinational
     def cycle():
       s.res_.v = 0
       if s.func_ == CompareFunc.EQ:
         s.res_.v = s.eq_
-      elif s.func_ == CompareFunc.NEQ:
+      elif s.func_ == CompareFunc.NE:
         s.res_.v = not s.eq_
       elif s.func_ == CompareFunc.LT:
         s.res_.v = s.s0_ < s.s1_
