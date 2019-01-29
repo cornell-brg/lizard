@@ -36,26 +36,21 @@ class MethodBasedRuleStrategy(SearchStrategy):
     SearchStrategy.__init__(self)
     self.machine = machine
     self.rules = machine.method_rules()
-
-    self.rules.sort(
-      key=lambda rule: (
-        self.machine.interface.methods.keys().index( rule.fl_method_name ),
-        rule.rtl_method_name,
-      )
-    )
+    self.condition_rules = machine.condition_rules()
+    self.always_rules = machine.always_rules()
 
   def do_draw(self, data):
     # This strategy draw a randomly selected number of rules and do not care about
     # validity. In execute_step(step), only valid rules will be fired. We do this to
     # test possible dependencies - some rules are not valid in the first place become
     # valid if some other rules fire in the same cycle
-    n = len(self.rules)
-    rule_to_fire = []
+    n = len(self.condition_rules)
+    rule_to_fire = self.always_rules[:]
     remaining_rules = [i for i in range(0, n)]
     num_rules = cu.integer_range(data, 1, n - 1)
     for _ in range(num_rules):
       i = cu.integer_range(data, 0, len(remaining_rules) - 1)
-      rule_to_fire += [self.rules[remaining_rules[i]]]
+      rule_to_fire += [self.condition_rules[remaining_rules[i]]]
       del remaining_rules[i]
 
     rule_to_fire.sort(
@@ -81,6 +76,8 @@ class TestStateMachine(GenericStateMachine):
   __argument_strategies = {}
   __preconditions = {}
   __method_rules = {}
+  __always_rules = {}
+  __condition_rules = {}
 
   def __init__(self):
     super(TestStateMachine, self).__init__()
@@ -262,13 +259,42 @@ class TestStateMachine(GenericStateMachine):
     return target.setdefault(method, {})
 
   @classmethod
-  def add_rule(cls, rules):
+  def _add_rule(cls, rules):
     target = cls.__method_rules.setdefault(cls, [])
     target += [rules]
 
   @classmethod
+  def add_always_rule(cls, rules):
+    target = cls.__always_rules.setdefault(cls, [])
+    target += [rules]
+    cls._add_rule(rules)
+
+  @classmethod
+  def add_condition_rule(cls, rules):
+    target = cls.__condition_rules.setdefault(cls, [])
+    target += [rules]
+    cls._add_rule(rules)
+
+  @classmethod
+  def add_rule(cls, rules, hascall):
+    if hascall:
+      cls.add_condition_rule(rules)
+    else:
+      cls.add_always_rule(rules)
+
+  @classmethod
   def method_rules(cls):
     target = cls.__method_rules.setdefault(cls, [])
+    return target
+
+  @classmethod
+  def condition_rules(cls):
+    target = cls.__condition_rules.setdefault(cls, [])
+    return target
+
+  @classmethod
+  def always_rules(cls):
+    target = cls.__always_rules.setdefault(cls, [])
     return target
 
   @classmethod
@@ -628,7 +654,7 @@ def add_rule(cls, method_spec):
         fl_method_name=name,
         arguments=arguments,
         precondition=precondition)
-    cls.add_rule(rule)
+    cls.add_rule(rule, method_spec.call)
   else:
     for i in range(method_spec.count):
       rtl_method_name = Wrapper.get_wrapper_method_name(name, i)
@@ -637,7 +663,7 @@ def add_rule(cls, method_spec):
           fl_method_name=name,
           arguments=arguments,
           precondition=precondition)
-      cls.add_rule(rule)
+      cls.add_rule(rule, method_spec.call)
 
 
 #-------------------------------------------------------------------------
