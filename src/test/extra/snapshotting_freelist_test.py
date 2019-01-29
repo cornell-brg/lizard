@@ -98,7 +98,7 @@ class SnapshottingFreeListFL:
     s.freelist.free_call(index)
 
   def revert_allocs_call(s, target_id):
-    s.freelist.release_call(s.pack(s.snapshots_old[target_id]) | s.mask)
+    s.freelist.release_call(s.pack(s.snapshots[target_id]) | s.mask)
 
   def copy_alloc_tracking_tables_call(s):
     s.snapshots_old = [s.snapshots[i][:] for i in range(s.nsnapshots)]
