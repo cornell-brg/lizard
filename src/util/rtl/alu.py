@@ -92,6 +92,6 @@ class ALU(Model):
             s.res_.v = s.s0_ < s.s1_
           else:
             s.res_.v = 0
-            # We can invert the MSB and flip the comparison
-            s.res_.v = concat(not s.s0_[-1], s.s0_[:XLEN_M1]) > concat(
+            # We can invert the MSB and then compre
+            s.res_.v = concat(not s.s0_[-1], s.s0_[:XLEN_M1]) < concat(
                 not s.s1_[-1], s.s1_[0:XLEN_M1])
