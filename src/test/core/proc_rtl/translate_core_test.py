@@ -6,6 +6,7 @@ from util.method_test import create_test_state_machine, run_state_machine
 # Import our proc core
 from core.rtl.proc import Proc
 
+
 # We instantiate and translate our processor
 def test_translate_proc():
   run_model_translation(Proc())

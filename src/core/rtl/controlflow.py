@@ -15,7 +15,7 @@ class ControlFlowManagerInterface(Interface):
                 'check_redirect',
                 args={},
                 rets={
-                    'redirect' : Bits(1),
+                    'redirect': Bits(1),
                     'target': XLEN,
                 },
                 call=False,
@@ -23,7 +23,7 @@ class ControlFlowManagerInterface(Interface):
             ),
         ],
         ordering_chains=[
-          [],
+            [],
         ],
     )
 

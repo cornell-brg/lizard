@@ -18,17 +18,16 @@ class FetchInterface(Interface):
                 'get',
                 args={},
                 rets={
-                    'inst' : Bits(ILEN),
+                    'inst': Bits(ILEN),
                 },
                 call=True,
                 rdy=True,
             ),
         ],
         ordering_chains=[
-          [],
+            [],
         ],
     )
-
 
 
 class Fetch(Model):

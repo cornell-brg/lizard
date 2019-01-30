@@ -5,7 +5,9 @@ from core.rtl.dataflow import DataFlowManager
 
 from config.general import *
 
+
 class Proc(Model):
+
   def __init__(s):
     s.cflow_ = ControlFlowManager()
     s.dflow_ = DataFlowManager(AREG_COUNT, PREG_COUNT, MAX_SPEC_DEPTH, 2, 1)
