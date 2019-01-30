@@ -7,7 +7,7 @@ from test.config import test_verilog
 def test_inc_basic():
   run_test_vector_sim(
       WrapInc(2, 4, True), [
-          ('inc.in_ inc.out*'),
+          ('inc_in inc_out*'),
           (0, 1),
           (1, 2),
           (2, 3),
@@ -20,7 +20,7 @@ def test_inc_basic():
 def test_dec_basic():
   run_test_vector_sim(
       WrapInc(2, 4, False), [
-          ('inc.in_ inc.out*'),
+          ('inc_in inc_out*'),
           (0, 3),
           (1, 0),
           (2, 1),
@@ -33,7 +33,7 @@ def test_dec_basic():
 def test_inc_multi():
   run_test_vector_sim(
       WrapIncVar(2, 4, True, 2), [
-          ('inc.in_ inc.ops inc.out*'),
+          ('inc_in inc_ops inc_out*'),
           (0, 0, 0),
           (0, 1, 1),
           (0, 2, 2),
