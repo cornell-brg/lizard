@@ -39,10 +39,11 @@ class Fetch(Model):
     s.cflow = ControlFlowManagerInterface()
     s.cflow.require(s, '', 'check_redirect')
 
+    s.inst_val_ = RegEnRst(Bits(1), reset_value=1)
     s.inst_ = RegEn(MemMsg8B.resp)
 
     s.inflight_ = RegRst(Bits(1), reset_value=0)
-    s.pc_inflight_ = RegRst(Bits(1), reset_value=0)
+    s.pc_inflight_ = RegRst(Bits(xlen), reset_value=0)
 
     s.pc_next_ = Wire(Bits(xlen))
     s.send_req_ = Wire(1)
