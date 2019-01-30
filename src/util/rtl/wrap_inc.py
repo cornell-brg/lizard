@@ -1,80 +1,91 @@
 from pymtl import *
 from bitutil import clog2
+from util.rtl.interface import Interface
 from util.rtl.method import MethodSpec
+from util.rtl.types import Array, canonicalize_type
 
 
-class WrapIncInterface:
+class WrapIncInterface(Interface):
 
   def __init__(s, nbits):
     s.Data = Bits(nbits)
 
-    s.inc = MethodSpec({
-        'in_': s.Data,
-    }, {
-        'out': s.Data,
-    }, False, False)
+    super(WrapIncInterface, s).__init__([
+        MethodSpec(
+            'inc',
+            args={
+                'in': s.Data,
+            },
+            rets={
+                'out': s.Data,
+            },
+            call=False,
+            rdy=False,
+        ),
+    ])
 
 
 class WrapInc(Model):
 
   def __init__(s, nbits, size, up):
     s.interface = WrapIncInterface(nbits)
-    s.inc = s.interface.inc.in_port()
+    s.interface.apply(s)
 
     if up:
 
       @s.combinational
       def compute():
-        if s.inc.in_ == size - 1:
-          s.inc.out.v = 0
+        if s.inc_in == size - 1:
+          s.inc_out.v = 0
         else:
-          s.inc.out.v = s.inc.in_ + 1
+          s.inc_out.v = s.inc_in + 1
     else:
 
       @s.combinational
       def compute():
-        if s.inc.in_ == 0:
-          s.inc.out.v = size - 1
+        if s.inc_in == 0:
+          s.inc_out.v = size - 1
         else:
-          s.inc.out.v = s.inc.in_ - 1
+          s.inc_out.v = s.inc_in - 1
 
 
-class WrapIncVarInterface:
+class WrapIncVarInterface(Interface):
 
   def __init__(s, nbits, max_ops):
     s.Data = Bits(nbits)
     # +1 because we can perform [0, max_ops] ops
     s.Ops = Bits(clog2(max_ops + 1))
 
-    s.inc = MethodSpec({
-        'in_': s.Data,
-        'ops': s.Ops,
-    }, {
-        'out': s.Data,
-    }, False, False)
+    super(WrapIncVarInterface, s).__init__([
+        MethodSpec(
+            'inc',
+            args={
+                'in': s.Data,
+                'ops': s.Ops,
+            },
+            rets={
+                'out': s.Data,
+            },
+            call=False,
+            rdy=False,
+        ),
+    ])
 
 
 class WrapIncVar(Model):
 
   def __init__(s, nbits, size, up, max_ops):
     s.interface = WrapIncVarInterface(nbits, max_ops)
-    s.inc = s.interface.inc.in_port()
+    s.interface.apply(s)
 
     s.units = [WrapInc(nbits, size, up) for _ in range(max_ops)]
-    s.connect(s.inc.in_, s.units[0].inc.in_)
+    s.connect(s.inc_in, s.units[0].inc_in)
     for x in range(max_ops - 1):
-      s.connect(s.units[x].inc.out, s.units[x + 1].inc.in_)
-
-    # PYMTL_BROKEN
-    s.workaround_units_inc_out = [
-        Wire(s.interface.Data) for _ in range(max_ops)
-    ]
-    for i in range(max_ops):
-      s.connect(s.units[i].inc.out, s.workaround_units_inc_out[i])
+      s.connect(s.units[x].inc_out, s.units[x + 1].inc_in)
 
     @s.combinational
     def compute():
-      if s.inc.ops == 0:
-        s.inc.out.v = s.inc.in_
+      if s.inc_ops == 0:
+        s.inc_out.v = s.inc_in
       else:
-        s.inc.out.v = s.workaround_units_inc_out[s.inc.ops - 1]
+        s.inc_out.v = s.units[s.inc_ops - 1].inc_out
