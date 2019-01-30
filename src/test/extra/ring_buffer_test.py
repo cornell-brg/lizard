@@ -1,5 +1,5 @@
 from pymtl import *
-from util.method_test import create_wrapper_class, rule, st, run_state_machine_as_test, create_test_state_machine, argument_strategy, reference_precondition, MethodOrder, ArgumentStrategy, MethodStrategy, bits_strategy
+from util.method_test import Wrapper, run_state_machine, ArgumentStrategy, MethodStrategy, bits_strategy, ReturnValues
 from util.test_utils import run_rdycall_test_vector_sim, run_test_vector_sim2
 from util.rtl.reorder_buffer import ReorderBuffer
 from test.config import test_verilog
