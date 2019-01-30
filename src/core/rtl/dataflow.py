@@ -4,7 +4,8 @@ from msg.codes import *
 from util.rtl.interface import Interface, IncludeSome
 from util.rtl.method import MethodSpec
 from util.rtl.types import Array, canonicalize_type
-from util.rtl.freelist import FreeList
+from util.rtl.packers import Packer
+from util.rtl.snapshotting_freelist import SnapshottingFreeList
 from util.rtl.registerfile import RegisterFile
 from core.rtl.renametable import RenameTableInterface, RenameTable
 
@@ -24,9 +25,9 @@ class DataFlowManagerInterface(Interface):
     rename_table_interface = RenameTableInterface(naregs, npregs, 0, 0,
                                                   nsnapshots)
 
-    s.Areg = s.rename_table_interface.Areg
-    s.Preg = s.rename_table_interface.Preg
-    s.SnapshotId = s.rename_table_interface.SnapshotId
+    s.Areg = rename_table_interface.Areg
+    s.Preg = rename_table_interface.Preg
+    s.SnapshotId = rename_table_interface.SnapshotId
 
     super(DataFlowManagerInterface, s).__init__(
         [
@@ -49,7 +50,7 @@ class DataFlowManagerInterface(Interface):
                 },
                 rets={
                     'success': Bits(1),
-                    'tag': s.Preg,
+                    'preg': s.Preg,
                 },
                 call=True,
                 rdy=False,
@@ -161,6 +162,9 @@ class DataFlowManager(Model):
     s.mngr2proc = InValRdyBundle(Bits(XLEN))
     s.proc2mngr = OutValRdyBundle(Bits(XLEN))
 
+    # used to allocate snapshot IDs
+    s.snapshot_allocator = SnapshottingFreeList(nsnapshots, 1, 1, nsnapshots)
+
     # Reserve the highest tag for x0
     # Free list with 2 alloc ports, 1 free port, and AREG_COUNT - 1 used slots
     # initially
@@ -181,7 +185,8 @@ class DataFlowManager(Model):
         Bits(1),
         npregs - 1,
         0,  # no read ports needed, only a dump port
-        num_dst_ports,  # have to write for every instruction that commits
+        num_dst_ports *
+        2,  # have to write twice for every instruction that commits
         False,  # no read ports, so we don't need a write-read bypass
         True,  # use a write-dump bypass to reset after commit
         reset_values=arch_used_pregs_reset)
@@ -249,11 +254,6 @@ class DataFlowManager(Model):
         True,
         reset_values=initial_map)
 
-    #            [
-    #                'commit_tag', 'write_tag', 'get_src', 'get_dst', 'read_tag',
-    #                'snapshot', 'free_snapshot', 'restore', 'rollback'
-    #            ],
-
     # commit_tag
     s.is_commit_not_zero_tag = [Wire(1) for _ in range(num_dst_ports)]
     for i in range(num_dst_ports):
@@ -277,6 +277,17 @@ class DataFlowManager(Model):
       # Only write if not the zero tag
       s.connect(s.areg_file.write_call[i], s.is_commit_not_zero_tag[i])
 
+      # Mark the old preg used by the ARF as free
+      s.connect(s.arch_used_pregs.write_addr[i], s.areg_file.read_data[i])
+      s.connect(s.arch_used_pregs.write_data[i], 0)
+      s.connect(s.arch_used_pregs.write_call[i], s.is_commit_not_zero_tag[i])
+      # Mark the new preg used by the ARF as used
+      s.connect(s.arch_used_pregs.write_addr[i + num_dst_ports],
+                s.commit_tag_tag[i])
+      s.connect(s.arch_used_pregs.write_data[i + num_dst_ports], 1)
+      s.connect(s.arch_used_pregs.write_call[i + num_dst_ports],
+                s.is_commit_not_zero_tag[i])
+
     # write_tag
     s.is_write_not_zero_tag = [Wire(1) for _ in range(num_dst_ports)]
     for i in range(num_dst_ports):
@@ -288,9 +299,9 @@ class DataFlowManager(Model):
       # All operations on the preg file are on the second set of write ports
       # at the offset +num_dst_ports
       # Write the value and ready into the preg file
-      s.connect(s.preg_file.write_addr[i + num_dst_ports], s.write_tag_tag)
+      s.connect(s.preg_file.write_addr[i + num_dst_ports], s.write_tag_tag[i])
       s.connect(s.preg_file.write_data[i + num_dst_ports].value,
-                w.write_tag_value)
+                s.write_tag_value[i])
       s.connect(s.preg_file.write_data[i + num_dst_ports].ready, 1)
       # Only write if not the zero tag
       s.connect(s.preg_file.write_call[i + num_dst_ports],
@@ -303,10 +314,10 @@ class DataFlowManager(Model):
 
       @s.combinational
       def handle_get_src(i=i):
-        if s.get_src_arg[i] == 0:
-          s.get_src_preg.v = s.ZERO_TAG
+        if s.get_src_areg[i] == 0:
+          s.get_src_preg[i].v = s.ZERO_TAG
         else:
-          s.get_src_preg.v = s.rename_table.lookup_preg[i]
+          s.get_src_preg[i].v = s.rename_table.lookup_preg[i]
 
     # get_dst
     s.get_dst_need_writeback = [Wire(1) for _ in range(num_dst_ports)]
@@ -348,42 +359,98 @@ class DataFlowManager(Model):
       s.connect(s.inverse.write_data[i], s.get_dst_areg[i])
       s.connect(s.inverse.write_call[i], s.get_dst_need_writeback[i])
 
-    # TODO EVERYTHING BELOW THIS IS BAD
-    # ==========================================================================
+    # read_tag
+    for i in range(num_src_ports):
+      s.connect(s.read_tag_tag[i], s.preg_file.read_addr[i])
+      s.connect(s.read_tag_ready[i], s.preg_file.read_data[i].ready)
+      s.connect(s.read_tag_value[i], s.preg_file.read_data[i].value)
+
+    # snapshot
+    # ready if a snapshot ID is available
+    s.connect(s.snapshot_rdy, s.snapshot_allocator.alloc_rdy[0])
+    # snapshot ID is allocated by the allocator and returned
+    s.connect(s.snapshot_id, s.snapshot_allocator.alloc_index[0])
+    s.connect(s.snapshot_call, s.snapshot_allocator.alloc_call[0])
+    # snapshot the snapshot allocator into itself
+    s.connect(s.snapshot_allocator.reset_alloc_tracking_target_id,
+              s.snapshot_id)
+    s.connect(s.snapshot_allocator.reset_alloc_tracking_call, s.snapshot_call)
+    # snapshot the freelist
+    s.connect(s.free_regs.reset_alloc_tracking_target_id, s.snapshot_id)
+    s.connect(s.free_regs.reset_alloc_tracking_call, s.snapshot_call)
+    # snapshot the rename table
+    s.connect(s.rename_table.snapshot_target_id, s.snapshot_id)
+    s.connect(s.rename_table.snapshot_call, s.snapshot_id)
+
+    # free_snapshot
+    # just free it in the snapshot allocator, all the various
+    # snapshots will eventually be overwritten
+    s.connect(s.snapshot_allocator.free_index[0], s.free_snapshot_id)
+    s.connect(s.snapshot_allocator.free_call[0], s.free_snapshot_call)
+
+    # restore
+    # restore the snapshot allocator
+    s.connect(s.snapshot_allocator.revert_allocs_source_id, s.restore_source_id)
+    s.connect(s.snapshot_allocator.revert_allocs_call, s.restore_call)
+    # restore the free list
+    s.connect(s.free_regs.revert_allocs_source_id, s.restore_source_id)
+    s.connect(s.free_regs.revert_allocs_call, s.restore_call)
+    # restore the rename table
+    s.connect(s.rename_table.restore_source_id, s.restore_source_id)
+    s.connect(s.rename_table.restore_call, s.restore_call)
+
+    # rollback
+    # set the snapshot allocator to the architectural state of no snapshots
+    # meaning everything is free (all ones)
+    s.connect(s.snapshot_allocator.set_state, (~Bits(nsnapshots, 0)).uint())
+    s.connect(s.snapshot_allocator.set_call, s.rollback_call)
+    # set the free list to arch_used_pregs (note that write_dump_bypass
+    # is true)
+    # use a packer to collect all the bits
+    s.arch_used_pregs_packer = Packer(Bits(1), npregs - 1)
+    for i in range(npregs - 1):
+      s.connect(s.arch_used_pregs_packer.pack_in[i],
+                s.arch_used_pregs.dump_out[i])
+    s.connect(s.free_regs.set_state, s.arch_used_pregs_packer.pack_packed)
+    s.connect(s.free_regs.set_call, s.rollback_call)
+    # set the rename table to the areg_file (again write_dump_bypass is true)
+    for i in range(naregs):
+      s.connect(s.rename_table.set_in[i], s.areg_file.dump_out[i])
+    s.connect(s.rename_table.set_call, s.rollback_call)
+
+    # CSR
     @s.combinational
     def handle_read_csr():
-      s.read_csr_port.result.v = 0
-      s.read_csr_port.success.v = 0
+      s.read_csr_result.v = 0
+      s.read_csr_success.v = 0
 
       s.mngr2proc.rdy.v = 0
 
-      if s.read_csr_port.call:
-        if s.read_csr_port.csr_num == CsrRegisters.mngr2proc:
-          s.read_csr_port.result.v = s.mngr2proc.msg
-          s.read_csr_port.success.v = s.mngr2proc.val
+      if s.read_csr_call:
+        if s.read_csr_csr_num == CsrRegisters.mngr2proc:
+          s.read_csr_result.v = s.mngr2proc.msg
+          s.read_csr_success.v = s.mngr2proc.val
           # we are ready if data is valid and we made it here
           s.mngr2proc.rdy.v = s.mngr2proc.val
         else:
           # no other CSRs supported return 0
-          s.read_csr_port.result.v = 0
-          s.read_csr_port.success.v = 1
-
-    s.write_csr_port = s.interface.write_csr.in_port()
+          s.read_csr_result.v = 0
+          s.read_csr_success.v = 1
 
     @s.combinational
     def handle_write_csr():
-      s.write_csr_port.success.v = 0
+      s.write_csr_success.v = 0
       s.proc2mngr.msg.v = 0
       s.proc2mngr.val.v = 0
 
-      if s.write_csr_port.call:
-        if s.write_csr_port.csr_num == CsrRegisters.proc2mngr:
-          s.write_csr_port.success.v = s.proc2mngr.rdy
-          s.proc2mngr.msg.v = s.write_csr_port.value
+      if s.write_csr_call:
+        if s.write_csr_csr_num == CsrRegisters.proc2mngr:
+          s.write_csr_success.v = s.proc2mngr.rdy
+          s.proc2mngr.msg.v = s.write_csr_value
           s.proc2mngr.val.v = s.proc2mngr.rdy
         else:
           # no other CSRs supported
-          s.write_csr_port.success.v = 1
+          s.write_csr_success.v = 1
 
   def line_trace(s):
     return "<dataflow>"
