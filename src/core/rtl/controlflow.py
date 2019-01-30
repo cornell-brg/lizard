@@ -33,3 +33,6 @@ class ControlFlowManager(Model):
   def __init__(s):
     s.inter = ControlFlowManagerInterface()
     s.inter.apply(s)
+
+    # No redirects for now!
+    s.connect(s.check_redirect_redirect, 0)
