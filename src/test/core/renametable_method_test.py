@@ -1,7 +1,7 @@
 from pymtl import *
 from core.rtl.renametable import RenameTable
 from test.config import test_verilog
-from util.method_test import DefineMethod, ReturnValues, create_wrapper_class, rule, st, run_state_machine, create_test_state_machine, argument_strategy, reference_precondition, MethodOrder, ArgumentStrategy, MethodStrategy
+from util.method_test import Wrapper, run_state_machine, ArgumentStrategy, MethodStrategy, bits_strategy, ReturnValues
 
 
 #-------------------------------------------------------------------------

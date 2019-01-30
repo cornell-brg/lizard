@@ -3,7 +3,7 @@ from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 from pclib.cl import InValRdyQueueAdapter, OutValRdyQueueAdapter
 
 from config.general import *
-from util.method_test import ReturnValues, DefineMethod, create_wrapper_class, rule, st, run_state_machine, create_test_state_machine, argument_strategy, reference_precondition, MethodOrder, ArgumentStrategy, MethodStrategy, generate_methods_from_model, bits_strategy
+from util.method_test import Wrapper, run_state_machine, ArgumentStrategy, MethodStrategy, bits_strategy, ReturnValues
 from util.test_utils import run_rdycall_test_vector_sim
 from util.fl.freelist import FreeListFL
 from util.rtl.method import MethodSpec
