@@ -1,8 +1,7 @@
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict
 from pymtl import *
 from util.rtl.method import MethodSpec
 from util.toposort import toposort
-from functools import partial
 import inspect
 
 
@@ -16,9 +15,12 @@ def IncludeSome(interface, some):
 
 class ResidualMethodSpec:
 
-  def __init__(s, model, spec):
+  def __init__(s, model, spec, port_map):
     s.model = model
     s.spec = spec
+
+    for name, port in port_map.iteritems():
+      setattr(s, name, port)
 
   def connect(s, spec, target):
     for port_name in s.spec.ports():
@@ -184,17 +186,13 @@ class Interface(object):
       for port_name in spec.ports():
         port_map[port_name] = [ports[i][port_name] for i in range(count)]
 
-      Ports = namedtuple(name, port_map.keys())
-      port_tup = Ports(**port_map)
-
     for port_name, port in port_map.iteritems():
       mangled = s.mangled_name(prefix, name, port_name)
       if hasattr(target, mangled):
         raise ValueError('Mangled field already exists: {}'.format(mangled))
       setattr(target, mangled, port)
 
-    assert (not hasattr(target, name))
-    setattr(target, name, partial(lambda s: port_tup, target))
+    return port_map
 
   def apply(s, target):
     """Binds incoming ports to the target
@@ -202,8 +200,9 @@ class Interface(object):
     This method should be called by implementing models.
     """
     for name, spec in s.methods.iteritems():
-      s._inject(target, '', name, spec, spec.count, MethodSpec.DIRECTION_CALLEE)
-      # setattr( target, name, ResidualMethodSpec( target, spec ) )
+      port_map = s._inject(target, '', name, spec, spec.count,
+                           MethodSpec.DIRECTION_CALLEE)
+      setattr(target, name, ResidualMethodSpec(target, spec, port_map))
 
   def require(s, target, prefix, name, count=None):
     """Binds an outgoing port from this interface to the target
