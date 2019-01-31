@@ -41,6 +41,18 @@ class HardwareModel(object):
   def _reset(s):
     pass
 
+  @staticmethod
+  def validate(func):
+
+    @wraps(func)
+    def validate_init(s, *args, **kwargs):
+      result = func(s, *args, **kwargs)
+      if len(s.model_methods) != len(s.interface.methods):
+        raise ValueError('Not all methods from interface implemented')
+      return result
+
+    return validate_init
+
   def model_method(s, func):
     if func.__name__ in s.model_methods:
       raise ValueError('Duplicate function: {}'.format(func.__name__))
@@ -113,10 +125,6 @@ class HardwareModel(object):
   def cycle(s):
     s._post_cycle()
     s._pre_cycle()
-
-  def validate(s):
-    if len(s.model_methods) != len(s.interface.methods):
-      raise ValueError('Not all methods from interface implemented')
 
 
 class NotReady:
