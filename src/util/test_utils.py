@@ -12,8 +12,8 @@ class RunTestVectorSimError(Exception):
   pass
 
 
-def run_model_translation(model):
-  model = TranslationTool(model)
+def run_model_translation(model, lint=False):
+  model = TranslationTool(model, lint)
   model.elaborate()
   # Create a simulator
   sim = SimulationTool(model)
@@ -55,13 +55,13 @@ def mk_test_case_table(raw_test_case_table):
 #-------------------------------------------------------------------------
 
 
-def run_sim(model, dump_vcd=None, test_verilog=False, max_cycles=5000):
+def run_sim(model, dump_vcd=None, test_verilog=False, max_cycles=5000, lint=False):
 
   # Setup the model
 
   model.vcd_file = dump_vcd
   if test_verilog:
-    model = TranslationTool(model)
+    model = TranslationTool(model, lint)
   model.elaborate()
 
   # Create a simulator
@@ -95,7 +95,7 @@ def run_sim(model, dump_vcd=None, test_verilog=False, max_cycles=5000):
 #-------------------------------------------------------------------------
 
 
-def run_test_vector_sim(model, test_vectors, dump_vcd=None, test_verilog=False):
+def run_test_vector_sim(model, test_vectors, dump_vcd=None, test_verilog=False, lint=False):
 
   # First row in test vectors contains port names
 
@@ -112,7 +112,7 @@ def run_test_vector_sim(model, test_vectors, dump_vcd=None, test_verilog=False):
 
   model.vcd_file = dump_vcd
   if test_verilog:
-    model = TranslationTool(model)
+    model = TranslationTool(model, lint)
   model.elaborate()
 
   # Create a simulator
@@ -167,7 +167,8 @@ def run_test_vector_sim2(model,
                          str_outputs,
                          test_vectors,
                          dump_vcd=None,
-                         test_verilog=False):
+                         test_verilog=False,
+                         lint=False):
   nports = len(ports)
 
   assert nports == len(str_inputs)
@@ -188,7 +189,7 @@ def run_test_vector_sim2(model,
   # Setup the model
   model.vcd_file = dump_vcd
   if test_verilog:
-    model = TranslationTool(model)
+    model = TranslationTool(model, lint)
   model.elaborate()
 
   # Create a simulator
@@ -253,7 +254,8 @@ def run_test_vector_sim2(model,
 def run_rdycall_test_vector_sim(model,
                                 test_vectors,
                                 dump_vcd=None,
-                                test_verilog=False):
+                                test_verilog=False,
+                                lint=False):
 
   # First row in test vectors contains port names
 
@@ -314,7 +316,7 @@ def run_rdycall_test_vector_sim(model,
 
   model.vcd_file = dump_vcd
   if test_verilog:
-    model = TranslationTool(model)
+    model = TranslationTool(model, lint)
   model.elaborate()
 
   # Create a simulator
