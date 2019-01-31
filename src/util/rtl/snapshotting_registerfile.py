@@ -112,7 +112,7 @@ class SnapshottingRegisterFile(Model):
     for j in range(nregs):
       s.connect(s.snapshot_muxes[j].mux_select, s.restore_source_id)
       for i in range(nsnapshots):
-        s.connect(s.snapshot_muxes[j].mux_in[i], s.snapshots[i].dump_out[j])
+        s.connect(s.snapshot_muxes[j].mux_in_[i], s.snapshots[i].dump_out[j])
 
     # Restore by writing data from the snapshot back into the register file
     # set port.
@@ -161,8 +161,8 @@ class SnapshottingRegisterFile(Model):
 
     s.connect(s.set_muxes[j].mux_select, s.set_call)
     for j in range(nregs):
-      s.connect(s.set_muxes[j].mux_in[0], s.restore_vector[j])
-      s.connect(s.set_muxes[j].mux_in[1], s.set_in[j])
+      s.connect(s.set_muxes[j].mux_in_[0], s.restore_vector[j])
+      s.connect(s.set_muxes[j].mux_in_[1], s.set_in[j])
       s.connect(s.set_muxes[j].mux_out, s.regs.set_in[j])
 
     s.connect(s.regs.set_call, s.should_set)

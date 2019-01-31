@@ -409,7 +409,7 @@ class DataFlowManager(Model):
     # use a packer to collect all the bits
     s.arch_used_pregs_packer = Packer(Bits(1), npregs - 1)
     for i in range(npregs - 1):
-      s.connect(s.arch_used_pregs_packer.pack_in[i],
+      s.connect(s.arch_used_pregs_packer.pack_in_[i],
                 s.arch_used_pregs.dump_out[i])
     s.connect(s.free_regs.set_state, s.arch_used_pregs_packer.pack_packed)
     s.connect(s.free_regs.set_call, s.rollback_call)

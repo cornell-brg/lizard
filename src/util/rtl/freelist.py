@@ -225,8 +225,8 @@ class FreeList(Model):
       def compute_free():
         s.free_next.v = s.free_next_base | s.free_masks[num_free_ports]
 
-    s.connect(s.set_mux.mux_in[0], s.free_next)
-    s.connect(s.set_mux.mux_in[1], s.set_state)
+    s.connect(s.set_mux.mux_in_[0], s.free_next)
+    s.connect(s.set_mux.mux_in_[1], s.set_state)
     s.connect(s.set_mux.mux_select, s.set_call)
 
     for i in range(nslots):

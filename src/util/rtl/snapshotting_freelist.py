@@ -111,7 +111,7 @@ class SnapshottingFreeList(Model):
         s.connect(s.alloc_call[j], s.snapshots[i].write_call[j])
 
       for j in range(nslots):
-        s.connect(s.snapshots[i].dump_out[j], s.snapshot_packers[i].pack_in[j])
+        s.connect(s.snapshots[i].dump_out[j], s.snapshot_packers[i].pack_in_[j])
         s.connect(s.snapshots[i].set_in[j], 0)
 
       @s.combinational
@@ -121,7 +121,7 @@ class SnapshottingFreeList(Model):
         else:
           s.snapshots[i].set_call.v = 0
 
-      s.connect(s.dump_mux.mux_in[i], s.snapshot_packers[i].pack_packed)
+      s.connect(s.dump_mux.mux_in_[i], s.snapshot_packers[i].pack_packed)
 
     # Pick from a snapshot to revert
     s.connect(s.dump_mux.mux_select, s.revert_allocs_source_id)
