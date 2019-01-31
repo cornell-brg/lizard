@@ -103,6 +103,12 @@ class MethodSpec(object):
     """Returns a list of all the port names"""
     return self.generate(self.DIRECTION_CALLEE).keys()
 
+  def num_permitted_calls(self):
+    if self.count is None:
+      return 1
+    else:
+      return self.count
+
   @staticmethod
   def str_spec_dict(spec_dict):
     temp = [
