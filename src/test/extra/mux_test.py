@@ -26,4 +26,3 @@ def test_wrapper():
   mux.cycle()
   result = mux.mux(in_=[0b0001, 0b0010, 0b1000, 0b1000], select=0b01)
   assert result.out == 0b0010
-

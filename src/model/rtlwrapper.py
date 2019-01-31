@@ -1,5 +1,6 @@
 from pymtl import *
 
+from model.hardware_model import HardwareModel
 from model.clmodel import CLModel
 from model.hardware_model import NotReady, Result
 
@@ -8,6 +9,7 @@ from util.rtl.interface import Interface
 
 class RTLWrapper(CLModel):
 
+  @HardwareModel.validate
   def __init__(s, rtl_model):
     super(RTLWrapper, s).__init__(rtl_model.interface, False)
     s.model = rtl_model
@@ -117,6 +119,16 @@ class RTLWrapper(CLModel):
   def line_trace(s):
     s.sim.eval_combinational()
     return "{:>3}: {}".format(s.sim.ncycles, s.model.line_trace())
+
+  def _pre_cycle(s):
+    super(RTLWrapper, s)._pre_cycle()
+    # Initially, set the call signals set the call signal, if present
+    for method_name, method in s.interface.methods.iteritems():
+      if method.call:
+        # model.<method_name>_call
+        call_port = getattr(s.model,
+                            Interface.mangled_name('', method_name, 'call'))
+        call_port.v = 0
 
   def _post_cycle(s):
     super(RTLWrapper, s)._post_cycle()
