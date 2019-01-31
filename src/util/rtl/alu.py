@@ -2,7 +2,6 @@ from pymtl import *
 from bitutil import clog2, clog2nz
 from pclib.rtl import RegEn, RegEnRst, RegRst
 from util.rtl.method import MethodSpec
-from util.rtl.mux import Mux
 from util.rtl.interface import Interface
 from bitutil import bit_enum
 

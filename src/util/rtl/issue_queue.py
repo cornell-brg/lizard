@@ -235,9 +235,9 @@ class CompactingIssueQueue(Model):
       s.connect(s.slots_[i].notify_call, s.notify_call)
       s.connect(s.slots_[i].notify_value, s.notify_value)
       # Connect slot ready signal to packer
-      s.connect(s.decode_packer_.pack_in[i], s.slots_[i].ready_ret)
+      s.connect(s.decode_packer_.pack_in_[i], s.slots_[i].ready_ret)
       # Connect output to mux
-      s.connect(s.slot_mux_.mux_in[i], s.slots_[i].output_value)
+      s.connect(s.slot_mux_.mux_in_[i], s.slots_[i].output_value)
 
     # We call the output method on any slot that should shift or is issuing
     @s.combinational
