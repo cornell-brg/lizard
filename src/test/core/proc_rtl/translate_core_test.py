@@ -9,4 +9,4 @@ from core.rtl.proc import Proc
 
 # We instantiate and translate our processor
 def test_translate_proc():
-  run_model_translation(Proc())
+  run_model_translation(Proc(), lint=True)

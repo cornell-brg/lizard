@@ -9,6 +9,7 @@ from pymtl import *
 from runner import run_test, extract_tests
 from proc_harness_cl import ProcTestHarnessCL
 from proc_harness_fl import ProcTestHarnessFL
+from proc_harness_rtl import ProcTestHarnessRTL
 from inst_modules import inst_modules
 
 procs = [ProcTestHarnessFL, ProcTestHarnessCL]
