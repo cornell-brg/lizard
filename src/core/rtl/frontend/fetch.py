@@ -9,6 +9,7 @@ from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 from msg.mem import MemMsg8B, MemMsgType
 from config.general import *
 
+
 class FetchInterface(Interface):
 
   def __init__(s):

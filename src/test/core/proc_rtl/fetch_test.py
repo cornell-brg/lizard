@@ -6,5 +6,6 @@ from util.method_test import create_test_state_machine, run_state_machine
 from core.rtl.frontend.fetch import Fetch
 from util.cl.testmemory import TestMemoryCL
 
+
 def test_translate_fetch():
   run_model_translation(Fetch(64, 32))

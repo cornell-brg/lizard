@@ -55,7 +55,11 @@ def mk_test_case_table(raw_test_case_table):
 #-------------------------------------------------------------------------
 
 
-def run_sim(model, dump_vcd=None, test_verilog=False, max_cycles=5000, lint=False):
+def run_sim(model,
+            dump_vcd=None,
+            test_verilog=False,
+            max_cycles=5000,
+            lint=False):
 
   # Setup the model
 
@@ -95,7 +99,11 @@ def run_sim(model, dump_vcd=None, test_verilog=False, max_cycles=5000, lint=Fals
 #-------------------------------------------------------------------------
 
 
-def run_test_vector_sim(model, test_vectors, dump_vcd=None, test_verilog=False, lint=False):
+def run_test_vector_sim(model,
+                        test_vectors,
+                        dump_vcd=None,
+                        test_verilog=False,
+                        lint=False):
 
   # First row in test vectors contains port names
 
