@@ -5,6 +5,7 @@ from util.rtl.mux import Mux
 from util.fl.mux import MuxFL
 from test.config import test_verilog
 from model.wrapper import wrap_to_cl
+from model.test_model import run_test_state_machine
 
 
 def test_basic():
@@ -30,3 +31,7 @@ def test_method(model):
   mux.cycle()
   result = mux.mux(in_=[0b0001, 0b0010, 0b1000, 0b1000], select=0b01)
   assert result.out == 0b0010
+
+
+def test_state_machine():
+  run_test_state_machine(Mux, MuxFL, (Bits(4), 4))
