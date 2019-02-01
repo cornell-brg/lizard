@@ -52,7 +52,7 @@ class RegisterFileInterface(Interface):
             MethodSpec(
                 'set',
                 args={
-                    'in': Array(s.Data, nregs),
+                    'in_': Array(s.Data, nregs),
                 },
                 rets=None,
                 call=True,
@@ -150,7 +150,7 @@ class RegisterFile(Model):
       @s.combinational
       def handle_set(reg_i=reg_i):
         if s.set_call:
-          s.after_set[reg_i].v = s.set_in[reg_i]
+          s.after_set[reg_i].v = s.set_in_[reg_i]
         else:
           s.after_set[reg_i].v = s.after_write[reg_i]
 
