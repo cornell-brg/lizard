@@ -1,8 +1,10 @@
+import pytest
 from pymtl import *
 from util.test_utils import run_test_vector_sim
 from util.rtl.mux import Mux
+from util.fl.mux import MuxFL
 from test.config import test_verilog
-from model.rtlwrapper import RTLWrapper
+from model.wrapper import wrap_to_cl
 
 
 def test_basic():
@@ -18,8 +20,10 @@ def test_basic():
       test_verilog=test_verilog)
 
 
-def test_wrapper():
-  mux = RTLWrapper(Mux(Bits(4), 4))
+@pytest.mark.parametrize("model", [Mux, MuxFL])
+def test_method(model):
+  mux = wrap_to_cl(model(Bits(4), 4))
+
   mux.reset()
   result = mux.mux(in_=[0b0001, 0b0010, 0b1000, 0b1000], select=0b00)
   assert result.out == 0b0001
