@@ -22,11 +22,11 @@ class HardwareModel(object):
     pass
 
   @abc.abstractmethod
-  def _pre_call(s, func, method):
+  def _pre_call(s, func, method, call_index):
     pass
 
   @abc.abstractmethod
-  def _post_call(s, func, method):
+  def _post_call(s, func, method, call_index):
     pass
 
   @abc.abstractmethod
@@ -85,13 +85,13 @@ class HardwareModel(object):
     s.model_methods[func.__name__] = func
 
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(_call_index, *args, **kwargs):
       method = s.interface.methods[func.__name__]
 
-      s._pre_call(func, method)
+      s._pre_call(func, method, _call_index)
       # call this method
       result = func(*args, **kwargs)
-      s._post_call(func, method)
+      s._post_call(func, method, _call_index)
 
       # interpret the result
       if isinstance(result, NotReady):
@@ -120,20 +120,36 @@ class HardwareModel(object):
 
       return result
 
-    setattr(s, func.__name__, wrapper)
+    setattr(s, func.__name__, MethodDispatcher(wrapper))
 
   def cycle(s):
     s._post_cycle()
     s._pre_cycle()
 
 
-class NotReady:
+class NotReady(object):
   pass
 
 
-class Result:
+class Result(object):
 
   def __init__(s, **kwargs):
     s.size = len(kwargs)
     for k, v in kwargs.items():
       setattr(s, k, v)
+
+
+class MethodDispatcher(object):
+
+  def __init__(s, wrapper_func):
+    s.wrapper_func = wrapper_func
+
+  def __getitem__(s, key):
+
+    def index_dispatch(*args, **kwargs):
+      return s.wrapper_func(key, *args, **kwargs)
+
+    return index_dispatch
+
+  def __call__(s, *args, **kwargs):
+    return s[None](*args, **kwargs)

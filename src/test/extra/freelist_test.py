@@ -89,23 +89,26 @@ def test_method(model):
   freelist = wrap_to_cl(model(4, 2, 1, True, False))
   freelist.reset()
 
-  alloc = freelist.alloc()
+  alloc = freelist.alloc[0]()
   assert alloc.index == 0
   assert alloc.mask == 0b0001
   freelist.cycle()
 
-  alloc = freelist.alloc()
+  alloc = freelist.alloc[1]()
   assert alloc.index == 1
   assert alloc.mask == 0b0010
   freelist.cycle()
 
-  alloc = freelist.alloc()
-  release = freelist.release(0b0011)
-  assert alloc.index == 2
-  assert alloc.mask == 0b0100
+  alloc1 = freelist.alloc()
+  alloc2 = freelist.alloc()
+  freelist.release(0b0011)
+  assert alloc1.index == 2
+  assert alloc2.index == 3
+  assert alloc1.mask == 0b0100
+  assert alloc2.mask == 0b1000
   freelist.cycle()
 
-  release = freelist.free(1)
+  freelist.free(0b0001)
   alloc = freelist.alloc()
   assert alloc.index == 0
   assert alloc.mask == 0b0001
