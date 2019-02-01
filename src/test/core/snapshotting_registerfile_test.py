@@ -6,7 +6,7 @@ from test.config import test_verilog
 
 def test_basic():
   run_test_vector_sim(
-      SnapshottingRegisterFile(8, 4, 1, 1, False, False, 1),
+      SnapshottingRegisterFile(64, 32, 2, 1, False, False, 1),
       [
           ('read_addr[0] read_data[0]* write_addr[0] write_data[0] write_call[0] snapshot_call snapshot_target_id restore_call restore_source_id'
           ),
