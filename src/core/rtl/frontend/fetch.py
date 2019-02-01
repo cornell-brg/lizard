@@ -7,9 +7,9 @@ from core.rtl.controlflow import ControlFlowManagerInterface
 from bitutil import clog2, clog2nz
 from pclib.rtl import RegEn, RegEnRst, RegRst
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
-from msg.mem import MemMsg4B, MemMsgType
+from msg.mem import MemMsg4B, MemMsgType, MemMsgStatus
 from core.rtl.messages import FetchMsg
-
+from msg.codes import ExceptionCode
 
 class FetchInterface(Interface):
 
@@ -109,7 +109,11 @@ class Fetch(Model):
     def handle_fetchmsg():
       s.fetchmsg_.pc.n = s.pc_req_ if s.req_accepted_ else s.fetchmsg_.pc
       s.fetchmsg_.inst.n = s.drop_unit_.output_data.data if s.drop_unit_.output_rdy else s.fetchmsg_.inst
-      # TODO set exception flags
+      s.fetchmsg_.trap.n = s.drop_unit_.output_data.stat != MemMsgStatus.OK
+      if s.drop_unit_.output_data.stat == MemMsgStatus.ADDRESS_MISALIGNED:
+        s.fetchmsg_.mcause.n = ExceptionCode.INSTRUCTION_ADDRESS_MISALIGNED
+      elif s.drop_unit_.output_data.stat == MemMsgStatus.ACCESS_FAULT:
+        s.fetchmsg_.mcause.n = ExceptionCode.INSTRUCTION_ACCESS_FAULT
       # The message is valid
       s.fetch_val_.in_.v = s.drop_unit_.output_rdy or (not s.get_call and s.fetch_val_.out and not s.check_redirect_redirect)
 
