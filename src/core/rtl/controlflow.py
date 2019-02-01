@@ -7,7 +7,7 @@ from util.rtl.method import MethodSpec
 
 class ControlFlowManagerInterface(Interface):
 
-  def __init__(s, xlem):
+  def __init__(s, xlen):
     super(ControlFlowManagerInterface, s).__init__(
         [
             MethodSpec(
