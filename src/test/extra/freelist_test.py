@@ -1,8 +1,9 @@
 from pymtl import *
 from util.test_utils import run_test_vector_sim
-from util.method_test import Wrapper, create_test_state_machine, run_state_machine, ReturnValues
-from util.rtl.freelist import FreeList, FreeListInterface
+from util.method_test import create_test_state_machine, run_state_machine
+from util.rtl.freelist import FreeList
 from test.config import test_verilog
+from util.fl.freelist import FreeListFL
 
 
 def test_basic():
@@ -82,68 +83,30 @@ def test_release():
 
 
 def test_wrapper():
-  model = FreeList(4, 2, 1, True, False)
-  WrapperClass = Wrapper.create_wrapper_class(model)
-  freelist = WrapperClass(model)
-  alloc = freelist.alloc_0__call()
+  freelist = FreeListFL(4, 2, 1, True, False)
+  freelist.reset()
+
+  alloc = freelist.alloc()
   assert alloc.index == 0
   assert alloc.mask == 0b0001
   freelist.cycle()
 
-  alloc = freelist.alloc_1__call()
+  alloc = freelist.alloc()
   assert alloc.index == 1
   assert alloc.mask == 0b0010
   freelist.cycle()
 
-  alloc = freelist.alloc_0__call()
-  release = freelist.release_call(0b0011)
+  alloc = freelist.alloc()
+  release = freelist.release(0b0011)
   assert alloc.index == 2
   assert alloc.mask == 0b0100
   freelist.cycle()
 
-  alloc = freelist.alloc_1__call()
-  release = freelist.free_0__call(1)
+  alloc = freelist.alloc()
+  release = freelist.free(1)
   assert alloc.index == 0
   assert alloc.mask == 0b0001
   freelist.cycle()
-
-
-class FreeListFL:
-
-  def __init__(s,
-               nslots,
-               num_alloc_ports,
-               num_free_ports,
-               free_alloc_bypass,
-               release_alloc_bypass,
-               used_slots_initial=0):
-
-    s.interface = FreeListInterface(nslots, num_alloc_ports, num_free_ports,
-                                    free_alloc_bypass, release_alloc_bypass)
-    s.interface.require_fl_methods(s)
-    s.nslots = nslots
-    s.reset()
-
-  def free_call(s, index):
-    s.bits[index] = 1
-
-  def alloc_call(s):
-    for i in range(s.nslots):
-      if s.bits[i]:
-        s.bits[i].v = 0
-        return ReturnValues(index=i, mask=(1 << i))
-
-  def alloc_rdy(s):
-    return s.bits != 0
-
-  def release_call(s, mask):
-    s.bits = Bits(s.nslots, s.bits | mask)
-
-  def set_call(s, state):
-    s.bits = Bits(s.nslots, state)
-
-  def reset(s):
-    s.bits = Bits(s.nslots, 2**s.nslots - 1)
 
 
 def test_state_machine():

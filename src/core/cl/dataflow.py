@@ -3,7 +3,7 @@ from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 from pclib.cl import InValRdyQueueAdapter, OutValRdyQueueAdapter
 from config.general import *
 from msg.codes import *
-from util.fl.freelist import FreeListFL
+from util.cl.freelist import FreeListCL
 
 
 class PregState(BitStructDefinition):
@@ -18,7 +18,7 @@ class DataFlowManagerCL(Model):
 
   def __init__(s):
     # Reserve the highest tag for x0
-    s.free_regs = FreeListFL(PREG_COUNT - 1)
+    s.free_regs = FreeListCL(PREG_COUNT - 1)
     s.zero_tag = Bits(PREG_IDX_NBITS, PREG_COUNT - 1)
     s.rename_table = [Bits(PREG_IDX_NBITS) for _ in range(AREG_COUNT)]
     s.preg_file = [PregState() for _ in range(PREG_COUNT)]

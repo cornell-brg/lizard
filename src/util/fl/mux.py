@@ -9,7 +9,7 @@ class MuxFL(FLModel):
 
   @HardwareModel.validate
   def __init__(s, dtype, nports):
-    super(FLModel, s).__init__(MuxInterface(dtype, nports))
+    super(MuxFL, s).__init__(MuxInterface(dtype, nports))
 
     @s.model_method
     def mux(in_, select):
