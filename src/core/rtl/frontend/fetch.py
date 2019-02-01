@@ -7,7 +7,6 @@ from bitutil import clog2, clog2nz
 from pclib.rtl import RegEn, RegEnRst, RegRst
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 from msg.mem import MemMsg8B, MemMsgType
-from config.general import *
 
 
 class FetchInterface(Interface):
