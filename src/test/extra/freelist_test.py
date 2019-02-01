@@ -1,11 +1,11 @@
 import pytest
 from pymtl import *
 from util.test_utils import run_test_vector_sim
-from util.method_test import create_test_state_machine, run_state_machine
 from util.rtl.freelist import FreeList
 from test.config import test_verilog
 from util.fl.freelist import FreeListFL
 from model.wrapper import wrap_to_cl
+from model.test_model import run_test_state_machine
 
 
 def test_basic():
@@ -113,6 +113,4 @@ def test_method(model):
 
 
 def test_state_machine():
-  FreeListTest = create_test_state_machine(
-      FreeList(4, 2, 1, True, False), FreeListFL(4, 2, 1, True, False))
-  run_state_machine(FreeListTest)
+  run_test_state_machine(FreeList, FreeListFL, (4, 2, 1, True, False))
