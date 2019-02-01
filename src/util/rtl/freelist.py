@@ -244,7 +244,6 @@ class FreeList(Model):
       def update(i=i, free=(1 if i >= used_slots_initial else 0)):
         if s.reset:
           s.free[i].n = free
-          s.free_next[i].n = free
         else:
           s.free[i].n = s.set_mux.mux_out[i]
 
