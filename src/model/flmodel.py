@@ -4,7 +4,7 @@ from model.hardware_model import HardwareModel
 class FLModel(HardwareModel):
 
   def __init__(s, interface):
-    super(CLModel, s).__init__(interface)
+    super(FLModel, s).__init__(interface)
 
   def _cycle(s):
     pass

@@ -1,34 +1,41 @@
 from pymtl import *
-from bitutil import clog2
+
+from model.hardware_model import HardwareModel, NotReady, Result
+from model.flmodel import FLModel
+from util.rtl.freelist import FreeListInterface
 
 
-class FreeListFL(Model):
+class FreeListFL(FLModel):
 
-  def __init__(self, nslots):
+  @HardwareModel.validate
+  def __init__(s, nslots, num_alloc_ports, num_free_ports, free_alloc_bypass,
+               release_alloc_bypass):
+    super(FreeListFL, s).__init__(
+        FreeListInterface(nslots, num_alloc_ports, num_free_ports,
+                          free_alloc_bypass, release_alloc_bypass))
+    s.nslots = nslots
 
-    self.nbits = clog2(nslots)
-    # 1 if free 0 otherwise
-    self.free_list = [Bits(1) for _ in range(nslots)]
+    @s.model_method
+    def free(index):
+      s.bits[index] = 1
 
-  def xtick(self):
-    if self.reset:
-      for x in range(len(self.free_list)):
-        self.free_list[x] = Bits(1, 1)
+    @s.model_method
+    def alloc():
+      if s.bits == 0:
+        return NotReady()
 
-  # Returns either the tag or None if full
-  def alloc(self):
-    for i in range(len(self.free_list)):
-      if self.free_list[i] == 1:
-        self.free_list[i] = 0
-        return Bits(self.nbits, i)
+      for i in range(s.nslots):
+        if s.bits[i]:
+          s.bits[i] = 0
+          return Result(index=i, mask=(1 << i))
 
-    return None
+    @s.model_method
+    def release(mask):
+      s.bits = Bits(s.nslots, s.bits | mask)
 
-  def free(self, tag):
-    self.free_list[tag] = 1
+    @s.model_method
+    def set(state):
+      s.bits = Bits(s.nslots, state)
 
-  def line_trace(self):
-    return str(self)
-
-  def __str__(self):
-    return ''.join([str(x) for x in self.free_list])
+  def _reset(s):
+    s.bits = Bits(s.nslots, 2**s.nslots - 1)
