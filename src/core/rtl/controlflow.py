@@ -37,16 +37,17 @@ class ControlFlowManagerInterface(Interface):
 class ControlFlowManager(Model):
 
   def __init__(s, xlen, reset_vector):
-    s.inter = ControlFlowManagerInterface()
+    s.inter = ControlFlowManagerInterface(xlen)
     s.inter.apply(s)
 
-    # No redirects for now!
-    s.connect(s.check_redirect_redirect, s.redirect_valid_)
-    s.connect(s.check_redirect_target, s.redirect_)
 
     # The redirect register
     s.redirect_ = Wire(xlen)
     s.redirect_valid_ = Wire(1)
+
+
+    s.connect(s.check_redirect_redirect, s.redirect_valid_)
+    s.connect(s.check_redirect_target, s.redirect_)
 
     @s.tick_rtl
     def handle_reset():

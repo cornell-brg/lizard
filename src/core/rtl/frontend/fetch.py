@@ -7,7 +7,7 @@ from core.rtl.controlflow import ControlFlowManagerInterface
 from bitutil import clog2, clog2nz
 from pclib.rtl import RegEn, RegEnRst, RegRst
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
-from msg.mem import MemMsg8B, MemMsgType
+from msg.mem import MemMsg4B, MemMsgType
 from core.rtl.messages import FetchMsg
 
 
@@ -38,10 +38,10 @@ class Fetch(Model):
     s.interface = FetchInterface(ilen)
     s.interface.apply(s)
     # The memory req and resp
-    s.req = OutValRdyBundle(MemMsg8B.req)
-    s.resp = InValRdyBundle(MemMsg8B.resp)
+    s.req = OutValRdyBundle(MemMsg4B.req)
+    s.resp = InValRdyBundle(MemMsg4B.resp)
 
-    s.drop_unit_ = DropUnit(MemMsg8B.resp)
+    s.drop_unit_ = DropUnit(MemMsg4B.resp)
 
     s.cflow = ControlFlowManagerInterface(xlen)
     s.cflow.require(s, '', 'check_redirect')
@@ -108,7 +108,7 @@ class Fetch(Model):
     @s.tick_rtl
     def handle_fetchmsg():
       s.fetchmsg_.pc.n = s.pc_req_ if s.req_accepted_ else s.fetchmsg_.pc
-      s.fetchmsg_.inst.n = s.drop_unit_.output_data if s.drop_unit_.output_rdy else s.fetchmsg_.inst
+      s.fetchmsg_.inst.n = s.drop_unit_.output_data.data if s.drop_unit_.output_rdy else s.fetchmsg_.inst
       # TODO set exception flags
       # The message is valid
       s.fetch_val_.in_.v = s.drop_unit_.output_rdy or (not s.get_call and s.fetch_val_.out and not s.check_redirect_redirect)

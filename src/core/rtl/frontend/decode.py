@@ -6,7 +6,8 @@ from core.rtl.controlflow import ControlFlowManagerInterface
 from bitutil import clog2, clog2nz
 from pclib.rtl import RegEn, RegEnRst, RegRst
 from core.rtl.frontend.fetch import FetchInterface
-from core.rtl.messages import FetchMsg
+from core.rtl.messages import FetchMsg, DecodeMsg, PipelineMsg
+from msg.codes import RVInstMask
 
 class DecodeInterface(Interface):
 
@@ -31,12 +32,33 @@ class DecodeInterface(Interface):
 
 class Decode(Model):
 
-  def __init__(s, xlen, ilen):
+  def __init__(s, ilen, areg_tag_nbits):
     s.interface = DecodeInterface()
     s.interface.apply(s)
-    s.fetch = FetchInterface(xlen, ilen)
+    s.fetch = FetchInterface(ilen)
     s.fetch.require(s, 'fetch', 'get')
 
+    s.decmsg_ = Wire(DecodeMsg())
+    s.rdy_ = Wire(1)
+
+    # For now always ready
+    s.connect(s.rdy_, 1)
+
+
+    s.rs1 = Wire(areg_tag_nbits)
+    s.rs2 = Wire(areg_tag_nbits)
+
+    @s.combinational
+    def decode():
+      s.rs1.v = s.fetch_get_msg[RVInstMask.RS1]
+      s.rs2.v = s.fetch_get_msg[RVInstMask.RS2]
+
+
+    @s.tick_rtl
+    def update_out():
+      if s.rdy_:
+        s.decmsg_.rs1.n = s.rs1
+        s.decmsg_.rs2.n = s.rs2
 
   def line_trace(s):
     return str(s.inst_)
