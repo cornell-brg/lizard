@@ -9,7 +9,7 @@ from config.general import *
 class Proc(Model):
 
   def __init__(s):
-    s.cflow_ = ControlFlowManager()
+    s.cflow_ = ControlFlowManager(XLEN, RESET_VECTOR)
     s.dflow_ = DataFlowManager(AREG_COUNT, PREG_COUNT, MAX_SPEC_DEPTH, 2, 1)
 
     s.fetch_ = Fetch(XLEN, ILEN)
