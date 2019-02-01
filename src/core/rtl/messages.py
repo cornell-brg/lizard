@@ -27,13 +27,13 @@ class PipelineMsg(BitStructDefinition):
 
 class FetchMsg(PipelineMsg):
   def __init__(s):
-    super(FrontEndMsg, s).__init__(s)
+    super(FetchMsg, s).__init__()
     s.inst = BitField(ILEN)
 
 
 class DecodeMsg(PipelineMsg):
   def _init__(s):
-    super(DecodeMsg, s).__init__(s)
+    super(DecodeMsg, s).__init__()
     s.src0_val = BitField(1)
     s.src0 = BitField(AREG_IDX_NBITS)
     s.src1_val = BitField(1)
