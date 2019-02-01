@@ -1,9 +1,11 @@
+import pytest
 from pymtl import *
 from util.test_utils import run_test_vector_sim
 from util.method_test import create_test_state_machine, run_state_machine
 from util.rtl.freelist import FreeList
 from test.config import test_verilog
 from util.fl.freelist import FreeListFL
+from model.wrapper import wrap_to_cl
 
 
 def test_basic():
@@ -82,8 +84,9 @@ def test_release():
       test_verilog=test_verilog)
 
 
-def test_wrapper():
-  freelist = FreeListFL(4, 2, 1, True, False)
+@pytest.mark.parametrize("model", [FreeList, FreeListFL])
+def test_method(model):
+  freelist = wrap_to_cl(model(4, 2, 1, True, False))
   freelist.reset()
 
   alloc = freelist.alloc()
@@ -102,8 +105,8 @@ def test_wrapper():
   assert alloc.mask == 0b0100
   freelist.cycle()
 
-  alloc = freelist.alloc()
   release = freelist.free(1)
+  alloc = freelist.alloc()
   assert alloc.index == 0
   assert alloc.mask == 0b0001
   freelist.cycle()

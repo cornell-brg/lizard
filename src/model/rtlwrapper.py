@@ -46,47 +46,38 @@ class RTLWrapper(CLModel):
       # check the rdy signal, if present
       if method.rdy:
         s.sim.eval_combinational()
-        # model.<method_name>_rdy
-        rdy_port = getattr(s.model,
-                           Interface.mangled_name('', method_name, 'rdy'))
-        if rdy_port == 0:
+        if s.resolve_port(method, 'rdy') == 0:
           return NotReady()
 
       # set all the input ports
       for name, value in kwargs.iteritems():
-        # model.<method_name>_<port_name>
-        base_port = getattr(s.model,
-                            Interface.mangled_name('', method_name, name))
-        # if there are multiple instances of this method, get the current one
-        if method.count is not None:
-          base_port = base_port[s.sequence_call]
-
-        # base_port is potentially now still list of of ports if the method
+        # the port is potentially now still list of of ports if the method
         # type is array
-        s._set_inputs(base_port, value)
+        s._set_inputs(s.resolve_port(method, name), value)
 
       # set the call signal, if present
       if method.call:
-        # model.<method_name>_call
-        call_port = getattr(s.model,
-                            Interface.mangled_name('', method_name, 'call'))
-        call_port.v = 1
+        s.resolve_port(method, 'call').v = 1
 
       # extract the result
       s.sim.eval_combinational()
       result_dict = {}
       for name, _ in method.rets.iteritems():
-        base_port = getattr(s.model,
-                            Interface.mangled_name('', method_name, name))
-        # if there are multiple instances of this method, get the current one
-        if method.count is not None:
-          base_port = base_port[s.sequence_call]
-        result_dict[name] = base_port
+        result_dict[name] = s.resolve_port(method, name)
 
       return Result(**result_dict)
 
     wrapper.__name__ = method_name
     return wrapper
+
+  def resolve_port(s, method, name):
+    # model.<method_name>_<port_name>
+    base_port = getattr(s.model, Interface.mangled_name('', method.name, name))
+    # if there are multiple instances of this method, get the current one
+    if method.count is not None:
+      base_port = base_port[s.sequence_call]
+
+    return base_port
 
   @staticmethod
   def _list_apply(left, right, func):
@@ -125,10 +116,7 @@ class RTLWrapper(CLModel):
     # Initially, set the call signals set the call signal, if present
     for method_name, method in s.interface.methods.iteritems():
       if method.call:
-        # model.<method_name>_call
-        call_port = getattr(s.model,
-                            Interface.mangled_name('', method_name, 'call'))
-        call_port.v = 0
+        s.resolve_port(method, 'call').v = 0
 
   def _post_cycle(s):
     super(RTLWrapper, s)._post_cycle()

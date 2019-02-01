@@ -8,12 +8,18 @@ from util.rtl.freelist import FreeListInterface
 class FreeListFL(FLModel):
 
   @HardwareModel.validate
-  def __init__(s, nslots, num_alloc_ports, num_free_ports, free_alloc_bypass,
-               release_alloc_bypass):
+  def __init__(s,
+               nslots,
+               num_alloc_ports,
+               num_free_ports,
+               free_alloc_bypass,
+               release_alloc_bypass,
+               used_slots_initial=0):
     super(FreeListFL, s).__init__(
         FreeListInterface(nslots, num_alloc_ports, num_free_ports,
                           free_alloc_bypass, release_alloc_bypass))
     s.nslots = nslots
+    s.used_slots_initial = used_slots_initial
 
     @s.model_method
     def free(index):
@@ -38,4 +44,9 @@ class FreeListFL(FLModel):
       s.bits = Bits(s.nslots, state)
 
   def _reset(s):
-    s.bits = Bits(s.nslots, 2**s.nslots - 1)
+    s.bits = Bits(s.nslots, 0)
+    for i in range(s.nslots):
+      if i >= s.used_slots_initial:
+        s.bits[i] = 1
+      else:
+        s.bits[i] = 0
