@@ -112,7 +112,7 @@ class SnapshottingFreeList(Model):
 
       for j in range(nslots):
         s.connect(s.snapshots[i].dump_out[j], s.snapshot_packers[i].pack_in_[j])
-        s.connect(s.snapshots[i].set_in[j], 0)
+        s.connect(s.snapshots[i].set_in_[j], 0)
 
       @s.combinational
       def handle_reset_alloc_tracking_set_call(i=i):

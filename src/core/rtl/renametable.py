@@ -44,7 +44,7 @@ class RenameTableInterface(Interface):
             MethodSpec(
                 'set',
                 args={
-                    'in': Array(s.Preg, naregs),
+                    'in_': Array(s.Preg, naregs),
                 },
                 rets=None,
                 call=True,
@@ -116,7 +116,7 @@ class RenameTable(Model):
 
     s.connect(s.set_call, s.rename_table.set_call)
     for i in range(naregs):
-      s.connect(s.set_in[i], s.rename_table.set_in[i])
+      s.connect(s.set_in_[i], s.rename_table.set_in_[i])
 
   def line_trace(s):
     return s.rename_table.line_trace()

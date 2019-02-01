@@ -415,7 +415,7 @@ class DataFlowManager(Model):
     s.connect(s.free_regs.set_call, s.rollback_call)
     # set the rename table to the areg_file (again write_dump_bypass is true)
     for i in range(naregs):
-      s.connect(s.rename_table.set_in[i], s.areg_file.dump_out[i])
+      s.connect(s.rename_table.set_in_[i], s.areg_file.dump_out[i])
     s.connect(s.rename_table.set_call, s.rollback_call)
 
     # CSR
