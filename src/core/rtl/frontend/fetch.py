@@ -105,6 +105,13 @@ class Fetch(Model):
       s.get_rdy.v = s.fetch_val_.out and (not s.check_redirect_redirect)
       s.get_msg.v = s.fetchmsg_
 
+
+    @s.combinational
+    def handle_fetchval():
+      # The message is valid
+      s.fetch_val_.in_.v = s.drop_unit_.output_rdy or (not s.get_call and s.fetch_val_.out and not s.check_redirect_redirect)
+
+
     @s.tick_rtl
     def handle_fetchmsg():
       s.fetchmsg_.pc.n = s.pc_req_ if s.req_accepted_ else s.fetchmsg_.pc
@@ -114,8 +121,6 @@ class Fetch(Model):
         s.fetchmsg_.mcause.n = ExceptionCode.INSTRUCTION_ADDRESS_MISALIGNED
       elif s.drop_unit_.output_data.stat == MemMsgStatus.ACCESS_FAULT:
         s.fetchmsg_.mcause.n = ExceptionCode.INSTRUCTION_ACCESS_FAULT
-      # The message is valid
-      s.fetch_val_.in_.v = s.drop_unit_.output_rdy or (not s.get_call and s.fetch_val_.out and not s.check_redirect_redirect)
 
   def line_trace(s):
     return str(s.fetchmsg_.pc)
