@@ -1,5 +1,17 @@
 from pymtl import *
 from config.general import *
+from bitutil import clog2, bit_enum
+
+ExecPipe = bit_enum(
+    'ExecPipe',
+    None,
+    ('ALU', 'alu'),
+    ('MULDIV', 'mdiv'),
+    ('BRANCH', 'br'),
+    ('CSR', 'csr'),
+#    ('AGU', 'agu')
+)
+
 
 class PipelineMsg(BitStructDefinition):
   def __init__(s):
@@ -28,3 +40,7 @@ class DecodeMsg(PipelineMsg):
     s.src1 = BitField(AREG_IDX_NBITS)
     s.dest_val = BitField(1)
     s.dest = BitField(AREG_IDX_NBITS)
+    s.imm_val = BitField(1)
+    s.imm = BitField(DECODED_IMM_LEN)
+    # For W ending instructions
+    s.op_32 = BitField(1)

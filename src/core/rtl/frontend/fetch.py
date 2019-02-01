@@ -7,18 +7,19 @@ from bitutil import clog2, clog2nz
 from pclib.rtl import RegEn, RegEnRst, RegRst
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 from msg.mem import MemMsg8B, MemMsgType
+from core.rtl.messages import FetchMsg
 
 
 class FetchInterface(Interface):
 
-  def __init__(s):
+  def __init__(s, ilen):
     super(FetchInterface, s).__init__(
         [
             MethodSpec(
                 'get',
                 args={},
                 rets={
-                    'inst': Bits(ILEN),
+                    'msg': FetchMsg(),
                 },
                 call=True,
                 rdy=True,
@@ -38,6 +39,8 @@ class Fetch(Model):
 
     s.cflow = ControlFlowManagerInterface(xlen)
     s.cflow.require(s, '', 'check_redirect')
+
+    s.interface = FetchInterface(ilen)
 
     # Outgoing pipeline registers
     s.inst_val_ = RegEnRst(Bits(1), reset_value=0)
