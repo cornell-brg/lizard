@@ -32,15 +32,16 @@ class FetchMsg(PipelineMsg):
 
 
 class DecodeMsg(PipelineMsg):
-  def _init__(s):
+  def __init__(s):
     super(DecodeMsg, s).__init__()
-    s.src0_val = BitField(1)
-    s.src0 = BitField(AREG_IDX_NBITS)
-    s.src1_val = BitField(1)
-    s.src1 = BitField(AREG_IDX_NBITS)
+    s.rs10_val = BitField(1)
+    s.rs1 = BitField(AREG_IDX_NBITS)
+    s.rs2_val = BitField(1)
+    s.rs2 = BitField(AREG_IDX_NBITS)
     s.dest_val = BitField(1)
     s.dest = BitField(AREG_IDX_NBITS)
     s.imm_val = BitField(1)
     s.imm = BitField(DECODED_IMM_LEN)
     # For W ending instructions
     s.op_32 = BitField(1)
+    s.unsigned = BitField(1)
