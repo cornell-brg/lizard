@@ -20,7 +20,7 @@ class PipelineMsg(BitStructDefinition):
     # maybe lift to a global register and arbitrate
     # based on sequence number
     s.trap = BitField(1)
-    s.mcause = BitField(XLEN)
+    s.mcause = BitField(MCAUSE_NBITS)
     s.mtval = BitField(XLEN)
     s.pc = BitField(XLEN)
 
