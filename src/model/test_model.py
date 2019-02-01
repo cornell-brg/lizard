@@ -62,6 +62,7 @@ class MethodBasedRuleStrategy(SearchStrategy):
         rule.rtl_method_name,
       )
     )
+
     if rule_to_fire:
       return [
           (rule, data.draw(rule.arguments_strategy)) for rule in rule_to_fire
@@ -217,11 +218,13 @@ class TestStateMachine(GenericStateMachine):
       r_result = self._call_func(self.reference, fl_name, data)
 
       if isinstance(s_result, NotReady):
-        assert isinstance(
-            r_result, NotReady), "Reference model is rdy but RTL model is not"
+        if not isinstance(r_result, NotReady):
+          raise RunMethodTestError(
+              "Reference model is rdy but RTL model is not: {}".format(fl_name))
 
-      assert not isinstance(r_result,
-                            NotReady), "RTL model is rdy but Reference is not"
+      if isinstance(r_result, NotReady):
+        raise RunMethodTestError(
+            "RTL model is rdy but Reference is not: {}".format(fl_name))
 
       # Method ready, add to result list
       method_names += [rtl_name]
@@ -366,7 +369,6 @@ def add_rule(cls, method_spec):
   arguments = cls.argument_strategy(name)
   precondition = cls.precondition(name)
   if not method_spec.count:
-    #rtl_method_name = Wrapper.get_wrapper_method_name(name)
     rule = MethodRule(
         rtl_method_name=name,
         fl_method_name=name,
@@ -375,7 +377,6 @@ def add_rule(cls, method_spec):
     cls.add_rule(rule, method_spec.call)
   else:
     for i in range(method_spec.count):
-      rtl_method_name = Wrapper.get_wrapper_method_name(name, i)
       rule = MethodRule(
           rtl_method_name=name,
           fl_method_name=name,
