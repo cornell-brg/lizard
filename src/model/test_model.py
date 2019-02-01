@@ -89,7 +89,7 @@ class TestStateMachine(GenericStateMachine):
     self.__stream = CUnicodeIO()
     self.__printer = RepresentationPrinter(self.__stream)
 
-  def _sim_cycle(self, method_line_trace):
+  def _sim_cycle(self, method_line_trace=""):
     self.sim.cycle()
     print "{:>3}: {}  {}".format(self.sim.sim.ncycles,
                                  self.sim.model.line_trace(), method_line_trace)
@@ -219,12 +219,11 @@ class TestStateMachine(GenericStateMachine):
 
       if isinstance(s_result, NotReady):
         if not isinstance(r_result, NotReady):
-          raise RunMethodTestError(
-              "Reference model is rdy but RTL model is not: {}".format(fl_name))
+          raise RunMethodTestError( "Reference model is rdy but RTL model is not: {}".format(fl_name) )
 
-      if isinstance(r_result, NotReady):
-        raise RunMethodTestError(
-            "RTL model is rdy but Reference is not: {}".format(fl_name))
+      if isinstance(r_result,
+                            NotReady):
+        raise RunMethodTestError( "RTL model is rdy but Reference is not: {}".format(fl_name) )
 
       # Method ready, add to result list
       method_names += [rtl_name]
@@ -502,7 +501,7 @@ class TestModel(TestStateMachine):
     TestStateMachine.__init__(self)
     self.sim.reset()
     self.reference.reset()
-    self.sim.cycle()
+    self._sim_cycle()
     self.reference.cycle()
 
   @staticmethod
