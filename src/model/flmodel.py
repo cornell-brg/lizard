@@ -9,10 +9,10 @@ class FLModel(HardwareModel):
   def _cycle(s):
     pass
 
-  def _pre_call(s, func, method):
+  def _pre_call(s, func, method, call_index):
     pass
 
-  def _post_call(s, func, method):
+  def _post_call(s, func, method, call_index):
     pass
 
   def _pre_cycle(s):
