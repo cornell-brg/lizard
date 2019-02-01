@@ -100,7 +100,7 @@ class SnapshottingRegisterFile(Model):
     # to the set port on each snapshot
     for i in range(nsnapshots):
       for j in range(nregs):
-        s.connect(s.snapshots[i].set_in[j], s.regs.dump_out[j])
+        s.connect(s.snapshots[i].set_in_[j], s.regs.dump_out[j])
 
       # Write to a given snapshot if it matches the target and snapshot was called
       @s.combinational
@@ -162,8 +162,8 @@ class SnapshottingRegisterFile(Model):
     s.connect(s.set_muxes[j].mux_select, s.set_call)
     for j in range(nregs):
       s.connect(s.set_muxes[j].mux_in_[0], s.restore_vector[j])
-      s.connect(s.set_muxes[j].mux_in_[1], s.set_in[j])
-      s.connect(s.set_muxes[j].mux_out, s.regs.set_in[j])
+      s.connect(s.set_muxes[j].mux_in_[1], s.set_in_[j])
+      s.connect(s.set_muxes[j].mux_out, s.regs.set_in_[j])
 
     s.connect(s.regs.set_call, s.should_set)
 
