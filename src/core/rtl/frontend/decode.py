@@ -38,26 +38,23 @@ class Decode(Model):
     s.fetch = FetchInterface(ilen)
     s.fetch.require(s, 'fetch', 'get')
 
+    # Outgoing pipeline register
     s.decmsg_val_ = RegRst(Bits(1), reset_value=0)
     s.decmsg_ = Wire(DecodeMsg())
 
     s.rdy_ = Wire(1)
     s.accepted_ = Wire(1)
-
     s.msg_ = Wire(FetchMsg())
 
     s.opcode_ = Wire(s.msg_[RVInstMask.OPCODE].nbits)
     s.connect(s.opcode_, s.msg_[RVInstMask.OPCODE])
-
     s.func3_ = Wire(s.msg_[RVInstMask.FUNCT3].nbits)
     s.connect(s.func3_, s.msg_[RVInstMask.FUNCT3])
-
     s.func7_ = Wire(s.msg_[RVInstMask.FUNCT7].nbits)
     s.connect(s.func7_, s.msg_[RVInstMask.FUNCT7])
 
 
     s.connect(s.msg_, s.fetch_get_msg)
-
     s.connect(s.get_rdy, s.decmsg_val_.out)
     s.connect(s.fetch_get_call, s.accepted_)
 
