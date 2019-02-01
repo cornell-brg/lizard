@@ -73,12 +73,12 @@ class HardwareModel(object):
           raise ValueError('Argument not found: {} in function: {}'.format(
               arg, func.__name__))
       if len(arg_spec.args) != len(method.args):
-        raise ValueError('Extra arguments in function: {}'.format(
+        raise ValueError('Incorrect number of arguments in function: {}'.format(
             func.__name__))
       if arg_spec.varargs is not None:
         raise ValueError('Function must have no *args: {}'.format(
             func.__name__))
-      if arc_spec.keywords is not None:
+      if arg_spec.keywords is not None:
         raise ValueError('Function must have no *kwargs: {}'.format(
             func.__name__))
 
@@ -111,7 +111,7 @@ class HardwareModel(object):
 
         if len(method.rets) != returned_size:
           raise ValueError(
-              'CL function: incorrect return size: expected: {} actual: {}'
+              'CL function {}: incorrect return size: expected: {} actual: {}'
               .format(func.__name__, len(method.rets), returned_size))
 
         # Normalize a singleton return into a result
