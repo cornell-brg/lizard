@@ -41,8 +41,10 @@ class ControlFlowManager(Model):
     s.inter.apply(s)
 
     # No redirects for now!
-    s.connect(s.check_redirect_redirect, 0)
+    s.connect(s.check_redirect_redirect, s.redirect_valid_)
+    s.connect(s.check_redirect_target, s.redirect_)
 
+    # The redirect register
     s.redirect_ = Wire(xlen)
     s.redirect_valid_ = Wire(1)
 
