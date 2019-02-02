@@ -25,11 +25,12 @@ class FreeListFL(FLModel):
     def free(index):
       s.bits[index] = 1
 
+    @s.ready_method
+    def alloc():
+      return s.bits != 0
+
     @s.model_method
     def alloc():
-      if s.bits == 0:
-        return NotReady()
-
       for i in range(s.nslots):
         if s.bits[i]:
           s.bits[i] = 0

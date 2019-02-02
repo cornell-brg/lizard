@@ -17,13 +17,15 @@ class RTLWrapper(CLModel):
     s.sim = SimulationTool(s.model)
 
     for method_name in s.interface.methods.keys():
-      s.model_method(s._gen_wrapper_function(method_name))
+      wrapper, ready = s._gen_wrapper_function(method_name)
+      s.model_method(wrapper)
+      if ready is not None:
+        s.ready_method(ready)
 
   def _gen_wrapper_function(s, method_name):
+    method = s.interface[method_name]
 
     def wrapper(*args, **kwargs):
-      method = s.interface[method_name]
-
       # validate all the arguments
       if len(args) != 0:
         # can only accept non-keyword arguments if the method takes 1 parameter
@@ -68,7 +70,19 @@ class RTLWrapper(CLModel):
       return Result(**result_dict)
 
     wrapper.__name__ = method_name
-    return wrapper
+
+    # check the rdy signal, if present
+    if method.rdy:
+
+      def ready_wrapper():
+        s.sim.eval_combinational()
+        return s.resolve_port(method, 'rdy') == 1
+
+      ready_wrapper.__name__ = method_name
+    else:
+      ready_wrapper = None
+
+    return wrapper, ready_wrapper
 
   def resolve_port(s, method, name):
     # model.<method_name>_<port_name>
