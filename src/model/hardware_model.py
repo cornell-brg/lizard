@@ -10,6 +10,7 @@ class HardwareModel(object):
   def __init__(s, interface, validate_args=True):
     s.interface = interface
     s.model_methods = {}
+    s.ready_methods = {}
     s.validate_args = validate_args
 
   def reset(s):
@@ -56,18 +57,42 @@ class HardwareModel(object):
       result = func(s, *args, **kwargs)
       if len(s.model_methods) != len(s.interface.methods):
         raise ValueError('Not all methods from interface implemented')
+
+      # Ensure every method that is supposed to have a ready signal has one
+      for name, method in s.interface.methods.iteritems():
+        if method.rdy and name not in s.ready_methods:
+          raise ValueError(
+              'Method has rdy signal but no ready method: {}'.format(name))
+
       return result
 
     return validate_init
 
-  def model_method(s, func):
-    if func.__name__ in s.model_methods:
+  def _check_method(s, func, method_dict):
+    if func.__name__ in method_dict:
       raise ValueError('Duplicate function: {}'.format(func.__name__))
     if func.__name__ not in s.interface.methods:
       raise ValueError('Method not in interface: {}'.format(func.__name__))
     if ismethod(func):
       raise ValueError('Expected function, got method: {}'.format(
           func.__name__))
+
+  def ready_method(s, func):
+    s._check_method(func, s.ready_methods)
+    method = s.interface.methods[func.__name__]
+
+    if not method.rdy:
+      raise ValueError('Method has no ready signal: {}'.format(func.__name__))
+    arg_spec = getargspec(func)
+    if len(
+        arg_spec.args
+    ) != 0 or arg_spec.varargs is not None or arg_spec.keywords is not None:
+      raise ValueError('Ready function must take no arguments')
+
+    s.ready_methods[func.__name__] = func
+
+  def model_method(s, func):
+    s._check_method(func, s.model_methods)
 
     method = s.interface.methods[func.__name__]
     if s.validate_args:
@@ -96,18 +121,20 @@ class HardwareModel(object):
       method = s.interface.methods[func.__name__]
 
       s._pre_call(func, method, _call_index)
-      # call this method
-      result = func(*args, **kwargs)
+      # check to see if the method is ready
+      if func.__name__ in s.ready_methods and not s.ready_methods[func
+                                                                  .__name__]():
+        result = not_ready_instance
+      else:
+        # call this method
+        result = func(*args, **kwargs)
+        if isinstance(result, NotReady):
+          raise ValueError(
+              'Method may not return not ready -- use ready_method decorator')
       s._post_call(func, method, _call_index)
 
       # interpret the result
-      if isinstance(result, NotReady):
-        # Make sure this method is permitted to be not ready
-        if not method.rdy:
-          raise ValueError(
-              'Method returned NotReady but has no rdy signal: {}'.format(
-                  func.__name__))
-      else:
+      if not isinstance(result, NotReady):
         # Normalize an empty to return to a length 0 result
         if result is None:
           result = Result()
@@ -131,7 +158,8 @@ class HardwareModel(object):
       s._back_prop_track(method.name, _call_index, result)
       return result
 
-    setattr(s, func.__name__, MethodDispatcher(wrapper))
+    setattr(s, func.__name__,
+            MethodDispatcher(func.__name__, wrapper, s.ready_methods))
 
   def cycle(s):
     s._post_cycle_wrapper()
@@ -146,6 +174,9 @@ class HardwareModel(object):
 
   @staticmethod
   def _freeze_result(result):
+    if isinstance(result, NotReady):
+      return result
+
     frozen = {}
     for name, value in result._data.iteritems():
       frozen[name] = HardwareModel._freeze_bits(value)
@@ -163,7 +194,16 @@ class HardwareModel(object):
 
 
 class NotReady(object):
-  pass
+  _created = False
+
+  def __init__(s):
+    if NotReady._created:
+      raise ValueError('singleton')
+    else:
+      NotReady._created = True
+
+
+not_ready_instance = NotReady()
 
 
 class Result(object):
@@ -178,8 +218,13 @@ class Result(object):
 
 class MethodDispatcher(object):
 
-  def __init__(s, wrapper_func):
+  def __init__(s, name, wrapper_func, ready_dict):
+    s.name = name
     s.wrapper_func = wrapper_func
+    s.ready_dict = ready_dict
+
+  def rdy(s):
+    return s.ready_dict(s.name)()
 
   def __getitem__(s, key):
 
