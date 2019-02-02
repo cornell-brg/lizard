@@ -118,42 +118,21 @@ class TestStateMachine(GenericStateMachine):
       else:
         return
 
-    if isinstance(r_ret, dict):
-      r_ret_names = set(sorted(r_ret.keys()))
-      if r_ret_names != m_ret_names:
-        error_msg = type_error_msg.format(
-            method_name=method_name,
-            model_ret=_list_string(m_ret_names),
-            reference_ret=_list_string(r_ret_names))
-        self._error_line_trace(method_line_trace, error_msg)
-    else:
-      if not len(r_ret) == len(m_ret_names):
-        error_msg = type_error_msg.format(
-            method_name=method_name,
-            model_ret=_list_string(m_ret_names),
-            reference_ret=_list_string(r_ret))
-        self._error_line_trace(method_line_trace, error_msg)
+    r_ret_names = set(sorted(r_ret.keys()))
+    if r_ret_names != m_ret_names:
+      error_msg = type_error_msg.format(
+          method_name=method_name,
+          model_ret=_list_string(m_ret_names),
+          reference_ret=_list_string(r_ret_names))
+      self._error_line_trace(method_line_trace, error_msg)
 
   def compare_result(self, m_result, r_result, method_name, arg,
                      method_line_trace):
-    if isinstance(r_result, Result):
-      r_result = r_result.__dict__
+    r_result = r_result._data
+    m_result = m_result._data
 
-    if isinstance(m_result, Result):
-      m_result = m_result.__dict__
-
-    if r_result != None:
-      if not isinstance(r_result, dict):
-        print r_result
-        r_result = [r_result] if isinstance(r_result, int) or isinstance(
-            r_result, Bits) else list(r_result)
-        r_result_list = r_result
-      else:
-        r_result_list = [value for (key, value) in sorted(r_result.items())]
-
-    m_ret_names = set(sorted(m_result.keys()))
-    self._validate_result(m_ret_names, r_result, method_name, arg,
-                          method_line_trace)
+    #self._validate_result(m_ret_names, r_result, method_name, arg,
+    #                      method_line_trace)
 
     value_error_msg = """
    test state machine received an incorrect value!
@@ -164,18 +143,18 @@ class TestStateMachine(GenericStateMachine):
     - actual value   : {actual_msg}
   """
 
-    if r_result:
-      # assume that results are in alphabetical order
-      m_result_list = [value for (key, value) in sorted(m_result.items())]
-      for m_result_value, r_result_value in zip(m_result_list, r_result_list):
-        if r_result_value != '?' and m_result_value != r_result_value:
-          error_msg = value_error_msg.format(
-              method_name=method_name,
-              arg=arg,
-              ret_name=_list_string(sorted(m_result.keys())),
-              expected_msg=_list_string_value(r_result_list),
-              actual_msg=_list_string_value(m_result_list))
-          self._error_line_trace(method_line_trace, error_msg)
+    for k in r_result.keys():
+      if r_result[k] != '?' and r_result[k] != m_result[k]:
+        m_ret_names = set(sorted(m_result.keys()))
+        m_result_list = [value for (key, value) in sorted(m_result.items())]
+        r_result_list = [value for (key, value) in sorted(r_result.items())]
+        error_msg = value_error_msg.format(
+            method_name=method_name,
+            arg=arg,
+            ret_name=_list_string(m_ret_names),
+            expected_msg=_list_string_value(r_result_list),
+            actual_msg=_list_string_value(m_result_list))
+        self._error_line_trace(method_line_trace, error_msg)
 
   def steps(self):
     return self.__rules_strategy

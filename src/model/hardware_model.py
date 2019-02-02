@@ -1,6 +1,7 @@
 import abc
 from inspect import getargspec, ismethod
 from functools import wraps
+from util.pretty_print import list_string_value
 
 
 class HardwareModel(object):
@@ -148,6 +149,14 @@ class HardwareModel(object):
               'CL function {}: incorrect return size: expected: {} actual: {}'
               .format(func.__name__, len(method.rets), returned_size))
 
+        if isinstance(
+            result,
+            Result) and set(method.rets.keys()) != set(result._data.keys()):
+          raise ValueError(
+              'CL function {}: incorrect return names: expected: {} actual: {}'
+              .format(func.__name__, list_string_value(method.rets.keys()),
+                      list_string_value(result._data.keys())))
+
         # Normalize a singleton return into a result
         if not isinstance(result, Result):
           result = Result(**{method.rets.keys()[0]: result})
@@ -176,7 +185,6 @@ class HardwareModel(object):
   def _freeze_result(result):
     if isinstance(result, NotReady):
       return result
-
     frozen = {}
     for name, value in result._data.iteritems():
       frozen[name] = HardwareModel._freeze_bits(value)

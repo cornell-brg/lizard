@@ -114,6 +114,19 @@ def test_method(model):
   assert alloc.mask == 0b0001
   freelist.cycle()
 
+  freelist.reset()
+  freelist.cycle()
+
+  alloc = freelist.alloc[0]()
+  assert alloc.index == 0
+  assert alloc.mask == 0b0001
+  freelist.cycle()
+
+  alloc = freelist.alloc[1]()
+  assert alloc.index == 1
+  assert alloc.mask == 0b0010
+  freelist.cycle()
+
 
 def test_state_machine():
   run_test_state_machine(FreeList, FreeListFL, (4, 2, 1, True, False))
