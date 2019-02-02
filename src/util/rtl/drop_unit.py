@@ -4,36 +4,39 @@ from pclib.rtl import RegEn, RegEnRst, RegRst
 from util.rtl.method import MethodSpec
 from util.rtl.interface import Interface
 
+
 class DropUnitInterface(Interface):
 
   def __init__(s, dtype):
-    super(DropUnitInterface, s).__init__([
-      MethodSpec(
-          'input',
-          args={
-              'data': dtype,
-          },
-          call=True,
-          rdy=False,
-      ),
-      MethodSpec(
-          'output',
-          rets={
-              'data': dtype,
-          },
-          call=False,
-          rdy=True,
-      ),
-      MethodSpec(
-          'drop',
-          args={},
-          call=True,
-          rdy=False,
-      ),
-    ],
-    ordering_chains=[
-      ['input', 'drop', 'output'],
-    ],)
+    super(DropUnitInterface, s).__init__(
+        [
+            MethodSpec(
+                'input',
+                args={
+                    'data': dtype,
+                },
+                call=True,
+                rdy=False,
+            ),
+            MethodSpec(
+                'output',
+                rets={
+                    'data': dtype,
+                },
+                call=False,
+                rdy=True,
+            ),
+            MethodSpec(
+                'drop',
+                args={},
+                call=True,
+                rdy=False,
+            ),
+        ],
+        ordering_chains=[
+            ['input', 'drop', 'output'],
+        ],
+    )
 
 
 class DropUnit(Model):
