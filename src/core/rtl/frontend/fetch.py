@@ -11,6 +11,7 @@ from msg.mem import MemMsg4B, MemMsgType, MemMsgStatus
 from core.rtl.messages import FetchMsg
 from msg.codes import ExceptionCode
 
+
 class FetchInterface(Interface):
 
   def __init__(s, ilen):
@@ -69,7 +70,6 @@ class Fetch(Model):
     s.connect(s.drop_unit_.drop_call, s.check_redirect_redirect)
     s.connect(s.resp.rdy, s.rdy_)
 
-
     @s.combinational
     def set_flags():
       s.rdy_.v = s.get_call or not s.fetch_val_.out
@@ -93,24 +93,21 @@ class Fetch(Model):
       # Send next request if not inflight or we just got a resp back
       s.req.val.v = s.send_req_
 
-
     @s.combinational
     def handle_inflight():
       # Either something still in flight, we just sent something out
       s.inflight_.in_ = (s.inflight_.out and not s.resp.val) or s.req_accepted_
-
 
     @s.combinational
     def handle_get():
       s.get_rdy.v = s.fetch_val_.out and (not s.check_redirect_redirect)
       s.get_msg.v = s.fetchmsg_
 
-
     @s.combinational
     def handle_fetchval():
       # The message is valid
-      s.fetch_val_.in_.v = s.drop_unit_.output_rdy or (not s.get_call and s.fetch_val_.out and not s.check_redirect_redirect)
-
+      s.fetch_val_.in_.v = s.drop_unit_.output_rdy or (
+          not s.get_call and s.fetch_val_.out and not s.check_redirect_redirect)
 
     @s.tick_rtl
     def handle_fetchmsg():

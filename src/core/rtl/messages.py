@@ -9,11 +9,12 @@ ExecPipe = bit_enum(
     ('MULDIV', 'mdiv'),
     ('BRANCH', 'br'),
     ('CSR', 'csr'),
-#    ('AGU', 'agu')
+    #    ('AGU', 'agu')
 )
 
 
 class PipelineMsg(BitStructDefinition):
+
   def __init__(s):
     # TODO: This is far too expensive to keep arround
     # in every pipeline stage
@@ -26,12 +27,14 @@ class PipelineMsg(BitStructDefinition):
 
 
 class FetchMsg(PipelineMsg):
+
   def __init__(s):
     super(FetchMsg, s).__init__()
     s.inst = BitField(ILEN)
 
 
 class DecodeMsg(PipelineMsg):
+
   def __init__(s):
     super(DecodeMsg, s).__init__()
     s.rs10_val = BitField(1)

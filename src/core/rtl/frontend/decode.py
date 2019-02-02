@@ -9,6 +9,7 @@ from core.rtl.frontend.fetch import FetchInterface
 from core.rtl.messages import FetchMsg, DecodeMsg, PipelineMsg
 from msg.codes import RVInstMask
 
+
 class DecodeInterface(Interface):
 
   def __init__(s):
@@ -53,12 +54,9 @@ class Decode(Model):
     s.func7_ = Wire(s.msg_[RVInstMask.FUNCT7].nbits)
     s.connect(s.func7_, s.msg_[RVInstMask.FUNCT7])
 
-
     s.connect(s.msg_, s.fetch_get_msg)
     s.connect(s.get_rdy, s.decmsg_val_.out)
     s.connect(s.fetch_get_call, s.accepted_)
-
-
 
     @s.combinational
     def handle_flags():
@@ -68,7 +66,8 @@ class Decode(Model):
 
     @s.combinational
     def set_valreg():
-      s.decmsg_val_.in_.v = s.accepted_.v or (s.decmsg_val_.out and not s.get_call)
+      s.decmsg_val_.in_.v = s.accepted_.v or (s.decmsg_val_.out and
+                                              not s.get_call)
 
     @s.tick_rtl
     def update_out():

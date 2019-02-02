@@ -40,11 +40,9 @@ class ControlFlowManager(Model):
     s.inter = ControlFlowManagerInterface(xlen)
     s.inter.apply(s)
 
-
     # The redirect register
     s.redirect_ = Wire(xlen)
     s.redirect_valid_ = Wire(1)
-
 
     s.connect(s.check_redirect_redirect, s.redirect_valid_)
     s.connect(s.check_redirect_target, s.redirect_)
