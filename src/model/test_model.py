@@ -200,6 +200,7 @@ class TestStateMachine(GenericStateMachine):
         if not isinstance(r_result, NotReady):
           raise RunMethodTestError(
               "Reference model is rdy but RTL model is not: {}".format(fl_name))
+        continue
 
       if isinstance(r_result, NotReady):
         raise RunMethodTestError(
