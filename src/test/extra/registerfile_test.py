@@ -57,3 +57,16 @@ def test_method(model):
   rf.cycle()
 
   assert rf.read(addr=0).data == 42
+
+
+@pytest.mark.parametrize("model", [RegisterFile, RegisterFileFL])
+def test_bypass_backprop(model):
+  rf = wrap_to_cl(model(8, 4, 1, 1, False, False))
+  rf.reset()
+
+  rf.write(addr=0, data=42)
+  rf.cycle()
+
+  assert rf.read(addr=0).data == 42
+  rf.write(addr=0, data=43)
+  rf.cycle()
