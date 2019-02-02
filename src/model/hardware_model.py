@@ -13,7 +13,7 @@ class HardwareModel(object):
     s.validate_args = validate_args
 
   def reset(s):
-    s._pre_cycle()
+    s._pre_cycle_wrapper()
     s._reset()
     s.cycle()
 
@@ -28,6 +28,13 @@ class HardwareModel(object):
   @abc.abstractmethod
   def _post_call(s, func, method, call_index):
     pass
+
+  def _pre_cycle_wrapper(s):
+    s.back_prop_tracking = []
+    s._pre_cycle()
+
+  def _post_cycle_wrapper(s):
+    s._post_cycle()
 
   @abc.abstractmethod
   def _pre_cycle(s):
@@ -107,7 +114,7 @@ class HardwareModel(object):
 
         returned_size = 1
         if isinstance(result, Result):
-          returned_size = result.size
+          returned_size = result._size
 
         if len(method.rets) != returned_size:
           raise ValueError(
@@ -118,13 +125,41 @@ class HardwareModel(object):
         if not isinstance(result, Result):
           result = Result(**{method.rets.keys()[0]: result})
 
+      # Log the result in the back_prop_tracking
+      # This is used to ensure that when a future method is called
+      # the result to a prior method doesn't mutate
+      s._back_prop_track(method.name, _call_index, result)
       return result
 
     setattr(s, func.__name__, MethodDispatcher(wrapper))
 
   def cycle(s):
-    s._post_cycle()
-    s._pre_cycle()
+    s._post_cycle_wrapper()
+    s._pre_cycle_wrapper()
+
+  @staticmethod
+  def _freeze_bits(data):
+    if isinstance(data, list):
+      return [HardwareModel._freeze_bits(x) for x in data]
+    else:
+      return int(data)
+
+  @staticmethod
+  def _freeze_result(result):
+    frozen = {}
+    for name, value in result._data.iteritems():
+      frozen[name] = HardwareModel._freeze_bits(value)
+    return frozen
+
+  def _back_prop_track(s, method_name, call_index, result):
+    s.back_prop_tracking.append((method_name, call_index, result,
+                                 s._freeze_result(result)))
+
+    for method_name, call_index, result, frozen in s.back_prop_tracking:
+      if s._freeze_result(result) != frozen:
+        raise ValueError(
+            'Illegal backpropagation detected on method: {}[{}]'.format(
+                method_name, call_index))
 
 
 class NotReady(object):
@@ -134,8 +169,10 @@ class NotReady(object):
 class Result(object):
 
   def __init__(s, **kwargs):
-    s.size = len(kwargs)
+    s._size = len(kwargs)
+    s._data = {}
     for k, v in kwargs.items():
+      s._data[k] = v
       setattr(s, k, v)
 
 
