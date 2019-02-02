@@ -116,6 +116,16 @@ class RTLWrapper(CLModel):
   def _reset(s):
     s.sim.reset()
 
+  def _snapshot(s):
+    # Do not actually need to snapshot because we can restore
+    # to the start of the cycle just setting all the call
+    # signals to 0
+    pass
+
+  def _restore(s):
+    # reset the back propogation detection and call pre cycle
+    s._pre_cycle_wrapper()
+
   def line_trace(s):
     s.sim.eval_combinational()
     return "{:>3}: {}".format(s.sim.ncycles, s.model.line_trace())

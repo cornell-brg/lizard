@@ -50,6 +50,14 @@ class HardwareModel(object):
   def _reset(s):
     pass
 
+  @abc.abstractmethod
+  def _snapshot(s):
+    pass
+
+  @abc.abstractmethod
+  def _restore(s):
+    pass
+
   @staticmethod
   def validate(func):
 
@@ -166,6 +174,9 @@ class HardwareModel(object):
       # the result to a prior method doesn't mutate
       s._back_prop_track(method.name, _call_index, result)
       return result
+
+    if hasattr(s, func.__name__):
+      raise ValueError('Internal wrapper error')
 
     setattr(s, func.__name__,
             MethodDispatcher(func.__name__, wrapper, s.ready_methods))
