@@ -14,4 +14,4 @@ class Proc(Model):
     s.dflow_ = DataFlowManager(AREG_COUNT, PREG_COUNT, MAX_SPEC_DEPTH, 2, 1)
 
     s.fetch_ = Fetch(XLEN, ILEN)
-    s.decode_ = Decode(ILEN, AREG_IDX_NBITS)
+    s.decode_ = Decode(XLEN, ILEN, AREG_IDX_NBITS)
