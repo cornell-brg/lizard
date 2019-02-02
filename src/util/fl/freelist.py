@@ -20,6 +20,8 @@ class FreeListFL(FLModel):
                           free_alloc_bypass, release_alloc_bypass))
     s.nslots = nslots
     s.used_slots_initial = used_slots_initial
+    
+    s.bits = Bits(s.nslots, 0)
 
     @s.model_method
     def free(index):
@@ -51,3 +53,9 @@ class FreeListFL(FLModel):
         s.bits[i] = 1
       else:
         s.bits[i] = 0
+
+  def _snapshot(s):
+    s.snapshot = s.bits
+
+  def _restore(s):
+    s.bits = s.snapshot
