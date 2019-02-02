@@ -37,12 +37,12 @@ class DecodeMsg(PipelineMsg):
 
   def __init__(s):
     super(DecodeMsg, s).__init__()
-    s.rs10_val = BitField(1)
+    s.rs1_val = BitField(1)
     s.rs1 = BitField(AREG_IDX_NBITS)
     s.rs2_val = BitField(1)
     s.rs2 = BitField(AREG_IDX_NBITS)
-    s.dst_val = BitField(1)
-    s.dst = BitField(AREG_IDX_NBITS)
+    s.rd_val = BitField(1)
+    s.rd = BitField(AREG_IDX_NBITS)
     s.imm_val = BitField(1)
     s.imm = BitField(DECODED_IMM_LEN)
     # For W ending instructions
