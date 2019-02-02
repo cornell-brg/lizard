@@ -45,12 +45,6 @@ class RTLWrapper(CLModel):
       if len(method.args) != len(kwargs):
         raise ValueError('Not all arguments provided')
 
-      # check the rdy signal, if present
-      if method.rdy:
-        s.sim.eval_combinational()
-        if s.resolve_port(method, 'rdy') == 0:
-          return NotReady()
-
       # set all the input ports
       for name, value in kwargs.iteritems():
         # the port is potentially now still list of of ports if the method
@@ -84,12 +78,13 @@ class RTLWrapper(CLModel):
 
     return wrapper, ready_wrapper
 
-  def resolve_port(s, method, name):
+  def resolve_port(s, method, name, instance=None):
+    instance = instance or s.sequence_call
     # model.<method_name>_<port_name>
     base_port = getattr(s.model, Interface.mangled_name('', method.name, name))
     # if there are multiple instances of this method, get the current one
     if method.count is not None:
-      base_port = base_port[s.sequence_call]
+      base_port = base_port[instance]
 
     return base_port
 
@@ -130,7 +125,8 @@ class RTLWrapper(CLModel):
     # Initially, set the call signals set the call signal, if present
     for method_name, method in s.interface.methods.iteritems():
       if method.call:
-        s.resolve_port(method, 'call').v = 0
+        for i in range(method.num_permitted_calls()):
+          s.resolve_port(method, 'call', instance=i).v = 0
 
   def _post_cycle(s):
     super(RTLWrapper, s)._post_cycle()
