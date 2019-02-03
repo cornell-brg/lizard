@@ -234,6 +234,10 @@ class Result(object):
       s._data[k] = v
       setattr(s, k, v)
 
+  def __str__(s):
+    return '[{}]'.format(', '.join(
+        '{}={}'.format(k, v) for k, v in s._data.iteritems()))
+
 
 class MethodDispatcher(object):
 
