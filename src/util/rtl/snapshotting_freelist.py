@@ -60,12 +60,13 @@ class SnapshottingFreeList(Model):
                num_alloc_ports,
                num_free_ports,
                nsnapshots,
-               used_slots_initial=0):
+               used_slots_initial=0,
+               freelist_impl=FreeList):
     s.interface = SnapshottingFreeListInterface(nslots, num_alloc_ports,
                                                 num_free_ports, nsnapshots)
     s.interface.apply(s)
 
-    s.free_list = FreeList(
+    s.free_list = freelist_impl(
         nslots,
         num_alloc_ports,
         num_free_ports,
