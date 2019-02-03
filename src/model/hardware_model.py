@@ -2,6 +2,7 @@ import abc
 from inspect import getargspec, ismethod
 from functools import wraps
 from util.pretty_print import list_string_value
+from bitutil import copy_bits
 
 
 class HardwareModel(object):
@@ -241,6 +242,12 @@ class Result(object):
     for k, v in kwargs.items():
       s._data[k] = v
       setattr(s, k, v)
+
+  def copy(s):
+    temp = {}
+    for k, v in s._data.iteritems():
+      temp[k] = copy_bits(v)
+    return Result(**temp)
 
   def __str__(s):
     return '[{}]'.format(', '.join(
