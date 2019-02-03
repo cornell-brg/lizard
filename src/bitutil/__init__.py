@@ -20,6 +20,10 @@ def clog2nz(x):
     return result
 
 
+def copy_bits(bits):
+  return Bits(bits.nbits, int(bits))
+
+
 def sane_lookup(d):
 
   @staticmethod

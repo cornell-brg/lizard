@@ -3,8 +3,16 @@ from model.hardware_model import HardwareModel
 
 class FLModel(HardwareModel):
 
-  def __init__(s, interface):
-    super(FLModel, s).__init__(interface)
+  def __init__(s, interface, validate_args=True):
+    super(FLModel, s).__init__(interface, validate_args=validate_args)
+
+  def ready_method(s, func):
+
+    def ignore_call_index_wrapper(call_index):
+      return func()
+
+    ignore_call_index_wrapper.__name__ = func.__name__
+    super(FLModel, s).ready_method(ignore_call_index_wrapper)
 
   def _cycle(s):
     pass

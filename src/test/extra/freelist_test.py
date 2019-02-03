@@ -4,7 +4,7 @@ from util.test_utils import run_test_vector_sim
 from util.rtl.freelist import FreeList
 from test.config import test_verilog
 from util.fl.freelist import FreeListFL
-from model.wrapper import wrap_to_cl
+from model.wrapper import wrap_to_cl, wrap_to_rtl
 from model.test_model import run_test_state_machine
 
 
@@ -82,6 +82,24 @@ def test_release():
       ],
       dump_vcd=None,
       test_verilog=test_verilog)
+
+
+def test_cl_adapter():
+  run_test_vector_sim(
+      wrap_to_rtl(FreeListFL(4, 1, 1, False, False)), [
+          ('alloc_call[0] alloc_rdy[0]* alloc_index[0]* alloc_mask[0]* free_call[0] free_index[0]'
+          ),
+          (1, 1, 0, 0b0001, 0, 0),
+          (1, 1, 1, 0b0010, 0, 0),
+          (0, 1, '?', '?', 1, 0),
+          (1, 1, 0, 0b0001, 0, 0),
+          (1, 1, 2, 0b0100, 0, 0),
+          (1, 1, 3, 0b1000, 0, 0),
+          (0, 0, '?', '?', 1, 1),
+          (1, 1, 1, 0b0010, 0, 0),
+      ],
+      dump_vcd=None,
+      test_verilog=False)
 
 
 @pytest.mark.parametrize("model", [FreeList, FreeListFL])

@@ -68,9 +68,9 @@ class RTLWrapper(CLModel):
     # check the rdy signal, if present
     if method.rdy:
 
-      def ready_wrapper():
+      def ready_wrapper(call_index):
         s.sim.eval_combinational()
-        return s.resolve_port(method, 'rdy') == 1
+        return s.resolve_port(method, 'rdy', instance=call_index) == 1
 
       ready_wrapper.__name__ = method_name
     else:
@@ -123,8 +123,8 @@ class RTLWrapper(CLModel):
     pass
 
   def _restore(s):
-    # reset the back propogation detection and call pre cycle
-    s._pre_cycle_wrapper()
+    # also don't need to do anything
+    pass
 
   def line_trace(s):
     s.sim.eval_combinational()
