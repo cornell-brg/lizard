@@ -8,6 +8,7 @@ from hypothesis.vendor.pretty import CUnicodeIO, RepresentationPrinter
 from sets import Set
 from util.rtl.interface import Interface
 from util.rtl.types import Array
+from util.test_utils import create_test_bitstruct
 import copy
 
 debug = True
@@ -159,7 +160,7 @@ class TestStateMachine(GenericStateMachine):
       # assume that results are in alphabetical order
       m_result_list = [value for (key, value) in sorted(m_result.items())]
       for m_result_value, r_result_value in zip(m_result_list, r_result_list):
-        if r_result_value != '?' and m_result_value != r_result_value:
+        if r_result_value != '?' and not r_result_value == m_result_value:
           error_msg = value_error_msg.format(
               method_name=method_name,
               arg=arg,
@@ -846,8 +847,7 @@ def bitstruct_strategy(bitstruct, **kwargs):
 
   @st.composite
   def strategy(draw):
-    new_bitstruct = copy.copy(bitstruct)
-    new_bitstruct.v = 0
+    new_bitstruct = create_test_bitstruct(bitstruct)()
     for name, slice_ in type(bitstruct)._bitfields.iteritems():
       if not name in kwargs.keys():
         data = draw(bits_strategy(slice_.stop - slice_.start))

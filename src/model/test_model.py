@@ -10,23 +10,10 @@ from util.rtl.interface import Interface
 from util.rtl.types import Array
 from model.wrapper import wrap_to_cl
 from model.hardware_model import NotReady, Result
+from util.pretty_print import list_string_value, list_string
 import copy
 
 debug = True
-
-
-def _list_string(lst):
-  return ", ".join([str(x) for x in lst])
-
-
-def _list_string_value(lst):
-  str_list = []
-  for x in lst:
-    if isinstance(x, BitStruct):
-      str_list += [bitstruct_detail(x)]
-    else:
-      str_list += [str(x)]
-  return ", ".join(str_list)
 
 
 #-------------------------------------------------------------------------
@@ -112,7 +99,7 @@ class TestStateMachine(GenericStateMachine):
       if m_ret_names:
         error_msg = type_error_msg.format(
             method_name=method_name,
-            model_ret=_list_string(m_ret_names),
+            model_ret=list_string(m_ret_names),
             reference_ret="")
         self._error_line_trace(method_line_trace, error_msg)
       else:
@@ -122,8 +109,8 @@ class TestStateMachine(GenericStateMachine):
     if r_ret_names != m_ret_names:
       error_msg = type_error_msg.format(
           method_name=method_name,
-          model_ret=_list_string(m_ret_names),
-          reference_ret=_list_string(r_ret_names))
+          model_ret=list_string(m_ret_names),
+          reference_ret=list_string(r_ret_names))
       self._error_line_trace(method_line_trace, error_msg)
 
   def compare_result(self, m_result, r_result, method_name, arg,
@@ -144,16 +131,16 @@ class TestStateMachine(GenericStateMachine):
   """
 
     for k in r_result.keys():
-      if r_result[k] != '?' and r_result[k] != m_result[k]:
+      if r_result[k] != '?' and not r_result[k] == m_result[k]:
         m_ret_names = set(sorted(m_result.keys()))
         m_result_list = [value for (key, value) in sorted(m_result.items())]
         r_result_list = [value for (key, value) in sorted(r_result.items())]
         error_msg = value_error_msg.format(
             method_name=method_name,
             arg=arg,
-            ret_name=_list_string(m_ret_names),
-            expected_msg=_list_string_value(r_result_list),
-            actual_msg=_list_string_value(m_result_list))
+            ret_name=list_string(m_ret_names),
+            expected_msg=list_string_value(r_result_list),
+            actual_msg=list_string_value(m_result_list))
         self._error_line_trace(method_line_trace, error_msg)
 
   def steps(self):
@@ -217,7 +204,7 @@ class TestStateMachine(GenericStateMachine):
             v = bitstruct_detail(v)
           argument_string += ["{}={}".format(k, v)]
         method_line_trace += [
-            "{}( {} )".format(rtl_name, _list_string(argument_string))
+            "{}( {} )".format(rtl_name, list_string(argument_string))
             if argument_string else "{}()".format(rtl_name)
         ]
 
@@ -382,8 +369,7 @@ class ArgumentStrategy(object):
 
     @st.composite
     def strategy(draw):
-      new_bitstruct = copy.copy(bitstruct)
-      new_bitstruct.v = 0
+      new_bitstruct = create_test_bitstruct(bitstruct)()
       for name, slice_ in type(bitstruct)._bitfields.iteritems():
         if not name in kwargs.keys():
           data = draw(bits_strategy(slice_.stop - slice_.start))
@@ -564,4 +550,4 @@ def bitstruct_detail(bitstruct):
   bitfields = []
   for k, v in bitstruct._bitfields.iteritems():
     bitfields += ["{}: {}".format(k, bitstruct[v.start:v.stop])]
-  return "( " + _list_string(bitfields) + " )"
+  return "( " + list_string(bitfields) + " )"
