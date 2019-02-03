@@ -425,3 +425,45 @@ def run_rdycall_test_vector_sim(model,
   sim.cycle()
   sim.cycle()
   sim.cycle()
+
+
+#-------------------------------------------------------------------------
+# create_test_bitstruct
+#-------------------------------------------------------------------------
+
+
+def create_test_bitstruct(bitstruct, eq=None):
+  if not isinstance(bitstruct, BitStruct):
+    raise TypeError("Only accept BitStruct type. ")
+  bitstruct_class = bitstruct.__class__
+  name = bitstruct_class.__name__
+
+  class _TestBitstruct(bitstruct.__class__):
+    __dc_conditions = {}
+
+    def __init__(s, value=0):
+      super(_TestBitstruct, s).__init__(bitstruct.nbits, value)
+
+    def __eq__(s, other):
+      self_ = bitstruct()
+      self_.write_value(int(s))
+
+      for bitfield in s._bitfields.keys():
+        condition = _TestBitstruct.__dc_conditions.get(bitfield, None)
+        if condition and condition(s):
+          exec ("self_.{} = other.{}".format(bitfield, bitfield)) in locals()
+      if eq:
+        return eq(self_, other[:])
+      return self_._uint == other._uint
+
+    @staticmethod
+    def set_dc(condition, dc_fields):
+      for field in dc_fields:
+        if _TestBitstruct.__dc_conditions.get(field, None):
+          raise ValueError(
+              "DC condition already set for field {}".format(field))
+        _TestBitstruct.__dc_conditions[field] = condition
+
+  setattr(_TestBitstruct, "__name__", name + "_Test")
+
+  return _TestBitstruct
