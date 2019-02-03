@@ -27,6 +27,8 @@ class CLWrapper(FLModel):
 
     def wrapper(*args, **kwargs):
       result = getattr(s.cl, method_name)(*args, **kwargs)
+      # Cycling might change the result, so copy it
+      result = result.copy()
       s.cl.cycle()
       return result
 

@@ -117,14 +117,10 @@ class RTLWrapper(CLModel):
     s.sim.reset()
 
   def _snapshot(s):
-    # Do not actually need to snapshot because we can restore
-    # to the start of the cycle just setting all the call
-    # signals to 0
-    pass
+    raise ValueError('snapshot not implemented on RTL models')
 
   def _restore(s):
-    # also don't need to do anything
-    pass
+    raise ValueError('restore not implemented on RTL models')
 
   def line_trace(s):
     s.sim.eval_combinational()

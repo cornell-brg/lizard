@@ -9,7 +9,8 @@ class CLAdapter(Model):
 
   def __init__(s, clmodel):
     s.cl = clmodel
-    s.cl.interface.apply(s)
+    s.interface = s.cl.interface
+    s.interface.apply(s)
     s.cl.reset()
     # start with one snapshot in case compute is called before cycle
     s.cl.snapshot()
@@ -27,7 +28,7 @@ class CLAdapter(Model):
       # before we recomupte everything, must restore to the start of the cycle
       s.cl.restore()
 
-      for method_name, method in s.cl.interface.methods.iteritems():
+      for method_name, method in s.interface.methods.iteritems():
         cl_method_dispatcher = getattr(s.cl, method_name)
         for instance in range(method.num_permitted_calls()):
           # since we set everything in a giant block, it could be that ready is
@@ -71,7 +72,7 @@ class CLAdapter(Model):
 
     def generate_senses():
       senses = [s.whatever_you_do_make_sure_no_method_has_this_name]
-      for method_name, method in s.cl.interface.methods.iteritems():
+      for method_name, method in s.interface.methods.iteritems():
         for instance in range(method.num_permitted_calls()):
           if method.call:
             senses.append(s.resolve_port(method, 'call', instance))
