@@ -445,8 +445,13 @@ def create_test_bitstruct(bitstruct, eq=None):
       super(_TestBitstruct, s).__init__(bitstruct.nbits, value)
 
     def __eq__(s, other):
-      self_ = bitstruct()
-      self_.write_value(int(s))
+      if not isinstance(other, BitStruct):
+        if isinstance(other, int) or isinstance(other, Bits):
+          other = bitstruct_class(bitstruct.nbits, other)
+        else:
+          return False
+
+      self_ = bitstruct_class(bitstruct.nbits, int(s))
 
       for bitfield in s._bitfields.keys():
         condition = _TestBitstruct.__dc_conditions.get(bitfield, None)
@@ -454,7 +459,10 @@ def create_test_bitstruct(bitstruct, eq=None):
           exec ("self_.{} = other.{}".format(bitfield, bitfield)) in locals()
       if eq:
         return eq(self_, other[:])
-      return self_._uint == other._uint
+      return Bits.__eq__(self_, other)
+
+    def __ne__(s, other):
+      return not s.__eq__(other)
 
     @staticmethod
     def set_dc(condition, dc_fields):
