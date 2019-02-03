@@ -45,8 +45,9 @@ class MethodBasedRuleStrategy(SearchStrategy):
 
     rule_to_fire.sort(
       key=lambda rule: (
-        self.machine.interface.methods.keys().index( rule.fl_method_name ),
-        rule.rtl_method_name,
+        self.machine.interface.methods.keys().index( rule.method_name ),
+        rule.index,
+        rule.method_name,
       )
     )
 
@@ -146,9 +147,11 @@ class TestStateMachine(GenericStateMachine):
   def steps(self):
     return self.__rules_strategy
 
-  def _call_func(s, model, name, data):
+  def _call_func(s, model, name, data, index=-1):
     func = getattr(model, name)
-    return func(**data)
+    if index < 0:
+      return func(**data)
+    return func[index](**data)
 
   def execute_step(self, step):
     # store result of sim and reference
@@ -176,25 +179,26 @@ class TestStateMachine(GenericStateMachine):
 
       # For method based interface rules, call rdy ones only
       methods = self.interface.methods
-      fl_name = rule.fl_method_name
-      rtl_name = rule.rtl_method_name
+      method_name = rule.method_name
+      index = rule.index
 
       # First check if methods are ready
-      s_result = self._call_func(self.sim, rtl_name, data)
-      r_result = self._call_func(self.reference, fl_name, data)
+      s_result = self._call_func(self.sim, method_name, data, index)
+      r_result = self._call_func(self.reference, method_name, data)
 
       if isinstance(s_result, NotReady):
         if not isinstance(r_result, NotReady):
           raise RunMethodTestError(
-              "Reference model is rdy but RTL model is not: {}".format(fl_name))
+              "Reference model is rdy but RTL model is not: {}".format(
+                  method_name))
         continue
 
       if isinstance(r_result, NotReady):
         raise RunMethodTestError(
-            "RTL model is rdy but Reference is not: {}".format(fl_name))
+            "RTL model is rdy but Reference is not: {}".format(method_name))
 
       # Method ready, add to result list
-      method_names += [rtl_name]
+      method_names += [method_name]
 
       # If in debug mode, print out all the methods called
       if debug:
@@ -203,9 +207,11 @@ class TestStateMachine(GenericStateMachine):
           if isinstance(v, BitStruct):
             v = bitstruct_detail(v)
           argument_string += ["{}={}".format(k, v)]
+        index_string = "[{}]".format(index) if index >= 0 else ""
         method_line_trace += [
-            "{}( {} )".format(rtl_name, list_string(argument_string))
-            if argument_string else "{}()".format(rtl_name)
+            "{}{}( {} )".format(method_name, index_string,
+                                list_string(argument_string))
+            if argument_string else "{}{}()".format(method_name, index_string)
         ]
 
       # Add to result list
@@ -316,10 +322,10 @@ class DefineMethod(object):
 
 @attr.s()
 class MethodRule(object):
-  rtl_method_name = attr.ib()
-  fl_method_name = attr.ib()
+  method_name = attr.ib()
   arguments = attr.ib()
   precondition = attr.ib()
+  index = attr.ib(default=-1)
 
   def __attrs_post_init__(self):
     self.arguments_strategy = st.fixed_dictionaries(self.arguments)
@@ -335,20 +341,17 @@ def add_rule(cls, method_spec):
   #precondition = getattr(rule_function, PRECONDITION_MARKER, None)
   arguments = cls.argument_strategy(name)
   precondition = cls.precondition(name)
-  if not method_spec.count:
+  if method_spec.count == None:
     rule = MethodRule(
-        rtl_method_name=name,
-        fl_method_name=name,
-        arguments=arguments,
-        precondition=precondition)
+        method_name=name, arguments=arguments, precondition=precondition)
     cls.add_rule(rule, method_spec.call)
   else:
     for i in range(method_spec.count):
       rule = MethodRule(
-          rtl_method_name=name,
-          fl_method_name=name,
+          method_name=name,
           arguments=arguments,
-          precondition=precondition)
+          precondition=precondition,
+          index=i)
       cls.add_rule(rule, method_spec.call)
 
 
