@@ -60,10 +60,10 @@ class CLModel(HardwareModel):
       for name, pymtl_type in current_method.args.iteritems():
         arg_dict[name] = s._gen_zero(pymtl_type)
       # invoke the method
-      result = s.model_methods[current_method.name](**arg_dict)
-    s._advance()
+      result = getattr(s, current_method.name)(**arg_dict)
+    else:
+      s._advance()
     return result
-
 
   def _drain_to(s, method_index, call_index):
 

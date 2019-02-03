@@ -22,6 +22,7 @@ def test_basic():
       dump_vcd=None,
       test_verilog=test_verilog)
 
+
 def test_cl_adapter():
   run_test_vector_sim(
       CLAdapter(MuxCL(Bits(4), 4)), [
@@ -33,6 +34,7 @@ def test_cl_adapter():
       ],
       dump_vcd=None,
       test_verilog=False)
+
 
 @pytest.mark.parametrize("model", [Mux, MuxFL])
 def test_method(model):
