@@ -5,7 +5,7 @@ from util.rtl.mux import Mux
 from util.fl.mux import MuxFL
 from util.cl.mux import MuxCL
 from test.config import test_verilog
-from model.wrapper import wrap_to_cl
+from model.wrapper import wrap_to_cl, wrap_to_rtl
 from model.test_model import run_test_state_machine
 from model.cladapter import CLAdapter
 
@@ -25,7 +25,7 @@ def test_basic():
 
 def test_cl_adapter():
   run_test_vector_sim(
-      CLAdapter(MuxCL(Bits(4), 4)), [
+      wrap_to_rtl(MuxFL(Bits(4), 4)), [
           ('mux_in_[0] mux_in_[1] mux_in_[2] mux_in_[3] mux_select mux_out*'),
           (0b0001, 0b0010, 0b0100, 0b1000, 0b00, 0b0001),
           (0b0001, 0b0010, 0b0100, 0b1000, 0b01, 0b0010),
