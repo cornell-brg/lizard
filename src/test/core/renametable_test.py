@@ -3,8 +3,6 @@ from util.test_utils import run_test_vector_sim
 from core.rtl.renametable import RenameTable
 from test.config import test_verilog
 
-test_verilog = False
-
 
 def test_basic():
   run_test_vector_sim(
