@@ -1,9 +1,10 @@
 import pytest
 from pymtl import *
 from util.test_utils import run_test_vector_sim
-from util.method_test import create_test_state_machine, run_state_machine
+from model.test_model import run_test_state_machine
 from util.rtl.snapshotting_freelist import SnapshottingFreeList, SnapshottingFreeListInterface
 from test.config import test_verilog
+from util.fl.snapshotting_freelist import SnapshottingFreeListFL
 from util.fl.freelist import FreeListFL
 from model.wrapper import wrap_to_cl, wrap_to_rtl
 
@@ -66,64 +67,6 @@ def test_wrapped_freelist():
       test_verilog=False)
 
 
-class SnapshottingFreeListFL:
-
-  def __init__(s,
-               nslots,
-               num_alloc_ports,
-               num_free_ports,
-               nsnapshots,
-               used_slots_initial=0):
-    s.interface = SnapshottingFreeListInterface(nslots, num_alloc_ports,
-                                                num_free_ports, nsnapshots)
-    s.interface.require_fl_methods(s)
-
-    s.freelist = FreeListFL(
-        nslots,
-        num_alloc_ports,
-        num_free_ports,
-        free_alloc_bypass=False,
-        release_alloc_bypass=False,
-        used_slots_initial=used_slots_initial)
-    s.snapshot_initial = [0 for _ in range(nslots)]
-    s.nsnapshots = nsnapshots
-    s.nslots = nslots
-    s.reset()
-
-  def reset_alloc_tracking_call(s, target_id):
-    s.snapshots[target_id] = s.snapshot_initial[:]
-
-  def alloc_call(s):
-    res = s.freelist.alloc_call()
-    for i in range(s.nsnapshots):
-      s.snapshots[i][res.index] = 1
-    return res
-
-  def pack(s, snapshot):
-    res = Bits(s.nslots)
-    for i in range(s.nslots):
-      res[i] = snapshot[i]
-    return res
-
-  def alloc_rdy(s):
-    return s.freelist.alloc_rdy()
-
-  def set_call(s, state):
-    s.freelist.set_call(state)
-
-  def free_call(s, index):
-    s.freelist.free_call(index)
-
-  def revert_allocs_call(s, source_id):
-    s.freelist.release_call(s.pack(s.snapshots[source_id]))
-
-  def reset(s):
-    s.freelist.reset()
-    s.snapshots = [s.snapshot_initial[:] for _ in range(s.nsnapshots)]
-
-
-@pytest.mark.skip()
 def test_state_machine():
-  FreeListTest = create_test_state_machine(
-      SnapshottingFreeList(4, 1, 1, 4), SnapshottingFreeListFL(4, 1, 1, 4))
-  run_state_machine(FreeListTest)
+  run_test_state_machine(SnapshottingFreeList, SnapshottingFreeListFL,
+                         (4, 1, 1, 4))

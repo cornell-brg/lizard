@@ -261,7 +261,7 @@ class MethodDispatcher(object):
     s.wrapper_func = wrapper_func
     s.ready_dict = ready_dict
 
-  def rdy(s, call_index):
+  def rdy(s, call_index=None):
     return s.ready_dict[s.name](call_index)
 
   def __getitem__(s, key):

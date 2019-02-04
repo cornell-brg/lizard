@@ -1,6 +1,6 @@
 from pymtl import *
 
-from model.hardware_model import HardwareModel, NotReady, Result
+from model.hardware_model import HardwareModel, Result
 from model.flmodel import FLModel
 from util.rtl.freelist import FreeListInterface
 from bitutil import copy_bits
