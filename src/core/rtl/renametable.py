@@ -41,18 +41,9 @@ class RenameTableInterface(Interface):
                 rdy=False,
                 count=num_update_ports,
             ),
-            MethodSpec(
-                'set',
-                args={
-                    'in_': Array(s.Preg, naregs),
-                },
-                rets=None,
-                call=True,
-                rdy=False,
-            ),
         ],
         bases=[
-            IncludeSome(snapshot_interface, {'snapshot', 'restore'}),
+            IncludeSome(snapshot_interface, {'snapshot', 'restore', 'set'}),
         ],
         ordering_chains=[
             ['lookup', 'update', 'snapshot', 'restore', 'set'],
