@@ -1,5 +1,5 @@
 from pymtl import *
-from util.rtl.interface import Interface
+from util.rtl.interface import Interface, UseInterface
 from util.rtl.method import MethodSpec
 from util.rtl.types import Array, canonicalize_type
 from bitutil import clog2, clog2nz
@@ -28,8 +28,7 @@ class OneHotEncoderInterface(Interface):
 class OneHotEncoder(Model):
 
   def __init__(s, noutbits):
-    s.interface = OneHotEncoderInterface(noutbits)
-    s.interface.apply(s)
+    UseInterface(s, OneHotEncoderInterface(noutbits))
 
     for i in range(noutbits):
 

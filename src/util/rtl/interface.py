@@ -13,6 +13,11 @@ def IncludeSome(interface, some):
   return (interface, some)
 
 
+def UseInterface(s, interface):
+  s.interface = interface
+  interface.apply(s)
+
+
 class ResidualMethodSpec:
 
   def __init__(s, model, spec, port_map):
@@ -111,9 +116,10 @@ class Interface(object):
   client model.
 
   An implementing model uses an interface by applying it on itself
-  by using interface.apply(model). That call will
+  by using UseInterface(model, interface). That call will
   instantiate the appropriate ports for every instance of every
   method declared in the interface as fields in the model.
+  It will also save the interface as model.interface.
   Ports for a method are generated as <method name>_<port_name>.
   Ports of array type are represented as arrays of ports.
   When a method has multiple instances (count is not None),

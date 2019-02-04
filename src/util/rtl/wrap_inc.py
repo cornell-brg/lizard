@@ -1,6 +1,6 @@
 from pymtl import *
 from bitutil import clog2
-from util.rtl.interface import Interface
+from util.rtl.interface import Interface, UseInterface
 from util.rtl.method import MethodSpec
 from util.rtl.types import Array, canonicalize_type
 
@@ -28,8 +28,7 @@ class WrapIncInterface(Interface):
 class WrapInc(Model):
 
   def __init__(s, nbits, size, up):
-    s.interface = WrapIncInterface(nbits)
-    s.interface.apply(s)
+    UseInterface(s, WrapIncInterface(nbits))
 
     if up:
 
@@ -75,8 +74,7 @@ class WrapIncVarInterface(Interface):
 class WrapIncVar(Model):
 
   def __init__(s, nbits, size, up, max_ops):
-    s.interface = WrapIncVarInterface(nbits, max_ops)
-    s.interface.apply(s)
+    UseInterface(s, WrapIncVarInterface(nbits, max_ops))
 
     s.units = [WrapInc(nbits, size, up) for _ in range(max_ops)]
     s.connect(s.inc_in, s.units[0].inc_in)

@@ -1,5 +1,5 @@
 from pymtl import *
-from util.rtl.interface import Interface
+from util.rtl.interface import Interface, UseInterface
 from model.hardware_model import NotReady, Result
 from model.clmodel import CLModel
 from model.rtl2clwrapper import RTL2CLWrapper
@@ -9,8 +9,8 @@ class CL2RTLWrapper(Model):
 
   def __init__(s, clmodel):
     s.cl = clmodel
-    s.interface = s.cl.interface
-    s.interface.apply(s)
+    UseInterface(s, s.cl.interface)
+
     s.cl.reset()
     # start with one snapshot in case compute is called before cycle
     s.cl.snapshot()

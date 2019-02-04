@@ -1,5 +1,5 @@
 from pymtl import *
-from util.rtl.interface import Interface
+from util.rtl.interface import Interface, UseInterface
 from util.rtl.method import MethodSpec
 from util.rtl.types import Array, canonicalize_type
 from util.rtl.mux import Mux
@@ -130,9 +130,10 @@ class FreeList(Model):
                free_alloc_bypass,
                release_alloc_bypass,
                used_slots_initial=0):
-    s.interface = FreeListInterface(nslots, num_alloc_ports, num_free_ports,
-                                    free_alloc_bypass, release_alloc_bypass)
-    s.interface.apply(s)
+    UseInterface(
+        s,
+        FreeListInterface(nslots, num_alloc_ports, num_free_ports,
+                          free_alloc_bypass, release_alloc_bypass))
 
     # 1 if free, 0 if not free
     s.free_vector = Wire(nslots)
