@@ -7,11 +7,11 @@ from model.hardware_model import NotReady, Result
 from util.rtl.interface import Interface
 
 
-class RTLWrapper(CLModel):
+class RTL2CLWrapper(CLModel):
 
   @HardwareModel.validate
   def __init__(s, rtl_model):
-    super(RTLWrapper, s).__init__(rtl_model.interface, False)
+    super(RTL2CLWrapper, s).__init__(rtl_model.interface, False)
     s.model = rtl_model
     s.model.elaborate()
     s.sim = SimulationTool(s.model)
@@ -101,7 +101,7 @@ class RTLWrapper(CLModel):
             'Array mismatch: len(left) = {}, len(right) = {}'.format(
                 len(left), len(right)))
       for l, r in zip(left, right):
-        RTLWrapper._list_apply(l, r, func)
+        RTL2CLWrapper._list_apply(l, r, func)
     else:
       func(left, right)
 
@@ -111,7 +111,7 @@ class RTLWrapper(CLModel):
     def set(left, right):
       left.v = right
 
-    RTLWrapper._list_apply(in_ports, values, set)
+    RTL2CLWrapper._list_apply(in_ports, values, set)
 
   def _reset(s):
     s.sim.reset()
@@ -127,7 +127,7 @@ class RTLWrapper(CLModel):
     return "{:>3}: {}".format(s.sim.ncycles, s.model.line_trace())
 
   def _pre_cycle(s):
-    super(RTLWrapper, s)._pre_cycle()
+    super(RTL2CLWrapper, s)._pre_cycle()
     # Initially, set the call signals set the call signal, if present
     for method_name, method in s.interface.methods.iteritems():
       if method.call:
@@ -135,5 +135,5 @@ class RTLWrapper(CLModel):
           s.resolve_port(method, 'call', instance=i).v = 0
 
   def _post_cycle(s):
-    super(RTLWrapper, s)._post_cycle()
+    super(RTL2CLWrapper, s)._post_cycle()
     s.sim.cycle()

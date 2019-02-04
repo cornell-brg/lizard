@@ -1,10 +1,10 @@
 from model.clmodel import CLModel
 
 
-class FLAdapter(CLModel):
+class FL2CLWrapper(CLModel):
 
   def __init__(s, flmodel):
-    super(FLAdapter, s).__init__(flmodel.interface, validate_args=False)
+    super(FL2CLWrapper, s).__init__(flmodel.interface, validate_args=False)
     s.fl = flmodel
 
     s.ready_states = {}
@@ -43,13 +43,13 @@ class FLAdapter(CLModel):
     return wrapper, ready
 
   def _pre_cycle(s):
-    super(FLAdapter, s)._pre_cycle()
+    super(FL2CLWrapper, s)._pre_cycle()
 
     for method_name in s.ready_states.keys():
       s.ready_states[method_name] = 0
 
   def _pre_call(s, func, method, call_index):
-    super(FLAdapter, s)._pre_call(func, method, call_index)
+    super(FL2CLWrapper, s)._pre_call(func, method, call_index)
 
     if method.rdy:
       # advance the ready boundary to the next method if the method is ready
