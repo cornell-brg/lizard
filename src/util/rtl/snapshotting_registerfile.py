@@ -154,10 +154,10 @@ class SnapshottingRegisterFile(Model):
     def handle_should_set():
       s.should_set.v = s.should_restore | s.set_call
 
-    s.connect(s.set_muxes[j].mux_select, s.set_call)
     for j in range(nregs):
       s.connect(s.set_muxes[j].mux_in_[0], s.restore_vector[j])
       s.connect(s.set_muxes[j].mux_in_[1], s.set_in_[j])
+      s.connect(s.set_muxes[j].mux_select, s.set_call)
       s.connect(s.set_muxes[j].mux_out, s.regs.set_in_[j])
 
     s.connect(s.regs.set_call, s.should_set)
