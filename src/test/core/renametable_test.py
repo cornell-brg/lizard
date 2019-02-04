@@ -1,6 +1,8 @@
 from pymtl import *
+from model.test_model import run_test_state_machine
 from util.test_utils import run_test_vector_sim
 from core.rtl.renametable import RenameTable
+from core.fl.renametable import RenameTableFL
 from test.config import test_verilog
 
 
@@ -25,3 +27,8 @@ def test_basic():
       ],
       dump_vcd=None,
       test_verilog=test_verilog)
+
+
+def test_state_machine():
+  run_test_state_machine(RenameTable, RenameTableFL,
+                         (2, 4, 2, 1, 2, True, [0, 0]))
