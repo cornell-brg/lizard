@@ -3,6 +3,7 @@ from pymtl import *
 from model.hardware_model import HardwareModel, NotReady, Result
 from model.flmodel import FLModel
 from util.rtl.registerfile import RegisterFileInterface
+from bitutil import copy_bits
 
 
 class RegisterFileFL(FLModel):
@@ -42,3 +43,9 @@ class RegisterFileFL(FLModel):
 
   def _reset(s):
     s.regs = s.reset_values
+
+  def _snapshot_model_state(s):
+    return [copy_bits(x) for x in s.regs]
+
+  def _restore_model_state(s, state):
+    s.regs = [copy_bits(x) for x in state]

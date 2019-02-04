@@ -6,7 +6,7 @@ from util.rtl.coders import PriorityDecoder
 from util.rtl.mux import Mux
 from util.rtl.onehot import OneHotEncoder
 from util.rtl.packers import Packer, Unpacker
-from util.rtl.interface import Interface
+from util.rtl.interface import Interface, UseInterface
 from util.rtl.types import Array, canonicalize_type
 from util.pretty_print import bitstruct_values
 
@@ -111,10 +111,11 @@ class GenericIssueSlot(Model):
 
       SlotType: Should subclass AbstractSlotType and add any additional fields
     """
-    s.iface = IssueQueueSlotInterface(SlotType(),
-                                      SlotType().src0.nbits,
-                                      SlotType().branch_mask.nbits)
-    s.iface.apply(s)
+    UseInterface(
+        s,
+        IssueQueueSlotInterface(SlotType(),
+                                SlotType().src0.nbits,
+                                SlotType().branch_mask.nbits))
 
     s.curr_ = Wire(SlotType())
     s.valid_ = RegRst(Bits(1), reset_value=0)
@@ -198,8 +199,7 @@ class CompactingIssueQueue(Model):
 
     s.idx_nbits = clog2(num_entries)
     s.KillDtype = canonicalize_type(BranchType)
-    s.interface = IssueQueueInterface(SlotType, NotifyType, BranchType)
-    s.interface.apply(s)
+    UseInterface(s, IssueQueueInterface(SlotType, NotifyType, BranchType))
 
     # Create all the slots in our issue queue
     s.slots_ = [create_slot() for _ in range(num_entries)]

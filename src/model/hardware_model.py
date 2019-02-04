@@ -2,6 +2,7 @@ import abc
 from inspect import getargspec, ismethod
 from functools import wraps
 from util.pretty_print import list_string_value
+from bitutil import copy_bits
 
 
 class HardwareModel(object):
@@ -50,6 +51,21 @@ class HardwareModel(object):
   def _reset(s):
     pass
 
+  def snapshot_model_state(s):
+    s.model_state = s._snapshot_model_state()
+
+  def restore_model_state(s):
+    s._pre_cycle_wrapper()
+    s._restore_model_state(s.model_state)
+
+  @abc.abstractmethod
+  def _snapshot_model_state(s):
+    pass
+
+  @abc.abstractmethod
+  def _restore_model_state(s, state):
+    pass
+
   @staticmethod
   def validate(func):
 
@@ -87,8 +103,9 @@ class HardwareModel(object):
     arg_spec = getargspec(func)
     if len(
         arg_spec.args
-    ) != 0 or arg_spec.varargs is not None or arg_spec.keywords is not None:
-      raise ValueError('Ready function must take no arguments')
+    ) != 1 or arg_spec.varargs is not None or arg_spec.keywords is not None:
+      raise ValueError(
+          'Ready function must take exactly 1 argument (call_index)')
 
     s.ready_methods[func.__name__] = func
 
@@ -123,8 +140,8 @@ class HardwareModel(object):
 
       s._pre_call(func, method, _call_index)
       # check to see if the method is ready
-      if func.__name__ in s.ready_methods and not s.ready_methods[func
-                                                                  .__name__]():
+      if func.__name__ in s.ready_methods and not s.ready_methods[
+          func.__name__](_call_index):
         result = not_ready_instance
       else:
         # call this method
@@ -166,6 +183,9 @@ class HardwareModel(object):
       # the result to a prior method doesn't mutate
       s._back_prop_track(method.name, _call_index, result)
       return result
+
+    if hasattr(s, func.__name__):
+      raise ValueError('Internal wrapper error')
 
     setattr(s, func.__name__,
             MethodDispatcher(func.__name__, wrapper, s.ready_methods))
@@ -223,6 +243,16 @@ class Result(object):
       s._data[k] = v
       setattr(s, k, v)
 
+  def copy(s):
+    temp = {}
+    for k, v in s._data.iteritems():
+      temp[k] = copy_bits(v)
+    return Result(**temp)
+
+  def __str__(s):
+    return '[{}]'.format(', '.join(
+        '{}={}'.format(k, v) for k, v in s._data.iteritems()))
+
 
 class MethodDispatcher(object):
 
@@ -231,8 +261,8 @@ class MethodDispatcher(object):
     s.wrapper_func = wrapper_func
     s.ready_dict = ready_dict
 
-  def rdy(s):
-    return s.ready_dict(s.name)()
+  def rdy(s, call_index):
+    return s.ready_dict[s.name](call_index)
 
   def __getitem__(s, key):
 

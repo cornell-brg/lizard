@@ -1,5 +1,5 @@
 from pymtl import *
-from util.rtl.interface import Interface, IncludeSome
+from util.rtl.interface import Interface, IncludeSome, UseInterface
 from util.rtl.method import MethodSpec
 from util.rtl.types import Array, canonicalize_type
 from core.rtl.controlflow import ControlFlowManagerInterface
@@ -34,8 +34,8 @@ class DecodeInterface(Interface):
 class Decode(Model):
 
   def __init__(s, xlen, ilen, areg_tag_nbits):
-    s.interface = DecodeInterface()
-    s.interface.apply(s)
+    UseInterface(s, DecodeInterface())
+
     s.fetch = FetchInterface(ilen)
     s.fetch.require(s, 'fetch', 'get')
 

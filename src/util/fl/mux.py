@@ -17,3 +17,9 @@ class MuxFL(FLModel):
 
   def _reset(s):
     pass
+
+  def _snapshot_model_state(s):
+    pass
+
+  def _restore_model_state(s, state):
+    pass

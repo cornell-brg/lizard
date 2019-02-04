@@ -20,6 +20,13 @@ def clog2nz(x):
     return result
 
 
+def copy_bits(bits):
+  # super hacky, there needs to be a better way to do this
+  other = bits()
+  other._uint = bits._uint
+  return other
+
+
 def sane_lookup(d):
 
   @staticmethod

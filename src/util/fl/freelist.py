@@ -3,6 +3,7 @@ from pymtl import *
 from model.hardware_model import HardwareModel, NotReady, Result
 from model.flmodel import FLModel
 from util.rtl.freelist import FreeListInterface
+from bitutil import copy_bits
 
 
 class FreeListFL(FLModel):
@@ -21,9 +22,12 @@ class FreeListFL(FLModel):
     s.nslots = nslots
     s.used_slots_initial = used_slots_initial
 
+    s.bits = Bits(s.nslots, 0)
+
     @s.model_method
     def free(index):
-      s.bits[index] = 1
+      # PYMTL_BROKEN
+      s.bits[int(index)] = 1
 
     @s.ready_method
     def alloc():
@@ -51,3 +55,10 @@ class FreeListFL(FLModel):
         s.bits[i] = 1
       else:
         s.bits[i] = 0
+
+  def _snapshot_model_state(s):
+    # make a deep copy!
+    return copy_bits(s.bits)
+
+  def _restore_model_state(s, state):
+    s.bits = copy_bits(state)

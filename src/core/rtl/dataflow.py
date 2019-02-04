@@ -1,7 +1,7 @@
 from msg.data import *
 from msg.codes import *
 
-from util.rtl.interface import Interface, IncludeSome
+from util.rtl.interface import Interface, IncludeSome, UseInterface
 from util.rtl.method import MethodSpec
 from util.rtl.types import Array, canonicalize_type
 from util.rtl.packers import Packer
@@ -155,9 +155,10 @@ class DataFlowManagerInterface(Interface):
 class DataFlowManager(Model):
 
   def __init__(s, naregs, npregs, nsnapshots, num_src_ports, num_dst_ports):
-    s.interface = DataFlowManagerInterface(naregs, npregs, nsnapshots,
-                                           num_src_ports, num_dst_ports)
-    s.interface.apply(s)
+    UseInterface(
+        s,
+        DataFlowManagerInterface(naregs, npregs, nsnapshots, num_src_ports,
+                                 num_dst_ports))
 
     s.mngr2proc = InValRdyBundle(Bits(XLEN))
     s.proc2mngr = OutValRdyBundle(Bits(XLEN))
