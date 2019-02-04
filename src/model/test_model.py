@@ -10,23 +10,10 @@ from util.rtl.interface import Interface
 from util.rtl.types import Array
 from model.wrapper import wrap_to_cl
 from model.hardware_model import NotReady, Result
+from util.pretty_print import list_string_value, list_string
 import copy
 
 debug = True
-
-
-def _list_string(lst):
-  return ", ".join([str(x) for x in lst])
-
-
-def _list_string_value(lst):
-  str_list = []
-  for x in lst:
-    if isinstance(x, BitStruct):
-      str_list += [bitstruct_detail(x)]
-    else:
-      str_list += [str(x)]
-  return ", ".join(str_list)
 
 
 #-------------------------------------------------------------------------
@@ -58,8 +45,9 @@ class MethodBasedRuleStrategy(SearchStrategy):
 
     rule_to_fire.sort(
       key=lambda rule: (
-        self.machine.interface.methods.keys().index( rule.fl_method_name ),
-        rule.rtl_method_name,
+        self.machine.interface.methods.keys().index( rule.method_name ),
+        rule.index,
+        rule.method_name,
       )
     )
 
@@ -112,7 +100,7 @@ class TestStateMachine(GenericStateMachine):
       if m_ret_names:
         error_msg = type_error_msg.format(
             method_name=method_name,
-            model_ret=_list_string(m_ret_names),
+            model_ret=list_string(m_ret_names),
             reference_ret="")
         self._error_line_trace(method_line_trace, error_msg)
       else:
@@ -122,8 +110,8 @@ class TestStateMachine(GenericStateMachine):
     if r_ret_names != m_ret_names:
       error_msg = type_error_msg.format(
           method_name=method_name,
-          model_ret=_list_string(m_ret_names),
-          reference_ret=_list_string(r_ret_names))
+          model_ret=list_string(m_ret_names),
+          reference_ret=list_string(r_ret_names))
       self._error_line_trace(method_line_trace, error_msg)
 
   def compare_result(self, m_result, r_result, method_name, arg,
@@ -144,24 +132,26 @@ class TestStateMachine(GenericStateMachine):
   """
 
     for k in r_result.keys():
-      if r_result[k] != '?' and r_result[k] != m_result[k]:
+      if r_result[k] != '?' and not r_result[k] == m_result[k]:
         m_ret_names = set(sorted(m_result.keys()))
         m_result_list = [value for (key, value) in sorted(m_result.items())]
         r_result_list = [value for (key, value) in sorted(r_result.items())]
         error_msg = value_error_msg.format(
             method_name=method_name,
             arg=arg,
-            ret_name=_list_string(m_ret_names),
-            expected_msg=_list_string_value(r_result_list),
-            actual_msg=_list_string_value(m_result_list))
+            ret_name=list_string(m_ret_names),
+            expected_msg=list_string_value(r_result_list),
+            actual_msg=list_string_value(m_result_list))
         self._error_line_trace(method_line_trace, error_msg)
 
   def steps(self):
     return self.__rules_strategy
 
-  def _call_func(s, model, name, data):
+  def _call_func(s, model, name, data, index=-1):
     func = getattr(model, name)
-    return func(**data)
+    if index < 0:
+      return func(**data)
+    return func[index](**data)
 
   def execute_step(self, step):
     # store result of sim and reference
@@ -189,25 +179,26 @@ class TestStateMachine(GenericStateMachine):
 
       # For method based interface rules, call rdy ones only
       methods = self.interface.methods
-      fl_name = rule.fl_method_name
-      rtl_name = rule.rtl_method_name
+      method_name = rule.method_name
+      index = rule.index
 
       # First check if methods are ready
-      s_result = self._call_func(self.sim, rtl_name, data)
-      r_result = self._call_func(self.reference, fl_name, data)
+      s_result = self._call_func(self.sim, method_name, data, index)
+      r_result = self._call_func(self.reference, method_name, data)
 
       if isinstance(s_result, NotReady):
         if not isinstance(r_result, NotReady):
           raise RunMethodTestError(
-              "Reference model is rdy but RTL model is not: {}".format(fl_name))
+              "Reference model is rdy but RTL model is not: {}".format(
+                  method_name))
         continue
 
       if isinstance(r_result, NotReady):
         raise RunMethodTestError(
-            "RTL model is rdy but Reference is not: {}".format(fl_name))
+            "RTL model is rdy but Reference is not: {}".format(method_name))
 
       # Method ready, add to result list
-      method_names += [rtl_name]
+      method_names += [method_name]
 
       # If in debug mode, print out all the methods called
       if debug:
@@ -216,9 +207,11 @@ class TestStateMachine(GenericStateMachine):
           if isinstance(v, BitStruct):
             v = bitstruct_detail(v)
           argument_string += ["{}={}".format(k, v)]
+        index_string = "[{}]".format(index) if index >= 0 else ""
         method_line_trace += [
-            "{}( {} )".format(rtl_name, _list_string(argument_string))
-            if argument_string else "{}()".format(rtl_name)
+            "{}{}( {} )".format(method_name, index_string,
+                                list_string(argument_string))
+            if argument_string else "{}{}()".format(method_name, index_string)
         ]
 
       # Add to result list
@@ -329,10 +322,10 @@ class DefineMethod(object):
 
 @attr.s()
 class MethodRule(object):
-  rtl_method_name = attr.ib()
-  fl_method_name = attr.ib()
+  method_name = attr.ib()
   arguments = attr.ib()
   precondition = attr.ib()
+  index = attr.ib(default=-1)
 
   def __attrs_post_init__(self):
     self.arguments_strategy = st.fixed_dictionaries(self.arguments)
@@ -348,20 +341,17 @@ def add_rule(cls, method_spec):
   #precondition = getattr(rule_function, PRECONDITION_MARKER, None)
   arguments = cls.argument_strategy(name)
   precondition = cls.precondition(name)
-  if not method_spec.count:
+  if method_spec.count == None:
     rule = MethodRule(
-        rtl_method_name=name,
-        fl_method_name=name,
-        arguments=arguments,
-        precondition=precondition)
+        method_name=name, arguments=arguments, precondition=precondition)
     cls.add_rule(rule, method_spec.call)
   else:
     for i in range(method_spec.count):
       rule = MethodRule(
-          rtl_method_name=name,
-          fl_method_name=name,
+          method_name=name,
           arguments=arguments,
-          precondition=precondition)
+          precondition=precondition,
+          index=i)
       cls.add_rule(rule, method_spec.call)
 
 
@@ -382,8 +372,7 @@ class ArgumentStrategy(object):
 
     @st.composite
     def strategy(draw):
-      new_bitstruct = copy.copy(bitstruct)
-      new_bitstruct.v = 0
+      new_bitstruct = create_test_bitstruct(bitstruct)()
       for name, slice_ in type(bitstruct)._bitfields.iteritems():
         if not name in kwargs.keys():
           data = draw(bits_strategy(slice_.stop - slice_.start))
@@ -564,4 +553,4 @@ def bitstruct_detail(bitstruct):
   bitfields = []
   for k, v in bitstruct._bitfields.iteritems():
     bitfields += ["{}: {}".format(k, bitstruct[v.start:v.stop])]
-  return "( " + _list_string(bitfields) + " )"
+  return "( " + list_string(bitfields) + " )"
