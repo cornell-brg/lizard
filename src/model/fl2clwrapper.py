@@ -60,11 +60,11 @@ class FL2CLWrapper(CLModel):
   def _reset(s):
     s.fl.reset()
 
-  def _snapshot(s):
-    s.fl.snapshot()
+  def _snapshot_model_state(s):
+    s.fl.snapshot_model_state()
 
-  def _restore(s):
-    s.fl.restore()
+  def _restore_model_state(s, state):
+    s.fl.restore_model_state()
 
   def line_trace(s):
     return ''

@@ -13,7 +13,7 @@ class CL2RTLWrapper(Model):
 
     s.cl.reset()
     # start with one snapshot in case compute is called before cycle
-    s.cl.snapshot()
+    s.cl.snapshot_model_state()
 
     # Uses to force the compute block to run at least once per cycle
     # The tick_rtl block toggles this every cycle, and we put it in the
@@ -26,7 +26,7 @@ class CL2RTLWrapper(Model):
 
     def compute():
       # before we recomupte everything, must restore to the start of the cycle
-      s.cl.restore()
+      s.cl.restore_model_state()
 
       for method_name, method in s.interface.methods.iteritems():
         cl_method_dispatcher = getattr(s.cl, method_name)
@@ -92,7 +92,7 @@ class CL2RTLWrapper(Model):
         s.whatever_you_do_make_sure_no_method_has_this_name.n = ~s.whatever_you_do_make_sure_no_method_has_this_name
         s.cl.cycle()
       # snapshot at the start of each cycle
-      s.cl.snapshot()
+      s.cl.snapshot_model_state()
 
   def resolve_port(s, method, name, instance):
     # model.<method_name>_<port_name>

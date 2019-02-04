@@ -116,10 +116,10 @@ class RTL2CLWrapper(CLModel):
   def _reset(s):
     s.sim.reset()
 
-  def _snapshot(s):
+  def _snapshot_model_state(s):
     raise ValueError('snapshot not implemented on RTL models')
 
-  def _restore(s):
+  def _restore_model_state(s, state):
     raise ValueError('restore not implemented on RTL models')
 
   def line_trace(s):

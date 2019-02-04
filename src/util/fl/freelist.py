@@ -56,9 +56,9 @@ class FreeListFL(FLModel):
       else:
         s.bits[i] = 0
 
-  def _snapshot(s):
+  def _snapshot_model_state(s):
     # make a deep copy!
-    s.state_snapshot = copy_bits(s.bits)
+    return copy_bits(s.bits)
 
-  def _restore(s):
-    s.bits = copy_bits(s.state_snapshot)
+  def _restore_model_state(s, state):
+    s.bits = copy_bits(state)

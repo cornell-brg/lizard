@@ -16,11 +16,11 @@ class CL2FLWrapper(FLModel):
   def _reset(s):
     s.cl.reset()
 
-  def _snapshot(s):
-    s.cl.snapshot()
+  def _snapshot_model_state(s):
+    s.cl.snapshot_model_state()
 
-  def _restore(s):
-    s.cl.restore()
+  def _restore_model_state(s, state):
+    s.cl.restore_model_state()
 
   def _gen_wrapper_function(s, method_name):
     method = s.interface.methods[method_name]
