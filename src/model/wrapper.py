@@ -2,10 +2,10 @@ from inspect import isclass
 from pymtl import *
 from model.flmodel import FLModel
 from model.clmodel import CLModel
-from model.rtlwrapper import RTLWrapper
-from model.clwrapper import CLWrapper
-from model.fladapter import FLAdapter
-from model.cladapter import CLAdapter
+from model.rtl2clwrapper import RTL2CLWrapper
+from model.cl2flwrapper import CL2FLWrapper
+from model.fl2clwrapper import FL2CLWrapper
+from model.cl2rtlwrapper import CL2RTLWrapper
 
 
 class Wrapper(object):
@@ -57,18 +57,18 @@ def gen_wrap(wrap_spec):
 
 wrap_to_rtl = gen_wrap({
     Model: [],
-    CLModel: [CLAdapter],
-    FLModel: [FLAdapter, CLAdapter],
+    CLModel: [CL2RTLWrapper],
+    FLModel: [FL2CLWrapper, CL2RTLWrapper],
 })
 
 wrap_to_cl = gen_wrap({
-    Model: [RTLWrapper],
+    Model: [RTL2CLWrapper],
     CLModel: [],
-    FLModel: [FLAdapter],
+    FLModel: [FL2CLWrapper],
 })
 
 wrap_to_fl = gen_wrap({
-    Model: [RTLWrapper, CLWrapper],
-    CLModel: [CLWrapper],
+    Model: [RTL2CLWrapper, CL2FLWrapper],
+    CLModel: [CL2FLWrapper],
     FLModel: [],
 })

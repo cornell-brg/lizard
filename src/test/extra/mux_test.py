@@ -7,7 +7,7 @@ from util.cl.mux import MuxCL
 from test.config import test_verilog
 from model.wrapper import wrap_to_cl, wrap_to_rtl
 from model.test_model import run_test_state_machine
-from model.cladapter import CLAdapter
+from model.cl2rtlwrapper import CL2RTLWrapper
 
 
 def test_basic():

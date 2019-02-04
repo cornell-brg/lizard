@@ -2,10 +2,10 @@ from pymtl import *
 from util.rtl.interface import Interface
 from model.hardware_model import NotReady, Result
 from model.clmodel import CLModel
-from model.rtlwrapper import RTLWrapper
+from model.rtl2clwrapper import RTL2CLWrapper
 
 
-class CLAdapter(Model):
+class CL2RTLWrapper(Model):
 
   def __init__(s, clmodel):
     s.cl = clmodel
@@ -67,7 +67,7 @@ class CLAdapter(Model):
 
           # at this point we have a result no matter what, write it out
           for ret_name, ret_value in result._data.iteritems():
-            RTLWrapper._set_inputs(
+            RTL2CLWrapper._set_inputs(
                 s.resolve_port(method, ret_name, instance), ret_value)
 
     def generate_senses():
@@ -107,6 +107,6 @@ class CLAdapter(Model):
   def rec_add(source, target):
     if isinstance(source, list):
       for x in source:
-        CLAdapter.rec_add(x, target)
+        CL2RTLWrapper.rec_add(x, target)
     else:
       target.append(source)

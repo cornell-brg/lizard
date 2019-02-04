@@ -1,7 +1,7 @@
 from model.flmodel import FLModel
 
 
-class CLWrapper(FLModel):
+class CL2FLWrapper(FLModel):
 
   def __init__(s, clmodel):
     super(FLModel, s).__init__(clmodel.interface, validate_args=False)
