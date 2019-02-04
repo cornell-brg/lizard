@@ -1,15 +1,15 @@
 from pymtl import *
 
 from model.hardware_model import HardwareModel
-from model.flmodel import FLModel
+from model.clmodel import CLModel
 from util.rtl.mux import MuxInterface
 
 
-class MuxFL(FLModel):
+class MuxCL(CLModel):
 
   @HardwareModel.validate
   def __init__(s, dtype, nports):
-    super(MuxFL, s).__init__(MuxInterface(dtype, nports))
+    super(MuxCL, s).__init__(MuxInterface(dtype, nports))
 
     @s.model_method
     def mux(in_, select):
@@ -23,3 +23,6 @@ class MuxFL(FLModel):
 
   def _restore_model_state(s, state):
     pass
+
+  def line_trace(s):
+    return ''

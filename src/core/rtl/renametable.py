@@ -1,6 +1,6 @@
 from pymtl import *
 from bitutil import clog2, clog2nz
-from util.rtl.interface import Interface, IncludeSome
+from util.rtl.interface import Interface, IncludeSome, UseInterface, connect_m
 from util.rtl.method import MethodSpec
 from util.rtl.types import Array, canonicalize_type
 from util.rtl.snapshotting_registerfile import SnapshottingRegisterFile, SnapshottingRegisterFileInterface
@@ -64,9 +64,10 @@ class RenameTable(Model):
 
   def __init__(s, naregs, npregs, num_lookup_ports, num_update_ports,
                nsnapshots, const_zero, initial_map):
-    s.interface = RenameTableInterface(naregs, npregs, num_lookup_ports,
-                                       num_update_ports, nsnapshots)
-    s.interface.apply(s)
+    UseInterface(
+        s,
+        RenameTableInterface(naregs, npregs, num_lookup_ports, num_update_ports,
+                             nsnapshots))
 
     s.rename_table = SnapshottingRegisterFile(
         s.interface.Preg,
@@ -108,15 +109,9 @@ class RenameTable(Model):
       else:
         s.connect(s.update_call[i], s.rename_table.write_call[i])
 
-    s.connect(s.snapshot_target_id, s.rename_table.snapshot_target_id)
-    s.connect(s.snapshot_call, s.rename_table.snapshot_call)
-
-    s.connect(s.restore_source_id, s.rename_table.restore_source_id)
-    s.connect(s.restore_call, s.rename_table.restore_call)
-
-    s.connect(s.set_call, s.rename_table.set_call)
-    for i in range(naregs):
-      s.connect(s.set_in_[i], s.rename_table.set_in_[i])
+    connect_m(s.snapshot, s.rename_table.snapshot)
+    connect_m(s.restore, s.rename_table.restore)
+    connect_m(s.set, s.rename_table.set)
 
   def line_trace(s):
     return s.rename_table.line_trace()

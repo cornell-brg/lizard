@@ -1,6 +1,6 @@
 from pymtl import *
 from bitutil import clog2nz
-from util.rtl.interface import Interface, IncludeSome
+from util.rtl.interface import Interface, IncludeSome, UseInterface, connect_m
 from util.rtl.method import MethodSpec
 from util.rtl.types import Array, canonicalize_type
 from util.rtl.registerfile import RegisterFile, RegisterFileInterface
@@ -64,10 +64,11 @@ class SnapshottingRegisterFile(Model):
                write_snapshot_bypass,
                nsnapshots,
                reset_values=None):
-    s.interface = SnapshottingRegisterFileInterface(
-        dtype, nregs, num_read_ports, num_write_ports, write_read_bypass,
-        write_snapshot_bypass, nsnapshots)
-    s.interface.apply(s)
+    UseInterface(
+        s,
+        SnapshottingRegisterFileInterface(dtype, nregs, num_read_ports,
+                                          num_write_ports, write_read_bypass,
+                                          write_snapshot_bypass, nsnapshots))
 
     # Note that write_dump_bypass is set with write_snapshot_bypass
     # To bypass the result of a write into a snapshot, the internal
@@ -87,14 +88,8 @@ class SnapshottingRegisterFile(Model):
     ]
 
     # Forward read and writes to register file
-    for i in range(num_read_ports):
-      s.connect(s.read_addr[i], s.regs.read_addr[i])
-      s.connect(s.read_data[i], s.regs.read_data[i])
-
-    for i in range(num_write_ports):
-      s.connect(s.write_addr[i], s.regs.write_addr[i])
-      s.connect(s.write_data[i], s.regs.write_data[i])
-      s.connect(s.write_call[i], s.regs.write_call[i])
+    connect_m(s.read, s.regs.read)
+    connect_m(s.write, s.regs.write)
 
     # Connect the dump data from the primary register file
     # to the set port on each snapshot
