@@ -42,7 +42,7 @@ class RegisterFileFL(FLModel):
       s.regs = in_[:]
 
   def _reset(s):
-    s.regs = s.reset_values
+    s.regs = s.reset_values[:]
 
   def _snapshot_model_state(s):
     return [copy_bits(x) for x in s.regs]
