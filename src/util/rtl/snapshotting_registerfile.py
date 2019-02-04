@@ -1,6 +1,6 @@
 from pymtl import *
 from bitutil import clog2nz
-from util.rtl.interface import Interface, IncludeSome, connect_m
+from util.rtl.interface import Interface, IncludeSome, UseInterface, connect_m
 from util.rtl.method import MethodSpec
 from util.rtl.types import Array, canonicalize_type
 from util.rtl.registerfile import RegisterFile, RegisterFileInterface
@@ -64,10 +64,11 @@ class SnapshottingRegisterFile(Model):
                write_snapshot_bypass,
                nsnapshots,
                reset_values=None):
-    s.interface = SnapshottingRegisterFileInterface(
-        dtype, nregs, num_read_ports, num_write_ports, write_read_bypass,
-        write_snapshot_bypass, nsnapshots)
-    s.interface.apply(s)
+    UseInterface(
+        s,
+        SnapshottingRegisterFileInterface(dtype, nregs, num_read_ports,
+                                          num_write_ports, write_read_bypass,
+                                          write_snapshot_bypass, nsnapshots))
 
     # Note that write_dump_bypass is set with write_snapshot_bypass
     # To bypass the result of a write into a snapshot, the internal

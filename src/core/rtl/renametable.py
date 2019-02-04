@@ -1,6 +1,6 @@
 from pymtl import *
 from bitutil import clog2, clog2nz
-from util.rtl.interface import Interface, IncludeSome, connect_m
+from util.rtl.interface import Interface, IncludeSome, UseInterface, connect_m
 from util.rtl.method import MethodSpec
 from util.rtl.types import Array, canonicalize_type
 from util.rtl.snapshotting_registerfile import SnapshottingRegisterFile, SnapshottingRegisterFileInterface
@@ -64,9 +64,10 @@ class RenameTable(Model):
 
   def __init__(s, naregs, npregs, num_lookup_ports, num_update_ports,
                nsnapshots, const_zero, initial_map):
-    s.interface = RenameTableInterface(naregs, npregs, num_lookup_ports,
-                                       num_update_ports, nsnapshots)
-    s.interface.apply(s)
+    UseInterface(
+        s,
+        RenameTableInterface(naregs, npregs, num_lookup_ports, num_update_ports,
+                             nsnapshots))
 
     s.rename_table = SnapshottingRegisterFile(
         s.interface.Preg,

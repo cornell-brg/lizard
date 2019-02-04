@@ -1,6 +1,6 @@
 from pymtl import *
 from bitutil import clog2, clog2nz
-from util.rtl.interface import Interface
+from util.rtl.interface import Interface, UseInterface
 from util.rtl.method import MethodSpec
 from util.rtl.types import Array, canonicalize_type
 
@@ -73,10 +73,10 @@ class RegisterFile(Model):
                write_read_bypass,
                write_dump_bypass,
                reset_values=None):
-    s.interface = RegisterFileInterface(dtype, nregs, num_read_ports,
-                                        num_write_ports, write_read_bypass,
-                                        write_dump_bypass)
-    s.interface.apply(s)
+    UseInterface(
+        s,
+        RegisterFileInterface(dtype, nregs, num_read_ports, num_write_ports,
+                              write_read_bypass, write_dump_bypass))
 
     # The core register file
     s.regs = [Wire(s.interface.Data) for _ in range(nregs)]

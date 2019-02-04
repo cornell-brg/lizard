@@ -1,5 +1,5 @@
 from pymtl import *
-from util.rtl.interface import Interface
+from util.rtl.interface import Interface, UseInterface
 from util.rtl.method import MethodSpec
 from util.rtl.types import Array, canonicalize_type
 from bitutil import clog2, clog2nz
@@ -30,8 +30,7 @@ class PriorityDecoderInterface(Interface):
 class PriorityDecoder(Model):
 
   def __init__(s, inwidth):
-    s.interface = PriorityDecoderInterface(inwidth)
-    s.interface.apply(s)
+    UseInterface(s, PriorityDecoderInterface(inwidth))
 
     s.valid = [Wire(1) for _ in range(inwidth + 1)]
     s.outs = [Wire(s.interface.Out) for _ in range(inwidth + 1)]
