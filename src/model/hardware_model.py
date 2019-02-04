@@ -51,19 +51,19 @@ class HardwareModel(object):
   def _reset(s):
     pass
 
-  def snapshot(s):
-    s._snapshot()
+  def snapshot_model_state(s):
+    s.model_state = s._snapshot_model_state()
 
-  def restore(s):
+  def restore_model_state(s):
     s._pre_cycle_wrapper()
-    s._restore()
+    s._restore_model_state(s.model_state)
 
   @abc.abstractmethod
-  def _snapshot(s):
+  def _snapshot_model_state(s):
     pass
 
   @abc.abstractmethod
-  def _restore(s):
+  def _restore_model_state(s, state):
     pass
 
   @staticmethod
