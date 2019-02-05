@@ -155,7 +155,7 @@ class DataFlowManagerFL(FLModel):
       arch_used_pregs_dump = s.arch_used_pregs.dump().out
       for i in range(npregs - 1):
         arch_used_pregs_packed[i] = arch_used_pregs_dump[i]
-      s.free_regs.set(arch_used_pregs_packed)
+      s.free_regs.set(~arch_used_pregs_packed)
       s.rename_table.set(s.areg_file.dump().out)
 
     @s.model_method

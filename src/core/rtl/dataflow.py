@@ -4,6 +4,7 @@ from msg.codes import *
 from util.rtl.interface import Interface, IncludeSome, UseInterface, connect_m
 from util.rtl.method import MethodSpec
 from util.rtl.types import Array, canonicalize_type
+from util.rtl.mux import Mux
 from util.rtl.packers import Packer
 from util.rtl.snapshotting_freelist import SnapshottingFreeList
 from util.rtl.registerfile import RegisterFile
@@ -220,9 +221,14 @@ class DataFlowManager(Model):
     # and ready states
     # Number of read ports is the same as number of source ports
     # 2 write ports are needed for every dst port:
-    # The first set to update all the destination states during issue,
-    # (get_dst), and the second set to write the computed value
+    # The second set to update all the destination states during issue,
+    # (get_dst), and the first set to write the computed value
     # (write_tag)
+    # We give write_tag the first set since it is sequenced before get_dst
+    # In practice, there should be no conflicts (or the processor is doing
+    # something dumb). But, we must adhere to the interface even if the
+    # user does something dumb and tries to write to a bogus tag which
+    # is currently free.
     # Writes are bypassed before reads, and the dump/set is not used
     s.preg_file = RegisterFile(
         s.PregState(),
@@ -302,16 +308,14 @@ class DataFlowManager(Model):
         s.is_write_not_zero_tag[i].v = (s.write_tag_tag[i] !=
                                         s.ZERO_TAG) and s.write_tag_call[i]
 
-      # All operations on the preg file are on the second set of write ports
-      # at the offset +num_dst_ports
+      # All operations on the preg file are on the first set of write ports
+      # at the offset 0
       # Write the value and ready into the preg file
-      s.connect(s.preg_file.write_addr[i + num_dst_ports], s.write_tag_tag[i])
-      s.connect(s.preg_file.write_data[i + num_dst_ports].value,
-                s.write_tag_value[i])
-      s.connect(s.preg_file.write_data[i + num_dst_ports].ready, 1)
+      s.connect(s.preg_file.write_addr[i], s.write_tag_tag[i])
+      s.connect(s.preg_file.write_data[i].value, s.write_tag_value[i])
+      s.connect(s.preg_file.write_data[i].ready, 1)
       # Only write if not the zero tag
-      s.connect(s.preg_file.write_call[i + num_dst_ports],
-                s.is_write_not_zero_tag[i])
+      s.connect(s.preg_file.write_call[i], s.is_write_not_zero_tag[i])
 
     # get_src
     connect_m(s.get_src, s.rename_table.lookup)
@@ -345,29 +349,39 @@ class DataFlowManager(Model):
       s.connect(s.rename_table.update_areg[i], s.get_dst_areg[i])
       s.connect(s.rename_table.update_preg[i], s.get_dst_preg[i])
       s.connect(s.rename_table.update_call[i], s.get_dst_need_writeback[i])
-      # All operations on the preg file are on the first set of write ports
-      # at the offset +0
-      s.connect(s.preg_file.write_addr[i], s.get_dst_preg[i])
-      s.connect(s.preg_file.write_data[i].value, 0)
-      s.connect(s.preg_file.write_data[i].ready, 0)
-      s.connect(s.preg_file.write_call[i], s.get_dst_need_writeback[i])
+      # All operations on the preg file are on the second set of write ports
+      # at the offset +num_dst_ports
+      s.connect(s.preg_file.write_addr[i + num_dst_ports], s.get_dst_preg[i])
+      s.connect(s.preg_file.write_data[i + num_dst_ports].value, 0)
+      s.connect(s.preg_file.write_data[i + num_dst_ports].ready, 0)
+      s.connect(s.preg_file.write_call[i + num_dst_ports],
+                s.get_dst_need_writeback[i])
       # save the inverse
       s.connect(s.inverse.write_addr[i], s.get_dst_preg[i])
       s.connect(s.inverse.write_data[i], s.get_dst_areg[i])
       s.connect(s.inverse.write_call[i], s.get_dst_need_writeback[i])
 
     # read_tag
+    s.read_tag_muxes_ready = [Mux(Bits(1), 2) for _ in range(num_src_ports)]
+    s.read_tag_muxes_value = [Mux(Bits(dlen), 2) for _ in range(num_src_ports)]
+    s.read_tag_is_zero_tag = [Wire(1) for _ in range(num_src_ports)]
     for i in range(num_src_ports):
-      s.connect(s.read_tag_tag[i], s.preg_file.read_addr[i])
 
       @s.combinational
       def handle_read_tag(i=i):
-        if s.read_tag_tag[i] == s.ZERO_TAG:
-          s.read_tag_ready[i].v = 1
-          s.read_tag_value[i].v = 0
-        else:
-          s.read_tag_ready[i].v = s.preg_file.read_data[i].ready
-          s.read_tag_value[i].v = s.preg_file.read_data[i].value
+        s.read_tag_is_zero_tag[i].v = s.read_tag_tag[i] == s.ZERO_TAG
+
+      s.connect(s.read_tag_tag[i], s.preg_file.read_addr[i])
+      s.connect(s.read_tag_muxes_ready[i].mux_in_[0],
+                s.preg_file.read_data[i].ready)
+      s.connect(s.read_tag_muxes_value[i].mux_in_[0],
+                s.preg_file.read_data[i].value)
+      s.connect(s.read_tag_muxes_ready[i].mux_in_[1], 1)
+      s.connect(s.read_tag_muxes_value[i].mux_in_[1], 0)
+      s.connect(s.read_tag_muxes_ready[i].mux_select, s.read_tag_is_zero_tag[i])
+      s.connect(s.read_tag_muxes_value[i].mux_select, s.read_tag_is_zero_tag[i])
+      s.connect(s.read_tag_ready[i], s.read_tag_muxes_ready[i].mux_out)
+      s.connect(s.read_tag_value[i], s.read_tag_muxes_value[i].mux_out)
 
     # snapshot
     # ready if a snapshot ID is available
@@ -415,7 +429,11 @@ class DataFlowManager(Model):
     for i in range(npregs - 1):
       s.connect(s.arch_used_pregs_packer.pack_in_[i],
                 s.arch_used_pregs.dump_out[i])
-    s.connect(s.free_regs.set_state, s.arch_used_pregs_packer.pack_packed)
+    # set the free regs to the complement
+    @s.combinational
+    def handle_rollback_free_regs_set():
+      s.free_regs.set_state.v = ~s.arch_used_pregs_packer.pack_packed
+
     s.connect(s.free_regs.set_call, s.rollback_call)
     # set the rename table to the areg_file (again write_dump_bypass is true)
     for i in range(naregs):
