@@ -35,17 +35,17 @@ class RegisterFileFL(FLModel):
 
     @s.model_method
     def dump():
-      return s.regs[:]
+      return copy_bits(s.regs)
 
     @s.model_method
     def set(in_):
-      s.regs = in_[:]
+      s.regs = copy_bits(in_)
 
   def _reset(s):
-    s.regs = s.reset_values[:]
+    s.regs = copy_bits(s.reset_values)
 
   def _snapshot_model_state(s):
-    return [copy_bits(x) for x in s.regs]
+    return copy_bits(s.regs)
 
   def _restore_model_state(s, state):
-    s.regs = [copy_bits(x) for x in state]
+    s.regs = copy_bits(state)
