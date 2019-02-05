@@ -1,7 +1,7 @@
 from msg.data import *
 from msg.codes import *
 
-from util.rtl.interface import Interface, IncludeSome, UseInterface
+from util.rtl.interface import Interface, IncludeSome, UseInterface, connect_m
 from util.rtl.method import MethodSpec
 from util.rtl.types import Array, canonicalize_type
 from util.rtl.packers import Packer
@@ -14,14 +14,15 @@ from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 
 class PregState(BitStructDefinition):
 
-  def __init__(s):
-    s.value = BitField(XLEN)
+  def __init__(s, dlen):
+    s.value = BitField(dlen)
     s.ready = BitField(1)
 
 
 class DataFlowManagerInterface(Interface):
 
-  def __init__(s, naregs, npregs, nsnapshots, num_src_ports, num_dst_ports):
+  def __init__(s, dlen, naregs, npregs, nsnapshots, num_src_ports,
+               num_dst_ports):
     rename_table_interface = RenameTableInterface(naregs, npregs, 0, 0,
                                                   nsnapshots)
 
@@ -63,7 +64,7 @@ class DataFlowManagerInterface(Interface):
                 },
                 rets={
                     'ready': Bits(1),
-                    'value': Bits(XLEN),
+                    'value': Bits(dlen),
                 },
                 call=False,
                 rdy=False,
@@ -73,7 +74,7 @@ class DataFlowManagerInterface(Interface):
                 'write_tag',
                 args={
                     'tag': s.Preg,
-                    'value': Bits(XLEN),
+                    'value': Bits(dlen),
                 },
                 rets=None,
                 call=True,
@@ -103,7 +104,7 @@ class DataFlowManagerInterface(Interface):
                     'csr_num': Bits(CSR_SPEC_NBITS),
                 },
                 rets={
-                    'result': Bits(XLEN),
+                    'result': Bits(dlen),
                     'success': Bits(1),
                 },
                 call=True,
@@ -113,7 +114,7 @@ class DataFlowManagerInterface(Interface):
                 'write_csr',
                 args={
                     'csr_num': Bits(CSR_SPEC_NBITS),
-                    'value': Bits(XLEN),
+                    'value': Bits(dlen),
                 },
                 rets={
                     'success': Bits(1),
@@ -125,7 +126,7 @@ class DataFlowManagerInterface(Interface):
                 'snapshot',
                 args=None,
                 rets={
-                    'id': s.SnapshotId,
+                    'id_': s.SnapshotId,
                 },
                 call=True,
                 rdy=True,
@@ -133,7 +134,7 @@ class DataFlowManagerInterface(Interface):
             MethodSpec(
                 'free_snapshot',
                 args={
-                    'id': s.SnapshotId,
+                    'id_': s.SnapshotId,
                 },
                 rets=None,
                 call=True,
@@ -145,7 +146,7 @@ class DataFlowManagerInterface(Interface):
         ],
         ordering_chains=[
             [
-                'commit_tag', 'write_tag', 'get_src', 'get_dst', 'read_tag',
+                'write_tag', 'get_src', 'get_dst', 'commit_tag', 'read_tag',
                 'snapshot', 'free_snapshot', 'restore', 'rollback'
             ],
         ],
@@ -154,14 +155,16 @@ class DataFlowManagerInterface(Interface):
 
 class DataFlowManager(Model):
 
-  def __init__(s, naregs, npregs, nsnapshots, num_src_ports, num_dst_ports):
+  def __init__(s, dlen, naregs, npregs, nsnapshots, num_src_ports,
+               num_dst_ports):
     UseInterface(
         s,
-        DataFlowManagerInterface(naregs, npregs, nsnapshots, num_src_ports,
-                                 num_dst_ports))
+        DataFlowManagerInterface(dlen, naregs, npregs, nsnapshots,
+                                 num_src_ports, num_dst_ports))
 
-    s.mngr2proc = InValRdyBundle(Bits(XLEN))
-    s.proc2mngr = OutValRdyBundle(Bits(XLEN))
+    s.PregState = PregState(dlen)
+    s.mngr2proc = InValRdyBundle(Bits(dlen))
+    s.proc2mngr = OutValRdyBundle(Bits(dlen))
 
     # used to allocate snapshot IDs
     s.snapshot_allocator = SnapshottingFreeList(nsnapshots, 1, 1, nsnapshots)
@@ -171,8 +174,8 @@ class DataFlowManager(Model):
     # initially
     s.free_regs = SnapshottingFreeList(
         npregs - 1,
-        num_src_ports,
         num_dst_ports,
+        num_src_ports,
         nsnapshots,
         used_slots_initial=naregs - 1)
     # arch_used_pregs tracks the physical registers used by the current architectural state
@@ -201,7 +204,7 @@ class DataFlowManager(Model):
     s.ZERO_TAG = s.rename_table.ZERO_TAG
 
     # Build the physical register file initial state
-    preg_reset = [PregState() for _ in range(npregs)]
+    preg_reset = [s.PregState() for _ in range(npregs)]
     # Build the inverse (preg -> areg map) initial state
     inverse_reset = [s.interface.Areg for _ in range(npregs)]
 
@@ -222,7 +225,7 @@ class DataFlowManager(Model):
     # (write_tag)
     # Writes are bypassed before reads, and the dump/set is not used
     s.preg_file = RegisterFile(
-        PregState(),
+        s.PregState(),
         npregs,
         num_src_ports,
         num_dst_ports * 2,
@@ -261,7 +264,8 @@ class DataFlowManager(Model):
       # Determine if the commit is not the zero tag
       @s.combinational
       def check_commit(i=i):
-        s.is_commit_not_zero_tag[i].v = (s.commit_tag_tag[i] != s.ZERO_TAG)
+        s.is_commit_not_zero_tag[i].v = (s.commit_tag_tag[i] !=
+                                         s.ZERO_TAG) and s.commit_tag_call[i]
 
       # Read the areg associated with this tag
       s.connect(s.inverse.read_addr[i], s.commit_tag_tag[i])
@@ -295,7 +299,8 @@ class DataFlowManager(Model):
       # Determine if the write is not the zero tag
       @s.combinational
       def check_write(i=i):
-        s.is_write_not_zero_tag[i].v = (s.write_tag_tag[i] != s.ZERO_TAG)
+        s.is_write_not_zero_tag[i].v = (s.write_tag_tag[i] !=
+                                        s.ZERO_TAG) and s.write_tag_call[i]
 
       # All operations on the preg file are on the second set of write ports
       # at the offset +num_dst_ports
@@ -309,16 +314,7 @@ class DataFlowManager(Model):
                 s.is_write_not_zero_tag[i])
 
     # get_src
-    for i in range(num_src_ports):
-      # read the tag from the rename table
-      s.connect(s.rename_table.lookup_areg[i], s.get_src_areg[i])
-
-      @s.combinational
-      def handle_get_src(i=i):
-        if s.get_src_areg[i] == 0:
-          s.get_src_preg[i].v = s.ZERO_TAG
-        else:
-          s.get_src_preg[i].v = s.rename_table.lookup_preg[i]
+    connect_m(s.get_src, s.rename_table.lookup)
 
     # get_dst
     s.get_dst_need_writeback = [Wire(1) for _ in range(num_dst_ports)]
@@ -334,10 +330,10 @@ class DataFlowManager(Model):
           s.get_dst_need_writeback[i].v = 0
         elif s.free_regs.alloc_rdy[i]:
           # allocate a register from the freelist
-          s.free_regs.alloc_call[i].v = 1
+          s.free_regs.alloc_call[i].v = s.get_dst_call[i]
           s.get_dst_preg[i].v = s.free_regs.alloc_index[i]
           s.get_dst_success[i].v = 1
-          s.get_dst_need_writeback[i].v = 1
+          s.get_dst_need_writeback[i].v = s.get_dst_call[i]
         else:
           # free list is full
           s.free_regs.alloc_call[i].v = 0
@@ -363,30 +359,37 @@ class DataFlowManager(Model):
     # read_tag
     for i in range(num_src_ports):
       s.connect(s.read_tag_tag[i], s.preg_file.read_addr[i])
-      s.connect(s.read_tag_ready[i], s.preg_file.read_data[i].ready)
-      s.connect(s.read_tag_value[i], s.preg_file.read_data[i].value)
+
+      @s.combinational
+      def handle_read_tag(i=i):
+        if s.read_tag_tag[i] == s.ZERO_TAG:
+          s.read_tag_ready[i].v = 1
+          s.read_tag_value[i].v = 0
+        else:
+          s.read_tag_ready[i].v = s.preg_file.read_data[i].ready
+          s.read_tag_value[i].v = s.preg_file.read_data[i].value
 
     # snapshot
     # ready if a snapshot ID is available
     s.connect(s.snapshot_rdy, s.snapshot_allocator.alloc_rdy[0])
     # snapshot ID is allocated by the allocator and returned
-    s.connect(s.snapshot_id, s.snapshot_allocator.alloc_index[0])
+    s.connect(s.snapshot_id_, s.snapshot_allocator.alloc_index[0])
     s.connect(s.snapshot_call, s.snapshot_allocator.alloc_call[0])
     # snapshot the snapshot allocator into itself
     s.connect(s.snapshot_allocator.reset_alloc_tracking_target_id,
-              s.snapshot_id)
+              s.snapshot_id_)
     s.connect(s.snapshot_allocator.reset_alloc_tracking_call, s.snapshot_call)
     # snapshot the freelist
-    s.connect(s.free_regs.reset_alloc_tracking_target_id, s.snapshot_id)
+    s.connect(s.free_regs.reset_alloc_tracking_target_id, s.snapshot_id_)
     s.connect(s.free_regs.reset_alloc_tracking_call, s.snapshot_call)
     # snapshot the rename table
-    s.connect(s.rename_table.snapshot_target_id, s.snapshot_id)
-    s.connect(s.rename_table.snapshot_call, s.snapshot_id)
+    s.connect(s.rename_table.snapshot_target_id, s.snapshot_id_)
+    s.connect(s.rename_table.snapshot_call, s.snapshot_call)
 
     # free_snapshot
     # just free it in the snapshot allocator, all the various
     # snapshots will eventually be overwritten
-    s.connect(s.snapshot_allocator.free_index[0], s.free_snapshot_id)
+    s.connect(s.snapshot_allocator.free_index[0], s.free_snapshot_id_)
     s.connect(s.snapshot_allocator.free_call[0], s.free_snapshot_call)
 
     # restore
@@ -425,33 +428,35 @@ class DataFlowManager(Model):
       s.read_csr_result.v = 0
       s.read_csr_success.v = 0
 
-      s.mngr2proc.rdy.v = 0
-
-      if s.read_csr_call:
-        if s.read_csr_csr_num == CsrRegisters.mngr2proc:
-          s.read_csr_result.v = s.mngr2proc.msg
-          s.read_csr_success.v = s.mngr2proc.val
-          # we are ready if data is valid and we made it here
-          s.mngr2proc.rdy.v = s.mngr2proc.val
-        else:
-          # no other CSRs supported return 0
-          s.read_csr_result.v = 0
-          s.read_csr_success.v = 1
+#      s.mngr2proc.rdy.v = 0
+#
+#      if s.read_csr_call:
+#        if s.read_csr_csr_num == CsrRegisters.mngr2proc:
+#          s.read_csr_result.v = s.mngr2proc.msg
+#          s.read_csr_success.v = s.mngr2proc.val
+#          # we are ready if data is valid and we made it here
+#          s.mngr2proc.rdy.v = s.mngr2proc.val
+#        else:
+#          # no other CSRs supported return 0
+#          s.read_csr_result.v = 0
+#          s.read_csr_success.v = 1
 
     @s.combinational
     def handle_write_csr():
       s.write_csr_success.v = 0
-      s.proc2mngr.msg.v = 0
-      s.proc2mngr.val.v = 0
 
-      if s.write_csr_call:
-        if s.write_csr_csr_num == CsrRegisters.proc2mngr:
-          s.write_csr_success.v = s.proc2mngr.rdy
-          s.proc2mngr.msg.v = s.write_csr_value
-          s.proc2mngr.val.v = s.proc2mngr.rdy
-        else:
-          # no other CSRs supported
-          s.write_csr_success.v = 1
+
+#      s.proc2mngr.msg.v = 0
+#      s.proc2mngr.val.v = 0
+#
+#      if s.write_csr_call:
+#        if s.write_csr_csr_num == CsrRegisters.proc2mngr:
+#          s.write_csr_success.v = s.proc2mngr.rdy
+#          s.proc2mngr.msg.v = s.write_csr_value
+#          s.proc2mngr.val.v = s.proc2mngr.rdy
+#        else:
+#          # no other CSRs supported
+#          s.write_csr_success.v = 1
 
   def line_trace(s):
     return "<dataflow>"

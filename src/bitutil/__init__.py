@@ -23,7 +23,10 @@ def clog2nz(x):
 def copy_bits(bits):
   if isinstance(bits, list):
     return [copy_bits(x) for x in bits]
+  elif isinstance(bits, int):
+    return bits
   else:
+    assert isinstance(bits, Bits)
     # super hacky, there needs to be a better way to do this
     other = bits()
     other._uint = bits._uint

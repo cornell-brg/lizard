@@ -182,7 +182,9 @@ class HardwareModel(object):
       # This is used to ensure that when a future method is called
       # the result to a prior method doesn't mutate
       s._back_prop_track(method.name, _call_index, result)
-      return result
+
+      # Freeze the result so if the caller preserves it across multiple cycles it doesn't change
+      return s._freeze_result(result)
 
     if hasattr(s, func.__name__):
       raise ValueError('Internal wrapper error')
@@ -195,27 +197,28 @@ class HardwareModel(object):
     s._pre_cycle_wrapper()
 
   @staticmethod
-  def _freeze_bits(data):
-    if isinstance(data, list):
-      return [HardwareModel._freeze_bits(x) for x in data]
+  def _freeze_result(result):
+    result = HardwareModel._freeze_result_to_dict(result)
+    if isinstance(result, NotReady):
+      return result
     else:
-      return int(data)
+      return Result(**result)
 
   @staticmethod
-  def _freeze_result(result):
+  def _freeze_result_to_dict(result):
     if isinstance(result, NotReady):
       return result
     frozen = {}
     for name, value in result._data.iteritems():
-      frozen[name] = HardwareModel._freeze_bits(value)
+      frozen[name] = copy_bits(value)
     return frozen
 
   def _back_prop_track(s, method_name, call_index, result):
     s.back_prop_tracking.append((method_name, call_index, result,
-                                 s._freeze_result(result)))
+                                 s._freeze_result_to_dict(result)))
 
     for method_name, call_index, result, frozen in s.back_prop_tracking:
-      if s._freeze_result(result) != frozen:
+      if s._freeze_result_to_dict(result) != frozen:
         raise ValueError(
             'Illegal backpropagation detected on method: {}[{}]'.format(
                 method_name, call_index))

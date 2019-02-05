@@ -10,9 +10,12 @@ from util.rtl.interface import Interface
 class RTL2CLWrapper(CLModel):
 
   @HardwareModel.validate
-  def __init__(s, rtl_model):
+  def __init__(s, rtl_model, translate=False):
     super(RTL2CLWrapper, s).__init__(rtl_model.interface, False)
     s.model = rtl_model
+    s.model.vcd_file = 'superfoo.vcd'
+    if translate:
+      s.model = TranslationTool(s.model)
     s.model.elaborate()
     s.sim = SimulationTool(s.model)
 
