@@ -533,10 +533,7 @@ class TestModel(TestStateMachine):
   @staticmethod
   def _run_state_machine(state_machine_factory):
     state_machine_factory.TestCase.settings = settings(
-        max_examples=50,
-        deadline=None,
-        derandomize=True,
-        verbosity=Verbosity.verbose)
+        max_examples=50, deadline=None, verbosity=Verbosity.verbose)
     run_state_machine_as_test(state_machine_factory)
 
 
