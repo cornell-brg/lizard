@@ -23,7 +23,7 @@ def clog2nz(x):
 def copy_bits(bits):
   if isinstance(bits, list):
     return [copy_bits(x) for x in bits]
-  elif isinstance(bits, int):
+  elif isinstance(bits, int) or isinstance(bits, long):
     return bits
   else:
     assert isinstance(bits, Bits)
