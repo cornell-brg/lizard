@@ -15,14 +15,5 @@ class MuxCL(CLModel):
     def mux(in_, select):
       return in_[select]
 
-  def _reset(s):
-    pass
-
-  def _snapshot_model_state(s):
-    pass
-
-  def _restore_model_state(s, state):
-    pass
-
   def line_trace(s):
     return ''

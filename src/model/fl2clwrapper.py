@@ -5,17 +5,19 @@ class FL2CLWrapper(CLModel):
 
   def __init__(s, flmodel):
     super(FL2CLWrapper, s).__init__(flmodel.interface, validate_args=False)
-    s.fl = flmodel
+    s.state(fl=flmodel,)
 
-    s.ready_states = {}
+    ready_states = {}
     for method_name, method in s.interface.methods.iteritems():
       if method.rdy:
-        s.ready_states[method_name] = 0
+        ready_states[method_name] = 0
 
       wrapper, ready = s._gen_wrapper_function(method_name)
       s.model_method(wrapper)
       if ready is not None:
         s.ready_method(ready)
+
+    s.state(ready_states=ready_states)
 
   def _gen_wrapper_function(s, method_name):
     method = s.interface.methods[method_name]
@@ -56,15 +58,6 @@ class FL2CLWrapper(CLModel):
       call_index = call_index or 0
       if s.fl.ready_methods[method.name](call_index):
         s.ready_states[method.name] = call_index + 1
-
-  def _reset(s):
-    s.fl.reset()
-
-  def _snapshot_model_state(s):
-    s.fl.snapshot_model_state()
-
-  def _restore_model_state(s, state):
-    s.fl.restore_model_state()
 
   def line_trace(s):
     return ''

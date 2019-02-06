@@ -5,22 +5,13 @@ class CL2FLWrapper(FLModel):
 
   def __init__(s, clmodel):
     super(FLModel, s).__init__(clmodel.interface, validate_args=False)
-    s.cl = clmodel
+    s.state(cl=clmodel)
 
     for method_name in s.interface.methods.keys():
       wrapper, ready = s._gen_wrapper_function(method_name)
       s.model_method(wrapper)
       if ready is not None:
         s.ready_method(ready)
-
-  def _reset(s):
-    s.cl.reset()
-
-  def _snapshot_model_state(s):
-    s.cl.snapshot_model_state()
-
-  def _restore_model_state(s, state):
-    s.cl.restore_model_state()
 
   def _gen_wrapper_function(s, method_name):
     method = s.interface.methods[method_name]

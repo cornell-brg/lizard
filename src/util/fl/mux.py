@@ -14,12 +14,3 @@ class MuxFL(FLModel):
     @s.model_method
     def mux(in_, select):
       return in_[select]
-
-  def _reset(s):
-    pass
-
-  def _snapshot_model_state(s):
-    pass
-
-  def _restore_model_state(s, state):
-    pass

@@ -21,9 +21,7 @@ class RegisterFileFL(FLModel):
         RegisterFileInterface(dtype, nregs, num_read_ports, num_write_ports,
                               write_read_bypass, write_dump_bypass))
     s.nregs = nregs
-    s.reset_values = reset_values or [
-        s.interface.Data() for _ in range(s.nregs)
-    ]
+    s.state(regs=reset_values or [s.interface.Data() for _ in range(s.nregs)])
 
     @s.model_method
     def read(addr):
@@ -40,12 +38,3 @@ class RegisterFileFL(FLModel):
     @s.model_method
     def set(in_):
       s.regs = copy_bits(in_)
-
-  def _reset(s):
-    s.regs = copy_bits(s.reset_values)
-
-  def _snapshot_model_state(s):
-    return copy_bits(s.regs)
-
-  def _restore_model_state(s, state):
-    s.regs = copy_bits(state)
