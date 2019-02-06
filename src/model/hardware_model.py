@@ -3,6 +3,7 @@ from inspect import getargspec, ismethod
 from functools import wraps
 from util.pretty_print import list_string_value
 from bitutil import copy_bits
+from copy import deepcopy
 
 
 class HardwareModel(object):
@@ -13,11 +14,20 @@ class HardwareModel(object):
     s.interface = interface
     s.model_methods = {}
     s.ready_methods = {}
+    s.state_element_names = []
+    s.saved_state = {}
+    s.state_reset_values = {}
+    s.anonymous_state_counter = 0
     s.validate_args = validate_args
 
   def reset(s):
     s._pre_cycle_wrapper()
     s._reset()
+    for name, state_element in s._state_elements():
+      if isinstance(state_element, HardwareModel):
+        state_element.reset()
+      else:
+        setattr(s, name, deepcopy(s.state_reset_values[name]))
     s.cycle()
 
   @abc.abstractmethod
@@ -47,22 +57,50 @@ class HardwareModel(object):
   def _post_cycle(s):
     pass
 
-  @abc.abstractmethod
   def _reset(s):
     pass
 
+  def state(s, **kwargs):
+    for k, v in kwargs.iteritems():
+      if hasattr(s, k):
+        raise ValueError('Member already present: {}'.foramt(k))
+      else:
+        setattr(s, k, v)
+        s.state_element_names.append(k)
+        # save the initial value if not a hardware model
+        if not isinstance(v, HardwareModel):
+          s.state_reset_values[k] = deepcopy(v)
+
+  def register_state(s, hardware_model):
+    if not isinstance(hardware_model, HardwareModel):
+      raise ValueError('Must be HardwareModel')
+    name = '_anonymous_state_member_{}'.format(s.anonymous_state_counter)
+    s.anonymous_state_counter += 1
+    s.state(**{name: hardware_model})
+
+  def _state_elements(s):
+    return [(name, getattr(s, name)) for name in s.state_element_names]
+
   def snapshot_model_state(s):
-    s.model_state = s._snapshot_model_state()
+    s.extra_model_state = s._snapshot_model_state()
+    for name, state_element in s._state_elements():
+      if isinstance(state_element, HardwareModel):
+        state_element.snapshot_model_state()
+      else:
+        s.saved_state[name] = deepcopy(state_element)
 
   def restore_model_state(s):
     s._pre_cycle_wrapper()
-    s._restore_model_state(s.model_state)
+    s._restore_model_state(s.extra_model_state)
+    for name, state_element in s._state_elements():
+      if isinstance(state_element, HardwareModel):
+        state_element.restore_model_state()
+      else:
+        setattr(s, name, deepcopy(s.saved_state[name]))
 
-  @abc.abstractmethod
   def _snapshot_model_state(s):
     pass
 
-  @abc.abstractmethod
   def _restore_model_state(s, state):
     pass
 

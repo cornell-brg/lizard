@@ -20,29 +20,33 @@ class DataFlowManagerFL(FLModel):
 
     s.PregState = PregState(dlen)
 
-    s.snapshot_allocator = SnapshottingFreeListFL(nsnapshots, 1, 1, nsnapshots)
-    s.free_regs = SnapshottingFreeListFL(
-        npregs - 1,
-        num_dst_ports,
-        num_src_ports,
-        nsnapshots,
-        used_slots_initial=naregs - 1)
+    s.state(
+        snapshot_allocator=SnapshottingFreeListFL(nsnapshots, 1, 1, nsnapshots),
+        free_regs=SnapshottingFreeListFL(
+            npregs - 1,
+            num_dst_ports,
+            num_src_ports,
+            nsnapshots,
+            used_slots_initial=naregs - 1),
+    )
     arch_used_pregs_reset = [Bits(1, 0) for _ in range(npregs - 1)]
     for i in range(naregs):
       arch_used_pregs_reset[i] = Bits(1, 1)
 
-    s.arch_used_pregs = RegisterFileFL(
-        Bits(1),
-        npregs - 1,
-        0,
-        num_dst_ports * 2,
-        False,
-        True,
-        reset_values=arch_used_pregs_reset)
+    s.state(
+        arch_used_pregs=RegisterFileFL(
+            Bits(1),
+            npregs - 1,
+            0,
+            num_dst_ports * 2,
+            False,
+            True,
+            reset_values=arch_used_pregs_reset))
 
     initial_map = [0] + [x for x in range(naregs - 1)]
-    s.rename_table = RenameTableFL(naregs, npregs, num_src_ports, num_dst_ports,
-                                   nsnapshots, True, initial_map)
+    s.state(
+        rename_table=RenameTableFL(naregs, npregs, num_src_ports, num_dst_ports,
+                                   nsnapshots, True, initial_map))
     s.ZERO_TAG = s.rename_table.ZERO_TAG
 
     preg_reset = [s.PregState() for _ in range(npregs)]
@@ -52,30 +56,32 @@ class DataFlowManagerFL(FLModel):
       preg_reset[x].ready = 1
       inverse_reset[x] = x + 1
 
-    s.preg_file = RegisterFileFL(
-        s.PregState(),
-        npregs,
-        num_src_ports,
-        num_dst_ports * 2,
-        True,
-        False,
-        reset_values=preg_reset)
-    s.inverse = RegisterFileFL(
-        s.interface.Areg,
-        npregs,
-        num_dst_ports,
-        num_dst_ports,
-        True,
-        False,
-        reset_values=inverse_reset)
-    s.areg_file = RegisterFileFL(
-        s.interface.Preg,
-        naregs,
-        num_dst_ports,
-        num_dst_ports,
-        False,
-        True,
-        reset_values=initial_map)
+    s.state(
+        preg_file=RegisterFileFL(
+            s.PregState(),
+            npregs,
+            num_src_ports,
+            num_dst_ports * 2,
+            True,
+            False,
+            reset_values=preg_reset),
+        inverse=RegisterFileFL(
+            s.interface.Areg,
+            npregs,
+            num_dst_ports,
+            num_dst_ports,
+            True,
+            False,
+            reset_values=inverse_reset),
+        areg_file=RegisterFileFL(
+            s.interface.Preg,
+            naregs,
+            num_dst_ports,
+            num_dst_ports,
+            False,
+            True,
+            reset_values=initial_map),
+    )
 
     @s.model_method
     def commit_tag(tag):
@@ -165,30 +171,3 @@ class DataFlowManagerFL(FLModel):
     @s.model_method
     def write_csr(csr_num, value):
       return 0
-
-  def _reset(s):
-    s.snapshot_allocator.reset()
-    s.free_regs.reset()
-    s.arch_used_pregs.reset()
-    s.rename_table.reset()
-    s.preg_file.reset()
-    s.inverse.reset()
-    s.areg_file.reset()
-
-  def _snapshot_model_state(s):
-    s.snapshot_allocator.snapshot_model_state()
-    s.free_regs.snapshot_model_state()
-    s.arch_used_pregs.snapshot_model_state()
-    s.rename_table.snapshot_model_state()
-    s.preg_file.snapshot_model_state()
-    s.inverse.snapshot_model_state()
-    s.areg_file.snapshot_model_state()
-
-  def _restore_model_state(s, state):
-    s.snapshot_allocator.restore_model_state()
-    s.free_regs.restore_model_state()
-    s.arch_used_pregs.restore_model_state()
-    s.rename_table.restore_model_state()
-    s.preg_file.restore_model_state()
-    s.inverse.restore_model_state()
-    s.areg_file.restore_model_state()

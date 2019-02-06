@@ -19,17 +19,19 @@ class SnapshottingFreeListFL(FLModel):
         SnapshottingFreeListInterface(nslots, num_alloc_ports, num_free_ports,
                                       nsnapshots))
 
-    s.nsnapshots = nsnapshots
     s.nslots = nslots
-
-    s.freelist = FreeListFL(
-        nslots,
-        num_alloc_ports,
-        num_free_ports,
-        free_alloc_bypass=False,
-        release_alloc_bypass=False,
-        used_slots_initial=used_slots_initial)
     s.zero_snapshot = [Bits(nslots) for _ in range(nslots)]
+    s.nsnapshots = nsnapshots
+
+    s.state(
+        freelist=FreeListFL(
+            nslots,
+            num_alloc_ports,
+            num_free_ports,
+            free_alloc_bypass=False,
+            release_alloc_bypass=False,
+            used_slots_initial=used_slots_initial),
+        snapshots=copy_bits(s.zero_snapshot))
 
     def pack(snapshot):
       return res
@@ -63,15 +65,3 @@ class SnapshottingFreeListFL(FLModel):
     @s.model_method
     def set(state):
       s.freelist.set(state)
-
-  def _reset(s):
-    s.freelist.reset()
-    s.snapshots = [copy_bits(s.zero_snapshot) for _ in range(s.nsnapshots)]
-
-  def _snapshot_model_state(s):
-    s.freelist.snapshot_model_state()
-    return copy_bits(s.snapshots)
-
-  def _restore_model_state(s, state):
-    s.freelist.restore_model_state()
-    s.snapshots = copy_bits(state)

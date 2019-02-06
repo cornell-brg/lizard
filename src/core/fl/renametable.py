@@ -16,15 +16,16 @@ class RenameTableFL(FLModel):
         RenameTableInterface(naregs, npregs, num_lookup_ports, num_update_ports,
                              nsnapshots))
 
-    s.rename_table = SnapshottingRegisterFileFL(
-        s.interface.Preg,
-        naregs,
-        num_lookup_ports,
-        num_update_ports,
-        False,
-        True,
-        nsnapshots,
-        reset_values=initial_map)
+    s.state(
+        rename_table=SnapshottingRegisterFileFL(
+            s.interface.Preg,
+            naregs,
+            num_lookup_ports,
+            num_update_ports,
+            False,
+            True,
+            nsnapshots,
+            reset_values=initial_map))
 
     if const_zero:
       s.ZERO_TAG = Bits(s.interface.Preg.nbits, npregs - 1)
@@ -54,12 +55,3 @@ class RenameTableFL(FLModel):
     @s.model_method
     def set(in_):
       s.rename_table.set(in_)
-
-  def _reset(s):
-    s.rename_table.reset()
-
-  def _snapshot_model_state(s):
-    s.rename_table._snapshot_model_state()
-
-  def _restore_model_state(s, state):
-    s.rename_table._restore_model_state()
