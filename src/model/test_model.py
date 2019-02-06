@@ -4,7 +4,6 @@ import hypothesis.strategies as st
 from pymtl import *
 from hypothesis.stateful import *
 from hypothesis import settings
-from hypothesis.vendor.pretty import CUnicodeIO, RepresentationPrinter
 from sets import Set
 from util.rtl.interface import Interface
 from util.rtl.types import Array
@@ -477,14 +476,15 @@ class TestModel(TestStateMachine):
   @staticmethod
   def _create_test_state_machine(rtl_class, reference_class, parameters):
 
+    parameters_string = "_".join([str(parameter) for parameter in parameters])
     model = rtl_class(*parameters)
     sim = wrap_to_cl(model)
     reference = reference_class(*parameters)
     print sim
 
     Test = type(
-        type(model).__name__ + "TestStateMachine", TestModel.__bases__,
-        dict(TestModel.__dict__))
+        type(model).__name__ + "TestStateMachine_" + parameters_string,
+        TestModel.__bases__, dict(TestModel.__dict__))
 
     Test.interface = None
     if type(model.interface) != type(reference.interface):
@@ -544,6 +544,44 @@ def run_test_state_machine(rtl_class, reference_class, parameters):
   state_machine_factory = TestModel._create_test_state_machine(
       rtl_class, reference_class, parameters)
   TestModel._run_state_machine(state_machine_factory)
+
+
+def run_parameterized_test_state_machine(rtl_class, reference_class,
+                                         parameters_list):
+
+  @st.composite
+  def parameter_strategy(draw):
+    parameters = []
+    for parameter in parameters_list:
+      # Type specified
+      if parameter is Bits:
+        nbits = draw(st.integers(min_value=1, max_value=64))
+        parameters += [Bits(nbits)]
+      elif parameter is int:
+        value = draw(st.integers(min_value=1, max_value=64))
+        parameters += [value]
+      elif parameter is bool:
+        value = draw(st.booleans())
+        parameters += [value]
+      elif isinstance(parameter, SearchStrategy):
+        value = draw(parameter)
+        parameters += [value]
+      elif isinstance(parameter, int) or isinstance(
+          parameter, Bits) or isinstance(parameter, bool):
+        parameters += [parameter]
+      else:
+        raise TypeError("Unsupported parameter type")
+
+    return parameters
+
+  @settings(deadline=None, max_examples=10)
+  @given(parameter_strategy(), st.data())
+  def run_multiple_state_machines(parameters, data):
+    state_machine_factory = TestModel._create_test_state_machine(
+        rtl_class, reference_class, parameters)
+    TestModel._run_state_machine(state_machine_factory)
+
+  run_multiple_state_machines()
 
 
 #-------------------------------------------------------------------------
