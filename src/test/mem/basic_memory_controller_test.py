@@ -29,7 +29,6 @@ class BasicMemoryControllerTestHarness(Model):
     UseInterface(s, BasicMemoryControllerTestHarnessInterface(mbi))
 
     mc = BasicMemoryController(mbi, s.interface.clients)
-    mc.vcd_file = 'scooooby.vcd'
     s.mc = TranslationTool(mc, lint=True)
     mc.interface.embed(s.mc)
     s.tmb = TestMemoryBusFL(mbi)
