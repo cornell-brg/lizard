@@ -367,6 +367,11 @@ class ArgumentStrategy(object):
     return st.integers(min_value=0, max_value=Bits(nbits)._max)
 
   @staticmethod
+  def value_strategy(range_value=None, start=0):
+    return st.integers(
+        min_value=start, max_value=range_value - 1 if range_value else None)
+
+  @staticmethod
   def bitstruct_strategy(bitstruct, **kwargs):
 
     @st.composite
@@ -407,6 +412,16 @@ class ArgumentStrategy(object):
     if isinstance(dtype, Bits) or isinstance(dtype, BitStruct):
       return ArgumentStrategy.bitstype_strategy(dtype)
     return None
+
+
+#-------------------------------------------------------------------------
+# ArgumentDependency
+#-------------------------------------------------------------------------
+@attr.s()
+class ArgumentDependency(object):
+  method = attr.ib()
+  arg = attr.ib()
+  strategy_func = attr.ib()
 
 
 #-------------------------------------------------------------------------
@@ -474,13 +489,22 @@ class TestModel(TestStateMachine):
     self.reference.cycle()
 
   @staticmethod
-  def _create_test_state_machine(rtl_class, reference_class, parameters):
+  def _create_test_state_machine(rtl_class,
+                                 reference_class,
+                                 parameters,
+                                 argument_strategy={}):
 
-    parameters_string = "_".join([str(parameter) for parameter in parameters])
-    model = rtl_class(*parameters)
+    if isinstance(parameters, dict):
+      parameters_string = "_".join(
+          [str(parameter) for parameter in parameters.values()])
+      model = rtl_class(**parameters)
+      reference = reference_class(**parameters)
+    else:
+      parameters_string = "_".join([str(parameter) for parameter in parameters])
+      model = rtl_class(*parameters)
+      reference = reference_class(*parameters)
+
     sim = wrap_to_cl(model)
-    reference = reference_class(*parameters)
-    print sim
 
     Test = type(
         type(model).__name__ + "TestStateMachine_" + parameters_string,
@@ -503,6 +527,9 @@ class TestModel(TestStateMachine):
         for method, strategy in inspect.getmembers(v):
           if isinstance(strategy, ArgumentStrategy):
             Test.add_argument_strategy(method, strategy.arguments)
+
+    for method, arguments in argument_strategy.iteritems():
+      Test.add_argument_strategy(method, arguments)
 
     if not Test.interface:
       raise RunMethodTestError("Get rtl model with no interface specified! ")
@@ -546,29 +573,34 @@ def run_test_state_machine(rtl_class, reference_class, parameters):
   TestModel._run_state_machine(state_machine_factory)
 
 
-def run_parameterized_test_state_machine(rtl_class, reference_class,
-                                         parameters_list):
+def run_parameterized_test_state_machine(rtl_class,
+                                         reference_class,
+                                         init_args=ArgumentStrategy(),
+                                         argument_dependencies=[]):
+  args, _, _, _ = inspect.getargspec(rtl_class.__init__)
+  arg_list = init_args.arguments
 
   @st.composite
   def parameter_strategy(draw):
-    parameters = []
-    for parameter in parameters_list:
+    parameters = {}
+    for key in args[1:]:
       # Type specified
-      if parameter is Bits:
+      arg = arg_list[key]
+      if arg is Bits:
         nbits = draw(st.integers(min_value=1, max_value=64))
-        parameters += [Bits(nbits)]
-      elif parameter is int:
+        parameters[key] = Bits(nbits)
+      elif arg is int:
         value = draw(st.integers(min_value=1, max_value=64))
-        parameters += [value]
-      elif parameter is bool:
+        parameters[key] = value
+      elif arg is bool:
         value = draw(st.booleans())
-        parameters += [value]
-      elif isinstance(parameter, SearchStrategy):
+        parameters[key] = value
+      elif isinstance(arg, SearchStrategy):
         value = draw(parameter)
-        parameters += [value]
-      elif isinstance(parameter, int) or isinstance(
-          parameter, Bits) or isinstance(parameter, bool):
-        parameters += [parameter]
+        parameters[key] = value
+      elif isinstance(arg, int) or isinstance(arg, Bits) or isinstance(
+          arg, bool):
+        parameters[key] = arg
       else:
         raise TypeError("Unsupported parameter type")
 
@@ -577,8 +609,24 @@ def run_parameterized_test_state_machine(rtl_class, reference_class,
   @settings(deadline=None, max_examples=10)
   @given(parameter_strategy(), st.data())
   def run_multiple_state_machines(parameters, data):
+    arguments = {}
+    for dep in argument_dependencies:
+      target = arguments.setdefault(dep.method, {})
+      args, _, _, _ = inspect.getargspec(dep.strategy_func)
+
+      if set(args) - set(parameters.keys()):
+        raise ValueError(""" 
+  Found arg in argument strategy function not in rtl model __init__ args!
+    - strategy func: {strategy_func_arg}
+    - rtl __init__ : {init_args}
+""".format(strategy_func_arg=list_string(args),
+           init_args=list_string(parameters.keys())))
+
+      params = {k: parameters[k] for k in args}
+      target[dep.arg] = st.deferred(lambda: dep.strategy_func(**params))
+
     state_machine_factory = TestModel._create_test_state_machine(
-        rtl_class, reference_class, parameters)
+        rtl_class, reference_class, parameters, arguments)
     TestModel._run_state_machine(state_machine_factory)
 
   run_multiple_state_machines()
