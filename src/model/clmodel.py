@@ -82,7 +82,9 @@ class CLModel(HardwareModel):
   @staticmethod
   def _gen_zero(pymtl_type):
     if isinstance(pymtl_type, Bits):
-      return Bits(pymtl_type.nbits, 0)
+      result = pymtl_type()
+      result._uint = 0
+      return result
     elif isinstance(pymtl_type, Array):
       return [
           CLModel._gen_zero(pymtl_type.Data) for _ in range(pymtl_type.length)

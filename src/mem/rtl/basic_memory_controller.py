@@ -2,6 +2,8 @@ from pymtl import *
 from util.rtl.interface import Interface, UseInterface
 from util.rtl.method import MethodSpec
 from mem.rtl.memory_bus import MemMsgType, MemMsgStatus
+from util.rtl.mux import Mux
+from util.rtl.register import Register
 from bitutil import clog2, clog2nz
 
 
@@ -18,8 +20,8 @@ class BasicMemoryControllerInterface(Interface):
               rets={
                   'type_': Bits(MemMsgType.bits),
                   'stat': Bits(MemMsgStatus.bits),
-                  'len': Bits(clog2(s.mbi.data_nbytes)),
-                  'data': Bits(s.sbi.data_nbytes * 8),
+                  'len_': Bits(clog2(s.mbi.data_nbytes)),
+                  'data': Bits(s.mbi.data_nbytes * 8),
               },
               call=True,
               rdy=True,
@@ -29,7 +31,7 @@ class BasicMemoryControllerInterface(Interface):
               args={
                   'type_': Bits(MemMsgType.bits),
                   'addr': Bits(s.mbi.addr_nbits),
-                  'len': Bits(clog2(s.mbi.data_nbytes)),
+                  'len_': Bits(clog2(s.mbi.data_nbytes)),
                   'data': Bits(s.mbi.data_nbytes * 8),
               },
               rets=None,
@@ -38,7 +40,7 @@ class BasicMemoryControllerInterface(Interface):
           ),
       ])
 
-    super(BasicMemoryController, s).__init__(methods)
+    super(BasicMemoryControllerInterface, s).__init__(methods)
 
 
 class BasicMemoryController(Model):
@@ -57,71 +59,111 @@ class BasicMemoryController(Model):
     memory_bus_interface.require(
         s, 'bus', 'send', count=memory_bus_interface.num_ports)
 
-    nobits = clog2(memory_bus_interface.opaque_nbits)
+    nobits = memory_bus_interface.opaque_nbits
     nclients = len(clients)
+    s.in_flight = Wire(nclients)
+    s.can_send = Wire(nclients)
+    s.in_flight_next = Wire(nclients)
+
+    s.client_send_rdy = [Wire(1) for _ in range(nclients)]
+    s.index_client_recv_call = [Wire(1) for _ in range(nclients)]
+    s.index_client_recv_rdy = [Wire(1) for _ in range(nclients)]
     s.recv_source_chains = [
         Wire(nobits) for _ in range(nclients * (nclients + 1))
     ]
     s.recv_valid_chains = [Wire(1) for _ in range(nclients * (nclients + 1))]
 
-    s.index_client_recv_type_ = [Wire(MemMsgType.bits) for _ in range(nclients)]
-    s.index_client_recv_stat = [
-        Wire(MemMsgStatus.bits) for _ in range(nclients)
+    s.client_muxes = [
+        Mux(memory_bus_interface.MemMsg.resp, nclients) for _ in range(nclients)
     ]
-    s.index_client_recv_len = [
-        Wire(clog2(memory_bus_interface.data_nbytes)) for _ in range(nclients)
+    s.client_regs = [
+        Register(memory_bus_interface.MemMsg.resp, True)
+        for _ in range(nclients)
     ]
-    s.index_client_recv_addr = [
-        Wire(memory_bus_interface.data_nbytes * 8) for _ in range(nclients)
-    ]
-    s.index_client_recv_rdy = [Wire(1) for _ in range(nclients)]
-    s.index_client_recv_call = [Wire(1) for _ in range(nclients)]
+    s.client_valid_regs = [Register(1, True) for _ in range(nclients)]
+
+    # PYMTL_BROKEN
+    s.bus_recv_msg_opaque = [Wire(nobits) for _ in range(nclients)]
 
     for i, client in enumerate(clients):
       client_send_port = getattr(s, '{}_send'.format(client))
       client_recv_port = getattr(s, '{}_recv'.format(client))
+      s.connect(s.index_client_recv_call[i], client_recv_port.call)
+      s.connect(s.index_client_recv_rdy[i], client_recv_port.rdy)
 
-      s.connect(s.bus_send_type_[i], client_send_port.type_)
-      s.connect(s.bus_send_addr[i], client_send_port.addr)
-      s.connect(s.bus_send_len[i], client_send_port.len)
-      s.connect(s.bus_send_data[i], client_send_port.data)
-      s.connect(s.bus_send_opaque[i], i)
+      s.connect(s.bus_send_msg[i].type_, client_send_port.type_)
+      s.connect(s.bus_send_msg[i].addr, client_send_port.addr)
+      s.connect(s.bus_send_msg[i].len_, client_send_port.len_)
+      s.connect(s.bus_send_msg[i].data, client_send_port.data)
+      s.connect(s.bus_send_msg[i].opaque, i)
       s.connect(s.bus_send_call[i], client_send_port.call)
-      s.connect(s.bus_send_rdy[i], client_send_port.rdy)
 
-      s.connect(s.index_client_recv_type_[i], s.client_recv_port.type_)
-      s.connect(s.index_client_recv_stat[i], s.client_recv_port.stat)
-      s.connect(s.index_client_recv_len[i], s.client_recv_port.len)
-      s.connect(s.index_client_recv_addr[i], s.client_recv_port.addr)
-      s.connect(s.index_client_recv_rdy[i], s.client_recv_port.rdy)
-      s.connect(s.index_client_recv_call[i], s.client_recv_port.call)
+      @s.combinational
+      def compute_client_send_rdy(i=i):
+        s.client_send_rdy[i].v = s.bus_send_rdy[i] and s.can_send[i]
+
+      s.connect(s.client_send_rdy[i], client_send_port.rdy)
 
       base = i * (nclients + 1)
       s.connect(s.recv_source_chains[base], 0)
       s.connect(s.recv_valid_chains[base], 0)
+      s.connect(s.bus_recv_msg_opaque[i], s.bus_recv_msg[i].opaque)
+
       for j in range(nclients):
 
         @s.combinational
         def update_chains(i=i, j=j, last=base + j, curr=base + j + 1):
-          if s.bus_recv_rdy[j] and s.bus_recv_opaque[j] == i:
+          if s.bus_recv_rdy[j] and s.bus_recv_msg_opaque[j] == i:
             s.recv_source_chains[curr].v = j
             s.recv_valid_chains[curr].v = 1
           else:
             s.recv_source_chains[curr].v = s.recv_source_chains[last]
             s.recv_valid_chains[curr].v = s.recv_valid_chains[last]
 
+        s.connect(s.client_muxes[i].mux_in_[j], s.bus_recv_msg[j])
+
       final = base + nclients
 
+      s.connect(s.client_muxes[i].mux_select, s.recv_source_chains[final])
+      s.connect(s.client_regs[i].write_data, s.client_muxes[i].mux_out)
+      s.connect(s.client_regs[i].write_call, s.recv_valid_chains[final])
+
       @s.combinational
-      def set_client_recv(i=i, final=final):
-        s.index_client_recv_type_[i].v = s.bus_recv_type_[
-            s.recv_source_chains[final]]
-        s.index_client_recv_stat[i].v = s.bus_recv_stat[
-            s.recv_source_chains[final]]
-        s.index_client_recv_len[i].v = s.bus_recv_len[
-            s.recv_source_chains[final]]
-        s.index_client_recv_addr[i].v = s.bus_recv_addr[
-            s.recv_source_chains[final]]
-        s.index_client_recv_addr[i].v = s.recv_valid_chains[final]
-        s.bus_recv_call[
-            s.recv_source_chains[final]].v = s.index_client_recv_call[i]
+      def update_valid_data_and_rdy(i=i, final=final):
+        s.client_valid_regs[i].write_data.v = s.recv_valid_chains[
+            final] and not s.index_client_recv_call[i]
+        s.index_client_recv_rdy[i].v = s.recv_valid_chains[
+            final] or s.client_valid_regs[i].read_data
+
+      s.connect(s.client_valid_regs[i].write_call, s.recv_valid_chains[final])
+
+      s.connect(client_recv_port.type_, s.client_regs[i].read_data.type_)
+      s.connect(client_recv_port.stat, s.client_regs[i].read_data.stat)
+      s.connect(client_recv_port.len_, s.client_regs[i].read_data.len_)
+      s.connect(client_recv_port.data, s.client_regs[i].read_data.data)
+
+      # always read from the bus into the register if ready
+      s.connect(s.bus_recv_call[i], s.bus_recv_rdy[i])
+
+      @s.combinational
+      def compute_can_send(i=i):
+        if s.in_flight[i]:
+          s.can_send[i].v = s.index_client_recv_call[i]
+        else:
+          s.can_send[i].v = 1
+
+      @s.combinational
+      def compute_in_flight_next(i=i):
+        if s.bus_send_call[i]:
+          s.in_flight_next[i] = 1
+        elif s.index_client_recv_call[i]:
+          s.in_flight_next[i] = 0
+        else:
+          s.in_flight_next[i] = s.in_flight[i]
+
+    @s.tick_rtl
+    def update_in_flight():
+      if s.reset:
+        s.in_flight.n = 0
+      else:
+        s.in_flight.n = s.in_flight_next

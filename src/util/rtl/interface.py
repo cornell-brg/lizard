@@ -24,6 +24,8 @@ class ResidualMethodSpec:
     s.model = model
     s.spec = spec
     s.port_map = port_map
+    for name, port in port_map.iteritems():
+      setattr(s, name, port)
 
   def __getitem__(s, index):
     if index is None:
@@ -158,7 +160,6 @@ class Interface(object):
     That is equivelent to not specifying an ordering chain and instead listing the methods
     in that order in spec.
     """
-
     # If no chains present, ordering is as given
     if ordering_chains is None:
       # 1 chain with all the method names
@@ -202,6 +203,7 @@ class Interface(object):
 
     spec_dict = {method.name: method for method in spec}
     s.methods = OrderedDict([(name, spec_dict[name]) for name in order])
+    s.requirements = []
 
   @staticmethod
   def bypass_chain(action1, action2, action1_action2_bypass):
@@ -226,6 +228,16 @@ class Interface(object):
   def mangled_name(prefix, name, port_name):
     return '{}{}_{}'.format(prefix, name, port_name)
 
+  def _safe_setattr(s, target, attr_name, attr):
+    if hasattr(target, attr_name):
+      raise ValueError('Target contains attribute: {}'.format(attr_name))
+    else:
+      setattr(target, attr_name, attr)
+
+  def _set_residual(s, target, prefix, name, spec, port_map):
+    s._safe_setattr(target, '{}{}'.format(prefix, name),
+                    ResidualMethodSpec(target, spec, port_map))
+
   def _inject(s, target, prefix, name, spec, count, direction):
     if count is None:
       port_map = spec.generate(direction)
@@ -236,16 +248,15 @@ class Interface(object):
         port_map[port_name] = [ports[i][port_name] for i in range(count)]
 
     for port_name, port in port_map.iteritems():
-      mangled = s.mangled_name(prefix, name, port_name)
-      if hasattr(target, mangled):
-        raise ValueError('Mangled field already exists: {}'.format(mangled))
-      setattr(target, mangled, port)
+      s._safe_setattr(target, s.mangled_name(prefix, name, port_name), port)
+    s._set_residual(target, prefix, name, spec, port_map)
 
-    residual_name = '{}{}'.format(prefix, name)
-    if hasattr(target, residual_name):
-      raise ValueError(
-          'Residual field already exists: {}'.format(residual_name))
-    setattr(target, residual_name, ResidualMethodSpec(target, spec, port_map))
+  def _generate_residual_spec(s, target, prefix, name, spec):
+    port_map = {}
+    for port_name in spec.ports():
+      mangled = s.mangled_name(prefix, name, port_name)
+      port_map[port_name] = getattr(target, mangled)
+    s._set_residual(target, prefix, name, spec, port_map)
 
   def apply(s, target):
     """Binds incoming ports to the target
@@ -276,6 +287,14 @@ class Interface(object):
     # else:
     #   raise ValueError('No more ports for method left: {}'.format(name))
     s._inject(target, prefix, name, spec, count, MethodSpec.DIRECTION_CALLER)
+    target.interface.requirements.append((prefix, name, spec, count))
+
+  def embed(s, target):
+    s._safe_setattr(target, 'interface', s)
+    for name, spec in s.methods.iteritems():
+      s._generate_residual_spec(target, '', name, spec)
+    for prefix, name, spec, _ in s.requirements:
+      s._generate_residual_spec(target, prefix, name, spec)
 
   def require_fl_methods(s, target):
     """Check that target FL model contains all methods specified.
@@ -303,4 +322,4 @@ class Interface(object):
       return result
 
   def __str__(s):
-    return '\n'.join(str(method) for method in s.methods.values())
+    return '; '.join(str(method) for method in s.methods.values())
