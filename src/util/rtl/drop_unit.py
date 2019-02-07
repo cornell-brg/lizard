@@ -48,8 +48,11 @@ class DropUnit(Model):
     s.drop_ = RegRst(Bits(1))
     s.do_drop_ = Wire(1)
 
-    s.connect(s.output_rdy, s.input_call)
     s.connect(s.output_data, s.input_data)
+
+    @s.combinational
+    def set_rdy():
+      s.output_rdy.v = s.input_call and not s.do_drop_
 
     @s.combinational
     def handle_drop():
