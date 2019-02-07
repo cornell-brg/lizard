@@ -34,9 +34,10 @@ class FL2CLWrapper(CLModel):
         # if asking about index before the next call,
         # it must have been ready (since it was called)
         if call_index < next_call_index:
-          return True
+          result = True
         else:
-          return s.fl.ready_methods[method.name](call_index)
+          result = s.fl.ready_methods[method.name](call_index)
+        return result
 
       ready.__name__ = method_name
     else:

@@ -14,7 +14,7 @@ class RTL2CLWrapper(CLModel):
     super(RTL2CLWrapper, s).__init__(rtl_model.interface, False)
     s.model = rtl_model
     if translate:
-      s.model = TranslationTool(s.model)
+      s.model = TranslationTool(s.model, lint=True)
     s.model.elaborate()
     s.sim = SimulationTool(s.model)
 
