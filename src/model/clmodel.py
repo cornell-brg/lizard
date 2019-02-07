@@ -52,6 +52,7 @@ class CLModel(HardwareModel):
     s._drain_to(len(s.methods), -1)
 
   def _skip(s):
+    result = None
     current_method = s.methods[s.sequence_method]
     if not current_method.call:
       # Default all the arguments to 0
@@ -59,8 +60,10 @@ class CLModel(HardwareModel):
       for name, pymtl_type in current_method.args.iteritems():
         arg_dict[name] = s._gen_zero(pymtl_type)
       # invoke the method
-      s.model_methods[current_method.name](**arg_dict)
-    s._advance()
+      result = getattr(s, current_method.name)(**arg_dict)
+    else:
+      s._advance()
+    return result
 
   def _drain_to(s, method_index, call_index):
 
@@ -79,7 +82,9 @@ class CLModel(HardwareModel):
   @staticmethod
   def _gen_zero(pymtl_type):
     if isinstance(pymtl_type, Bits):
-      return Bits(pymtl_type.nbits, 0)
+      result = pymtl_type()
+      result._uint = 0
+      return result
     elif isinstance(pymtl_type, Array):
       return [
           CLModel._gen_zero(pymtl_type.Data) for _ in range(pymtl_type.length)

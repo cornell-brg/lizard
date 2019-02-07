@@ -1,5 +1,5 @@
 from pymtl import *
-from util.rtl.interface import Interface
+from util.rtl.interface import Interface, UseInterface
 from util.rtl.method import MethodSpec
 from util.rtl.types import Array, canonicalize_type
 from bitutil import clog2, clog2nz
@@ -29,8 +29,7 @@ class PackerInterface(Interface):
 class Packer(Model):
 
   def __init__(s, dtype, nports):
-    s.interface = PackerInterface(dtype, nports)
-    s.interface.apply(s)
+    UseInterface(s, PackerInterface(dtype, nports))
 
     for i in range(nports):
 
@@ -67,8 +66,7 @@ class UnpackerInterface(Interface):
 class Unpacker(Model):
 
   def __init__(s, dtype, nports):
-    s.interface = UnpackerInterface(dtype, nports)
-    s.interface.apply(s)
+    UseInterface(s, UnpackerInterface(dtype, nports))
 
     for i in range(nports):
 

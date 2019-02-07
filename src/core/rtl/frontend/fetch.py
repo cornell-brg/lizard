@@ -1,5 +1,5 @@
 from pymtl import *
-from util.rtl.interface import Interface, IncludeSome
+from util.rtl.interface import Interface, IncludeSome, UseInterface
 from util.rtl.method import MethodSpec
 from util.rtl.types import Array, canonicalize_type
 from util.rtl.drop_unit import DropUnit, DropUnitInterface
@@ -36,8 +36,8 @@ class FetchInterface(Interface):
 class Fetch(Model):
 
   def __init__(s, xlen, ilen):
-    s.interface = FetchInterface(ilen)
-    s.interface.apply(s)
+    UseInterface(s, FetchInterface(ilen))
+
     # The memory req and resp
     s.req = OutValRdyBundle(MemMsg4B.req)
     s.resp = InValRdyBundle(MemMsg4B.resp)

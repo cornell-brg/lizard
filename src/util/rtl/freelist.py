@@ -1,5 +1,5 @@
 from pymtl import *
-from util.rtl.interface import Interface
+from util.rtl.interface import Interface, UseInterface
 from util.rtl.method import MethodSpec
 from util.rtl.types import Array, canonicalize_type
 from util.rtl.mux import Mux
@@ -130,12 +130,13 @@ class FreeList(Model):
                free_alloc_bypass,
                release_alloc_bypass,
                used_slots_initial=0):
-    s.interface = FreeListInterface(nslots, num_alloc_ports, num_free_ports,
-                                    free_alloc_bypass, release_alloc_bypass)
-    s.interface.apply(s)
+    UseInterface(
+        s,
+        FreeListInterface(nslots, num_alloc_ports, num_free_ports,
+                          free_alloc_bypass, release_alloc_bypass))
 
     # 1 if free, 0 if not free
-    s.free = Wire(nslots)
+    s.free_vector = Wire(nslots)
     s.free_masks = [Wire(nslots) for _ in range(num_free_ports + 1)]
     s.alloc_inc_base = Wire(nslots)
     s.alloc_inc = [Wire(nslots) for _ in range(num_alloc_ports + 1)]
@@ -164,14 +165,14 @@ class FreeList(Model):
       @s.combinational
       def compute_alloc_inc_base():
         if s.release_call:
-          s.alloc_inc_base.v = s.free | s.release_mask
+          s.alloc_inc_base.v = s.free_vector | s.release_mask
         else:
-          s.alloc_inc_base.v = s.free
+          s.alloc_inc_base.v = s.free_vector
     else:
 
       @s.combinational
       def compute_alloc_inc_base():
-        s.alloc_inc_base.v = s.free
+        s.alloc_inc_base.v = s.free_vector
 
     if free_alloc_bypass:
 
@@ -243,9 +244,9 @@ class FreeList(Model):
       @s.tick_rtl
       def update(i=i, free=(1 if i >= used_slots_initial else 0)):
         if s.reset:
-          s.free[i].n = free
+          s.free_vector[i].n = free
         else:
-          s.free[i].n = s.set_mux.mux_out[i]
+          s.free_vector[i].n = s.set_mux.mux_out[i]
 
   def line_trace(s):
-    return "{}".format(s.free.bin())
+    return "{}".format(s.free_vector.bin())

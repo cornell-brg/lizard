@@ -1,8 +1,9 @@
 from pymtl import *
 
-from model.hardware_model import HardwareModel, NotReady, Result
+from model.hardware_model import HardwareModel, Result
 from model.flmodel import FLModel
 from util.rtl.freelist import FreeListInterface
+from bitutil import copy_bits
 
 
 class FreeListFL(FLModel):
@@ -19,14 +20,24 @@ class FreeListFL(FLModel):
         FreeListInterface(nslots, num_alloc_ports, num_free_ports,
                           free_alloc_bypass, release_alloc_bypass))
     s.nslots = nslots
-    s.used_slots_initial = used_slots_initial
+
+    bits_reset = Bits(s.nslots, 0)
+    for i in range(s.nslots):
+      if i >= used_slots_initial:
+        bits_reset[i] = 1
+      else:
+        bits_reset[i] = 0
+
+    s.state(bits=bits_reset)
 
     @s.model_method
     def free(index):
-      s.bits[index] = 1
+      # PYMTL_BROKEN
+      s.bits[int(index)] = 1
 
     @s.ready_method
     def alloc():
+      print(s.bits)
       return s.bits != 0
 
     @s.model_method
@@ -43,11 +54,3 @@ class FreeListFL(FLModel):
     @s.model_method
     def set(state):
       s.bits = Bits(s.nslots, state)
-
-  def _reset(s):
-    s.bits = Bits(s.nslots, 0)
-    for i in range(s.nslots):
-      if i >= s.used_slots_initial:
-        s.bits[i] = 1
-      else:
-        s.bits[i] = 0

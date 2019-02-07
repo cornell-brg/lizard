@@ -1,6 +1,6 @@
 from pymtl import *
 from bitutil import clog2, clog2nz
-from util.rtl.interface import Interface
+from util.rtl.interface import Interface, UseInterface
 from util.rtl.method import MethodSpec
 from util.rtl.types import Array, canonicalize_type
 
@@ -73,10 +73,10 @@ class RegisterFile(Model):
                write_read_bypass,
                write_dump_bypass,
                reset_values=None):
-    s.interface = RegisterFileInterface(dtype, nregs, num_read_ports,
-                                        num_write_ports, write_read_bypass,
-                                        write_dump_bypass)
-    s.interface.apply(s)
+    UseInterface(
+        s,
+        RegisterFileInterface(dtype, nregs, num_read_ports, num_write_ports,
+                              write_read_bypass, write_dump_bypass))
 
     # The core register file
     s.regs = [Wire(s.interface.Data) for _ in range(nregs)]
@@ -93,21 +93,9 @@ class RegisterFile(Model):
     s.after_set = [Wire(s.interface.Data) for _ in range(nregs)]
 
     if reset_values is None:
-      s.reset_values = [0 for _ in range(nregs)]
+      reset_values = [0 for _ in range(nregs)]
     else:
-      s.reset_values = [int(reset_value) for reset_value in reset_values]
-
-    # Clean reset values to ensure it is an array of Bits
-    # This avoid this pymtl disaster:
-    # E       AttributeError:
-    # E       Unexpected error during VerilogTranslation!
-    # E       Please contact the PyMTL devs!
-    # E       'list' object has no attribute 'is_lhs'
-    # PYMTL_BROKEN workaround
-    for i in range(nregs):
-      value = s.reset_values[i]
-      s.reset_values[i] = Wire(s.interface.Data)
-      s.connect(s.reset_values[i], value)
+      reset_values = [int(reset_value) for reset_value in reset_values]
 
     # Handle write, dump, and set (in that order)
     for reg_i in range(nregs):
@@ -156,9 +144,9 @@ class RegisterFile(Model):
 
       # Tick the new values into each register
       @s.tick_rtl
-      def update(reg_i=reg_i):
+      def update(reg_i=reg_i, value=reset_values[reg_i]):
         if s.reset:
-          s.regs[reg_i].n = s.reset_values[reg_i]
+          s.regs[reg_i].n = value
         else:
           s.regs[reg_i].n = s.after_set[reg_i]
 

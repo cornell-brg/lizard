@@ -5,6 +5,7 @@ from util.rtl.registerfile import RegisterFile
 from test.config import test_verilog
 from util.fl.registerfile import RegisterFileFL
 from model.wrapper import wrap_to_cl
+from model.test_model import run_test_state_machine
 
 
 def test_basic():
@@ -70,3 +71,8 @@ def test_bypass_backprop(model):
   assert rf.read(addr=0).data == 42
   rf.write(addr=0, data=43)
   rf.cycle()
+
+
+def test_state_machine():
+  run_test_state_machine(RegisterFile, RegisterFileFL,
+                         (8, 4, 1, 1, False, False))

@@ -14,6 +14,3 @@ class MuxFL(FLModel):
     @s.model_method
     def mux(in_, select):
       return in_[select]
-
-  def _reset(s):
-    pass
