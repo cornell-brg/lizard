@@ -1,5 +1,5 @@
 from pymtl import *
-from util.rtl.interface import Interface
+from util.rtl.interface import Interface, UseInterface
 from util.rtl.method import MethodSpec
 from util.rtl.types import Array, canonicalize_type
 from bitutil import clog2, clog2nz
@@ -49,8 +49,7 @@ class Mux(Model):
   """
 
   def __init__(s, dtype, nports):
-    s.interface = MuxInterface(dtype, nports)
-    s.interface.apply(s)
+    UseInterface(s, MuxInterface(dtype, nports))
 
     @s.combinational
     def select():

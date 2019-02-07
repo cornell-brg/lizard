@@ -1,8 +1,8 @@
 from pymtl import *
 from util.rtl.issue_queue import CompactingIssueQueue, GenericIssueSlot, AbstractSlotType, IssueQueueSlotInterface
 from test.config import test_verilog
-from util.test_utils import run_model_translation, run_test_vector_sim
-from util.method_test import create_test_state_machine, run_state_machine
+from util.test_utils import run_model_translation, run_test_vector_sim, create_test_bitstruct
+from model.test_model import run_test_state_machine
 
 
 class TestSlotType(AbstractSlotType):
@@ -83,7 +83,12 @@ class GenericIssueSlotFL:
                                       SlotType().branch_mask.nbits)
     s.iface.require_fl_methods(s)
     s.valid = 0
-    s.curr = SlotType()
+
+    s.TestSlotType = create_test_bitstruct(SlotType())
+    s.TestSlotType.set_dc(lambda x: not x.src0_valid, ['src0_rdy'])
+    s.TestSlotType.set_dc(lambda x: not x.src1_valid, ['src1_rdy'])
+
+    s.curr = s.TestSlotType()
     s.reset()
 
   def kill_call(s, value, force):

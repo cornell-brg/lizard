@@ -1,5 +1,5 @@
 from pymtl import *
-from util.rtl.interface import Interface, IncludeSome
+from util.rtl.interface import Interface, IncludeSome, UseInterface
 from util.rtl.method import MethodSpec
 from util.rtl.types import Array, canonicalize_type
 from core.rtl.controlflow import ControlFlowManagerInterface
@@ -34,15 +34,14 @@ class DecodeInterface(Interface):
 class Decode(Model):
 
   def __init__(s, xlen, ilen, areg_tag_nbits):
-    s.interface = DecodeInterface()
-    s.interface.apply(s)
+    UseInterface(s, DecodeInterface())
+
     s.fetch = FetchInterface(ilen)
     s.fetch.require(s, 'fetch', 'get')
 
     # Outgoing pipeline register
     s.decmsg_val_ = RegRst(Bits(1), reset_value=0)
     s.decmsg_ = Wire(DecodeMsg())
-
 
     s.dec_ = Wire(DecodeMsg())
     s.rdy_ = Wire(1)
@@ -72,7 +71,6 @@ class Decode(Model):
     def set_valreg():
       s.decmsg_val_.in_.v = s.accepted_.v or (s.decmsg_val_.out and
                                               not s.get_call)
-
 
     @s.combinational
     def decode():
@@ -122,6 +120,8 @@ class Decode(Model):
         s.dec_.rs2_val.v = 1
         s.dec_.rd_val.v = 1
         s.dec_.op_32 = 1
+
+
 #     elif s.opcode_ == Opcode.MADD:
 #     elif s.opcode_ == Opcode.MSUB:
 #     elif s.opcode_ == Opcode.NMSUB:
@@ -142,18 +142,15 @@ class Decode(Model):
         s.dec_.rs1_val.v = 1
         s.dec_.rd_val.v = 1
         s.dec_.imm_val.v = 1
-      else: # Error decoding
+      else:  # Error decoding
         s.dec_.trap.v = 1
         s.dec_.mcause.v = ExceptionCode.ILLEGAL_INSTRUCTION
         s.dec_.mtval.v = zext(s.inst_, xlen)
-
-
 
     @s.tick_rtl
     def update_out():
       if s.accepted_:
         s.decmsg_.n = s.dec_
-
 
   def line_trace(s):
     return str(s.decmsg_)

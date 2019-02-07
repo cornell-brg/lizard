@@ -20,6 +20,19 @@ def clog2nz(x):
     return result
 
 
+def copy_bits(bits):
+  if isinstance(bits, list):
+    return [copy_bits(x) for x in bits]
+  elif isinstance(bits, int) or isinstance(bits, long):
+    return bits
+  else:
+    assert isinstance(bits, Bits)
+    # super hacky, there needs to be a better way to do this
+    other = bits()
+    other._uint = bits._uint
+    return other
+
+
 def sane_lookup(d):
 
   @staticmethod

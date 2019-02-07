@@ -2,6 +2,8 @@ import abc
 from inspect import getargspec, ismethod
 from functools import wraps
 from util.pretty_print import list_string_value
+from bitutil import copy_bits
+from copy import deepcopy
 
 
 class HardwareModel(object):
@@ -12,11 +14,20 @@ class HardwareModel(object):
     s.interface = interface
     s.model_methods = {}
     s.ready_methods = {}
+    s.state_element_names = []
+    s.saved_state = {}
+    s.state_reset_values = {}
+    s.anonymous_state_counter = 0
     s.validate_args = validate_args
 
   def reset(s):
     s._pre_cycle_wrapper()
     s._reset()
+    for name, state_element in s._state_elements():
+      if isinstance(state_element, HardwareModel):
+        state_element.reset()
+      else:
+        setattr(s, name, deepcopy(s.state_reset_values[name]))
     s.cycle()
 
   @abc.abstractmethod
@@ -46,8 +57,51 @@ class HardwareModel(object):
   def _post_cycle(s):
     pass
 
-  @abc.abstractmethod
   def _reset(s):
+    pass
+
+  def state(s, **kwargs):
+    for k, v in kwargs.iteritems():
+      if hasattr(s, k):
+        raise ValueError('Member already present: {}'.foramt(k))
+      else:
+        setattr(s, k, v)
+        s.state_element_names.append(k)
+        # save the initial value if not a hardware model
+        if not isinstance(v, HardwareModel):
+          s.state_reset_values[k] = deepcopy(v)
+
+  def register_state(s, hardware_model):
+    if not isinstance(hardware_model, HardwareModel):
+      raise ValueError('Must be HardwareModel')
+    name = '_anonymous_state_member_{}'.format(s.anonymous_state_counter)
+    s.anonymous_state_counter += 1
+    s.state(**{name: hardware_model})
+
+  def _state_elements(s):
+    return [(name, getattr(s, name)) for name in s.state_element_names]
+
+  def snapshot_model_state(s):
+    s.extra_model_state = s._snapshot_model_state()
+    for name, state_element in s._state_elements():
+      if isinstance(state_element, HardwareModel):
+        state_element.snapshot_model_state()
+      else:
+        s.saved_state[name] = deepcopy(state_element)
+
+  def restore_model_state(s):
+    s._pre_cycle_wrapper()
+    s._restore_model_state(s.extra_model_state)
+    for name, state_element in s._state_elements():
+      if isinstance(state_element, HardwareModel):
+        state_element.restore_model_state()
+      else:
+        setattr(s, name, deepcopy(s.saved_state[name]))
+
+  def _snapshot_model_state(s):
+    pass
+
+  def _restore_model_state(s, state):
     pass
 
   @staticmethod
@@ -87,8 +141,9 @@ class HardwareModel(object):
     arg_spec = getargspec(func)
     if len(
         arg_spec.args
-    ) != 0 or arg_spec.varargs is not None or arg_spec.keywords is not None:
-      raise ValueError('Ready function must take no arguments')
+    ) != 1 or arg_spec.varargs is not None or arg_spec.keywords is not None:
+      raise ValueError(
+          'Ready function must take exactly 1 argument (call_index)')
 
     s.ready_methods[func.__name__] = func
 
@@ -123,8 +178,8 @@ class HardwareModel(object):
 
       s._pre_call(func, method, _call_index)
       # check to see if the method is ready
-      if func.__name__ in s.ready_methods and not s.ready_methods[func
-                                                                  .__name__]():
+      if func.__name__ in s.ready_methods and not s.ready_methods[
+          func.__name__](_call_index):
         result = not_ready_instance
       else:
         # call this method
@@ -165,7 +220,12 @@ class HardwareModel(object):
       # This is used to ensure that when a future method is called
       # the result to a prior method doesn't mutate
       s._back_prop_track(method.name, _call_index, result)
-      return result
+
+      # Freeze the result so if the caller preserves it across multiple cycles it doesn't change
+      return s._freeze_result(result)
+
+    if hasattr(s, func.__name__):
+      raise ValueError('Internal wrapper error')
 
     setattr(s, func.__name__,
             MethodDispatcher(func.__name__, wrapper, s.ready_methods))
@@ -175,27 +235,28 @@ class HardwareModel(object):
     s._pre_cycle_wrapper()
 
   @staticmethod
-  def _freeze_bits(data):
-    if isinstance(data, list):
-      return [HardwareModel._freeze_bits(x) for x in data]
+  def _freeze_result(result):
+    result = HardwareModel._freeze_result_to_dict(result)
+    if isinstance(result, NotReady):
+      return result
     else:
-      return int(data)
+      return Result(**result)
 
   @staticmethod
-  def _freeze_result(result):
+  def _freeze_result_to_dict(result):
     if isinstance(result, NotReady):
       return result
     frozen = {}
     for name, value in result._data.iteritems():
-      frozen[name] = HardwareModel._freeze_bits(value)
+      frozen[name] = copy_bits(value)
     return frozen
 
   def _back_prop_track(s, method_name, call_index, result):
     s.back_prop_tracking.append((method_name, call_index, result,
-                                 s._freeze_result(result)))
+                                 s._freeze_result_to_dict(result)))
 
     for method_name, call_index, result, frozen in s.back_prop_tracking:
-      if s._freeze_result(result) != frozen:
+      if s._freeze_result_to_dict(result) != frozen:
         raise ValueError(
             'Illegal backpropagation detected on method: {}[{}]'.format(
                 method_name, call_index))
@@ -223,6 +284,16 @@ class Result(object):
       s._data[k] = v
       setattr(s, k, v)
 
+  def copy(s):
+    temp = {}
+    for k, v in s._data.iteritems():
+      temp[k] = copy_bits(v)
+    return Result(**temp)
+
+  def __str__(s):
+    return '[{}]'.format(', '.join(
+        '{}={}'.format(k, v) for k, v in s._data.iteritems()))
+
 
 class MethodDispatcher(object):
 
@@ -231,8 +302,8 @@ class MethodDispatcher(object):
     s.wrapper_func = wrapper_func
     s.ready_dict = ready_dict
 
-  def rdy(s):
-    return s.ready_dict(s.name)()
+  def rdy(s, call_index=None):
+    return s.ready_dict[s.name](call_index)
 
   def __getitem__(s, key):
 
