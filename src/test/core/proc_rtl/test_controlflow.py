@@ -5,7 +5,7 @@ from model.flmodel import FLModel
 
 
 class TestControlFlowManagerFL(FLModel):
-
+  @HardwareModel.validate
   def __init__(s, xlen, seq_idx_nbits):
     super(TestControlFlowManagerFL, s).__init__(
         ControlFlowManagerInterface(xlen, seq_idx_nbits))
@@ -27,3 +27,7 @@ class TestControlFlowManagerFL(FLModel):
     @s.model_method
     def register(speculative):
       return 0
+
+    @s.ready_method
+    def register():
+      return True
