@@ -5,6 +5,7 @@ from util.rtl.interface import Interface, IncludeSome
 from util.rtl.method import MethodSpec
 from pclib.rtl import RegEn, RegEnRst, RegRst
 
+
 class ControlFlowManagerInterface(Interface):
 
   def __init__(s, xlen, seq_idx_nbits):
@@ -29,7 +30,7 @@ class ControlFlowManagerInterface(Interface):
             ),
             MethodSpec(
                 'register',
-                args={'speculative' : Bits(1)},
+                args={'speculative': Bits(1)},
                 rets={'seq': Bits(seq_idx_nbits)},
                 call=True,
                 rdy=True,
@@ -68,7 +69,7 @@ class ControlFlowManager(Model):
     def set_flags():
       s.empty.v = s.num.out == 0
       # Ready signals:
-      s.register_rdy.v = s.num.out < (1 << seqidx_nbits) # Alloc rdy
+      s.register_rdy.v = s.num.out < (1 << seqidx_nbits)  # Alloc rdy
 
     # @s.combinational
     # def update_tail():
