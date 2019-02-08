@@ -12,7 +12,7 @@ from msg.codes import RVInstMask, Opcode, ExceptionCode
 class IssueInterface(Interface):
 
   def __init__(s):
-    super(DecodeInterface, s).__init__(
+    super(IssueInterface, s).__init__(
         [
         ],
         ordering_chains=[

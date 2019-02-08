@@ -2,6 +2,7 @@ from pymtl import *
 from core.rtl.controlflow import ControlFlowManager, ControlFlowManagerInterface
 from core.rtl.frontend.fetch import Fetch
 from core.rtl.frontend.decode import Decode
+from core.rtl.backend.rename import Rename
 from core.rtl.dataflow import DataFlowManager
 
 from config.general import *
@@ -33,3 +34,4 @@ class Proc(Model):
 
     s.fetch_ = Fetch(XLEN, ILEN, INST_IDX_NBITS)
     s.decode_ = Decode(XLEN, ILEN, AREG_IDX_NBITS)
+    s.rename_ = Rename(XLEN, INST_IDX_NBITS, AREG_COUNT, AREG_IDX_NBITS, PREG_COUNT, MAX_SPEC_DEPTH, 2, 1)
