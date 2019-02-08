@@ -2,6 +2,7 @@ from collections import OrderedDict
 from pymtl import *
 from util.rtl.method import MethodSpec
 from util.toposort import toposort
+from copy import deepcopy
 import inspect
 
 
@@ -296,16 +297,14 @@ class Interface(object):
     for prefix, name, spec, _ in s.requirements:
       s._generate_residual_spec(target, prefix, name, spec)
 
-  def require_fl_methods(s, target):
-    """Check that target FL model contains all methods specified.
+  def export(s, export_mapping):
+    exported_methods = []
+    for source, target in export_mapping.iteritems():
+      method = deepcopy(s[source])
+      method.name = target
+      exported_methods.append(method)
 
-    This method should be called by implementing models.
-    """
-
-    from util.method_test import Wrapper
-
-    for name, spec in s.methods.iteritems():
-      Wrapper.validate_fl_wrapper_method(spec, target)
+    return Interface(exported_methods)
 
   def __getitem__(s, key):
     return s.methods[key]

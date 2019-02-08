@@ -35,19 +35,23 @@ class FetchInterface(Interface):
 
 class Fetch(Model):
 
-  def __init__(s, xlen, ilen, seq_idx_nbits):
+  def __init__(s, xlen, ilen, seq_idx_nbits, memory_controller_interface):
     UseInterface(s, FetchInterface(ilen))
 
     # The memory req and resp
-    s.req = OutValRdyBundle(MemMsg4B.req)
-    s.resp = InValRdyBundle(MemMsg4B.resp)
+    memory_controller_interface.require(s, 'mem', 'recv')
+    memory_controller_interface.require(s, 'mem', 'send')
 
+    # Don't know what to do with this since the memory controller has methods
+    # TODO: Aaron
     s.drop_unit_ = DropUnit(MemMsg4B.resp)
 
     s.cflow = ControlFlowManagerInterface(xlen, seq_idx_nbits)
     s.cflow.require(s, '', 'check_redirect')
 
     # Outgoing pipeline registers
+    # TODO: Aaron: this is a RegEnRst, but you don't tie its en input to anything
+    # Please use our registers, src/util/register.py with methods insead.
     s.fetch_val_ = RegEnRst(Bits(1), reset_value=0)
     s.fetchmsg_ = Wire(FetchMsg())
 
