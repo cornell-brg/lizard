@@ -26,7 +26,7 @@ class FetchTestHarnessInterface(Interface):
 class FetchTestHarness(Model):
 
   def __init__(s):
-    s.mbi = MemoryBusInterface(1, 1, 2, 64, 64)
+    s.mbi = MemoryBusInterface(1, 1, 2, 64, 8)
     s.tmb = TestMemoryBusFL(s.mbi)
     s.mb = wrap_to_rtl(s.tmb)
     s.mc = BasicMemoryController(s.mbi, ['fetch'])
