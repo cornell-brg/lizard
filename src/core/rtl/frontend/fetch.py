@@ -55,14 +55,14 @@ class Fetch(Model):
     s.fetchmsg_ = Wire(FetchMsg())
 
     # Is there a request in flight
-    s.inflight_ = RegRst(Bits(1), reset_value=0)
+    s.inflight_reg_ = RegRst(Bits(1), reset_value=0)
     s.pc_next_ = RegRst(Bits(xlen), reset_value=0)
 
     s.pc_req_ = Wire(Bits(xlen))
     # Should fetch send a memory request for the next instruction
     s.send_req_ = Wire(1)
 
-
+    s.inflight_ = Wire(1)
     s.rdy_ = Wire(1)
 
     # Connect up the drop unit
@@ -74,8 +74,9 @@ class Fetch(Model):
     @s.combinational
     def set_flags():
       s.rdy_.v = s.get_call or not s.fetch_val_.out
+      s.inflight_.v = s.inflight_reg_.out and not s.mem_recv_call
       # Send next request if not inflight or we just got a resp back
-      s.send_req_.v = (not s.inflight_.out or s.mem_recv_call) and s.rdy_ and s.mem_send_rdy
+      s.send_req_.v = not s.inflight_ and s.rdy_ and s.mem_send_rdy
 
     # Insert BTB here!
     @s.combinational
@@ -87,7 +88,7 @@ class Fetch(Model):
     def handle_req():
       s.mem_send_type_.v = MemMsgType.READ
       s.mem_send_addr.v = s.pc_req_
-      s.mem_send_len.v = 0
+      s.mem_send_len_.v = 0
       s.mem_send_data.v = 0
       # Send next request if not inflight or we just got a resp back
       s.mem_send_call.v = s.send_req_
@@ -95,9 +96,9 @@ class Fetch(Model):
     @s.combinational
     def handle_inflight():
       # Either something still in flight, we just sent something out
-      s.inflight_.in_.v = (s.inflight_.out and not s.mem_recv_call) or s.send_req_
+      s.inflight_reg_.in_.v = s.inflight_ or s.send_req_
       # The drop unit is told to drop if a redirect is sent
-      s.drop_unit_.drop_call.v = s.inflight_.out and s.check_redirect_redirect
+      s.drop_unit_.drop_call.v = s.inflight_reg_.out and s.check_redirect_redirect
 
     @s.combinational
     def handle_get():
@@ -108,7 +109,7 @@ class Fetch(Model):
     def handle_fetchval():
       # The message is valid
       s.fetch_val_.in_.v = s.drop_unit_.output_rdy or (
-          not s.get_call and s.fetch_val_.out and not s.check_redirect_redirect)
+          s.fetch_val_.out and not s.get_call and not s.check_redirect_redirect)
 
     @s.tick_rtl
     def handle_fetchmsg():
