@@ -10,12 +10,12 @@ from core.rtl.messages import RenameMsg
 from msg.codes import RVInstMask, Opcode, ExceptionCode
 from core.rtl.frontend.decode import DecodeInterface
 
+
 class RenameInterface(Interface):
 
   def __init__(s):
     super(RenameInterface, s).__init__(
-        [
-        ],
+        [],
         ordering_chains=[
             [],
         ],
@@ -24,13 +24,15 @@ class RenameInterface(Interface):
 
 class Rename(Model):
 
-  def __init__(s, xlen, seq_idx_nbits, areg_count, areg_tag_nbits, preg_count, max_spec_depth, nsrc_ports, ndst_ports):
+  def __init__(s, xlen, seq_idx_nbits, areg_count, areg_tag_nbits, preg_count,
+               max_spec_depth, nsrc_ports, ndst_ports):
     UseInterface(s, RenameInterface())
 
     s.decode = DecodeInterface()
     s.decode.require(s, 'decode', 'get')
 
-    s.dflow = DataFlowManagerInterface(xlen, areg_count, preg_count, max_spec_depth, nsrc_ports, ndst_ports)
+    s.dflow = DataFlowManagerInterface(xlen, areg_count, preg_count,
+                                       max_spec_depth, nsrc_ports, ndst_ports)
     s.dflow.require(s, 'dflow_0', 'get_src')
     s.dflow.require(s, 'dflow_1', 'get_src')
     s.dflow.require(s, 'dflow', 'get_dst')

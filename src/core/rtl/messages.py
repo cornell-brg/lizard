@@ -37,7 +37,7 @@ class DecodeMsg(PipelineMsg):
 
   def __init__(s):
     super(DecodeMsg, s).__init__()
-    s.speculative = BitField(1) # Set if requires RT snapshot
+    s.speculative = BitField(1)  # Set if requires RT snapshot
     s.rs1_val = BitField(1)
     s.rs1 = BitField(AREG_IDX_NBITS)
     s.rs2_val = BitField(1)
@@ -52,5 +52,6 @@ class DecodeMsg(PipelineMsg):
 
 
 class RenameMsg(PipelineMsg):
+
   def __init__(s):
     super(RenameMsg, s).__init__()
