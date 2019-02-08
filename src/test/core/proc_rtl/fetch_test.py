@@ -57,13 +57,22 @@ class FetchTestHarness(Model):
 
 
 def test_basic():
-  dut = wrap_to_cl(FetchTestHarness())
+  fth = FetchTestHarness()
+  dut = wrap_to_cl(fth)
   dut.reset()
 
   # TODO: Aaron
   # you can put stuff into the memory by going in through the FL memory bus
   # dut.tmb.write_mem(...)
   # then make sure get does what you want it to!
-
+  data = [0xdeadbeafffffffff, 0xbeafdeadaaaaaaaa, 0xeeeeeeeebbbbbbbb, 0x1111222233334444]
+  # Little endian
+  for i, word in enumerate(data):
+    for j in range(8):
+      fth.tmb.write_mem(8*i + j, [word & 0xff])
+      word >>= 8
+  #print(fth.tmb.mem)
   # let's fetch!
-  thing = dut.get()
+  for _ in range(len(data)):
+    dut.cycle()
+    #print(fth.tmb.mem)
