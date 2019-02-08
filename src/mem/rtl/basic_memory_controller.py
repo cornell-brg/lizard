@@ -9,31 +9,22 @@ from bitutil import clog2, clog2nz
 
 class BasicMemoryControllerInterface(Interface):
 
-  def __init__(s, memory_bus_interface, clients):
-    s.mbi = memory_bus_interface
+  def __init__(s, mem_msg, clients):
+    s.MemMsg = mem_msg
     methods = []
     for client in clients:
       methods.extend([
           MethodSpec(
               '{}_recv'.format(client),
               args=None,
-              rets={
-                  'type_': Bits(MemMsgType.bits),
-                  'stat': Bits(MemMsgStatus.bits),
-                  'len_': Bits(clog2(s.mbi.data_nbytes)),
-                  'data': Bits(s.mbi.data_nbytes * 8),
+              rets={ 'resp' : mem_msg.resp
               },
               call=True,
               rdy=True,
           ),
           MethodSpec(
               '{}_send'.format(client),
-              args={
-                  'type_': Bits(MemMsgType.bits),
-                  'addr': Bits(s.mbi.addr_nbits),
-                  'len_': Bits(clog2(s.mbi.data_nbytes)),
-                  'data': Bits(s.mbi.data_nbytes * 8),
-              },
+              args={ 'req' : mem_msg.req},
               rets=None,
               call=True,
               rdy=True,
@@ -46,7 +37,7 @@ class BasicMemoryControllerInterface(Interface):
 class BasicMemoryController(Model):
 
   def __init__(s, memory_bus_interface, clients):
-    UseInterface(s, BasicMemoryControllerInterface(memory_bus_interface,
+    UseInterface(s, BasicMemoryControllerInterface(memory_bus_interface.MemMsg,
                                                    clients))
 
     if memory_bus_interface.num_ports != len(clients):
@@ -91,10 +82,10 @@ class BasicMemoryController(Model):
       s.connect(s.index_client_recv_call[i], client_recv_port.call)
       s.connect(s.index_client_recv_rdy[i], client_recv_port.rdy)
 
-      s.connect(s.bus_send_msg[i].type_, client_send_port.type_)
-      s.connect(s.bus_send_msg[i].addr, client_send_port.addr)
-      s.connect(s.bus_send_msg[i].len_, client_send_port.len_)
-      s.connect(s.bus_send_msg[i].data, client_send_port.data)
+      s.connect(s.bus_send_msg[i].type_, client_send_port.req.type_)
+      s.connect(s.bus_send_msg[i].addr, client_send_port.req.addr)
+      s.connect(s.bus_send_msg[i].len_, client_send_port.req.len_)
+      s.connect(s.bus_send_msg[i].data, client_send_port.req.data)
       s.connect(s.bus_send_msg[i].opaque, i)
       s.connect(s.bus_send_call[i], client_send_port.call)
 
@@ -137,10 +128,10 @@ class BasicMemoryController(Model):
 
       s.connect(s.client_valid_regs[i].write_call, s.recv_valid_chains[final])
 
-      s.connect(client_recv_port.type_, s.client_regs[i].read_data.type_)
-      s.connect(client_recv_port.stat, s.client_regs[i].read_data.stat)
-      s.connect(client_recv_port.len_, s.client_regs[i].read_data.len_)
-      s.connect(client_recv_port.data, s.client_regs[i].read_data.data)
+      s.connect(client_recv_port.resp.type_, s.client_regs[i].read_data.type_)
+      s.connect(client_recv_port.resp.stat, s.client_regs[i].read_data.stat)
+      s.connect(client_recv_port.resp.len_, s.client_regs[i].read_data.len_)
+      s.connect(client_recv_port.resp.data, s.client_regs[i].read_data.data)
 
       # always read from the bus into the register if ready
       s.connect(s.bus_recv_call[i], s.bus_recv_rdy[i])

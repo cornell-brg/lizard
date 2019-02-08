@@ -34,7 +34,7 @@ class FetchTestHarness(Model):
     s.tcf = wrap_to_rtl(TestControlFlowManagerFL(64, 2))
 
     s.fetch = Fetch(
-        64, 32, 2,
+        64, 32, 2, s.mbi.MemMsg,
         s.mc.interface.export({
             'fetch_recv': 'recv',
             'fetch_send': 'send'
