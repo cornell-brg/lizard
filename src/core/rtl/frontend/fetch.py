@@ -35,7 +35,7 @@ class FetchInterface(Interface):
 
 class Fetch(Model):
 
-  def __init__(s, xlen, ilen):
+  def __init__(s, xlen, ilen, seq_idx_nbits):
     UseInterface(s, FetchInterface(ilen))
 
     # The memory req and resp
@@ -44,7 +44,7 @@ class Fetch(Model):
 
     s.drop_unit_ = DropUnit(MemMsg4B.resp)
 
-    s.cflow = ControlFlowManagerInterface(xlen)
+    s.cflow = ControlFlowManagerInterface(xlen, seq_idx_nbits)
     s.cflow.require(s, '', 'check_redirect')
 
     # Outgoing pipeline registers
