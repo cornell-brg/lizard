@@ -13,8 +13,7 @@ class IssueInterface(Interface):
 
   def __init__(s):
     super(IssueInterface, s).__init__(
-        [
-        ],
+        [],
         ordering_chains=[
             [],
         ],

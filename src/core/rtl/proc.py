@@ -8,8 +8,6 @@ from core.rtl.dataflow import DataFlowManager
 from config.general import *
 
 
-
-
 class Proc(Model):
   """
          FRONTEND          :                      BACKEND
@@ -28,10 +26,13 @@ class Proc(Model):
   7. Writeback: Write the result into the pref
   8. Commit: Reorder the instruction in a ROB and retire then when they reach the head
   """
+
   def __init__(s):
     s.cflow_ = ControlFlowManager(XLEN, RESET_VECTOR, INST_IDX_NBITS)
-    s.dflow_ = DataFlowManager(XLEN, AREG_COUNT, PREG_COUNT, MAX_SPEC_DEPTH, 2, 1)
+    s.dflow_ = DataFlowManager(XLEN, AREG_COUNT, PREG_COUNT, MAX_SPEC_DEPTH, 2,
+                               1)
 
     s.fetch_ = Fetch(XLEN, ILEN, INST_IDX_NBITS)
     s.decode_ = Decode(XLEN, ILEN, AREG_IDX_NBITS)
-    s.rename_ = Rename(XLEN, INST_IDX_NBITS, AREG_COUNT, AREG_IDX_NBITS, PREG_COUNT, MAX_SPEC_DEPTH, 2, 1)
+    s.rename_ = Rename(XLEN, INST_IDX_NBITS, AREG_COUNT, AREG_IDX_NBITS,
+                       PREG_COUNT, MAX_SPEC_DEPTH, 2, 1)
