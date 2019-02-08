@@ -7,7 +7,17 @@ from core.rtl.dataflow import DataFlowManager
 from config.general import *
 
 
+
+
 class Proc(Model):
+"""
+       FRONTEND          :                      BACKEND
+                         :                          -> |   CSR   | -> |           |
+|       |    |        |  :  |        |    |       | -> |  BRANCH | -> |           |    |        |
+| Fetch | -> | Decode | -:> | Rename | -> | Issue | -> |   ALU   | -> | Writeback | -> | Commit |
+|_______|    |________|  :  |________|    |_______| -> | MUL/DIV | -> |___________|    |________|
+                         :
+"""
 
   def __init__(s):
     s.cflow_ = ControlFlowManager(XLEN, RESET_VECTOR)
