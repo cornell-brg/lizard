@@ -44,15 +44,14 @@ class Fetch(Model):
 
     # Don't know what to do with this since the memory controller has methods
     # TODO: Aaron
-    s.drop_unit_ = DropUnit(MemMsg4B.resp)
+    s.drop_unit_ = DropUnit(64)
 
     s.cflow = ControlFlowManagerInterface(xlen, seq_idx_nbits)
     s.cflow.require(s, '', 'check_redirect')
 
     # Outgoing pipeline registers
-    # TODO: Aaron: this is a RegEnRst, but you don't tie its en input to anything
     # Please use our registers, src/util/register.py with methods insead.
-    s.fetch_val_ = RegEnRst(Bits(1), reset_value=0)
+    s.fetch_val_ = RegRst(Bits(1), reset_value=0)
     s.fetchmsg_ = Wire(FetchMsg())
 
     # Is there a request in flight
@@ -62,45 +61,43 @@ class Fetch(Model):
     s.pc_req_ = Wire(Bits(xlen))
     # Should fetch send a memory request for the next instruction
     s.send_req_ = Wire(1)
-    # Did fetch send a request and was it accepted
-    s.req_accepted_ = Wire(1)
+
 
     s.rdy_ = Wire(1)
 
     # Connect up the drop unit
-    s.connect(s.drop_unit_.input_data, s.resp.msg)
-    s.connect(s.drop_unit_.input_call, s.resp.val)
-    # The drop unit is told to drop if a redirect is sent
-    s.connect(s.drop_unit_.drop_call, s.check_redirect_redirect)
-    s.connect(s.resp.rdy, s.rdy_)
+    s.connect(s.drop_unit_.input_data, s.mem_recv_data)
+    s.connect(s.mem_recv_call, s.mem_recv_rdy) # We are always ready to recv
+    s.connect(s.drop_unit_.input_call, s.mem_recv_rdy)
+
 
     @s.combinational
     def set_flags():
       s.rdy_.v = s.get_call or not s.fetch_val_.out
       # Send next request if not inflight or we just got a resp back
-      s.send_req_.v = (not s.inflight_.out or s.resp.val) and s.rdy_
-      s.req_accepted_.v = s.send_req_ and s.req.rdy
+      s.send_req_.v = (not s.inflight_.out or s.mem_recv_call) and s.rdy_ and s.mem_send_rdy
 
     # Insert BTB here!
     @s.combinational
     def calc_pc():
       s.pc_req_.v = s.check_redirect_target if s.check_redirect_redirect else s.pc_next_.out
-      s.pc_next_.in_ = s.pc_req_ + 4 if s.req_accepted_ else s.pc_next_.out
+      s.pc_next_.in_.v = s.pc_req_ + 4 if s.send_req_ else s.pc_next_.out
 
     @s.combinational
     def handle_req():
-      s.req.msg.type_.v = MemMsgType.READ
-      s.req.msg.opaque.v = 0
-      s.req.msg.addr.v = s.pc_req_
-      s.req.msg.len.v = 0
-      s.req.msg.data.v = 0
+      s.mem_send_type_.v = MemMsgType.READ
+      s.mem_send_addr.v = s.pc_req_
+      s.mem_send_len.v = 0
+      s.mem_send_data.v = 0
       # Send next request if not inflight or we just got a resp back
-      s.req.val.v = s.send_req_
+      s.mem_send_call.v = s.send_req_
 
     @s.combinational
     def handle_inflight():
       # Either something still in flight, we just sent something out
-      s.inflight_.in_ = (s.inflight_.out and not s.resp.val) or s.req_accepted_
+      s.inflight_.in_.v = (s.inflight_.out and not s.mem_recv_call) or s.send_req_
+      # The drop unit is told to drop if a redirect is sent
+      s.drop_unit_.drop_call.v = s.inflight_.out and s.check_redirect_redirect
 
     @s.combinational
     def handle_get():
@@ -115,7 +112,7 @@ class Fetch(Model):
 
     @s.tick_rtl
     def handle_fetchmsg():
-      s.fetchmsg_.pc.n = s.pc_req_ if s.req_accepted_ else s.fetchmsg_.pc
+      s.fetchmsg_.pc.n = s.pc_req_ if s.send_req_ else s.fetchmsg_.pc
       s.fetchmsg_.inst.n = s.drop_unit_.output_data.data if s.drop_unit_.output_rdy else s.fetchmsg_.inst
       s.fetchmsg_.trap.n = s.drop_unit_.output_data.stat != MemMsgStatus.OK
       if s.drop_unit_.output_data.stat == MemMsgStatus.ADDRESS_MISALIGNED:
