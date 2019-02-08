@@ -35,7 +35,7 @@ class FetchInterface(Interface):
 
 class Fetch(Model):
 
-  def __init__(s, xlen, ilen, seq_idx_nbits, memory_controller_interface):
+  def __init__(s, xlen, ilen, seq_idx_nbits, mem_msg, memory_controller_interface):
     UseInterface(s, FetchInterface(ilen))
 
     # The memory req and resp
@@ -44,7 +44,7 @@ class Fetch(Model):
 
     # Don't know what to do with this since the memory controller has methods
     # TODO: Aaron
-    s.drop_unit_ = DropUnit(64)
+    s.drop_unit_ = DropUnit(mem_msg.resp)
 
     s.cflow = ControlFlowManagerInterface(xlen, seq_idx_nbits)
     s.cflow.require(s, '', 'check_redirect')
@@ -66,7 +66,7 @@ class Fetch(Model):
     s.rdy_ = Wire(1)
 
     # Connect up the drop unit
-    s.connect(s.drop_unit_.input_data, s.mem_recv_data)
+    s.connect(s.drop_unit_.input_data, s.mem_recv_resp)
     s.connect(s.mem_recv_call, s.mem_recv_rdy) # We are always ready to recv
     s.connect(s.drop_unit_.input_call, s.mem_recv_rdy)
 
@@ -86,10 +86,10 @@ class Fetch(Model):
 
     @s.combinational
     def handle_req():
-      s.mem_send_type_.v = MemMsgType.READ
-      s.mem_send_addr.v = s.pc_req_
-      s.mem_send_len_.v = 0
-      s.mem_send_data.v = 0
+      s.mem_send_req.type_.v = MemMsgType.READ
+      s.mem_send_req.addr.v = s.pc_req_
+      s.mem_send_req.len_.v = 0
+      s.mem_send_req.data.v = 0
       # Send next request if not inflight or we just got a resp back
       s.mem_send_call.v = s.send_req_
 
