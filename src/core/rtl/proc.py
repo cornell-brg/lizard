@@ -12,11 +12,20 @@ from config.general import *
 class Proc(Model):
 """
        FRONTEND          :                      BACKEND
-                         :                          -> |   CSR   | -> |           |
-|       |    |        |  :  |        |    |       | -> |  BRANCH | -> |           |    |        |
-| Fetch | -> | Decode | -:> | Rename | -> | Issue | -> |   ALU   | -> | Writeback | -> | Commit |
-|_______|    |________|  :  |________|    |_______| -> | MUL/DIV | -> |___________|    |________|
+                         :                             |          |-> |   CSR   | -> |           |
+|       |    |        |  :  |        |    |       |    |          |-> |  BRANCH | -> |           |    |        |
+| Fetch | -> | Decode | -:> | Rename | -> | Issue | -> | Dispatch |-> |   ALU   | -> | Writeback | -> | Commit |
+|_______|    |________|  :  |________|    |_______|    |__________|-> | MUL/DIV | -> |___________|    |________|
                          :
+
+1. Fetch: Fetch the instruction word
+2. Decode: Determine control signals
+3. Rename: Rename any aregs, and allocate a seq number
+4. Issue: Issue instructions out of order and operands become ready
+5. Dispatch: Read pregs from RF (or maybe get from bypass network)
+6. Execute: Obvious
+7. Writeback: Write the result into the pref
+8. Commit: Reorder the instruction in a ROB and retire then when they reach the head
 """
 
   def __init__(s):
