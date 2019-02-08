@@ -81,6 +81,7 @@ class Fetch(Model):
     # Insert BTB here!
     @s.combinational
     def calc_pc():
+      print(s.mem_recv_resp.data)
       s.pc_req_.v = s.check_redirect_target if s.check_redirect_redirect else s.pc_next_.out
       s.pc_next_.in_.v = s.pc_req_ + 4 if s.send_req_ else s.pc_next_.out
 

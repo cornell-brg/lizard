@@ -82,7 +82,8 @@ class TestMemoryBusFL(FLModel):
   def write_mem(s, addr, data):
     assert addr + len(data) < s.max_addr
     for i in range(len(data)):
-      s.mem[addr + i] = data[i]
+      s.mem[addr + i] = data[i] & 0xff
+      assert s.mem[int(addr + i)] == int(data[i] & 0xff)
 
   def read_mem(s, addr, size):
     assert addr + size < s.max_addr
