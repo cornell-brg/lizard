@@ -6,7 +6,7 @@ from model.flmodel import FLModel
 
 class TestControlFlowManagerFL(FLModel):
   @HardwareModel.validate
-  def __init__(s, xlen, seq_idx_nbits):
+  def __init__(s, xlen, seq_idx_nbits, reset_vector):
     super(TestControlFlowManagerFL, s).__init__(
         ControlFlowManagerInterface(xlen, seq_idx_nbits))
 
@@ -16,7 +16,7 @@ class TestControlFlowManagerFL(FLModel):
     def check_redirect():
       if s.init:
         s.init = False
-        return Result(redirect=1, target=0x200)
+        return Result(redirect=1, target=reset_vector)
       else:
         return Result(redirect=0, target=0)
 
