@@ -73,6 +73,8 @@ def test_basic():
       word >>= 8
   #print(fth.tmb.mem)
   # let's fetch!
-  for _ in range(len(data)):
+  for _ in range(2*len(data)):
     dut.cycle()
+    print fth.fetch.fetchmsg_.inst
+    print "foo"
     #print(fth.tmb.mem)
