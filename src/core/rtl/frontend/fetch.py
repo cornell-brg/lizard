@@ -110,8 +110,6 @@ class Fetch(Model):
       # The message is valid
       s.fetch_val_.in_.v = s.drop_unit_.output_rdy or (
           s.fetch_val_.out and not s.get_call and not s.check_redirect_redirect)
-      # TODO fix this:
-      s.fetch_val_.in_.v = 0
 
 
     @s.tick_rtl

@@ -60,7 +60,6 @@ def test_basic():
   fth = FetchTestHarness()
   dut = wrap_to_cl(fth)
   dut.reset()
-
   # TODO: Aaron
   # you can put stuff into the memory by going in through the FL memory bus
   # dut.tmb.write_mem(...)
@@ -75,6 +74,5 @@ def test_basic():
   # let's fetch!
   for _ in range(2*len(data)):
     dut.cycle()
-    print fth.fetch.fetchmsg_.inst
-    print "foo"
+    print(dut.get())
     #print(fth.tmb.mem)
