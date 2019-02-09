@@ -14,7 +14,7 @@ class BasicMemoryControllerTestHarnessInterface(Interface):
     s.clients = [
         'client_{}'.format(x) for x in range(memory_bus_interface.num_ports)
     ]
-    base = BasicMemoryControllerInterface(memory_bus_interface, s.clients)
+    base = BasicMemoryControllerInterface(memory_bus_interface.MemMsg, s.clients)
 
     super(BasicMemoryControllerTestHarnessInterface,
           s).__init__([], bases=[
@@ -43,73 +43,73 @@ class BasicMemoryControllerTestHarness(Model):
 
 
 def test_1_client():
-  dut = wrap_to_cl(BasicMemoryControllerTestHarness(1))
+  th = BasicMemoryControllerTestHarness(1)
+  MemMsg = th.MemMsg
+  dut = wrap_to_cl(th)
   dut.reset()
 
   assert isinstance(dut.client_0_recv(), NotReady)
-  sent = dut.client_0_send(
-      type_=MemMsgType.WRITE, addr=0, len_=4, data=0xdeadbeef)
+  sent = dut.client_0_send(MemMsg.req.mk_wr(0, 0, 4, 0xdeadbeef))
   assert isinstance(sent, Result)
   dut.cycle()
 
   recv = dut.client_0_recv()
   assert isinstance(recv, Result)
-  assert recv.type_ == MemMsgType.WRITE
-  assert recv.stat == 0
-  sent = dut.client_0_send(type_=MemMsgType.READ, addr=0, len_=4, data=0)
+  assert recv.resp.type_ == MemMsgType.WRITE
+  assert recv.resp.stat == 0
+  sent = dut.client_0_send(MemMsg.req.mk_rd(0, 0, 4))
   assert isinstance(sent, Result)
   dut.cycle()
 
   recv = dut.client_0_recv()
   assert isinstance(recv, Result)
-  assert recv.type_ == MemMsgType.READ
-  assert recv.stat == 0
-  assert recv.len_ == 4
-  assert recv.data == 0xdeadbeef
+  assert recv.resp.type_ == MemMsgType.READ
+  assert recv.resp.stat == 0
+  assert recv.resp.len_ == 4
+  assert recv.resp.data == 0xdeadbeef
 
 
 def test_2_client():
   th = BasicMemoryControllerTestHarness(2)
   tmb = th.tmb
+  MemMsg = th.MemMsg
   dut = wrap_to_cl(th)
   dut.reset()
 
   assert isinstance(dut.client_0_recv(), NotReady)
-  sent = dut.client_0_send(
-      type_=MemMsgType.WRITE, addr=0, len_=4, data=0xdeadbeef)
+  sent = dut.client_0_send(MemMsg.req.mk_wr(0, 0, 4, 0xdeadbeef))
   assert isinstance(sent, Result)
   assert isinstance(dut.client_1_recv(), NotReady)
-  sent = dut.client_1_send(
-      type_=MemMsgType.WRITE, addr=4, len_=4, data=0xcafebabe)
+  sent = dut.client_1_send(MemMsg.req.mk_wr(0, 4, 4, 0xcafebabe))
   assert isinstance(sent, Result)
   dut.cycle()
 
   recv = dut.client_0_recv()
   assert isinstance(recv, Result)
-  assert recv.type_ == MemMsgType.WRITE
-  assert recv.stat == 0
-  sent = dut.client_0_send(type_=MemMsgType.READ, addr=0, len_=4, data=0)
+  assert recv.resp.type_ == MemMsgType.WRITE
+  assert recv.resp.stat == 0
+  sent = dut.client_0_send(MemMsg.req.mk_rd(0, 0, 4))
   assert isinstance(sent, Result)
   recv = dut.client_1_recv()
   assert isinstance(recv, Result)
-  assert recv.type_ == MemMsgType.WRITE
-  assert recv.stat == 0
-  sent = dut.client_1_send(type_=MemMsgType.READ, addr=4, len_=4, data=0)
+  assert recv.resp.type_ == MemMsgType.WRITE
+  assert recv.resp.stat == 0
+  sent = dut.client_1_send(MemMsg.req.mk_rd(0, 4, 4))
   assert isinstance(sent, Result)
   dut.cycle()
 
   recv = dut.client_0_recv()
   assert isinstance(recv, Result)
-  assert recv.type_ == MemMsgType.READ
-  assert recv.stat == 0
-  assert recv.len_ == 4
-  assert recv.data == 0xdeadbeef
+  assert recv.resp.type_ == MemMsgType.READ
+  assert recv.resp.stat == 0
+  assert recv.resp.len_ == 4
+  assert recv.resp.data == 0xdeadbeef
   recv = dut.client_1_recv()
   assert isinstance(recv, Result)
-  assert recv.type_ == MemMsgType.READ
-  assert recv.stat == 0
-  assert recv.len_ == 4
-  assert recv.data == 0xcafebabe
+  assert recv.resp.type_ == MemMsgType.READ
+  assert recv.resp.stat == 0
+  assert recv.resp.len_ == 4
+  assert recv.resp.data == 0xcafebabe
 
   # check the actual memory as well
   assert tmb.read_mem(0, 4) == 0xdeadbeef
