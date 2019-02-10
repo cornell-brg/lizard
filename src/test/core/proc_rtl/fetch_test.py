@@ -25,9 +25,9 @@ class FetchTestHarnessInterface(Interface):
 
 class FetchTestHarness(Model):
 
-  def __init__(s):
+  def __init__(s, initial_mem):
     s.mbi = MemoryBusInterface(1, 1, 2, 64, 8)
-    s.tmb = TestMemoryBusFL(s.mbi)
+    s.tmb = TestMemoryBusFL(s.mbi, initial_mem)
     s.mb = wrap_to_rtl(s.tmb)
     s.mc = BasicMemoryController(s.mbi, ['fetch'])
 
@@ -57,25 +57,21 @@ class FetchTestHarness(Model):
 
 
 def test_basic():
-  fth = FetchTestHarness()
-  dut = wrap_to_cl(fth)
-  dut.reset()
-  # TODO: Aaron
-  # you can put stuff into the memory by going in through the FL memory bus
-  # dut.tmb.write_mem(...)
-  # then make sure get does what you want it to!
   data = [
       0xdeadbeafffffffff, 0xbeafdeadaaaaaaaa, 0xeeeeeeeebbbbbbbb,
       0x1111222233334444
   ]
+  initial_mem = {}
   # Little endian
   for i, word in enumerate(data):
     for j in range(8):
-      fth.tmb.write_mem(8 * i + j, [word & 0xff])
+      initial_mem[8 * i + j] = word & 0xff
       word >>= 8
-  #print(fth.tmb.mem)
-  # let's fetch!
+
+  fth = FetchTestHarness(initial_mem)
+  dut = wrap_to_cl(fth)
+  dut.reset()
+
   for _ in range(2 * len(data)):
-    dut.cycle()
     print(dut.get())
-    #print(fth.tmb.mem)
+    dut.cycle()
