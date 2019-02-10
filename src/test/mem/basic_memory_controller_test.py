@@ -25,7 +25,7 @@ class BasicMemoryControllerTestHarnessInterface(Interface):
 class BasicMemoryControllerTestHarness(Model):
 
   def __init__(s, num_clients):
-    mbi = MemoryBusInterface(num_clients, clog2nz(num_clients), 2, 64, 64)
+    mbi = MemoryBusInterface(num_clients, clog2nz(num_clients), 2, 64, 8)
     UseInterface(s, BasicMemoryControllerTestHarnessInterface(mbi))
 
     mc = BasicMemoryController(mbi, s.interface.clients)
@@ -44,6 +44,7 @@ class BasicMemoryControllerTestHarness(Model):
 
 def test_1_client():
   th = BasicMemoryControllerTestHarness(1)
+  th.vcd_file = 'bugaboo.vcd'
   MemMsg = th.MemMsg
   dut = wrap_to_cl(th)
   dut.reset()
