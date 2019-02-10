@@ -64,6 +64,14 @@ def test_basic():
   dut = wrap_to_cl(fth)
   dut.reset()
 
-  for _ in range(2 * len(data)):
-    print(dut.get())
+  assert isinstance(dut.get(), NotReady)
+  dut.cycle()
+
+  for i in range(2 * len(data)):
+    expected = data[i/2]
+    if i % 2 == 0:
+      expected = expected & 0xffffffff
+    else:
+      expected = expected >> 32
+    assert dut.get().msg.inst == expected
     dut.cycle()
