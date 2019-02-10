@@ -5,6 +5,7 @@ from model.flmodel import FLModel
 
 
 class TestControlFlowManagerFL(FLModel):
+
   @HardwareModel.validate
   def __init__(s, xlen, seq_idx_nbits, reset_vector):
     super(TestControlFlowManagerFL, s).__init__(

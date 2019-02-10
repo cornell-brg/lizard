@@ -17,14 +17,13 @@ class BasicMemoryControllerInterface(Interface):
           MethodSpec(
               '{}_recv'.format(client),
               args=None,
-              rets={ 'resp' : mem_msg.resp
-              },
+              rets={'resp': mem_msg.resp},
               call=True,
               rdy=True,
           ),
           MethodSpec(
               '{}_send'.format(client),
-              args={ 'req' : mem_msg.req},
+              args={'req': mem_msg.req},
               rets=None,
               call=True,
               rdy=True,
@@ -37,8 +36,8 @@ class BasicMemoryControllerInterface(Interface):
 class BasicMemoryController(Model):
 
   def __init__(s, memory_bus_interface, clients):
-    UseInterface(s, BasicMemoryControllerInterface(memory_bus_interface.MemMsg,
-                                                   clients))
+    UseInterface(
+        s, BasicMemoryControllerInterface(memory_bus_interface.MemMsg, clients))
 
     if memory_bus_interface.num_ports != len(clients):
       raise ValueError('There should be exactly 1 port per client')

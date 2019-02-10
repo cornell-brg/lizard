@@ -35,7 +35,8 @@ class FetchInterface(Interface):
 
 class Fetch(Model):
 
-  def __init__(s, xlen, ilen, seq_idx_nbits, mem_msg, memory_controller_interface):
+  def __init__(s, xlen, ilen, seq_idx_nbits, mem_msg,
+               memory_controller_interface):
     UseInterface(s, FetchInterface(ilen))
 
     # The memory req and resp
@@ -65,10 +66,9 @@ class Fetch(Model):
     s.inflight_ = Wire(1)
     s.rdy_ = Wire(1)
 
-
     # Connect up the drop unit
     s.connect(s.drop_unit_.input_data, s.mem_recv_resp)
-    s.connect(s.mem_recv_call, s.mem_recv_rdy) # We are always ready to recv
+    s.connect(s.mem_recv_call, s.mem_recv_rdy)  # We are always ready to recv
     s.connect(s.drop_unit_.input_call, s.mem_recv_rdy)
 
     @s.combinational
@@ -111,11 +111,11 @@ class Fetch(Model):
       s.fetch_val_.in_.v = s.drop_unit_.output_rdy or (
           s.fetch_val_.out and not s.get_call and not s.check_redirect_redirect)
 
-
     @s.tick_rtl
     def handle_fetchmsg():
       s.fetchmsg_.pc.n = s.pc_req_ if s.send_req_ else s.fetchmsg_.pc
-      s.fetchmsg_.inst.n = s.drop_unit_.output_data.data[:ilen] if s.drop_unit_.output_rdy else s.fetchmsg_.inst
+      s.fetchmsg_.inst.n = s.drop_unit_.output_data.data[:
+                                                         ilen] if s.drop_unit_.output_rdy else s.fetchmsg_.inst
       s.fetchmsg_.trap.n = s.drop_unit_.output_data.stat != MemMsgStatus.OK
       if s.drop_unit_.output_data.stat == MemMsgStatus.ADDRESS_MISALIGNED:
         s.fetchmsg_.mcause.n = ExceptionCode.INSTRUCTION_ADDRESS_MISALIGNED
