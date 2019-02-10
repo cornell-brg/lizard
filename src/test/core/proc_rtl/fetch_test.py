@@ -64,15 +64,18 @@ def test_basic():
   # you can put stuff into the memory by going in through the FL memory bus
   # dut.tmb.write_mem(...)
   # then make sure get does what you want it to!
-  data = [0xdeadbeafffffffff, 0xbeafdeadaaaaaaaa, 0xeeeeeeeebbbbbbbb, 0x1111222233334444]
+  data = [
+      0xdeadbeafffffffff, 0xbeafdeadaaaaaaaa, 0xeeeeeeeebbbbbbbb,
+      0x1111222233334444
+  ]
   # Little endian
   for i, word in enumerate(data):
     for j in range(8):
-      fth.tmb.write_mem(8*i + j, [word & 0xff])
+      fth.tmb.write_mem(8 * i + j, [word & 0xff])
       word >>= 8
   #print(fth.tmb.mem)
   # let's fetch!
-  for _ in range(2*len(data)):
+  for _ in range(2 * len(data)):
     dut.cycle()
     print(dut.get())
     #print(fth.tmb.mem)

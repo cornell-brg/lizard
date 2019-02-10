@@ -14,7 +14,8 @@ class BasicMemoryControllerTestHarnessInterface(Interface):
     s.clients = [
         'client_{}'.format(x) for x in range(memory_bus_interface.num_ports)
     ]
-    base = BasicMemoryControllerInterface(memory_bus_interface.MemMsg, s.clients)
+    base = BasicMemoryControllerInterface(memory_bus_interface.MemMsg,
+                                          s.clients)
 
     super(BasicMemoryControllerTestHarnessInterface,
           s).__init__([], bases=[
