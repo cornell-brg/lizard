@@ -19,7 +19,7 @@ class TestMemoryBusFL(FLModel):
       MemMsgType.AMO_MAX: max,
   }
 
-  def __init__(s, memory_bus_interface):
+  def __init__(s, memory_bus_interface, initial_memory={}):
     super(TestMemoryBusFL, s).__init__(memory_bus_interface)
     s.data_nbytes = s.interface.data_nbytes
     s.data_nbits = s.data_nbytes * 8
@@ -29,7 +29,7 @@ class TestMemoryBusFL(FLModel):
 
     s.state(
         results=deque(),
-        mem={},
+        mem=initial_memory,
     )
 
     @s.ready_method
