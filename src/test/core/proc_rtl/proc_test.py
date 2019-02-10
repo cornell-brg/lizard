@@ -5,16 +5,12 @@ from model.test_model import run_test_state_machine
 from bitutil import clog2nz
 from model.wrapper import wrap_to_rtl, wrap_to_cl
 from util.rtl.interface import Interface, UseInterface, IncludeAll, connect_m
-from model.hardware_model import NotReady, Result
-from model.test_harness import TestHarness
 from mem.rtl.memory_bus import MemoryBusInterface, MemMsgType
 from mem.fl.test_memory_bus import TestMemoryBusFL
 from mem.rtl.basic_memory_controller import BasicMemoryController, BasicMemoryControllerInterface
-from test.core.proc_rtl.test_controlflow import TestControlFlowManagerFL
 
 from core.rtl.frontend.fetch import Fetch
 from core.rtl.frontend.decode import Decode
-
 from core.rtl.controlflow import ControlFlowManager
 
 
@@ -29,24 +25,22 @@ class ProcTestHarness(Model):
     s.cflow = ControlFlowManager(64, 0x200, 2)
     #s.tcf = wrap_to_rtl(TestControlFlowManagerFL(64, 2, 0x200))
 
-    TestHarness(
-        s,
-        Fetch(
-            64, 32, 2, s.mbi.MemMsg,
-            s.mc.interface.export({
-                'fetch_recv': 'recv',
-                'fetch_send': 'send'
-            })), True, 'bobby.vcd')
+    s.fetch = Fetch(
+        64, 32, 2, s.mbi.MemMsg,
+        s.mc.interface.export({
+            'fetch_recv': 'recv',
+            'fetch_send': 'send'
+        }))
 
     s.decode = Decode(64, 32, clog2(64), 20)
-    connect_m(s.dut.get, s.decode.fetch_get)
+    connect_m(s.fetch.get, s.decode.fetch_get)
     # Connect memory to memory controller
     connect_m(s.mb.recv, s.mc.bus_recv)
     connect_m(s.mb.send, s.mc.bus_send)
     # Connect fetch to memory
-    connect_m(s.mc.fetch_recv, s.dut.mem_recv)
-    connect_m(s.mc.fetch_send, s.dut.mem_send)
-    connect_m(s.cflow.check_redirect, s.dut.check_redirect)
+    connect_m(s.mc.fetch_recv, s.fetch.mem_recv)
+    connect_m(s.mc.fetch_send, s.fetch.mem_send)
+    connect_m(s.cflow.check_redirect, s.fetch.check_redirect)
 
 
 # def test_translate_fetch():
@@ -65,11 +59,10 @@ def test_basic():
       initial_mem[8 * i + j + 0x200] = word & 0xff
       word >>= 8
 
-  fth = ProcTestHarness(initial_mem)
-  fth.vcd_file = "out.vcd"
-  dut = wrap_to_cl(fth)
-  dut.reset()
-
+  proc = ProcTestHarness(initial_mem)
+  proc.vcd_file = "out.vcd"
+  proc.elaborate()
+  sim = SimulationTool( proc )
+  sim.reset()
   for _ in range(2 * len(data)):
-    print(dut.get())
-    dut.cycle()
+    sim.cycle()
