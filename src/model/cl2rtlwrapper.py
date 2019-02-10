@@ -11,7 +11,6 @@ class CL2RTLWrapper(Model):
     s.cl = clmodel
     UseInterface(s, s.cl.interface)
 
-    s.cl.reset()
     # start with one snapshot in case compute is called before cycle
     s.cl.snapshot_model_state()
 
@@ -44,8 +43,8 @@ class CL2RTLWrapper(Model):
             safe_to_call = cl_method_dispatcher.rdy(instance)
             s.resolve_port(method, 'rdy', instance).v = safe_to_call
 
-          if safe_to_call and (not method.call or
-                               s.resolve_port(method, 'call', instance)):
+          if safe_to_call and (not method.call or s.resolve_port(
+              method, 'call', instance)) and not s.reset:
             kwargs = {
                 arg_name: s.resolve_port(method, arg_name, instance)
                 for arg_name in method.args.keys()
@@ -71,7 +70,7 @@ class CL2RTLWrapper(Model):
                 s.resolve_port(method, ret_name, instance), ret_value)
 
     def generate_senses():
-      senses = [s.whatever_you_do_make_sure_no_method_has_this_name]
+      senses = [s.whatever_you_do_make_sure_no_method_has_this_name, s.reset]
       for method_name, method in s.interface.methods.iteritems():
         for instance in range(method.num_permitted_calls()):
           if method.call:
@@ -85,7 +84,7 @@ class CL2RTLWrapper(Model):
 
     @s.tick_rtl
     def cycle():
-      if s.reset():
+      if s.reset:
         s.whatever_you_do_make_sure_no_method_has_this_name.n = 0
         s.cl.reset()
       else:
