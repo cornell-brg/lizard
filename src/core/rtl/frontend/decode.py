@@ -49,7 +49,8 @@ class Decode(Model):
     s.msg_ = Wire(FetchMsg())
     s.inst_ = Wire(Bits(ilen))
 
-
+    # TODO: remove this once this connects to the next stage
+    s.connect(s.get_call, s.get_rdy)
     s.connect_wire(s.inst_, s.msg_.inst)
 
     s.opcode_ = Wire(s.inst_[RVInstMask.OPCODE].nbits)
@@ -85,7 +86,7 @@ class Decode(Model):
 
     @s.combinational
     def set_valreg():
-      s.decmsg_val_.in_.v = s.accepted_.v or (s.decmsg_val_.out and
+      s.decmsg_val_.in_.v = s.accepted_ or (s.decmsg_val_.out and
                                               not s.get_call)
 
     @s.combinational
