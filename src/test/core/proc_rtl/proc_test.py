@@ -38,7 +38,7 @@ class ProcTestHarness(Model):
                 'fetch_send': 'send'
             })), True, 'bobby.vcd')
 
-    s.decode = Decode(64, 32, clog2(64))
+    s.decode = Decode(64, 32, clog2(64), 20)
     connect_m(s.dut.get, s.decode.fetch_get)
     # Connect memory to memory controller
     connect_m(s.mb.recv, s.mc.bus_recv)
