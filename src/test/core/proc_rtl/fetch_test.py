@@ -13,6 +13,7 @@ from mem.rtl.basic_memory_controller import BasicMemoryController, BasicMemoryCo
 from test.core.proc_rtl.test_controlflow import TestControlFlowManagerFL
 
 from core.rtl.frontend.fetch import Fetch
+from core.rtl.controlflow import ControlFlowManager
 
 
 class FetchTestHarness(Model):
@@ -22,6 +23,7 @@ class FetchTestHarness(Model):
     s.tmb = TestMemoryBusFL(s.mbi, initial_mem)
     s.mb = wrap_to_rtl(s.tmb)
     s.mc = BasicMemoryController(s.mbi, ['fetch'])
+    s.tcf = ControlFlowManager(64, 0x200, 2)
     s.tcf = wrap_to_rtl(TestControlFlowManagerFL(64, 2, 0x200))
 
     TestHarness(
@@ -54,10 +56,11 @@ def test_basic():
   # Little endian
   for i, word in enumerate(data):
     for j in range(8):
-      initial_mem[8 * i + j] = word & 0xff
+      initial_mem[8 * i + j + 0x200] = word & 0xff
       word >>= 8
 
   fth = FetchTestHarness(initial_mem)
+  fth.vcd_file = "out.vcd"
   dut = wrap_to_cl(fth)
   dut.reset()
 
