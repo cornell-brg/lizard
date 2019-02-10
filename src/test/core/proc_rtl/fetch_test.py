@@ -6,21 +6,13 @@ from bitutil import clog2nz
 from model.wrapper import wrap_to_rtl, wrap_to_cl
 from util.rtl.interface import Interface, UseInterface, IncludeAll, connect_m
 from model.hardware_model import NotReady, Result
+from model.test_harness import TestHarness
 from mem.rtl.memory_bus import MemoryBusInterface, MemMsgType
 from mem.fl.test_memory_bus import TestMemoryBusFL
 from mem.rtl.basic_memory_controller import BasicMemoryController, BasicMemoryControllerInterface
 from test.core.proc_rtl.test_controlflow import TestControlFlowManagerFL
 
 from core.rtl.frontend.fetch import Fetch
-
-
-class FetchTestHarnessInterface(Interface):
-
-  def __init__(s, fetch_interface):
-    super(FetchTestHarnessInterface,
-          s).__init__([], bases=[
-              IncludeAll(fetch_interface),
-          ])
 
 
 class FetchTestHarness(Model):
@@ -30,26 +22,23 @@ class FetchTestHarness(Model):
     s.tmb = TestMemoryBusFL(s.mbi, initial_mem)
     s.mb = wrap_to_rtl(s.tmb)
     s.mc = BasicMemoryController(s.mbi, ['fetch'])
-
     s.tcf = wrap_to_rtl(TestControlFlowManagerFL(64, 2, 0x200))
 
-    s.fetch = Fetch(
-        64, 32, 2, s.mbi.MemMsg,
-        s.mc.interface.export({
-            'fetch_recv': 'recv',
-            'fetch_send': 'send'
-        }))
-    UseInterface(s, FetchTestHarnessInterface(s.fetch.interface))
+    TestHarness(
+        s,
+        Fetch(
+            64, 32, 2, s.mbi.MemMsg,
+            s.mc.interface.export({
+                'fetch_recv': 'recv',
+                'fetch_send': 'send'
+            })), False)
 
     connect_m(s.mb.recv, s.mc.bus_recv)
     connect_m(s.mb.send, s.mc.bus_send)
 
-    connect_m(s.mc.fetch_recv, s.fetch.mem_recv)
-    connect_m(s.mc.fetch_send, s.fetch.mem_send)
-    connect_m(s.tcf.check_redirect, s.fetch.check_redirect)
-
-    for name in s.interface.methods.keys():
-      connect_m(getattr(s, name), getattr(s.fetch, name))
+    connect_m(s.mc.fetch_recv, s.dut.mem_recv)
+    connect_m(s.mc.fetch_send, s.dut.mem_send)
+    connect_m(s.tcf.check_redirect, s.dut.check_redirect)
 
 
 # def test_translate_fetch():
