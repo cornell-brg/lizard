@@ -31,7 +31,7 @@ class FetchTestHarness(Model):
             s.mc.interface.export({
                 'fetch_recv': 'recv',
                 'fetch_send': 'send'
-            })), False)
+            })), True, 'bobby.vcd')
 
     connect_m(s.mb.recv, s.mc.bus_recv)
     connect_m(s.mb.send, s.mc.bus_send)
