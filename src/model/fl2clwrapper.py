@@ -5,7 +5,7 @@ class FL2CLWrapper(CLModel):
 
   def __init__(s, flmodel):
     super(FL2CLWrapper, s).__init__(flmodel.interface, validate_args=False)
-    s.state(fl=flmodel,)
+    s.state(fl=flmodel)
 
     ready_states = {}
     for method_name, method in s.interface.methods.iteritems():

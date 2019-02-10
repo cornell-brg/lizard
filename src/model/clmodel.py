@@ -51,6 +51,10 @@ class CLModel(HardwareModel):
     # drain all remaining methods
     s._drain_to(len(s.methods), -1)
 
+  def _reset(s):
+    # run all methods before doing the reset
+    s._post_cycle()
+
   def _skip(s):
     result = None
     current_method = s.methods[s.sequence_method]
