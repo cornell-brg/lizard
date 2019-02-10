@@ -24,7 +24,7 @@ class FetchTestHarness(Model):
     s.mb = wrap_to_rtl(s.tmb)
     s.mc = BasicMemoryController(s.mbi, ['fetch'])
     s.tcf = ControlFlowManager(64, 0x200, 2)
-    s.tcf = wrap_to_rtl(TestControlFlowManagerFL(64, 2, 0x200))
+    #s.tcf = wrap_to_rtl(TestControlFlowManagerFL(64, 2, 0x200))
 
     TestHarness(
         s,
