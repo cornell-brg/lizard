@@ -92,4 +92,4 @@ class ControlFlowManager(Model):
     @s.tick_rtl
     def handle_reset():
       s.redirect_valid_.n = s.reset or s.redirect_call
-      s.redirect_.n = reset_vector if s.redirect_call else s.redirect_target
+      s.redirect_.n = s.redirect_target if s.redirect_call else reset_vector
