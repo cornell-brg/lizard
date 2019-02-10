@@ -6,6 +6,7 @@ from core.rtl.controlflow import ControlFlowManagerInterface
 from bitutil import clog2, clog2nz
 from pclib.rtl import RegEn, RegEnRst, RegRst
 from core.rtl.frontend.fetch import FetchInterface
+from core.rtl.controlflow import ControlFlowManagerInterface
 from core.rtl.messages import FetchMsg, DecodeMsg, PipelineMsg
 from msg.codes import RVInstMask, Opcode, ExceptionCode
 
@@ -33,11 +34,14 @@ class DecodeInterface(Interface):
 
 class Decode(Model):
 
-  def __init__(s, xlen, ilen, areg_tag_nbits, imm_len):
+  def __init__(s, xlen, ilen, areg_tag_nbits, imm_len, seq_nbits):
     UseInterface(s, DecodeInterface())
 
     s.fetch = FetchInterface(ilen)
     s.fetch.require(s, 'fetch', 'get')
+
+    s.cflow = ControlFlowManagerInterface(xlen, seq_nbits)
+    s.cflow.require(s, 'cflow', 'check_redirect')
 
     # Outgoing pipeline register
     s.decmsg_val_ = RegRst(Bits(1), reset_value=0)
@@ -61,7 +65,6 @@ class Decode(Model):
     s.connect_wire(s.func7_, s.inst_[RVInstMask.FUNCT7])
 
     s.connect(s.msg_, s.fetch_get_msg)
-    s.connect(s.get_rdy, s.decmsg_val_.out)
     s.connect(s.fetch_get_call, s.accepted_)
 
     # All the IMMs
@@ -88,6 +91,7 @@ class Decode(Model):
     def set_valreg():
       s.decmsg_val_.in_.v = s.accepted_ or (s.decmsg_val_.out and
                                               not s.get_call)
+      s.get_rdy.v = s.decmsg_val_.out if not s.cflow_check_redirect_redirect else 0
 
     @s.combinational
     def decode():
