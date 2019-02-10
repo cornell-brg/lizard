@@ -100,6 +100,10 @@ class Decode(Model):
       s.dec_.imm_val.v = 0
       s.dec_.op_32.v = 0
       s.dec_.trap.v = 0
+      if s.msg_.trap != 0:
+        s.dec_.trap.v = s.msg_.trap
+        s.dec_.mcause.v = s.msg_.mcause
+        s.dec_.mtval.v = s.msg_.mtval
       if s.opcode_ == Opcode.LOAD:
         s.dec_.rs1_val.v = 1
         s.dec_.rd_val.v = 1
