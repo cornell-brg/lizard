@@ -48,14 +48,16 @@ class Decode(Model):
     s.accepted_ = Wire(1)
     s.msg_ = Wire(FetchMsg())
     s.inst_ = Wire(Bits(ilen))
-    s.connect(s.inst_, s.msg_.inst)
+
+
+    s.connect_wire(s.inst_, s.msg_.inst)
 
     s.opcode_ = Wire(s.inst_[RVInstMask.OPCODE].nbits)
-    s.connect(s.opcode_, s.inst_[RVInstMask.OPCODE])
+    s.connect_wire(s.opcode_, s.inst_[RVInstMask.OPCODE])
     s.func3_ = Wire(s.inst_[RVInstMask.FUNCT3].nbits)
-    s.connect(s.func3_, s.inst_[RVInstMask.FUNCT3])
+    s.connect_wire(s.func3_, s.inst_[RVInstMask.FUNCT3])
     s.func7_ = Wire(s.inst_[RVInstMask.FUNCT7].nbits)
-    s.connect(s.func7_, s.inst_[RVInstMask.FUNCT7])
+    s.connect_wire(s.func7_, s.inst_[RVInstMask.FUNCT7])
 
     s.connect(s.msg_, s.fetch_get_msg)
     s.connect(s.get_rdy, s.decmsg_val_.out)
