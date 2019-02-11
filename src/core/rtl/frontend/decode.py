@@ -65,6 +65,14 @@ class Decode(Model):
     s.connect_wire(s.func3_, s.inst_[RVInstMask.FUNCT3])
     s.func7_ = Wire(s.inst_[RVInstMask.FUNCT7].nbits)
     s.connect_wire(s.func7_, s.inst_[RVInstMask.FUNCT7])
+    s.rs1_ = Wire(s.inst_[RVInstMask.RS1].nbits)
+    s.connect_wire(s.rs1_, s.inst_[RVInstMask.RS1])
+    s.rs2_ = Wire(s.inst_[RVInstMask.RS2].nbits)
+    s.connect_wire(s.rs2_, s.inst_[RVInstMask.RS2])
+    s.rd_ = Wire(s.inst_[RVInstMask.RD].nbits)
+    s.connect_wire(s.rd_, s.inst_[RVInstMask.RD])
+    s.fence_upper_ = Wire(s.inst_[RVInstMask.FENCE_UPPER].nbits)
+    s.connect_wire(s.fence_upper_, s.inst_[RVInstMask.FENCE_UPPER])
 
     s.connect(s.msg_, s.fetch_get_msg)
     s.connect(s.fetch_get_call, s.accepted_)
@@ -88,6 +96,16 @@ class Decode(Model):
     # STORE
     s.dec_store_fail_ = Wire(1)
     s.uop_store_ = Wire(MicroOp.bits)
+    # BRANCH
+    s.dec_branch_fail_ = Wire(1)
+    s.uop_branch_ = Wire(MicroOp.bits)
+    # SYSTEM
+    s.dec_system_fail_ = Wire(1)
+    s.uop_system_ = Wire(MicroOp.bits)
+    # MISC_MEM
+    s.dec_misc_mem_fail_ = Wire(1)
+    s.uop_misc_mem_ = Wire(MicroOp.bits)
+
 
     # All the IMMs
     s.imm_i_ = Wire(imm_len)
@@ -118,14 +136,17 @@ class Decode(Model):
     @s.combinational
     def decode():
       s.dec_fail_.v = 1
-      s.dec_.rs1.v = s.msg_.inst[RVInstMask.RS1]
-      s.dec_.rs2.v = s.msg_.inst[RVInstMask.RS2]
-      s.dec_.rd.v = s.msg_.inst[RVInstMask.RD]
+      s.dec_.rs1.v = s.rs1_
+      s.dec_.rs2.v = s.rs2_
+      s.dec_.rd.v = s.rd_
       s.dec_.rs1_val.v = 0
       s.dec_.rs2_val.v = 0
       s.dec_.rd_val.v = 0
       s.dec_.imm_val.v = 0
       s.dec_.trap.v = 0
+      s.dec_.mcause.v = 0
+      s.dec_.mtval.v = 0
+      # If there is already an exception, propogate it
       if s.msg_.trap != 0:
         s.dec_.trap.v = s.msg_.trap
         s.dec_.mcause.v = s.msg_.mcause
@@ -145,6 +166,8 @@ class Decode(Model):
         s.dec_.imm_val.v = 1
         # I-type imm
         s.dec_.imm.v = s.imm_i_
+        s.dec_.uop.v = s.uop_misc_mem_
+        s.dec_fail_.v = s.dec_misc_mem_fail_
       elif s.opcode_ == Opcode.OP_IMM:
         s.dec_.rs1_val.v = 1
         s.dec_.rd_val.v = 1
@@ -157,6 +180,8 @@ class Decode(Model):
         s.dec_.rd_val.v = 1
         # U-type imm
         s.dec_.imm.v = s.imm_u_
+        s.dec_.uop.v = MicroOp.AUPIC
+        s.dec_fail_.v = 0
       elif s.opcode_ == Opcode.OP_IMM_32:
         s.dec_.rs1_val.v = 1
         s.dec_.rd_val.v = 1
@@ -188,6 +213,8 @@ class Decode(Model):
         s.dec_.rd_val.v = 1
         # U-type imm
         s.dec_.imm.v = s.imm_u_
+        s.dec_.uop.v = MicroOp.LUI
+        s.dec_fail_.v = 0
       elif s.opcode_ == Opcode.OP_32:
         s.dec_.rs1_val.v = 1
         s.dec_.rs2_val.v = 1
@@ -205,23 +232,31 @@ class Decode(Model):
         s.dec_.imm_val.v = 1
         # B-type imm
         s.dec_.imm.v = s.imm_b_
+        s.dec_.uop.v = s.uop_branch_
+        s.dec_fail_.v = s.dec_branch_fail_
       elif s.opcode_ == Opcode.JALR:
         s.dec_.rs1_val.v = 1
         s.dec_.rd_val.v = 1
         s.dec_.imm_val.v = 1
         # J-type imm
         s.dec_.imm.v = s.imm_j_
+        s.dec_.uop.v = MicroOp.JALR
+        s.dec_fail_.v = 0
       elif s.opcode_ == Opcode.JAL:
         s.dec_.rd_val.v = 1
         s.dec_.imm_val.v = 1
         # J-type imm
         s.dec_.imm.v = s.imm_j_
+        s.dec_.uop.v = MicroOp.JAL
+        s.dec_fail_.v = 0
       elif s.opcode_ == Opcode.SYSTEM:
         s.dec_.rs1_val.v = 1
         s.dec_.rd_val.v = 1
         s.dec_.imm_val.v = 1
         # I-type imm
         s.dec_.imm.v = s.imm_i_
+        s.dec_.uop.v = s.uop_system_
+        s.dec_fail_.v = s.dec_system_fail_
 
       # Handle illegal instruction exception
       if s.dec_fail_:
@@ -348,6 +383,60 @@ class Decode(Model):
         s.uop_store_.v = 0
         s.dec_store_fail_.v = 1
 
+
+    @s.combinational
+    def decode_branch():
+      s.dec_branch_fail_.v = 0
+      if s.func3_ == 0b000:
+        s.uop_branch_.v = MicroOp.BEQ
+      elif s.func3_ == 0b001:
+        s.uop_branch_.v = MicroOp.BNE
+      if s.func3_ == 0b100:
+        s.uop_branch_.v = MicroOp.BLT
+      if s.func3_ == 0b101:
+        s.uop_branch_.v = MicroOp.BGE
+      if s.func3_ == 0b110:
+        s.uop_branch_.v = MicroOp.BLTU
+      if s.func3_ == 0b111:
+        s.uop_branch_.v = MicroOp.BGEU
+      else: # Illegal
+        s.uop_branch_.v = 0
+        s.dec_branch_fail_.v = 1
+
+
+    @s.combinational
+    def decode_system():
+      s.dec_system_fail_.v = 0
+      if s.imm_i_ == 0 and s.rs1_ == 0 and s.func3_ == 0 and s.rd_ == 0:
+        s.uop_system_.v = MicroOp.ECALL
+      elif s.imm_i_ == 0b1 and s.rs1_ == 0 and s.func3_ == 0 and s.rs2_ == 0:
+        s.uop_system_.v = MicroOp.EBREAK
+      elif s.func3_ == 0b001:
+        s.uop_system_.v = MicroOp.CSRRW
+      elif s.func3_ == 0b010:
+        s.uop_system_.v = MicroOp.CSRRS
+      elif s.func3_ == 0b011:
+        s.uop_system_.v = MicroOp.CSRRC
+      elif s.func3_ == 0b101:
+        s.uop_system_.v = MicroOp.CSRRWI
+      elif s.func3_ == 0b110:
+        s.uop_system_.v = MicroOp.CSRRSI
+      elif s.func3_ == 0b111:
+        s.uop_system_.v = MicroOp.CSRRCI
+      else: # Illegal
+        s.uop_system_.v = 0
+        s.dec_system_fail_.v = 1
+
+    @s.combinational
+    def decode_misc_mem():
+      s.dec_misc_mem_fail_.v = 0
+      if s.fence_upper_ == 0 and s.rs1_ == 0 and s.func3_ == 0 and s.rd_ == 0:
+        s.uop_misc_mem_.v = MicroOp.FENCE
+      elif s.imm_i_ == 0 and s.rs1_ == 0 and s.func3_ == 0b001 and s.rd_ == 0:
+        s.uop_misc_mem_.v = MicroOp.FENCE_I
+      else: # Illegal
+        s.uop_misc_mem_.v = 0
+        s.dec_misc_mem_fail_.v = 1
 
     @s.tick_rtl
     def update_out():
