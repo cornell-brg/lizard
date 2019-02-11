@@ -2,6 +2,8 @@ from pymtl import *
 from config.general import *
 from bitutil import clog2, bit_enum
 
+from core.rtl.micro_op import MicroOp
+
 ExecPipe = bit_enum(
     'ExecPipe',
     None,
@@ -47,9 +49,7 @@ class DecodeMsg(PipelineMsg):
     s.imm_val = BitField(1)
     s.imm = BitField(DECODED_IMM_LEN)
     # For W ending instructions
-    s.op_32 = BitField(1)
-    s.unsigned = BitField(1)
-
+    s.uop = BitField(MicroOp.bits)
 
 class RenameMsg(PipelineMsg):
 
