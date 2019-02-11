@@ -1,5 +1,6 @@
-from pytml import *
+from pymtl import *
 from util.rtl.interface import Interface
+from util.rtl.method import MethodSpec
 
 
 class ProcDebugBusInterface(Interface):
