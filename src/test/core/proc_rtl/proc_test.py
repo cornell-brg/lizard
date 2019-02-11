@@ -9,9 +9,9 @@ from mem.rtl.memory_bus import MemoryBusInterface, MemMsgType
 from mem.fl.test_memory_bus import TestMemoryBusFL
 from mem.rtl.basic_memory_controller import BasicMemoryController, BasicMemoryControllerInterface
 
-from core.rtl.frontend.fetch import Fetch
-from core.rtl.frontend.decode import Decode
-from core.rtl.controlflow import ControlFlowManager
+from core.rtl.frontend.fetch import Fetch, FetchInterface
+from core.rtl.frontend.decode import Decode, DecodeInterface
+from core.rtl.controlflow import ControlFlowManager, ControlFlowManagerInterface
 
 
 class ProcTestHarness(Model):
@@ -22,17 +22,18 @@ class ProcTestHarness(Model):
     s.mb = wrap_to_rtl(s.tmb)
     s.mc = BasicMemoryController(s.mbi, ['fetch'])
 
-    s.cflow = ControlFlowManager(64, 0x200, 2)
+    s.cflow = ControlFlowManager(ControlFlowManagerInterface(64, 4), 0x200)
     #s.tcf = wrap_to_rtl(TestControlFlowManagerFL(64, 2, 0x200))
 
-    s.fetch = Fetch(
-        64, 32, 2, s.mbi.MemMsg,
-        s.mc.interface.export({
-            'fetch_recv': 'recv',
-            'fetch_send': 'send'
-        }))
+    s.fetch = Fetch(FetchInterface(64, 32),
+            s.cflow.interface,
+            s.mc.interface.export({
+                'fetch_recv': 'recv',
+                'fetch_send': 'send'
+            }), s.mbi.MemMsg)
 
-    s.decode = Decode(64, 32, clog2(64), 20, clog2(16))
+
+    s.decode = Decode(DecodeInterface(64, 32, 20), s.fetch.interface, s.cflow.interface)
     connect_m(s.fetch.get, s.decode.fetch_get)
     connect_m(s.cflow.check_redirect, s.decode.cflow_check_redirect)
     # Connect memory to memory controller

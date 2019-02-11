@@ -14,7 +14,10 @@ from msg.codes import ExceptionCode
 
 class FetchInterface(Interface):
 
-  def __init__(s, ilen):
+  def __init__(s, dlen, ilen):
+    s.DataLen = dlen
+    s.InstLen = ilen
+
     super(FetchInterface, s).__init__(
         [
             MethodSpec(
@@ -35,9 +38,12 @@ class FetchInterface(Interface):
 
 class Fetch(Model):
 
-  def __init__(s, xlen, ilen, seq_idx_nbits, mem_msg,
-               memory_controller_interface):
-    UseInterface(s, FetchInterface(ilen))
+  def __init__(s, fetch_interface, cflow_interface,
+               memory_controller_interface, mem_msg):
+    UseInterface(s, fetch_interface)
+    xlen = s.interface.DataLen
+    ilen = s.interface.InstLen
+
 
     # The memory req and resp
     memory_controller_interface.require(s, 'mem', 'recv')
@@ -47,7 +53,7 @@ class Fetch(Model):
     # TODO: Aaron
     s.drop_unit_ = DropUnit(mem_msg.resp)
 
-    s.cflow = ControlFlowManagerInterface(xlen, seq_idx_nbits)
+    s.cflow = cflow_interface
     s.cflow.require(s, '', 'check_redirect')
 
     # Outgoing pipeline registers

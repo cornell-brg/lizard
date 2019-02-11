@@ -4,14 +4,15 @@ from bitutil import clog2, bit_enum
 
 from core.rtl.micro_op import MicroOp
 
+# PYMTL_BROKEN: Why are things not name mangled?!?!?!
 ExecPipe = bit_enum(
     'ExecPipe',
     None,
-    ('ALU', 'alu'),
-    ('MULDIV', 'mdiv'),
-    ('AGU', 'agu'),
-    ('BRANCH', 'br'),
-    ('CSR', 'csr'),
+    ('ALU_PIPE', 'alu'),
+    ('MULDIV_PIPE', 'mdiv'),
+    ('AGU_PIPE', 'agu'),
+    ('BRANCH_PIPE', 'br'),
+    ('CSR_PIPE', 'csr'),
     #    ('AGU', 'agu')
 )
 

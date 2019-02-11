@@ -12,7 +12,7 @@ from mem.fl.test_memory_bus import TestMemoryBusFL
 from mem.rtl.basic_memory_controller import BasicMemoryController, BasicMemoryControllerInterface
 from test.core.proc_rtl.test_controlflow import TestControlFlowManagerFL
 
-from core.rtl.frontend.fetch import Fetch
+from core.rtl.frontend.fetch import Fetch, FetchInterface
 from core.rtl.controlflow import ControlFlowManager
 
 
@@ -29,11 +29,12 @@ class FetchTestHarness(Model):
     TestHarness(
         s,
         Fetch(
-            64, 32, 2, s.mbi.MemMsg,
+            FetchInterface(64, 32),
+            s.tcf.interface,
             s.mc.interface.export({
                 'fetch_recv': 'recv',
                 'fetch_send': 'send'
-            })), True, 'bobby.vcd')
+            }), s.mbi.MemMsg), True, 'bobby.vcd')
 
     connect_m(s.mb.recv, s.mc.bus_recv)
     connect_m(s.mb.send, s.mc.bus_send)

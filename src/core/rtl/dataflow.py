@@ -24,6 +24,12 @@ class DataFlowManagerInterface(Interface):
 
   def __init__(s, dlen, naregs, npregs, nsnapshots, num_src_ports,
                num_dst_ports):
+    s.DataLen = dlen
+    s.NumAregs = naregs
+    s.NumPregs = npregs
+    s.NumSnapshots = nsnapshots
+    s.NumSrcPorts = num_src_ports
+    s.NumDstPorts = num_dst_ports
     rename_table_interface = RenameTableInterface(naregs, npregs, 0, 0,
                                                   nsnapshots)
 
@@ -132,12 +138,17 @@ class DataFlowManagerInterface(Interface):
 
 class DataFlowManager(Model):
 
-  def __init__(s, dlen, naregs, npregs, nsnapshots, num_src_ports,
-               num_dst_ports):
-    UseInterface(
-        s,
-        DataFlowManagerInterface(dlen, naregs, npregs, nsnapshots,
-                                 num_src_ports, num_dst_ports))
+  def __init__(s, dflow_interface):
+    UseInterface(s, dflow_interface)
+    dlen = s.interface.DataLen
+    naregs = s.interface.NumAregs
+    npregs = s.interface.NumPregs
+    nsnapshots = s.interface.NumSnapshots
+    num_src_ports = s.interface.NumSrcPorts
+    num_dst_ports = s.interface.NumDstPorts
+
+        # DataFlowManagerInterface(dlen, naregs, npregs, nsnapshots,
+        #                          num_src_ports, num_dst_ports))
 
     s.PregState = PregState(dlen)
     s.mngr2proc = InValRdyBundle(Bits(dlen))

@@ -24,28 +24,31 @@ class RenameInterface(Interface):
 
 class Rename(Model):
 
-  def __init__(s, xlen, seq_idx_nbits, areg_count, areg_tag_nbits, preg_count,
-               max_spec_depth, nsrc_ports, ndst_ports):
-    UseInterface(s, RenameInterface())
+  def __init__(s, rename_interface, decode_interface, dflow_interface, cflow_interface):
+    UseInterface(s, rename_interface)
 
-    s.decode = DecodeInterface()
+    s.decode = decode_interface
     s.decode.require(s, 'decode', 'get')
 
-    s.dflow = DataFlowManagerInterface(xlen, areg_count, preg_count,
-                                       max_spec_depth, nsrc_ports, ndst_ports)
+    s.dflow = dflow_interface
     s.dflow.require(s, 'dflow', 'get_src', 2)  # We need two ports!
     s.dflow.require(s, 'dflow', 'get_dst')
 
-    s.cflow = ControlFlowManagerInterface(xlen, seq_idx_nbits)
+    s.cflow = cflow_interface
     s.cflow.require(s, 'cflow', 'register')
 
     s.rdy_ = Wire(1)
+    s.accepted_ = Wire(1)
     s.msg_ = Wire(RenameMsg())
+    s.decoded_ = Wire(DecodeMsg())
 
-    s.connect(s.cflow_register_speculative, s.decode_get_msg.speculative)
-    s.connect(s.decode_get_call, s.rdy_)
+    s.connect(s.decoded_, s.decode_get_msg)
+    #s.connect_wire(s.cflow_register_speculative, s.decoded_.speculative)
+
+    s.connect(s.decode_get_call, s.accepted_)
 
     @s.combinational
     def set_rdy():
       # s.rdy_.v = s.cflow_register_rdy and s.dflow_get_dst_rdy
       s.rdy_.v = s.cflow_register_rdy and s.decode_get_rdy
+      s.accepted_.v = s.rdy_ and s.decode_get_rdy

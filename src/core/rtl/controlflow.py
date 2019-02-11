@@ -1,14 +1,17 @@
 from pymtl import *
 
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
-from util.rtl.interface import Interface, IncludeSome
+from util.rtl.interface import Interface, IncludeSome, UseInterface
 from util.rtl.method import MethodSpec
 from pclib.rtl import RegEn, RegEnRst, RegRst
 
 
 class ControlFlowManagerInterface(Interface):
 
-  def __init__(s, xlen, seq_idx_nbits):
+  def __init__(s, dlen, seq_idx_nbits):
+    s.DataLen = dlen
+    s.SeqIdxNbits = seq_idx_nbits
+
     super(ControlFlowManagerInterface, s).__init__(
         [
             MethodSpec(
@@ -16,14 +19,14 @@ class ControlFlowManagerInterface(Interface):
                 args={},
                 rets={
                     'redirect': Bits(1),
-                    'target': Bits(xlen),
+                    'target': Bits(dlen),
                 },
                 call=False,
                 rdy=False,
             ),
             MethodSpec(
                 'redirect',
-                args={'target': Bits(xlen)},
+                args={'target': Bits(dlen)},
                 rets={},
                 call=True,
                 rdy=False,
@@ -44,9 +47,10 @@ class ControlFlowManagerInterface(Interface):
 
 class ControlFlowManager(Model):
 
-  def __init__(s, xlen, reset_vector, seqidx_nbits):
-    s.inter = ControlFlowManagerInterface(xlen, seqidx_nbits)
-    s.inter.apply(s)
+  def __init__(s, cflow_interface, reset_vector):
+    UseInterface(s, cflow_interface)
+    xlen = s.interface.DataLen
+    seqidx_nbits = s.interface.SeqIdxNbits
 
     # The redirect register
     s.redirect_ = Wire(xlen)
