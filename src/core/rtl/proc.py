@@ -1,10 +1,11 @@
 from pymtl import *
 from core.rtl.controlflow import ControlFlowManager, ControlFlowManagerInterface
-from core.rtl.frontend.fetch import Fetch
-from core.rtl.frontend.decode import Decode
+from core.rtl.frontend.fetch import Fetch, FetchInterface
+from core.rtl.frontend.decode import Decode, DecodeInterface
 from core.rtl.backend.rename import Rename
-from core.rtl.dataflow import DataFlowManager
-
+from core.rtl.dataflow import DataFlowManager, DataFlowManagerInterface
+from mem.rtl.basic_memory_controller import BasicMemoryController, BasicMemoryControllerInterface
+from mem.rtl.memory_bus import MemMsg, MemMsgType
 from config.general import *
 
 
@@ -28,11 +29,29 @@ class Proc(Model):
   """
 
   def __init__(s):
-    s.cflow_ = ControlFlowManager(XLEN, RESET_VECTOR, INST_IDX_NBITS)
-    s.dflow_ = DataFlowManager(XLEN, AREG_COUNT, PREG_COUNT, MAX_SPEC_DEPTH, 2,
-                               1)
+    # Control Flow
+    s.cflow_interface = ControlFlowManagerInterface(XLEN, INST_IDX_NBITS)
+    s.cflow = ControlFlowManager(s.cflow_interface, RESET_VECTOR)
 
-    s.fetch_ = Fetch(XLEN, ILEN, INST_IDX_NBITS)
-    s.decode_ = Decode(XLEN, ILEN, AREG_IDX_NBITS)
-    s.rename_ = Rename(XLEN, INST_IDX_NBITS, AREG_COUNT, AREG_IDX_NBITS,
-                       PREG_COUNT, MAX_SPEC_DEPTH, 2, 1)
+    # Dataflow
+    s.dflow_interface = DataFlowManagerInterface(XLEN, AREG_COUNT, PREG_COUNT, MAX_SPEC_DEPTH, 2, 1)
+    s.dflow = DataFlowManager(s.dflow_interface)
+
+    # Mem
+    s.mem_msg = MemMsg(1, 2, 64, 8)
+    s.mem_controller_interface = BasicMemoryControllerInterface(s.mem_msg, ['fetch'])
+
+    # Fetch
+    s.fetch_interface = FetchInterface(XLEN, ILEN)
+    s.fetch = Fetch(
+        s.fetch_interface,
+        s.cflow_interface,
+        s.mem_controller_interface.export({
+              'fetch_recv': 'recv',
+              'fetch_send': 'send'
+              }),
+        s.mem_msg)
+
+    # Decode
+    s.decode_interface = DecodeInterface(XLEN, ILEN, DECODED_IMM_LEN)
+    s.decode = Decode(s.decode_interface, s.fetch_interface, s.cflow_interface)
