@@ -31,6 +31,8 @@ class RVInstMask:
   J_IMM2 = slice(12, 20)
   J_IMM3 = slice(31, 32)
 
+  FENCE_UPPER = slice(28, 32)
+
 
 RV64Inst = bit_enum(
     'RV64Inst',
