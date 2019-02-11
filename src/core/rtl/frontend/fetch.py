@@ -118,9 +118,14 @@ class Fetch(Model):
 
     @s.tick_rtl
     def handle_fetchmsg():
+      # The PC of this message
       s.fetchmsg_.pc.n = s.pc_req_ if s.send_req_ else s.fetchmsg_.pc
+      # The successors PC s.pc_req_ if s.send_req_ else s.fetchmsg_.pc
+      s.fetchmsg_.pc_succ.n = s.pc_next_.in_ if s.send_req_ else s.fetchmsg_.pc_succ
+      # The instruction data
       s.fetchmsg_.inst.n = s.drop_unit_.output_data.data[:
                                                          ilen] if s.drop_unit_.output_rdy else s.fetchmsg_.inst
+      # Exception information
       s.fetchmsg_.trap.n = s.drop_unit_.output_data.stat != MemMsgStatus.OK
       if s.drop_unit_.output_data.stat == MemMsgStatus.ADDRESS_MISALIGNED:
         s.fetchmsg_.mcause.n = ExceptionCode.INSTRUCTION_ADDRESS_MISALIGNED
