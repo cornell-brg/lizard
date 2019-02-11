@@ -147,8 +147,8 @@ class DataFlowManager(Model):
     num_src_ports = s.interface.NumSrcPorts
     num_dst_ports = s.interface.NumDstPorts
 
-        # DataFlowManagerInterface(dlen, naregs, npregs, nsnapshots,
-        #                          num_src_ports, num_dst_ports))
+    # DataFlowManagerInterface(dlen, naregs, npregs, nsnapshots,
+    #                          num_src_ports, num_dst_ports))
 
     s.PregState = PregState(dlen)
     s.mngr2proc = InValRdyBundle(Bits(dlen))

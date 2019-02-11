@@ -29,8 +29,7 @@ class FetchTestHarness(Model):
     TestHarness(
         s,
         Fetch(
-            FetchInterface(64, 32),
-            s.tcf.interface,
+            FetchInterface(64, 32), s.tcf.interface,
             s.mc.interface.export({
                 'fetch_recv': 'recv',
                 'fetch_send': 'send'

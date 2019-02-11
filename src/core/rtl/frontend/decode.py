@@ -115,24 +115,26 @@ class Decode(Model):
     s.dec_misc_mem_fail_ = Wire(1)
     s.uop_misc_mem_ = Wire(MicroOp.bits)
 
-
     # All the IMMs
     # PYMTL_BROKEN: sext(concat()) does not work!
     s.imm_i_ = Wire(imm_len)
     s.imm_concat_i_ = Wire(s.inst_[RVInstMask.I_IMM].nbits)
 
-    s.imm_concat_s_ = Wire(s.inst_[RVInstMask.S_IMM1].nbits + s.inst_[RVInstMask.S_IMM0].nbits)
+    s.imm_concat_s_ = Wire(s.inst_[RVInstMask.S_IMM1].nbits +
+                           s.inst_[RVInstMask.S_IMM0].nbits)
     s.imm_s_ = Wire(imm_len)
 
-    s.imm_concat_b_ = Wire(s.inst_[RVInstMask.B_IMM3].nbits + s.inst_[RVInstMask.B_IMM2].nbits +
-                    s.inst_[RVInstMask.B_IMM1].nbits + s.inst_[RVInstMask.B_IMM0].nbits + 1)
+    s.imm_concat_b_ = Wire(
+        s.inst_[RVInstMask.B_IMM3].nbits + s.inst_[RVInstMask.B_IMM2].nbits +
+        s.inst_[RVInstMask.B_IMM1].nbits + s.inst_[RVInstMask.B_IMM0].nbits + 1)
     s.imm_b_ = Wire(imm_len)
 
     s.imm_concat_u_ = Wire(s.inst_[RVInstMask.U_IMM].nbits)
     s.imm_u_ = Wire(imm_len)
 
-    s.imm_concat_j_ = Wire(s.inst_[RVInstMask.J_IMM3].nbits + s.inst_[RVInstMask.J_IMM2].nbits +
-                          s.inst_[RVInstMask.J_IMM1].nbits + s.inst_[RVInstMask.J_IMM0].nbits + 1)
+    s.imm_concat_j_ = Wire(
+        s.inst_[RVInstMask.J_IMM3].nbits + s.inst_[RVInstMask.J_IMM2].nbits +
+        s.inst_[RVInstMask.J_IMM1].nbits + s.inst_[RVInstMask.J_IMM0].nbits + 1)
     s.imm_j_ = Wire(imm_len)
 
     @s.combinational
@@ -141,18 +143,22 @@ class Decode(Model):
       s.imm_concat_i_.v = s.inst_[RVInstMask.I_IMM]
       s.imm_i_.v = sext(s.imm_concat_i_, imm_len)
       # S-Type
-      s.imm_concat_s_.v = concat(s.inst_[RVInstMask.S_IMM1], s.inst_[RVInstMask.S_IMM0])
+      s.imm_concat_s_.v = concat(s.inst_[RVInstMask.S_IMM1],
+                                 s.inst_[RVInstMask.S_IMM0])
       s.imm_s_.v = sext(s.imm_concat_s_, imm_len)
       # # B-type
-      s.imm_concat_b_.v = (concat(s.inst_[RVInstMask.B_IMM3], s.inst_[RVInstMask.B_IMM2],
-             s.inst_[RVInstMask.B_IMM1], s.inst_[RVInstMask.B_IMM0], Bits(1,0)))
-      s.imm_b_.v = sext(s.imm_concat_b_,imm_len)
+      s.imm_concat_b_.v = (
+          concat(s.inst_[RVInstMask.B_IMM3], s.inst_[RVInstMask.B_IMM2],
+                 s.inst_[RVInstMask.B_IMM1], s.inst_[RVInstMask.B_IMM0],
+                 Bits(1, 0)))
+      s.imm_b_.v = sext(s.imm_concat_b_, imm_len)
       # # U type
       s.imm_concat_u_.v = s.inst_[RVInstMask.U_IMM]
       s.imm_u_.v = sext(s.imm_concat_u_, imm_len)
       # # J-type
-      s.imm_concat_j_.v = concat(s.inst_[RVInstMask.J_IMM3], s.inst_[RVInstMask.J_IMM2],
-                            s.inst_[RVInstMask.J_IMM1], s.inst_[RVInstMask.J_IMM0], Bits(1,0))
+      s.imm_concat_j_.v = concat(
+          s.inst_[RVInstMask.J_IMM3], s.inst_[RVInstMask.J_IMM2],
+          s.inst_[RVInstMask.J_IMM1], s.inst_[RVInstMask.J_IMM0], Bits(1, 0))
       s.imm_j_.v = sext(s.imm_concat_j_, imm_len)
 
     @s.combinational
@@ -263,6 +269,8 @@ class Decode(Model):
         s.dec_.uop.v = s.uop_op_32_
         s.dec_fail_.v = s.dec_op_32_fail_
         s.dec_.exec_pipe.v = s.pipe_op_32_
+
+
 #     elif s.opcode_ == Opcode.MADD:
 #     elif s.opcode_ == Opcode.MSUB:
 #     elif s.opcode_ == Opcode.NMSUB:
@@ -277,7 +285,7 @@ class Decode(Model):
         s.dec_.uop.v = s.uop_branch_
         s.dec_fail_.v = s.dec_branch_fail_
         s.dec_.exec_pipe.v = ExecPipe.BRANCH_PIPE
-        s.dec_.speculative.v = 1 # Mark as speculative!
+        s.dec_.speculative.v = 1  # Mark as speculative!
       elif s.opcode_ == Opcode.JALR:
         s.dec_.rs1_val.v = 1
         s.dec_.rd_val.v = 1
@@ -287,7 +295,7 @@ class Decode(Model):
         s.dec_.uop.v = MicroOp.UOP_JALR
         s.dec_fail_.v = 0
         s.dec_.exec_pipe.v = ExecPipe.BRANCH_PIPE
-        s.dec_.speculative.v = 1 # Mark as speculative!
+        s.dec_.speculative.v = 1  # Mark as speculative!
       elif s.opcode_ == Opcode.JAL:
         s.dec_.rd_val.v = 1
         s.dec_.imm_val.v = 1
@@ -296,7 +304,7 @@ class Decode(Model):
         s.dec_.uop.v = MicroOp.UOP_JAL
         s.dec_fail_.v = 0
         s.dec_.exec_pipe.v = ExecPipe.BRANCH_PIPE
-        s.dec_.speculative.v = 1 # Mark as speculative!
+        s.dec_.speculative.v = 1  # Mark as speculative!
       elif s.opcode_ == Opcode.SYSTEM:
         s.dec_.rs1_val.v = 1
         s.dec_.rd_val.v = 1
@@ -467,7 +475,6 @@ class Decode(Model):
         s.uop_store_.v = 0
         s.dec_store_fail_.v = 1
 
-
     @s.combinational
     def decode_branch():
       s.dec_branch_fail_.v = 0
@@ -483,10 +490,9 @@ class Decode(Model):
         s.uop_branch_.v = MicroOp.UOP_BLTU
       if s.func3_ == 0b111:
         s.uop_branch_.v = MicroOp.UOP_BGEU
-      else: # Illegal
+      else:  # Illegal
         s.uop_branch_.v = 0
         s.dec_branch_fail_.v = 1
-
 
     @s.combinational
     def decode_system():
@@ -507,7 +513,7 @@ class Decode(Model):
         s.uop_system_.v = MicroOp.UOP_CSRRSI
       elif s.func3_ == 0b111:
         s.uop_system_.v = MicroOp.UOP_CSRRCI
-      else: # Illegal
+      else:  # Illegal
         s.uop_system_.v = 0
         s.dec_system_fail_.v = 1
 
@@ -518,7 +524,7 @@ class Decode(Model):
         s.uop_misc_mem_.v = MicroOp.UOP_FENCE
       elif s.imm_i_ == 0 and s.rs1_ == 0 and s.func3_ == 0b001 and s.rd_ == 0:
         s.uop_misc_mem_.v = MicroOp.UOP_FENCE_I
-      else: # Illegal
+      else:  # Illegal
         s.uop_misc_mem_.v = 0
         s.dec_misc_mem_fail_.v = 1
 

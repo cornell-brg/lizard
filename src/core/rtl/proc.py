@@ -34,23 +34,23 @@ class Proc(Model):
     s.cflow = ControlFlowManager(s.cflow_interface, RESET_VECTOR)
 
     # Dataflow
-    s.dflow_interface = DataFlowManagerInterface(XLEN, AREG_COUNT, PREG_COUNT, MAX_SPEC_DEPTH, 2, 1)
+    s.dflow_interface = DataFlowManagerInterface(XLEN, AREG_COUNT, PREG_COUNT,
+                                                 MAX_SPEC_DEPTH, 2, 1)
     s.dflow = DataFlowManager(s.dflow_interface)
 
     # Mem
     s.mem_msg = MemMsg(1, 2, 64, 8)
-    s.mem_controller_interface = BasicMemoryControllerInterface(s.mem_msg, ['fetch'])
+    s.mem_controller_interface = BasicMemoryControllerInterface(
+        s.mem_msg, ['fetch'])
 
     # Fetch
     s.fetch_interface = FetchInterface(XLEN, ILEN)
     s.fetch = Fetch(
-        s.fetch_interface,
-        s.cflow_interface,
+        s.fetch_interface, s.cflow_interface,
         s.mem_controller_interface.export({
-              'fetch_recv': 'recv',
-              'fetch_send': 'send'
-              }),
-        s.mem_msg)
+            'fetch_recv': 'recv',
+            'fetch_send': 'send'
+        }), s.mem_msg)
 
     # Decode
     s.decode_interface = DecodeInterface(XLEN, ILEN, DECODED_IMM_LEN)

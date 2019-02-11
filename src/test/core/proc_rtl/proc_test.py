@@ -25,15 +25,15 @@ class ProcTestHarness(Model):
     s.cflow = ControlFlowManager(ControlFlowManagerInterface(64, 4), 0x200)
     #s.tcf = wrap_to_rtl(TestControlFlowManagerFL(64, 2, 0x200))
 
-    s.fetch = Fetch(FetchInterface(64, 32),
-            s.cflow.interface,
-            s.mc.interface.export({
-                'fetch_recv': 'recv',
-                'fetch_send': 'send'
-            }), s.mbi.MemMsg)
+    s.fetch = Fetch(
+        FetchInterface(64, 32), s.cflow.interface,
+        s.mc.interface.export({
+            'fetch_recv': 'recv',
+            'fetch_send': 'send'
+        }), s.mbi.MemMsg)
 
-
-    s.decode = Decode(DecodeInterface(64, 32, 20), s.fetch.interface, s.cflow.interface)
+    s.decode = Decode(
+        DecodeInterface(64, 32, 20), s.fetch.interface, s.cflow.interface)
     connect_m(s.fetch.get, s.decode.fetch_get)
     connect_m(s.cflow.check_redirect, s.decode.cflow_check_redirect)
     # Connect memory to memory controller
