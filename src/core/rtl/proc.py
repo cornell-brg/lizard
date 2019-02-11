@@ -37,7 +37,7 @@ class Proc(Model):
   8. Commit: Reorder the instruction in a ROB and retire then when they reach the head
   """
 
-  def __init__(s, interface):
+  def __init__(s, interface=ProcInterface()):
     UseInterface(s, interface)
 
     # External ports
