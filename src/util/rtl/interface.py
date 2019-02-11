@@ -287,6 +287,8 @@ class Interface(object):
     #   available -= count
     # else:
     #   raise ValueError('No more ports for method left: {}'.format(name))
+    if count == -1:
+      count = spec.count
     s._inject(target, prefix, name, spec, count, MethodSpec.DIRECTION_CALLER)
     target.interface.requirements.append((prefix, name, spec, count))
 

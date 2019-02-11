@@ -38,8 +38,8 @@ class FetchInterface(Interface):
 
 class Fetch(Model):
 
-  def __init__(s, fetch_interface, cflow_interface, memory_controller_interface,
-               mem_msg):
+  def __init__(s, fetch_interface, cflow_interface,
+               memory_controller_interface):
     UseInterface(s, fetch_interface)
     xlen = s.interface.DataLen
     ilen = s.interface.InstLen
@@ -50,7 +50,7 @@ class Fetch(Model):
 
     # Don't know what to do with this since the memory controller has methods
     # TODO: Aaron
-    s.drop_unit_ = DropUnit(mem_msg.resp)
+    s.drop_unit_ = DropUnit(memory_controller_interface['recv'].rets['msg'])
 
     s.cflow = cflow_interface
     s.cflow.require(s, '', 'check_redirect')
