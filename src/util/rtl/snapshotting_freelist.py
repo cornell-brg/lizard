@@ -1,7 +1,7 @@
 from pymtl import *
 from bitutil import clog2nz
 from util.rtl.method import MethodSpec
-from util.rtl.interface import Interface, IncludeSome, UseInterface, connect_m
+from util.rtl.interface import Interface, IncludeSome, UseInterface
 from util.rtl.freelist import FreeList, FreeListInterface
 from util.rtl.registerfile import RegisterFile
 from util.rtl.mux import Mux
@@ -75,9 +75,9 @@ class SnapshottingFreeList(Model):
         release_alloc_bypass=False,
         used_slots_initial=used_slots_initial)
 
-    connect_m(s.alloc, s.free_list.alloc)
-    connect_m(s.free, s.free_list.free)
-    connect_m(s.set, s.free_list.set)
+    s.connect_m(s.alloc, s.free_list.alloc)
+    s.connect_m(s.free, s.free_list.free)
+    s.connect_m(s.set, s.free_list.set)
 
     s.snapshots = [
         RegisterFile(

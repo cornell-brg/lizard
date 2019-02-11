@@ -177,7 +177,7 @@ class Decode(Model):
     def decode():
       s.dec_fail_.v = 1
       s.dec_.exec_pipe.v = 0
-      s.dec_.pc_succ.v = s.msg_.pc_succ # Propogate successor info
+      s.dec_.pc_succ.v = s.msg_.pc_succ  # Propogate successor info
       s.dec_.speculative.v = 0
       s.dec_.rs1.v = s.rs1_
       s.dec_.rs2.v = s.rs2_

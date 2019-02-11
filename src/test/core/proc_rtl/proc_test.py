@@ -5,7 +5,7 @@ from model.test_model import run_test_state_machine
 from model.test_harness import TestHarness
 from bitutil import clog2nz
 from model.wrapper import wrap_to_rtl, wrap_to_cl
-from util.rtl.interface import Interface, UseInterface, IncludeAll, connect_m
+from util.rtl.interface import Interface, UseInterface, IncludeAll
 from mem.rtl.memory_bus import MemoryBusInterface, MemMsgType
 from mem.fl.test_memory_bus import TestMemoryBusFL
 from core.rtl.proc import ProcInterface, Proc
@@ -20,8 +20,8 @@ class ProcTestHarness(Model):
 
     TestHarness(s, Proc(ProcInterface()), True)
 
-    connect_m(s.mb.recv, s.dut.mb_recv)
-    connect_m(s.mb.send, s.dut.mb_send)
+    s.connect_m(s.mb.recv, s.dut.mb_recv)
+    s.connect_m(s.mb.send, s.dut.mb_send)
 
 
 # def test_translate_fetch():

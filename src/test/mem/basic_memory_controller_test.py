@@ -1,7 +1,7 @@
 from pymtl import *
 from bitutil import clog2nz
 from model.wrapper import wrap_to_rtl, wrap_to_cl
-from util.rtl.interface import Interface, UseInterface, IncludeAll, connect_m
+from util.rtl.interface import Interface, UseInterface, IncludeAll
 from model.hardware_model import NotReady, Result
 from model.test_harness import TestHarness
 from mem.rtl.memory_bus import MemoryBusInterface, MemMsgType
@@ -22,8 +22,8 @@ class BasicMemoryControllerTestHarness(Model):
 
     TestHarness(s, BasicMemoryController(bmci), True)
 
-    connect_m(s.mb.recv, s.dut.bus_recv)
-    connect_m(s.mb.send, s.dut.bus_send)
+    s.connect_m(s.mb.recv, s.dut.bus_recv)
+    s.connect_m(s.mb.send, s.dut.bus_send)
 
 
 def test_1_client():
