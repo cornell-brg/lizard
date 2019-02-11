@@ -2,14 +2,14 @@ from pymtl import *
 from util.rtl.interface import Interface, IncludeSome, UseInterface
 from util.rtl.method import MethodSpec
 from util.rtl.types import Array, canonicalize_type
-from core.rtl.controlflow import ControlFlowManagerInterface
 from bitutil import clog2, clog2nz
 from pclib.rtl import RegEn, RegEnRst, RegRst
+from msg.codes import RVInstMask, Opcode, ExceptionCode
+
 from core.rtl.frontend.fetch import FetchInterface
 from core.rtl.controlflow import ControlFlowManagerInterface
 from core.rtl.messages import FetchMsg, DecodeMsg, PipelineMsg
-from msg.codes import RVInstMask, Opcode, ExceptionCode
-
+from core.rtl.micro_op import MicroOp
 
 class DecodeInterface(Interface):
 
@@ -53,6 +53,8 @@ class Decode(Model):
     s.msg_ = Wire(FetchMsg())
     s.inst_ = Wire(Bits(ilen))
 
+    s.dec_fail_ = Wire(1)
+
     # TODO: remove this once this connects to the next stage
     s.connect(s.get_call, s.get_rdy)
     s.connect_wire(s.inst_, s.msg_.inst)
@@ -66,6 +68,14 @@ class Decode(Model):
 
     s.connect(s.msg_, s.fetch_get_msg)
     s.connect(s.fetch_get_call, s.accepted_)
+
+    # All the MicroOps
+    # OP-IMM
+    s.dec_opimm_fail_ = Wire(1)
+    s.uop_opimm_ = Wire(MicroOp.bits)
+    # OP
+    s.dec_op_fail_ = Wire(1)
+    s.uop_op_ = Wire(MicroOp.bits)
 
     # All the IMMs
     s.imm_i_ = Wire(imm_len)
@@ -95,6 +105,7 @@ class Decode(Model):
 
     @s.combinational
     def decode():
+      s.dec_fail_.v = 1
       s.dec_.rs1.v = s.msg_.inst[RVInstMask.RS1]
       s.dec_.rs2.v = s.msg_.inst[RVInstMask.RS2]
       s.dec_.rd.v = s.msg_.inst[RVInstMask.RD]
@@ -102,7 +113,6 @@ class Decode(Model):
       s.dec_.rs2_val.v = 0
       s.dec_.rd_val.v = 0
       s.dec_.imm_val.v = 0
-      s.dec_.op_32.v = 0
       s.dec_.trap.v = 0
       if s.msg_.trap != 0:
         s.dec_.trap.v = s.msg_.trap
@@ -127,6 +137,8 @@ class Decode(Model):
         s.dec_.imm_val.v = 1
         # I-type imm
         s.dec_.imm.v = s.imm_i_
+        s.dec_.uop.v = s.uop_opimm_
+        s.dec_fail_.v = s.dec_opimm_fail_
       elif s.opcode_ == Opcode.AUIPC:
         s.dec_.rd_val.v = 1
         # U-type imm
@@ -148,6 +160,8 @@ class Decode(Model):
         s.dec_.rs1_val.v = 1
         s.dec_.rs2_val.v = 1
         s.dec_.rd_val.v = 1
+        s.dec_.uop.v = s.uop_op_
+        s.dec_fail_.v = s.dec_op_fail_
       elif s.opcode_ == Opcode.LUI:
         s.dec_.rd_val.v = 1
         # U-type imm
@@ -185,10 +199,70 @@ class Decode(Model):
         s.dec_.imm_val.v = 1
         # I-type imm
         s.dec_.imm.v = s.imm_i_
-      else:  # Error decoding
+      # Handle illegal instruction exception
+      if s.dec_fail_:
         s.dec_.trap.v = 1
         s.dec_.mcause.v = ExceptionCode.ILLEGAL_INSTRUCTION
         s.dec_.mtval.v = zext(s.inst_, xlen)
+
+
+    # Handle the annoying funct7_shift case
+    s.func7_shft_ = Wire(s.inst_[RVInstMask.FUNCT7_SHFT64].nbits)
+    s.connect(s.func7_shft_, s.inst_[RVInstMask.FUNCT7_SHFT64])
+    @s.combinational
+    def decode_op_imm():
+      s.dec_opimm_fail_.v = 0
+      if s.func3_ == 0b000:
+        s.uop_opimm_.v = MicroOp.ADDI
+      elif s.func3_ == 0b010:
+        s.uop_opimm_.v = MicroOp.SLTI
+      elif s.func3_ == 0b011:
+        s.uop_opimm_.v = MicroOp.SLTIU
+      elif s.func3_ == 0b100:
+        s.uop_opimm_.v = MicroOp.XORI
+      elif s.func3_ == 0b110:
+        s.uop_opimm_.v = MicroOp.ORI
+      elif s.func3_ == 0b111:
+        s.uop_opimm_.v = MicroOp.ANDI
+      elif s.func3_ == 0b001 and s.func7_shft_ == 0:
+        s.uop_opimm_.v = MicroOp.SLLI
+      elif s.func3_ == 0b101 and s.func7_shft_ == 0:
+        s.uop_opimm_.v = MicroOp.SRLI
+      elif s.func3_ == 0b101 and s.func7_shft_ == 0b010000:
+        s.uop_opimm_.v = MicroOp.SRAI
+      else: # Illegal
+        s.uop_opimm_.v = 0
+        s.dec_opimm_fail_.v = 1
+
+    @s.combinational
+    def decode_op():
+      s.dec_op_fail_.v = 0
+      if s.func3_ == 0b000 and s.func7_ == 0:
+        s.uop_op_.v = MicroOp.ADD
+      elif s.func3_ == 0b000 and s.func7_ == 0b0100000:
+        s.uop_op_.v = MicroOp.SUB
+      elif s.func3_ == 0b001 and s.func7_ == 0:
+        s.uop_op_.v = MicroOp.SLL
+      elif s.func3_ == 0b010 and s.func7_ == 0:
+        s.uop_op_.v = MicroOp.SLT
+      elif s.func3_ == 0b011 and s.func7_ == 0:
+        s.uop_op_.v = MicroOp.SLTU
+      elif s.func3_ == 0b100 and s.func7_ == 0:
+        s.uop_op_.v = MicroOp.XOR
+      elif s.func3_ == 0b101 and s.func7_ == 0:
+        s.uop_op_.v = MicroOp.SRL
+      elif s.func3_ == 0b101 and s.func7_ == 0b0100000:
+        s.uop_op_.v = MicroOp.SRA
+      elif s.func3_ == 0b110 and s.func7_ == 0:
+        s.uop_op_.v = MicroOp.OR
+      elif s.func3_ == 0b111 and s.func7_ == 0:
+        s.uop_op_.v = MicroOp.AND
+      else: # Illegal
+        s.uop_op_.v = 0
+        s.dec_op_fail_.v = 1
+
+
+
 
     @s.tick_rtl
     def update_out():
