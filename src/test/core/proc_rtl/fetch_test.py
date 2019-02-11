@@ -4,7 +4,7 @@ from util.test_utils import run_model_translation, run_test_vector_sim
 from model.test_model import run_test_state_machine
 from bitutil import clog2nz
 from model.wrapper import wrap_to_rtl, wrap_to_cl
-from util.rtl.interface import Interface, UseInterface, IncludeAll, connect_m
+from util.rtl.interface import Interface, UseInterface, IncludeAll
 from model.hardware_model import NotReady, Result
 from model.test_harness import TestHarness
 from mem.rtl.memory_bus import MemoryBusInterface, MemMsgType
@@ -36,12 +36,12 @@ class FetchTestHarness(Model):
                 'fetch_send': 'send'
             })), True, 'bobby.vcd')
 
-    connect_m(s.mb.recv, s.mc.bus_recv)
-    connect_m(s.mb.send, s.mc.bus_send)
+    s.connect_m(s.mb.recv, s.mc.bus_recv)
+    s.connect_m(s.mb.send, s.mc.bus_send)
 
-    connect_m(s.mc.fetch_recv, s.dut.mem_recv)
-    connect_m(s.mc.fetch_send, s.dut.mem_send)
-    connect_m(s.tcf.check_redirect, s.dut.check_redirect)
+    s.connect_m(s.mc.fetch_recv, s.dut.mem_recv)
+    s.connect_m(s.mc.fetch_send, s.dut.mem_send)
+    s.connect_m(s.tcf.check_redirect, s.dut.check_redirect)
 
 
 # def test_translate_fetch():

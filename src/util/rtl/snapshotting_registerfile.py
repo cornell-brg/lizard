@@ -1,6 +1,6 @@
 from pymtl import *
 from bitutil import clog2nz
-from util.rtl.interface import Interface, IncludeSome, UseInterface, connect_m
+from util.rtl.interface import Interface, IncludeSome, UseInterface
 from util.rtl.method import MethodSpec
 from util.rtl.types import Array, canonicalize_type
 from util.rtl.registerfile import RegisterFile, RegisterFileInterface
@@ -88,8 +88,8 @@ class SnapshottingRegisterFile(Model):
     ]
 
     # Forward read and writes to register file
-    connect_m(s.read, s.regs.read)
-    connect_m(s.write, s.regs.write)
+    s.connect_m(s.read, s.regs.read)
+    s.connect_m(s.write, s.regs.write)
 
     # Connect the dump data from the primary register file
     # to the set port on each snapshot

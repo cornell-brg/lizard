@@ -1,6 +1,6 @@
 from pymtl import *
 from bitutil import clog2, clog2nz
-from util.rtl.interface import Interface, IncludeSome, UseInterface, connect_m
+from util.rtl.interface import Interface, IncludeSome, UseInterface
 from util.rtl.method import MethodSpec
 from util.rtl.types import Array, canonicalize_type
 from util.rtl.snapshotting_registerfile import SnapshottingRegisterFile, SnapshottingRegisterFileInterface
@@ -100,9 +100,9 @@ class RenameTable(Model):
       else:
         s.connect(s.update_call[i], s.rename_table.write_call[i])
 
-    connect_m(s.snapshot, s.rename_table.snapshot)
-    connect_m(s.restore, s.rename_table.restore)
-    connect_m(s.set, s.rename_table.set)
+    s.connect_m(s.snapshot, s.rename_table.snapshot)
+    s.connect_m(s.restore, s.rename_table.restore)
+    s.connect_m(s.set, s.rename_table.set)
 
   def line_trace(s):
     return s.rename_table.line_trace()

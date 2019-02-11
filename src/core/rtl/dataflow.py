@@ -1,7 +1,7 @@
 from msg.data import *
 from msg.codes import *
 
-from util.rtl.interface import Interface, IncludeSome, UseInterface, connect_m
+from util.rtl.interface import Interface, IncludeSome, UseInterface
 from util.rtl.method import MethodSpec
 from util.rtl.types import Array, canonicalize_type
 from util.rtl.mux import Mux
@@ -299,7 +299,7 @@ class DataFlowManager(Model):
       s.connect(s.preg_file.write_call[i], s.is_write_not_zero_tag[i])
 
     # get_src
-    connect_m(s.get_src, s.rename_table.lookup)
+    s.connect_m(s.get_src, s.rename_table.lookup)
 
     # get_dst
     s.get_dst_need_writeback = [Wire(1) for _ in range(num_dst_ports)]

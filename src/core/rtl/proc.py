@@ -1,5 +1,5 @@
 from pymtl import *
-from util.rtl.interface import Interface, UseInterface, connect_m
+from util.rtl.interface import Interface, UseInterface
 from core.rtl.controlflow import ControlFlowManager, ControlFlowManagerInterface
 from core.rtl.frontend.fetch import Fetch, FetchInterface
 from core.rtl.frontend.decode import Decode, DecodeInterface
@@ -62,8 +62,8 @@ class Proc(Model):
     s.mem_controller_interface = BasicMemoryControllerInterface(
         s.memory_bus_interface, ['fetch'])
     s.mem_controller = BasicMemoryController(s.mem_controller_interface)
-    connect_m(s.mb_recv, s.mem_controller.bus_recv)
-    connect_m(s.mb_send, s.mem_controller.bus_send)
+    s.connect_m(s.mb_recv, s.mem_controller.bus_recv)
+    s.connect_m(s.mb_send, s.mem_controller.bus_send)
 
     # Fetch
     s.fetch_interface = FetchInterface(XLEN, ILEN)
@@ -73,12 +73,12 @@ class Proc(Model):
             'fetch_recv': 'recv',
             'fetch_send': 'send'
         }))
-    connect_m(s.mem_controller.fetch_recv, s.fetch.mem_recv)
-    connect_m(s.mem_controller.fetch_send, s.fetch.mem_send)
-    connect_m(s.cflow.check_redirect, s.fetch.check_redirect)
+    s.connect_m(s.mem_controller.fetch_recv, s.fetch.mem_recv)
+    s.connect_m(s.mem_controller.fetch_send, s.fetch.mem_send)
+    s.connect_m(s.cflow.check_redirect, s.fetch.check_redirect)
 
     # Decode
     s.decode_interface = DecodeInterface(XLEN, ILEN, DECODED_IMM_LEN)
     s.decode = Decode(s.decode_interface, s.fetch_interface, s.cflow_interface)
-    connect_m(s.fetch.get, s.decode.fetch_get)
-    connect_m(s.cflow.check_redirect, s.decode.cflow_check_redirect)
+    s.connect_m(s.fetch.get, s.decode.fetch_get)
+    s.connect_m(s.cflow.check_redirect, s.decode.cflow_check_redirect)
