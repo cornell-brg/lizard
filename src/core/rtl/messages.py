@@ -51,7 +51,8 @@ class DecodeMsg(PipelineMsg):
     s.rd = BitField(AREG_IDX_NBITS)
     s.imm_val = BitField(1)
     s.imm = BitField(DECODED_IMM_LEN)
-    s.exec_pipe = BitField(ExecPipe.bits) # The execution pipe this will go down
+    s.exec_pipe = BitField(
+        ExecPipe.bits)  # The execution pipe this will go down
     s.uop = BitField(MicroOp.bits)
 
 

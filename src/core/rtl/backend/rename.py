@@ -24,7 +24,8 @@ class RenameInterface(Interface):
 
 class Rename(Model):
 
-  def __init__(s, rename_interface, decode_interface, dflow_interface, cflow_interface):
+  def __init__(s, rename_interface, decode_interface, dflow_interface,
+               cflow_interface):
     UseInterface(s, rename_interface)
 
     s.decode = decode_interface

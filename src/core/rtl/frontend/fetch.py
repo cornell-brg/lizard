@@ -38,12 +38,11 @@ class FetchInterface(Interface):
 
 class Fetch(Model):
 
-  def __init__(s, fetch_interface, cflow_interface,
-               memory_controller_interface, mem_msg):
+  def __init__(s, fetch_interface, cflow_interface, memory_controller_interface,
+               mem_msg):
     UseInterface(s, fetch_interface)
     xlen = s.interface.DataLen
     ilen = s.interface.InstLen
-
 
     # The memory req and resp
     memory_controller_interface.require(s, 'mem', 'recv')
