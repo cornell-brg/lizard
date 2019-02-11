@@ -63,7 +63,7 @@ def test_basic():
   proc = ProcTestHarness(initial_mem)
   proc.vcd_file = "out.vcd"
   proc.elaborate()
-  sim = SimulationTool( proc )
+  sim = SimulationTool(proc)
   sim.reset()
   for _ in range(2 * len(data)):
     sim.cycle()

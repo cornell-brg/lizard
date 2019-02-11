@@ -68,7 +68,7 @@ def test_basic():
   dut.cycle()
 
   for i in range(2 * len(data)):
-    expected = data[i/2]
+    expected = data[i / 2]
     if i % 2 == 0:
       expected = expected & 0xffffffff
     else:

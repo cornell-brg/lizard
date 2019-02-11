@@ -33,7 +33,7 @@ class Rename(Model):
 
     s.dflow = DataFlowManagerInterface(xlen, areg_count, preg_count,
                                        max_spec_depth, nsrc_ports, ndst_ports)
-    s.dflow.require(s, 'dflow', 'get_src', 2) # We need two ports!
+    s.dflow.require(s, 'dflow', 'get_src', 2)  # We need two ports!
     s.dflow.require(s, 'dflow', 'get_dst')
 
     s.cflow = ControlFlowManagerInterface(xlen, seq_idx_nbits)
