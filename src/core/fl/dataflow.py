@@ -163,11 +163,3 @@ class DataFlowManagerFL(FLModel):
         arch_used_pregs_packed[i] = arch_used_pregs_dump[i]
       s.free_regs.set(~arch_used_pregs_packed)
       s.rename_table.set(s.areg_file.dump().out)
-
-    @s.model_method
-    def read_csr(csr_num):
-      return Result(result=0, success=0)
-
-    @s.model_method
-    def write_csr(csr_num, value):
-      return 0
