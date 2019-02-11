@@ -500,6 +500,8 @@ class TestModel(TestStateMachine):
       model = rtl_class(**parameters)
       reference = reference_class(**parameters)
     else:
+      if not isinstance(parameters, tuple):
+        parameters = (parameters,)
       parameters_string = "_".join([str(parameter) for parameter in parameters])
       model = rtl_class(*parameters)
       reference = reference_class(*parameters)
