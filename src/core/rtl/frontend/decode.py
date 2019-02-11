@@ -8,7 +8,7 @@ from msg.codes import RVInstMask, Opcode, ExceptionCode
 
 from core.rtl.frontend.fetch import FetchInterface
 from core.rtl.controlflow import ControlFlowManagerInterface
-from core.rtl.messages import FetchMsg, DecodeMsg, PipelineMsg
+from core.rtl.messages import FetchMsg, DecodeMsg, PipelineMsg, ExecPipe
 from core.rtl.micro_op import MicroOp
 
 
@@ -85,12 +85,14 @@ class Decode(Model):
     # OP
     s.dec_op_fail_ = Wire(1)
     s.uop_op_ = Wire(MicroOp.bits)
+    s.pipe_op_ = Wire(ExecPipe.bits)
     # OP-IMM-32
     s.dec_opimm32_fail_ = Wire(1)
     s.uop_opimm32_ = Wire(MicroOp.bits)
     # OP-32
     s.dec_op_32_fail_ = Wire(1)
     s.uop_op_32_ = Wire(MicroOp.bits)
+    s.pipe_op_32_ = Wire(ExecPipe.bits)
     # LOAD
     s.dec_load_fail_ = Wire(1)
     s.uop_load_ = Wire(MicroOp.bits)
@@ -146,6 +148,8 @@ class Decode(Model):
     @s.combinational
     def decode():
       s.dec_fail_.v = 1
+      s.dec_.exec_pipe.v = 0
+      s.dec_.speculative.v = 0
       s.dec_.rs1.v = s.rs1_
       s.dec_.rs2.v = s.rs2_
       s.dec_.rd.v = s.rd_
@@ -169,6 +173,7 @@ class Decode(Model):
         s.dec_.imm.v = s.imm_i_
         s.dec_.uop.v = s.uop_load_
         s.dec_fail_.v = s.dec_load_fail_
+        s.dec_.exec_pipe.v = ExecPipe.AGU
 #     elif s.opcode_ == Opcode.LOAD_FP:
       elif s.opcode_ == Opcode.MISC_MEM:
         s.dec_.rs1_val.v = 1
@@ -178,6 +183,7 @@ class Decode(Model):
         s.dec_.imm.v = s.imm_i_
         s.dec_.uop.v = s.uop_misc_mem_
         s.dec_fail_.v = s.dec_misc_mem_fail_
+        s.dec_.exec_pipe.v = ExecPipe.AGU
       elif s.opcode_ == Opcode.OP_IMM:
         s.dec_.rs1_val.v = 1
         s.dec_.rd_val.v = 1
@@ -186,12 +192,14 @@ class Decode(Model):
         s.dec_.imm.v = s.imm_i_
         s.dec_.uop.v = s.uop_opimm_
         s.dec_fail_.v = s.dec_opimm_fail_
+        s.dec_.exec_pipe.v = ExecPipe.ALU
       elif s.opcode_ == Opcode.AUIPC:
         s.dec_.rd_val.v = 1
         # U-type imm
         s.dec_.imm.v = s.imm_u_
         s.dec_.uop.v = MicroOp.AUPIC
         s.dec_fail_.v = 0
+        s.dec_.exec_pipe.v = ExecPipe.ALU
       elif s.opcode_ == Opcode.OP_IMM_32:
         s.dec_.rs1_val.v = 1
         s.dec_.rd_val.v = 1
@@ -200,6 +208,7 @@ class Decode(Model):
         s.dec_.imm.v = s.imm_i_
         s.dec_.uop.v = s.uop_opimm32_
         s.dec_fail_.v = s.dec_opimm32_fail_
+        s.dec_.exec_pipe.v = ExecPipe.ALU
       elif s.opcode_ == Opcode.STORE:
         s.dec_.rs1_val.v = 1
         s.dec_.rs2_val.v = 1
@@ -208,17 +217,16 @@ class Decode(Model):
         s.dec_.imm.v = s.imm_s_
         s.dec_.uop.v = s.uop_store_
         s.dec_fail_.v = s.dec_store_fail_
+        s.dec_.exec_pipe.v = ExecPipe.AGU
 #     elif s.opcode_ == Opcode.STORE_FP:
-      elif s.opcode_ == Opcode.AMO:
-        s.dec_.rs1_val.v = 1
-        s.dec_.rs2_val.v = 1
-        s.dec_.rd_val.v = 1
+#     elif s.opcode_ == Opcode.AMO:
       elif s.opcode_ == Opcode.OP:
         s.dec_.rs1_val.v = 1
         s.dec_.rs2_val.v = 1
         s.dec_.rd_val.v = 1
         s.dec_.uop.v = s.uop_op_
         s.dec_fail_.v = s.dec_op_fail_
+        s.dec_.exec_pipe.v = s.pipe_op_
       elif s.opcode_ == Opcode.LUI:
         s.dec_.rd_val.v = 1
         # U-type imm
@@ -231,8 +239,7 @@ class Decode(Model):
         s.dec_.rd_val.v = 1
         s.dec_.uop.v = s.uop_op_32_
         s.dec_fail_.v = s.dec_op_32_fail_
-
-
+        s.dec_.exec_pipe.v = s.pipe_op_32_
 #     elif s.opcode_ == Opcode.MADD:
 #     elif s.opcode_ == Opcode.MSUB:
 #     elif s.opcode_ == Opcode.NMSUB:
@@ -246,6 +253,8 @@ class Decode(Model):
         s.dec_.imm.v = s.imm_b_
         s.dec_.uop.v = s.uop_branch_
         s.dec_fail_.v = s.dec_branch_fail_
+        s.dec_.exec_pipe.v = ExecPipe.BRANCH
+        s.dec_.speculative.v = 1 # Mark as speculative!
       elif s.opcode_ == Opcode.JALR:
         s.dec_.rs1_val.v = 1
         s.dec_.rd_val.v = 1
@@ -254,6 +263,8 @@ class Decode(Model):
         s.dec_.imm.v = s.imm_j_
         s.dec_.uop.v = MicroOp.JALR
         s.dec_fail_.v = 0
+        s.dec_.exec_pipe.v = ExecPipe.BRANCH
+        s.dec_.speculative.v = 1 # Mark as speculative!
       elif s.opcode_ == Opcode.JAL:
         s.dec_.rd_val.v = 1
         s.dec_.imm_val.v = 1
@@ -261,6 +272,8 @@ class Decode(Model):
         s.dec_.imm.v = s.imm_j_
         s.dec_.uop.v = MicroOp.JAL
         s.dec_fail_.v = 0
+        s.dec_.exec_pipe.v = ExecPipe.BRANCH
+        s.dec_.speculative.v = 1 # Mark as speculative!
       elif s.opcode_ == Opcode.SYSTEM:
         s.dec_.rs1_val.v = 1
         s.dec_.rd_val.v = 1
@@ -269,6 +282,7 @@ class Decode(Model):
         s.dec_.imm.v = s.imm_i_
         s.dec_.uop.v = s.uop_system_
         s.dec_fail_.v = s.dec_system_fail_
+        s.dec_.exec_pipe.v = ExecPipe.CSR
 
       # Handle illegal instruction exception
       if s.dec_fail_:
@@ -323,6 +337,8 @@ class Decode(Model):
     @s.combinational
     def decode_op_32():
       s.dec_op_32_fail_.v = 0
+      # Pick the correct execution pipe:
+      s.pipe_op_.v = ExecPipe.MULDIV if s.func7_ == 0b1 else ExecPipe.ALU
       if s.func3_ == 0b000 and s.func7_ == 0:
         s.uop_op_32_.v = MicroOp.ADDW
       elif s.func3_ == 0b000 and s.func7_ == 0b0100000:
@@ -350,6 +366,8 @@ class Decode(Model):
     @s.combinational
     def decode_op():
       s.dec_op_fail_.v = 0
+      # Pick the correct execution pipe:
+      s.pipe_op_.v = ExecPipe.MULDIV if s.func7_ == 0b1 else ExecPipe.ALU
       if s.func3_ == 0b000 and s.func7_ == 0:
         s.uop_op_.v = MicroOp.ADD
       elif s.func3_ == 0b000 and s.func7_ == 0b0100000:

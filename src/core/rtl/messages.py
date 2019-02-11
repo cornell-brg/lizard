@@ -9,6 +9,7 @@ ExecPipe = bit_enum(
     None,
     ('ALU', 'alu'),
     ('MULDIV', 'mdiv'),
+    ('AGU', 'agu'),
     ('BRANCH', 'br'),
     ('CSR', 'csr'),
     #    ('AGU', 'agu')
@@ -40,6 +41,7 @@ class DecodeMsg(PipelineMsg):
   def __init__(s):
     super(DecodeMsg, s).__init__()
     s.speculative = BitField(1)  # Set if requires RT snapshot
+
     s.rs1_val = BitField(1)
     s.rs1 = BitField(AREG_IDX_NBITS)
     s.rs2_val = BitField(1)
@@ -48,7 +50,7 @@ class DecodeMsg(PipelineMsg):
     s.rd = BitField(AREG_IDX_NBITS)
     s.imm_val = BitField(1)
     s.imm = BitField(DECODED_IMM_LEN)
-    # For W ending instructions
+    s.exec_pipe = BitField(ExecPipe.bits) # The execution pipe this will go down
     s.uop = BitField(MicroOp.bits)
 
 
