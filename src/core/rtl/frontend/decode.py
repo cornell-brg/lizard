@@ -373,10 +373,14 @@ class Decode(Model):
         s.uop_load_.v = MicroOp.LH
       elif s.func3_ == 0b010:
         s.uop_load_.v = MicroOp.LW
+      elif s.func3_ == 0b011:
+        s.uop_load_.v = MicroOp.LD
       elif s.func3_ == 0b100:
         s.uop_load_.v = MicroOp.LBU
       elif s.func3_ == 0b101:
         s.uop_load_.v = MicroOp.LHU
+      elif s.func3_ == 0b110:
+        s.uop_load_.v = MicroOp.LWU
       else:  # Illegal
         s.uop_load_.v = 0
         s.dec_load_fail_.v = 1
@@ -390,6 +394,8 @@ class Decode(Model):
         s.uop_store_.v = MicroOp.SH
       elif s.func3_ == 0b010:
         s.uop_store_.v = MicroOp.SW
+      elif s.func3_ == 0b011:
+        s.uop_store_.v = MicroOp.SD
       else:  # Illegal
         s.uop_store_.v = 0
         s.dec_store_fail_.v = 1
