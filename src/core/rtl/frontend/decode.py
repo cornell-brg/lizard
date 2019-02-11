@@ -11,6 +11,7 @@ from core.rtl.controlflow import ControlFlowManagerInterface
 from core.rtl.messages import FetchMsg, DecodeMsg, PipelineMsg
 from core.rtl.micro_op import MicroOp
 
+
 class DecodeInterface(Interface):
 
   def __init__(s):
@@ -113,13 +114,22 @@ class Decode(Model):
     s.imm_b_ = Wire(imm_len)
     s.imm_u_ = Wire(imm_len)
     s.imm_j_ = Wire(imm_len)
+
     @s.combinational
     def handle_imm():
       s.imm_i_.v = sext(s.inst_[RVInstMask.I_IMM], imm_len)
-      s.imm_s_.v = sext(concat(s.inst_[RVInstMask.S_IMM1], s.inst_[RVInstMask.S_IMM0]), imm_len)
-      s.imm_b_.v = sext(concat(s.inst_[RVInstMask.B_IMM3], s.inst_[RVInstMask.B_IMM2], s.inst_[RVInstMask.B_IMM1], s.inst_[RVInstMask.B_IMM0]) << 1, imm_len)
+      s.imm_s_.v = sext(
+          concat(s.inst_[RVInstMask.S_IMM1], s.inst_[RVInstMask.S_IMM0]),
+          imm_len)
+      s.imm_b_.v = sext(
+          concat(s.inst_[RVInstMask.B_IMM3], s.inst_[RVInstMask.B_IMM2],
+                 s.inst_[RVInstMask.B_IMM1], s.inst_[RVInstMask.B_IMM0]) << 1,
+          imm_len)
       s.imm_u_.v = sext(s.inst_[RVInstMask.U_IMM], imm_len)
-      s.imm_j_.v = sext(concat(s.inst_[RVInstMask.J_IMM3], s.inst_[RVInstMask.J_IMM2], s.inst_[RVInstMask.J_IMM1], s.inst_[RVInstMask.J_IMM0]) << 1, imm_len)
+      s.imm_j_.v = sext(
+          concat(s.inst_[RVInstMask.J_IMM3], s.inst_[RVInstMask.J_IMM2],
+                 s.inst_[RVInstMask.J_IMM1], s.inst_[RVInstMask.J_IMM0]) << 1,
+          imm_len)
 
     @s.combinational
     def handle_flags():
@@ -130,7 +140,7 @@ class Decode(Model):
     @s.combinational
     def set_valreg():
       s.decmsg_val_.in_.v = s.accepted_ or (s.decmsg_val_.out and
-                                              not s.get_call)
+                                            not s.get_call)
       s.get_rdy.v = s.decmsg_val_.out if not s.cflow_check_redirect_redirect else 0
 
     @s.combinational
@@ -221,6 +231,8 @@ class Decode(Model):
         s.dec_.rd_val.v = 1
         s.dec_.uop.v = s.uop_op_32_
         s.dec_fail_.v = s.dec_op_32_fail_
+
+
 #     elif s.opcode_ == Opcode.MADD:
 #     elif s.opcode_ == Opcode.MSUB:
 #     elif s.opcode_ == Opcode.NMSUB:
@@ -264,10 +276,10 @@ class Decode(Model):
         s.dec_.mcause.v = ExceptionCode.ILLEGAL_INSTRUCTION
         s.dec_.mtval.v = zext(s.inst_, xlen)
 
-
     # Handle the annoying funct7_shift case
     s.func7_shft_ = Wire(s.inst_[RVInstMask.FUNCT7_SHFT64].nbits)
     s.connect(s.func7_shft_, s.inst_[RVInstMask.FUNCT7_SHFT64])
+
     @s.combinational
     def decode_op_imm():
       s.dec_opimm_fail_.v = 0
@@ -289,7 +301,7 @@ class Decode(Model):
         s.uop_opimm_.v = MicroOp.SRLI
       elif s.func3_ == 0b101 and s.func7_shft_ == 0b010000:
         s.uop_opimm_.v = MicroOp.SRAI
-      else: # Illegal
+      else:  # Illegal
         s.uop_opimm_.v = 0
         s.dec_opimm_fail_.v = 1
 
@@ -304,7 +316,7 @@ class Decode(Model):
         s.uop_opimm32_.v = MicroOp.SRLIW
       elif s.func3_ == 0b101 and s.func7_ == 0b0100000:
         s.uop_opimm32_.v = MicroOp.SRAIW
-      else: # Illegal
+      else:  # Illegal
         s.uop_opimm32_.v = 0
         s.dec_opimm32_fail_.v = 1
 
@@ -321,7 +333,7 @@ class Decode(Model):
         s.uop_op_32_.v = MicroOp.SRLW
       elif s.func3_ == 0b101 and s.func7_ == 0b0100000:
         s.uop_op_32_.v = MicroOp.SRAW
-      else: # Illegal
+      else:  # Illegal
         s.uop_op_32_.v = 0
         s.dec_op_32_fail_.v = 1
 
@@ -348,7 +360,7 @@ class Decode(Model):
         s.uop_op_.v = MicroOp.OR
       elif s.func3_ == 0b111 and s.func7_ == 0:
         s.uop_op_.v = MicroOp.AND
-      else: # Illegal
+      else:  # Illegal
         s.uop_op_.v = 0
         s.dec_op_fail_.v = 1
 
@@ -365,10 +377,9 @@ class Decode(Model):
         s.uop_load_.v = MicroOp.LBU
       elif s.func3_ == 0b101:
         s.uop_load_.v = MicroOp.LHU
-      else: # Illegal
+      else:  # Illegal
         s.uop_load_.v = 0
         s.dec_load_fail_.v = 1
-
 
     @s.combinational
     def decode_store():
@@ -379,7 +390,7 @@ class Decode(Model):
         s.uop_store_.v = MicroOp.SH
       elif s.func3_ == 0b010:
         s.uop_store_.v = MicroOp.SW
-      else: # Illegal
+      else:  # Illegal
         s.uop_store_.v = 0
         s.dec_store_fail_.v = 1
 
