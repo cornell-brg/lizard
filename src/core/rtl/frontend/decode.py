@@ -76,6 +76,18 @@ class Decode(Model):
     # OP
     s.dec_op_fail_ = Wire(1)
     s.uop_op_ = Wire(MicroOp.bits)
+    # OP-IMM-32
+    s.dec_opimm32_fail_ = Wire(1)
+    s.uop_opimm32_ = Wire(MicroOp.bits)
+    # OP-32
+    s.dec_op_32_fail_ = Wire(1)
+    s.uop_op_32_ = Wire(MicroOp.bits)
+    # LOAD
+    s.dec_load_fail_ = Wire(1)
+    s.uop_load_ = Wire(MicroOp.bits)
+    # STORE
+    s.dec_store_fail_ = Wire(1)
+    s.uop_store_ = Wire(MicroOp.bits)
 
     # All the IMMs
     s.imm_i_ = Wire(imm_len)
@@ -124,6 +136,8 @@ class Decode(Model):
         s.dec_.imm_val.v = 1
         # I-type imm
         s.dec_.imm.v = s.imm_i_
+        s.dec_.uop.v = s.uop_load_
+        s.dec_fail_.v = s.dec_load_fail_
 #     elif s.opcode_ == Opcode.LOAD_FP:
       elif s.opcode_ == Opcode.MISC_MEM:
         s.dec_.rs1_val.v = 1
@@ -144,13 +158,21 @@ class Decode(Model):
         # U-type imm
         s.dec_.imm.v = s.imm_u_
       elif s.opcode_ == Opcode.OP_IMM_32:
-        s.dec_.op_32 = 1
+        s.dec_.rs1_val.v = 1
+        s.dec_.rd_val.v = 1
+        s.dec_.imm_val.v = 1
+        # I-type imm
+        s.dec_.imm.v = s.imm_i_
+        s.dec_.uop.v = s.uop_opimm32_
+        s.dec_fail_.v = s.dec_opimm32_fail_
       elif s.opcode_ == Opcode.STORE:
         s.dec_.rs1_val.v = 1
         s.dec_.rs2_val.v = 1
         s.dec_.imm_val.v = 1
         # S-type imm
         s.dec_.imm.v = s.imm_s_
+        s.dec_.uop.v = s.uop_store_
+        s.dec_fail_.v = s.dec_store_fail_
 #     elif s.opcode_ == Opcode.STORE_FP:
       elif s.opcode_ == Opcode.AMO:
         s.dec_.rs1_val.v = 1
@@ -170,7 +192,8 @@ class Decode(Model):
         s.dec_.rs1_val.v = 1
         s.dec_.rs2_val.v = 1
         s.dec_.rd_val.v = 1
-        s.dec_.op_32 = 1
+        s.dec_.uop.v = s.uop_op_32_
+        s.dec_fail_.v = s.dec_op_32_fail_
 #     elif s.opcode_ == Opcode.MADD:
 #     elif s.opcode_ == Opcode.MSUB:
 #     elif s.opcode_ == Opcode.NMSUB:
@@ -199,6 +222,7 @@ class Decode(Model):
         s.dec_.imm_val.v = 1
         # I-type imm
         s.dec_.imm.v = s.imm_i_
+
       # Handle illegal instruction exception
       if s.dec_fail_:
         s.dec_.trap.v = 1
@@ -235,6 +259,38 @@ class Decode(Model):
         s.dec_opimm_fail_.v = 1
 
     @s.combinational
+    def decode_op_imm32():
+      s.dec_opimm32_fail_.v = 0
+      if s.func3_ == 0b000:
+        s.uop_opimm32_.v = MicroOp.ADDIW
+      elif s.func3_ == 0b001 and s.func7_ == 0:
+        s.uop_opimm32_.v = MicroOp.SLLIW
+      elif s.func3_ == 0b101 and s.func7_ == 0:
+        s.uop_opimm32_.v = MicroOp.SRLIW
+      elif s.func3_ == 0b101 and s.func7_ == 0b0100000:
+        s.uop_opimm32_.v = MicroOp.SRAIW
+      else: # Illegal
+        s.uop_opimm32_.v = 0
+        s.dec_opimm32_fail_.v = 1
+
+    @s.combinational
+    def decode_op_32():
+      s.dec_op_32_fail_.v = 0
+      if s.func3_ == 0b000 and s.func7_ == 0:
+        s.uop_op_32_.v = MicroOp.ADDW
+      elif s.func3_ == 0b000 and s.func7_ == 0b0100000:
+        s.uop_op_32_.v = MicroOp.SUBW
+      elif s.func3_ == 0b001 and s.func7_ == 0:
+        s.uop_op_32_.v = MicroOp.SLLW
+      elif s.func3_ == 0b101 and s.func7_ == 0:
+        s.uop_op_32_.v = MicroOp.SRLW
+      elif s.func3_ == 0b101 and s.func7_ == 0b0100000:
+        s.uop_op_32_.v = MicroOp.SRAW
+      else: # Illegal
+        s.uop_op_32_.v = 0
+        s.dec_op_32_fail_.v = 1
+
+    @s.combinational
     def decode_op():
       s.dec_op_fail_.v = 0
       if s.func3_ == 0b000 and s.func7_ == 0:
@@ -261,7 +317,36 @@ class Decode(Model):
         s.uop_op_.v = 0
         s.dec_op_fail_.v = 1
 
+    @s.combinational
+    def decode_load():
+      s.dec_load_fail_.v = 0
+      if s.func3_ == 0b000:
+        s.uop_load_.v = MicroOp.LB
+      elif s.func3_ == 0b001:
+        s.uop_load_.v = MicroOp.LH
+      elif s.func3_ == 0b010:
+        s.uop_load_.v = MicroOp.LW
+      elif s.func3_ == 0b100:
+        s.uop_load_.v = MicroOp.LBU
+      elif s.func3_ == 0b101:
+        s.uop_load_.v = MicroOp.LHU
+      else: # Illegal
+        s.uop_load_.v = 0
+        s.dec_load_fail_.v = 1
 
+
+    @s.combinational
+    def decode_store():
+      s.dec_store_fail_.v = 0
+      if s.func3_ == 0b000:
+        s.uop_store_.v = MicroOp.SB
+      elif s.func3_ == 0b001:
+        s.uop_store_.v = MicroOp.SH
+      elif s.func3_ == 0b010:
+        s.uop_store_.v = MicroOp.SW
+      else: # Illegal
+        s.uop_store_.v = 0
+        s.dec_store_fail_.v = 1
 
 
     @s.tick_rtl
