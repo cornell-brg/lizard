@@ -9,21 +9,24 @@ from bitutil import clog2, clog2nz
 
 class BasicMemoryControllerInterface(Interface):
 
-  def __init__(s, mem_msg, clients):
-    s.MemMsg = mem_msg
+  def __init__(s, mbi, clients):
+    s.MemMsg = mbi.MemMsg
+    s.mbi = mbi
+    s.clients = clients
+
     methods = []
     for client in clients:
       methods.extend([
           MethodSpec(
               '{}_recv'.format(client),
               args=None,
-              rets={'resp': mem_msg.resp},
+              rets={'msg': s.MemMsg.resp},
               call=True,
               rdy=True,
           ),
           MethodSpec(
               '{}_send'.format(client),
-              args={'req': mem_msg.req},
+              args={'msg': s.MemMsg.req},
               rets=None,
               call=True,
               rdy=True,
@@ -35,21 +38,20 @@ class BasicMemoryControllerInterface(Interface):
 
 class BasicMemoryController(Model):
 
-  def __init__(s, memory_bus_interface, clients):
-    UseInterface(
-        s, BasicMemoryControllerInterface(memory_bus_interface.MemMsg, clients))
+  def __init__(s, interface):
+    UseInterface(s, interface)
+    mbi = s.interface.mbi
+    clients = s.interface.clients
 
-    if memory_bus_interface.num_ports != len(clients):
+    if mbi.num_ports != len(clients):
       raise ValueError('There should be exactly 1 port per client')
-    if memory_bus_interface.opaque_nbits < clog2(len(clients)):
+    if mbi.opaque_nbits < clog2(len(clients)):
       raise ValueError('Not enough opaque bits')
 
-    memory_bus_interface.require(
-        s, 'bus', 'recv', count=memory_bus_interface.num_ports)
-    memory_bus_interface.require(
-        s, 'bus', 'send', count=memory_bus_interface.num_ports)
+    mbi.require(s, 'bus', 'recv', count=mbi.num_ports)
+    mbi.require(s, 'bus', 'send', count=mbi.num_ports)
 
-    nobits = memory_bus_interface.opaque_nbits
+    nobits = mbi.opaque_nbits
     nclients = len(clients)
     s.in_flight = Wire(nclients)
     s.can_send = Wire(nclients)
@@ -63,13 +65,8 @@ class BasicMemoryController(Model):
     ]
     s.recv_valid_chains = [Wire(1) for _ in range(nclients * (nclients + 1))]
 
-    s.client_muxes = [
-        Mux(memory_bus_interface.MemMsg.resp, nclients) for _ in range(nclients)
-    ]
-    s.client_regs = [
-        Register(memory_bus_interface.MemMsg.resp, True)
-        for _ in range(nclients)
-    ]
+    s.client_muxes = [Mux(mbi.MemMsg.resp, nclients) for _ in range(nclients)]
+    s.client_regs = [Register(mbi.MemMsg.resp, True) for _ in range(nclients)]
     s.client_valid_regs = [Register(1, True) for _ in range(nclients)]
 
     # PYMTL_BROKEN
@@ -81,10 +78,10 @@ class BasicMemoryController(Model):
       s.connect(s.index_client_recv_call[i], client_recv_port.call)
       s.connect(s.index_client_recv_rdy[i], client_recv_port.rdy)
 
-      s.connect(s.bus_send_msg[i].type_, client_send_port.req.type_)
-      s.connect(s.bus_send_msg[i].addr, client_send_port.req.addr)
-      s.connect(s.bus_send_msg[i].len_, client_send_port.req.len_)
-      s.connect(s.bus_send_msg[i].data, client_send_port.req.data)
+      s.connect(s.bus_send_msg[i].type_, client_send_port.msg.type_)
+      s.connect(s.bus_send_msg[i].addr, client_send_port.msg.addr)
+      s.connect(s.bus_send_msg[i].len_, client_send_port.msg.len_)
+      s.connect(s.bus_send_msg[i].data, client_send_port.msg.data)
       s.connect(s.bus_send_msg[i].opaque, i)
       s.connect(s.bus_send_call[i], client_send_port.call)
 
@@ -127,10 +124,10 @@ class BasicMemoryController(Model):
 
       s.connect(s.client_valid_regs[i].write_call, s.recv_valid_chains[final])
 
-      s.connect(client_recv_port.resp.type_, s.client_regs[i].read_data.type_)
-      s.connect(client_recv_port.resp.stat, s.client_regs[i].read_data.stat)
-      s.connect(client_recv_port.resp.len_, s.client_regs[i].read_data.len_)
-      s.connect(client_recv_port.resp.data, s.client_regs[i].read_data.data)
+      s.connect(client_recv_port.msg.type_, s.client_regs[i].read_data.type_)
+      s.connect(client_recv_port.msg.stat, s.client_regs[i].read_data.stat)
+      s.connect(client_recv_port.msg.len_, s.client_regs[i].read_data.len_)
+      s.connect(client_recv_port.msg.data, s.client_regs[i].read_data.data)
 
       # always read from the bus into the register if ready
       s.connect(s.bus_recv_call[i], s.bus_recv_rdy[i])
