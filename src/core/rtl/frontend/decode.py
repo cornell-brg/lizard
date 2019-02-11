@@ -333,6 +333,16 @@ class Decode(Model):
         s.uop_op_32_.v = MicroOp.SRLW
       elif s.func3_ == 0b101 and s.func7_ == 0b0100000:
         s.uop_op_32_.v = MicroOp.SRAW
+      elif s.func3_ == 0b000 and s.func7_ == 0b1:
+        s.uop_op_32_.v = MicroOp.MULW
+      elif s.func3_ == 0b100 and s.func7_ == 0b1:
+        s.uop_op_32_.v = MicroOp.DIVW
+      elif s.func3_ == 0b101 and s.func7_ == 0b1:
+        s.uop_op_32_.v = MicroOp.DIVUW
+      elif s.func3_ == 0b110 and s.func7_ == 0b1:
+        s.uop_op_32_.v = MicroOp.REMW
+      elif s.func3_ == 0b111 and s.func7_ == 0b1:
+        s.uop_op_32_.v = MicroOp.REMUW
       else:  # Illegal
         s.uop_op_32_.v = 0
         s.dec_op_32_fail_.v = 1
@@ -360,6 +370,22 @@ class Decode(Model):
         s.uop_op_.v = MicroOp.OR
       elif s.func3_ == 0b111 and s.func7_ == 0:
         s.uop_op_.v = MicroOp.AND
+      elif s.func3_ == 0b000 and s.func7_ == 0b1:
+        s.uop_op_.v = MicroOp.MUL
+      elif s.func3_ == 0b001 and s.func7_ == 0b1:
+        s.uop_op_.v = MicroOp.MULH
+      elif s.func3_ == 0b010 and s.func7_ == 0b1:
+        s.uop_op_.v = MicroOp.MULHSU
+      elif s.func3_ == 0b011 and s.func7_ == 0b1:
+        s.uop_op_.v = MicroOp.MULHU
+      elif s.func3_ == 0b100 and s.func7_ == 0b1:
+        s.uop_op_.v = MicroOp.DIV
+      elif s.func3_ == 0b101 and s.func7_ == 0b1:
+        s.uop_op_.v = MicroOp.DIVU
+      elif s.func3_ == 0b110 and s.func7_ == 0b1:
+        s.uop_op_.v = MicroOp.REM
+      elif s.func3_ == 0b111 and s.func7_ == 0b1:
+        s.uop_op_.v = MicroOp.REMU
       else:  # Illegal
         s.uop_op_.v = 0
         s.dec_op_fail_.v = 1
