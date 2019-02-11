@@ -396,8 +396,10 @@ CsrRegisters = bit_enum(
     dcsr=0x7B0,
     dpc=0x7B1,
     dscratch=0x7B2,
-    #non-standard extensions
+    # non-standard extensions
+    # non-standard read/write machine level
     proc2mngr=0x7C0,
+    # non-standard read-only machine level
     mngr2proc=0xFC0,
 )
 
