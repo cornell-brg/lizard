@@ -57,11 +57,10 @@ class DataFlowManagerInterface(Interface):
                     'areg': s.Areg,
                 },
                 rets={
-                    'success': Bits(1),
                     'preg': s.Preg,
                 },
                 call=True,
-                rdy=False,
+                rdy=True,
                 count=num_dst_ports,
             ),
             MethodSpec(
@@ -147,12 +146,7 @@ class DataFlowManager(Model):
     num_src_ports = s.interface.NumSrcPorts
     num_dst_ports = s.interface.NumDstPorts
 
-    # DataFlowManagerInterface(dlen, naregs, npregs, nsnapshots,
-    #                          num_src_ports, num_dst_ports))
-
     s.PregState = PregState(dlen)
-    s.mngr2proc = InValRdyBundle(Bits(dlen))
-    s.proc2mngr = OutValRdyBundle(Bits(dlen))
 
     # used to allocate snapshot IDs
     s.snapshot_allocator = SnapshottingFreeList(nsnapshots, 1, 1, nsnapshots)
@@ -309,6 +303,7 @@ class DataFlowManager(Model):
 
     # get_dst
     s.get_dst_need_writeback = [Wire(1) for _ in range(num_dst_ports)]
+    s.connect(s.get_dst_rdy[i], s.free_regs.alloc_rdy[i])
     for i in range(num_dst_ports):
 
       @s.combinational
@@ -317,19 +312,16 @@ class DataFlowManager(Model):
           # zero register
           s.free_regs.alloc_call[i].v = 0
           s.get_dst_preg[i].v = s.ZERO_TAG
-          s.get_dst_success[i].v = 1
           s.get_dst_need_writeback[i].v = 0
         elif s.free_regs.alloc_rdy[i]:
           # allocate a register from the freelist
           s.free_regs.alloc_call[i].v = s.get_dst_call[i]
           s.get_dst_preg[i].v = s.free_regs.alloc_index[i]
-          s.get_dst_success[i].v = 1
           s.get_dst_need_writeback[i].v = s.get_dst_call[i]
         else:
           # free list is full
           s.free_regs.alloc_call[i].v = 0
           s.get_dst_preg[i].v = s.ZERO_TAG
-          s.get_dst_success[i].v = 0
           s.get_dst_need_writeback[i].v = 0
 
       # Update the rename table

@@ -12,11 +12,15 @@ from bitutil import copy_bits
 class DataFlowManagerFL(FLModel):
 
   @HardwareModel.validate
-  def __init__(s, dlen, naregs, npregs, nsnapshots, num_src_ports,
-               num_dst_ports):
-    super(DataFlowManagerFL, s).__init__(
-        DataFlowManagerInterface(dlen, naregs, npregs, nsnapshots,
-                                 num_src_ports, num_dst_ports))
+  def __init__(s, dflow_interface):
+    super(DataFlowManagerFL, s).__init__(dflow_interface)
+
+    dlen = s.interface.DataLen
+    naregs = s.interface.NumAregs
+    npregs = s.interface.NumPregs
+    nsnapshots = s.interface.NumSnapshots
+    num_src_ports = s.interface.NumSrcPorts
+    num_dst_ports = s.interface.NumDstPorts
 
     s.PregState = PregState(dlen)
 
@@ -107,13 +111,15 @@ class DataFlowManagerFL(FLModel):
     def get_src(areg):
       return s.rename_table.lookup(areg).preg
 
+    @s.ready_method
+    def get_dst():
+      return s.free_regs.alloc.rdy()
+
     @s.model_method
     def get_dst(areg):
       if areg == 0:
-        return Result(success=1, preg=s.ZERO_TAG)
+        return s.ZERO_TAG
       allocation = s.free_regs.alloc()
-      if isinstance(allocation, NotReady):
-        return Result(success=0, preg=0)
 
       s.rename_table.update(areg=areg, preg=allocation.index)
       new_preg_state = s.PregState()
@@ -122,7 +128,7 @@ class DataFlowManagerFL(FLModel):
       s.preg_file.write(addr=allocation.index, data=new_preg_state)
       s.inverse.write(addr=allocation.index, data=areg)
 
-      return Result(success=1, preg=allocation.index)
+      return allocation.index
 
     @s.model_method
     def read_tag(tag):
