@@ -52,8 +52,9 @@ class CLModel(HardwareModel):
     s._drain_to(len(s.methods), -1)
 
   def _reset(s):
-    # run all methods before doing the reset
-    s._post_cycle()
+    # prevent any methods from running after the reset
+    s.sequence_method = len(s.methods)
+    s.sequence_call = -1
 
   def _skip(s):
     result = None

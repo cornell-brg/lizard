@@ -100,30 +100,6 @@ class DataFlowManagerInterface(Interface):
                 rdy=False,
             ),
             MethodSpec(
-                'read_csr',
-                args={
-                    'csr_num': Bits(CSR_SPEC_NBITS),
-                },
-                rets={
-                    'result': Bits(dlen),
-                    'success': Bits(1),
-                },
-                call=True,
-                rdy=False,
-            ),
-            MethodSpec(
-                'write_csr',
-                args={
-                    'csr_num': Bits(CSR_SPEC_NBITS),
-                    'value': Bits(dlen),
-                },
-                rets={
-                    'success': Bits(1),
-                },
-                call=True,
-                rdy=False,
-            ),
-            MethodSpec(
                 'snapshot',
                 args=None,
                 rets={
@@ -439,42 +415,6 @@ class DataFlowManager(Model):
     for i in range(naregs):
       s.connect(s.rename_table.set_in_[i], s.areg_file.dump_out[i])
     s.connect(s.rename_table.set_call, s.rollback_call)
-
-    # CSR
-    @s.combinational
-    def handle_read_csr():
-      s.read_csr_result.v = 0
-      s.read_csr_success.v = 0
-
-#      s.mngr2proc.rdy.v = 0
-#
-#      if s.read_csr_call:
-#        if s.read_csr_csr_num == CsrRegisters.mngr2proc:
-#          s.read_csr_result.v = s.mngr2proc.msg
-#          s.read_csr_success.v = s.mngr2proc.val
-#          # we are ready if data is valid and we made it here
-#          s.mngr2proc.rdy.v = s.mngr2proc.val
-#        else:
-#          # no other CSRs supported return 0
-#          s.read_csr_result.v = 0
-#          s.read_csr_success.v = 1
-
-    @s.combinational
-    def handle_write_csr():
-      s.write_csr_success.v = 0
-
-
-#      s.proc2mngr.msg.v = 0
-#      s.proc2mngr.val.v = 0
-#
-#      if s.write_csr_call:
-#        if s.write_csr_csr_num == CsrRegisters.proc2mngr:
-#          s.write_csr_success.v = s.proc2mngr.rdy
-#          s.proc2mngr.msg.v = s.write_csr_value
-#          s.proc2mngr.val.v = s.proc2mngr.rdy
-#        else:
-#          # no other CSRs supported
-#          s.write_csr_success.v = 1
 
   def line_trace(s):
     return "<dataflow>"
