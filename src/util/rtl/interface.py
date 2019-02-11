@@ -39,7 +39,7 @@ class ResidualMethodSpec:
       return s, index
 
 
-def connect_m(dst, src):
+def _connect_m(parent, dst, src):
   if isinstance(dst, tuple):
     dst, di = dst
   else:
@@ -66,16 +66,15 @@ def connect_m(dst, src):
   for port_name in dst.port_map.keys():
     # connecting entire bundles to entire bundles
     if di is None and si is None:
-      _connect_ports(dst.model, dst.port_map[port_name],
-                     src.port_map[port_name])
+      _connect_ports(parent, dst.port_map[port_name], src.port_map[port_name])
     elif di is not None and si is None:
-      _connect_ports(dst.model, dst.port_map[port_name][di],
+      _connect_ports(parent, dst.port_map[port_name][di],
                      src.port_map[port_name])
     elif di is None and si is not None:
-      _connect_ports(dst.model, dst.port_map[port_name],
+      _connect_ports(parent, dst.port_map[port_name],
                      src.port_map[port_name][si])
     else:
-      _connect_ports(dst.model, dst.port_map[port_name][di],
+      _connect_ports(parent, dst.port_map[port_name][di],
                      src.port_map[port_name][si])
 
 
@@ -266,6 +265,12 @@ class Interface(object):
     """
     for name, spec in s.methods.iteritems():
       s._inject(target, '', name, spec, spec.count, MethodSpec.DIRECTION_CALLEE)
+
+    # bind a connect_m to the target
+    def connect_m(dst, src):
+      _connect_m(target, dst, src)
+
+    s._safe_setattr(target, 'connect_m', connect_m)
 
   def require(s, target, prefix, name, count=None):
     """Binds an outgoing port from this interface to the target

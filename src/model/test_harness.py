@@ -1,5 +1,5 @@
 from pymtl import *
-from util.rtl.interface import Interface, IncludeAll, UseInterface, connect_m
+from util.rtl.interface import Interface, IncludeAll, UseInterface
 from model.translate import translate
 
 
@@ -14,6 +14,6 @@ def TestHarness(target, dut, translate_model, vcd_file=''):
     target.dut = dut
 
   for name in target.interface.methods.keys():
-    connect_m(getattr(target, name), getattr(target.dut, name))
+    s.connect_m(getattr(target, name), getattr(target.dut, name))
 
   target.vcd_file = vcd_file
