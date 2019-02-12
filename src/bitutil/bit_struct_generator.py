@@ -15,6 +15,9 @@ class EntryGroup(object):
   def offsets(s):
     pass
 
+  def export(s):
+    return s.size(), list(s.offsets())
+
 
 class PrimitiveField(EntryGroup):
 
@@ -86,6 +89,19 @@ class Union(EntryGroup):
         yield name, offset, size
 
 
+class ExplicitStructDefinition(EntryGroup):
+
+  def __init__(s, width, field_spec):
+    s.field_spec = field_spec
+    s.width = width
+
+  def size(s):
+    return s.width
+
+  def offsets(s):
+    return s.field_spec
+
+
 def Field(name, type_):
   if isinstance(type_, int):
     return PrimitiveField(name, type_)
@@ -99,16 +115,16 @@ def Field(name, type_):
     raise ValueError('Unknown field type: {}'.format(type(type_)))
 
 
-evil_hacky_global_type_dictionary = {}
-evil_hacky_global_counter = 0
-
-
 def bit_struct_generator(func):
   struct_name = func.__name__
 
   @wraps(func)
   def gen(*args):
-    top = Group(*func(*args))
+    gen = func(*args)
+    if isinstance(gen, EntryGroup):
+      top = gen
+    else:
+      top = Group(*gen)
 
     class_name = "{}_{}".format(struct_name, '_'.join(str(x) for x in args))
     bitstruct_class = type(class_name, (BitStruct,), {})
@@ -145,11 +161,6 @@ def bit_struct_generator(func):
       s._spec = top
 
     bitstruct_class.__init__ = gen_init
-    global evil_hacky_global_type_dictionary
-    global evil_hacky_global_counter
-    evil_global_id = evil_hacky_global_counter
-    evil_hacky_global_type_dictionary[evil_global_id] = bitstruct_class
-    evil_hacky_global_counter += 1
 
     bitstruct_inst = bitstruct_class()
 
@@ -173,10 +184,15 @@ def bit_struct_generator(func):
     #    else:
     #      list_.append( "s.{} = OutPort( {} )".format( p.name, p.nbits ) )
     bitstruct_inst._module = __name__
-    bitstruct_inst._classname = 'evil_hacky_global_type_dictionary'
-    bitstruct_inst._instantiate = 'evil_hacky_global_type_dictionary[{}]()'.format(
-        evil_global_id)
+    bitstruct_inst._classname = '_regen_type'
+    # top.export() returns a tuple which will have parens around it
+    bitstruct_inst._instantiate = '_regen_type({})'.format(top.export())
 
     return bitstruct_inst
 
   return gen
+
+
+@bit_struct_generator
+def _regen_type(full_spec):
+  return ExplicitStructDefinition(*full_spec)
