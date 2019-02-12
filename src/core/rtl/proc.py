@@ -1,10 +1,11 @@
 from pymtl import *
 from util.rtl.interface import Interface, UseInterface
 from core.rtl.controlflow import ControlFlowManager, ControlFlowManagerInterface
+from core.rtl.dataflow import DataFlowManager, DataFlowManagerInterface
 from core.rtl.frontend.fetch import Fetch, FetchInterface
 from core.rtl.frontend.decode import Decode, DecodeInterface
-from core.rtl.backend.rename import Rename
-from core.rtl.dataflow import DataFlowManager, DataFlowManagerInterface
+from core.rtl.backend.rename import Rename, RenameInterface
+from core.rtl.backend.alu import ALU, ALUInterface
 from core.rtl.proc_debug_bus import ProcDebugBusInterface
 from mem.rtl.memory_bus import MemoryBusInterface
 from mem.rtl.basic_memory_controller import BasicMemoryController, BasicMemoryControllerInterface
@@ -82,3 +83,7 @@ class Proc(Model):
     s.decode = Decode(s.decode_interface, s.fetch_interface, s.cflow_interface)
     s.connect_m(s.fetch.get, s.decode.fetch_get)
     s.connect_m(s.cflow.check_redirect, s.decode.cflow_check_redirect)
+
+    # ALU
+    s.alu_interface = ALUInterface(XLEN, DECODED_IMM_LEN)
+    s.alu = ALU(s.alu_interface)

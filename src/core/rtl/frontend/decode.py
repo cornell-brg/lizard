@@ -177,7 +177,6 @@ class Decode(Model):
     def decode():
       s.dec_fail_.v = 1
       s.dec_.exec_pipe.v = 0
-      s.dec_.pc_succ.v = s.msg_.pc_succ  # Propogate successor info
       s.dec_.speculative.v = 0
       s.dec_.rs1.v = s.rs1_
       s.dec_.rs2.v = s.rs2_
@@ -189,6 +188,8 @@ class Decode(Model):
       s.dec_.trap.v = 0
       s.dec_.mcause.v = 0
       s.dec_.mtval.v = 0
+      s.dec_.uop.v = 0
+      s.dec_.op32.v = 0
       # If there is already an exception, propogate it
       if s.msg_.trap != 0:
         s.dec_.trap.v = s.msg_.trap
@@ -234,6 +235,7 @@ class Decode(Model):
         s.dec_.rd_val.v = 1
         s.dec_.imm_val.v = 1
         # I-type imm
+        s.dec_.op32.v = 1
         s.dec_.imm.v = s.imm_i_
         s.dec_.uop.v = s.uop_opimm32_
         s.dec_fail_.v = s.dec_opimm32_fail_
@@ -267,6 +269,7 @@ class Decode(Model):
         s.dec_.rs1_val.v = 1
         s.dec_.rs2_val.v = 1
         s.dec_.rd_val.v = 1
+        s.dec_.op32.v = 1
         s.dec_.uop.v = s.uop_op_32_
         s.dec_fail_.v = s.dec_op_32_fail_
         s.dec_.exec_pipe.v = s.pipe_op_32_

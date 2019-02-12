@@ -44,7 +44,6 @@ class DecodeMsg(PipelineMsg):
     super(DecodeMsg, s).__init__()
     s.speculative = BitField(1)  # Set if requires RT snapshot
     s.pc_succ = BitField(XLEN)
-
     s.rs1_val = BitField(1)
     s.rs1 = BitField(AREG_IDX_NBITS)
     s.rs2_val = BitField(1)
@@ -55,10 +54,28 @@ class DecodeMsg(PipelineMsg):
     s.imm = BitField(DECODED_IMM_LEN)
     s.exec_pipe = BitField(
         ExecPipe.bits)  # The execution pipe this will go down
+    s.op32 = BitField(1)
     s.uop = BitField(MicroOp.bits)
+
 
 
 class RenameMsg(PipelineMsg):
 
   def __init__(s):
     super(RenameMsg, s).__init__()
+
+
+class DispatchMsg(PipelineMsg):
+
+  def __init__(s):
+    super(DispatchMsg, s).__init__()
+    s.src1_val = BitField(1)
+    s.src1 = BitField(XLEN)
+    s.src2_val = BitField(1)
+    s.src2 = BitField(XLEN)
+    s.dst_val = BitField(1)
+    s.dst = BitField(XLEN)
+    s.imm_val = BitField(1)
+    s.imm = BitField(DECODED_IMM_LEN)
+    s.op32 = BitField(1)
+    s.uop = BitField(MicroOp.bits)
