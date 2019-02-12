@@ -39,6 +39,43 @@ class ResidualMethodSpec:
       return s, index
 
 
+def _safe_setattr(target, attr_name, attr):
+  if hasattr(target, attr_name):
+    raise ValueError('Target contains attribute: {}'.format(attr_name))
+  else:
+    setattr(target, attr_name, attr)
+
+
+def _call(parent, ModelClass, *functional_args, **output_map):
+  # note that the generated name does not start with an _
+  # pymtl will ignore it
+  gen_name = 'anonymous_module_{}'.format(parent._anonymous_counter)
+  parent._anonymous_counter += 1
+  model, input_map = ModelClass.functional_form(*functional_args)
+  _safe_setattr(parent, gen_name, model)
+  methods = model.interface.methods
+  if len(methods) != 1:
+    raise ValueError(
+        'Functional forms are only permitted with 1 method in the interface')
+  method = methods[methods.keys()[0]]
+  if method.rdy or method.call:
+    raise ValueError(
+        'Functional forms are only permitted on methods with no call or rdy')
+  if set(input_map) != set(method.args):
+    raise ValueError(
+        'Input map ({}) does not specify all required arguments: {}'.format(
+            input_map, set(method.args)))
+  if set(output_map) != set(method.rets):
+    raise ValueError(
+        'Output map ({}) does not specify all required returns: {}'.format(
+            output_map, set(method.rets)))
+
+  for name, value in input_map.iteritems():
+    parent.connect(getattr(getattr(model, method.name), name), value)
+  for name, value in output_map.iteritems():
+    parent.connect(getattr(getattr(model, method.name), name), value)
+
+
 def _connect_m(parent, dst, src):
   if isinstance(dst, tuple):
     dst, di = dst
@@ -228,15 +265,9 @@ class Interface(object):
   def mangled_name(prefix, name, port_name):
     return '{}{}_{}'.format(prefix, name, port_name)
 
-  def _safe_setattr(s, target, attr_name, attr):
-    if hasattr(target, attr_name):
-      raise ValueError('Target contains attribute: {}'.format(attr_name))
-    else:
-      setattr(target, attr_name, attr)
-
   def _set_residual(s, target, prefix, name, spec, port_map):
-    s._safe_setattr(target, '{}{}'.format(prefix, name),
-                    ResidualMethodSpec(target, spec, port_map))
+    _safe_setattr(target, '{}{}'.format(prefix, name),
+                  ResidualMethodSpec(target, spec, port_map))
 
   def _inject(s, target, prefix, name, spec, count, direction):
     if count is None:
@@ -248,7 +279,7 @@ class Interface(object):
         port_map[port_name] = [ports[i][port_name] for i in range(count)]
 
     for port_name, port in port_map.iteritems():
-      s._safe_setattr(target, s.mangled_name(prefix, name, port_name), port)
+      _safe_setattr(target, s.mangled_name(prefix, name, port_name), port)
     s._set_residual(target, prefix, name, spec, port_map)
 
   def _generate_residual_spec(s, target, prefix, name, spec):
@@ -270,7 +301,16 @@ class Interface(object):
     def connect_m(dst, src):
       _connect_m(target, dst, src)
 
-    s._safe_setattr(target, 'connect_m', connect_m)
+    _safe_setattr(target, 'connect_m', connect_m)
+
+    # bind to the target a counter for anonymous modules
+    _safe_setattr(target, '_anonymous_counter', 0)
+
+    # bind a call to the target
+    def call(*args, **kwargs):
+      _call(target, *args, **kwargs)
+
+    _safe_setattr(target, 'call', call)
 
   def require(s, target, prefix, name, count=None):
     """Binds an outgoing port from this interface to the target
@@ -298,7 +338,7 @@ class Interface(object):
     target.interface.requirements.append((prefix, name, spec, count))
 
   def embed(s, target):
-    s._safe_setattr(target, 'interface', s)
+    _safe_setattr(target, 'interface', s)
     for name, spec in s.methods.iteritems():
       s._generate_residual_spec(target, '', name, spec)
     for prefix, name, spec, _ in s.requirements:

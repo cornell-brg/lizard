@@ -34,3 +34,8 @@ class Sext(Model):
 
   def line_trace(s):
     return "{}".format(s.sext_out)
+
+  @staticmethod
+  def functional_form(in_, outwidth):
+    model = Sext(SextInterface(in_.nbits, outwidth))
+    return model, {'in_': in_}
