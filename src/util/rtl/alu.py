@@ -51,7 +51,11 @@ class ALU(Model):
     # Output
     s.res_ = Wire(xlen)
 
+    # Internals
     s.shamt_ = Wire(CLOG2_XLEN)
+    # PYMTL_BROKEN: These are all work arrounds
+    s.cmp_u_ = Wire(1)
+    s.sra_ = Wire(TWO_XLEN)
 
     # Since single cycle, always ready
     s.connect(s.exec_rdy, 1)
@@ -65,6 +69,10 @@ class ALU(Model):
     @s.combinational
     def set_shamt():
       s.shamt_.v = s.s0_[:CLOG2_XLEN]
+      s.cmp_u_.v = s.s0_ < s.s1_ if s.usign_ else concat(not s.s0_[-1],
+                        s.s0_[:XLEN_M1]) < concat(not s.s1_[-1], s.s1_[0:XLEN_M1])
+      s.sra_.v = sext(s.s0_, TWO_XLEN) >> s.shamt_
+
 
     @s.combinational
     def cycle():
@@ -85,12 +93,6 @@ class ALU(Model):
         elif s.func_ == ALUFunc.ALU_SRL:
           s.res_.v = s.s0_ >> s.shamt_
         elif s.func_ == ALUFunc.ALU_SRA:
-          s.res_.v = sext(s.s0_, TWO_XLEN) >> s.shamt_
+          s.res_.v = s.sra_[:xlen]
         elif s.func_ == ALUFunc.ALU_SLT:
-          # Unsigned
-          if s.usign_:
-            s.res_.v = s.s0_ < s.s1_
-          else:
-            # We can invert the MSB and then compre
-            s.res_.v = concat(not s.s0_[-1], s.s0_[:XLEN_M1]) < concat(
-                not s.s1_[-1], s.s1_[0:XLEN_M1])
+          s.res_.v = zext(s.cmp_u_, xlen)
