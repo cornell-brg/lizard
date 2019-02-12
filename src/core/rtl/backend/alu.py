@@ -12,6 +12,7 @@ from msg.codes import RVInstMask, Opcode, ExceptionCode
 from core.rtl.frontend.decode import DecodeInterface
 from core.rtl.micro_op import MicroOp
 
+
 class ALUInterface(Interface):
 
   def __init__(s, data_len, imm_len):
@@ -59,9 +60,11 @@ class ALU(Model):
     s.connect(s.alu_exec_src0, s.src1_)
     s.connect(s.alu_exec_src1, s.src2_)
 
-    uop_32s = [MicroOp.UOP_ADDIW, MicroOp.UOP_SLLIW, MicroOp.UOP_SRLIW,
-                MicroOp.UOP_SRAIW,MicroOp.UOP_ADDW, MicroOp.UOP_SUBW,
-                MicroOp.UOP_SLLW,MicroOp.UOP_SRLW,MicroOp.UOP_SRAW]
+    uop_32s = [
+        MicroOp.UOP_ADDIW, MicroOp.UOP_SLLIW, MicroOp.UOP_SRLIW,
+        MicroOp.UOP_SRAIW, MicroOp.UOP_ADDW, MicroOp.UOP_SUBW, MicroOp.UOP_SLLW,
+        MicroOp.UOP_SRLW, MicroOp.UOP_SRAW
+    ]
     #
     #
     # @s.combinational
@@ -75,7 +78,7 @@ class ALU(Model):
       if s.accepted_:
         s.src1_.v = s.src1_ if not s.msg_.op32 else sext(s.src1_32_, data_len)
         s.src2_.v = s.src2_ if not s.msg_.op32 else sext(s.src2_32_, data_len)
-        if s.msg_.imm_val: # Replace src2 with imm
+        if s.msg_.imm_val:  # Replace src2 with imm
           if s.uop_ == MicroOp.UOP_LUI:
             s.src2_.v = sext(s.imm_, data_len) << 12
           elif s.uop_ == MicroOp.UOP_AUIPC:
@@ -90,7 +93,8 @@ class ALU(Model):
     @s.combinational
     def set_res():
       s.res_32_.v = s.alu_exec_res[:32]
-      s.res_.v = s.alu_exec_res if not s.msg_.op32 else sext(s.res_32_, data_len)
+      s.res_.v = s.alu_exec_res if not s.msg_.op32 else sext(
+          s.res_32_, data_len)
 
     @s.combinational
     def set_rdy():

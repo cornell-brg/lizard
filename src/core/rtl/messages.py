@@ -58,7 +58,6 @@ class DecodeMsg(PipelineMsg):
     s.uop = BitField(MicroOp.bits)
 
 
-
 class RenameMsg(PipelineMsg):
 
   def __init__(s):

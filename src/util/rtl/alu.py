@@ -5,8 +5,8 @@ from util.rtl.method import MethodSpec
 from util.rtl.interface import Interface, UseInterface
 from bitutil import bit_enum
 
-ALUFunc = bit_enum('ALUFunc', None, 'ALU_ADD', 'ALU_SUB', 'ALU_AND', 'ALU_OR', 'ALU_XOR', 'ALU_SLL',
-                   'ALU_SRL', 'ALU_SRA', 'ALU_SLT')
+ALUFunc = bit_enum('ALUFunc', None, 'ALU_ADD', 'ALU_SUB', 'ALU_AND', 'ALU_OR',
+                   'ALU_XOR', 'ALU_SLL', 'ALU_SRL', 'ALU_SRA', 'ALU_SLT')
 
 
 class ALUInterface(Interface):
@@ -69,10 +69,10 @@ class ALU(Model):
     @s.combinational
     def set_shamt():
       s.shamt_.v = s.s0_[:CLOG2_XLEN]
-      s.cmp_u_.v = s.s0_ < s.s1_ if s.usign_ else concat(not s.s0_[-1],
-                        s.s0_[:XLEN_M1]) < concat(not s.s1_[-1], s.s1_[0:XLEN_M1])
+      s.cmp_u_.v = s.s0_ < s.s1_ if s.usign_ else concat(
+          not s.s0_[-1], s.s0_[:XLEN_M1]) < concat(not s.s1_[-1],
+                                                   s.s1_[0:XLEN_M1])
       s.sra_.v = sext(s.s0_, TWO_XLEN) >> s.shamt_
-
 
     @s.combinational
     def cycle():
