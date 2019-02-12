@@ -51,6 +51,8 @@ class Fetch(Model):
     # Don't know what to do with this since the memory controller has methods
     # TODO: Aaron
     s.drop_unit_ = DropUnit(memory_controller_interface['recv'].rets['msg'])
+    s.drop_unit_data_ = Wire(xlen)
+    s.connect(s.drop_unit_data_, s.drop_unit_.output_data.data)
 
     s.cflow = cflow_interface
     s.cflow.require(s, '', 'check_redirect')
@@ -123,8 +125,7 @@ class Fetch(Model):
       # The successors PC s.pc_req_ if s.send_req_ else s.fetchmsg_.pc
       s.fetchmsg_.pc_succ.n = s.pc_next_.in_ if s.send_req_ else s.fetchmsg_.pc_succ
       # The instruction data
-      s.fetchmsg_.inst.n = s.drop_unit_.output_data.data[:
-                                                         ilen] if s.drop_unit_.output_rdy else s.fetchmsg_.inst
+      s.fetchmsg_.inst.n = s.drop_unit_data_[:ilen] if s.drop_unit_.output_rdy else s.fetchmsg_.inst
       # Exception information
       s.fetchmsg_.trap.n = s.drop_unit_.output_data.stat != MemMsgStatus.OK
       if s.drop_unit_.output_data.stat == MemMsgStatus.ADDRESS_MISALIGNED:

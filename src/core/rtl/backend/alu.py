@@ -46,10 +46,8 @@ class ALU(Model):
     # PYMTL_BROKEN, cant do msg.src1[:32]
     s.src1_ = Wire(data_len)
     s.src1_32_ = Wire(32)
-    s.connect_wire(s.src1_, s.msg_.src1)
     s.src2_ = Wire(data_len)
     s.src2_32_ = Wire(32)
-    s.connect_wire(s.src2_, s.msg_.src2)
     s.imm_ = Wire(imm_len)
     s.connect_wire(s.imm_, s.msg_.imm)
     s.uop_ = Wire(s.msg_.uop.nbits)
@@ -71,11 +69,9 @@ class ALU(Model):
 
     @s.combinational
     def set_ops():
-      s.src1_.v = 0
-      s.src2_.v = 0
       # PYMTL_BROKEN sext(foo[x:y]) does not work if foo is bitstruct
-      s.src1_32_.v = s.src1_[:32]
-      s.src2_32_.v = s.src2_[:32]
+      s.src1_ = s.msg_.src1
+      s.src2_ = s.msg_.src2
       if s.accepted_:
         s.src1_.v = s.src1_ if not s.msg_.op32 else sext(s.src1_32_, data_len)
         s.src2_.v = s.src2_ if not s.msg_.op32 else sext(s.src2_32_, data_len)
@@ -87,6 +83,9 @@ class ALU(Model):
             s.src2_.v = sext(s.imm_, data_len) << 12
           else:
             s.src2_.v = sext(s.imm_, data_len)
+
+      s.src1_32_.v = s.src1_[:32]
+      s.src2_32_.v = s.src2_[:32]
 
     @s.combinational
     def set_res():
