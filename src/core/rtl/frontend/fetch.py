@@ -125,7 +125,8 @@ class Fetch(Model):
       # The successors PC s.pc_req_ if s.send_req_ else s.fetchmsg_.pc
       s.fetchmsg_.pc_succ.n = s.pc_next_.in_ if s.send_req_ else s.fetchmsg_.pc_succ
       # The instruction data
-      s.fetchmsg_.inst.n = s.drop_unit_data_[:ilen] if s.drop_unit_.output_rdy else s.fetchmsg_.inst
+      s.fetchmsg_.inst.n = s.drop_unit_data_[:
+                                             ilen] if s.drop_unit_.output_rdy else s.fetchmsg_.inst
       # Exception information
       s.fetchmsg_.trap.n = s.drop_unit_.output_data.stat != MemMsgStatus.OK
       if s.drop_unit_.output_data.stat == MemMsgStatus.ADDRESS_MISALIGNED:
