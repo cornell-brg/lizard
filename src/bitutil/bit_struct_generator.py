@@ -4,6 +4,10 @@ from functools import wraps
 from collections import OrderedDict
 
 
+def _escape(string):
+  return string.replace('_', '__')
+
+
 class EntryGroup(object):
   __metaclass__ = abc.ABCMeta
 
@@ -17,6 +21,13 @@ class EntryGroup(object):
 
   def export(s):
     return s.size(), list(s.offsets())
+
+  def canonical_name(s):
+    parts = sorted([
+        '{}_{}_{}'.format(_escape(name), offset, size)
+        for name, offset, size in s.offsets()
+    ])
+    return '{}_{}'.format(s.size(), '_'.join(parts))
 
 
 class PrimitiveField(EntryGroup):
@@ -111,7 +122,6 @@ def Field(name, type_):
         NestedField(name, type_),
     )
   else:
-    print(type_.__dict__)
     raise ValueError('Unknown field type: {}'.format(type(type_)))
 
 
@@ -126,7 +136,7 @@ def bit_struct_generator(func):
     else:
       top = Group(*gen)
 
-    class_name = "{}_{}".format(struct_name, '_'.join(str(x) for x in args))
+    class_name = "{}_{}".format(_escape(struct_name), top.canonical_name())
     bitstruct_class = type(class_name, (BitStruct,), {})
     bitstruct_class._bitfields = OrderedDict()
 
