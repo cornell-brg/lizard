@@ -62,8 +62,6 @@ class Decode(Model):
 
     s.dec_fail_ = Wire(1)
 
-    # TODO: remove this once this connects to the next stage
-    s.connect(s.get_call, s.get_rdy)
     s.connect_wire(s.inst_, s.msg_.inst)
 
     s.opcode_ = Wire(s.inst_[RVInstMask.OPCODE].nbits)
