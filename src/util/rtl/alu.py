@@ -2,16 +2,17 @@ from pymtl import *
 from bitutil import clog2, clog2nz
 from pclib.rtl import RegEn, RegEnRst, RegRst
 from util.rtl.method import MethodSpec
-from util.rtl.interface import Interface
+from util.rtl.interface import Interface, UseInterface
 from bitutil import bit_enum
 
-ALUFunc = bit_enum('ALUFunc', None, 'ADD', 'SUB', 'AND', 'OR', 'XOR', 'SLL',
-                   'SRL', 'SRA', 'SLT')
+ALUFunc = bit_enum('ALUFunc', None, 'ALU_ADD', 'ALU_SUB', 'ALU_AND', 'ALU_OR', 'ALU_XOR', 'ALU_SLL',
+                   'ALU_SRL', 'ALU_SRA', 'ALU_SLT')
 
 
 class ALUInterface(Interface):
 
   def __init__(s, xlen):
+    s.Xlen = xlen
     super(ALUInterface, s).__init__([
         MethodSpec(
             'exec',
@@ -32,9 +33,9 @@ class ALUInterface(Interface):
 
 class ALU(Model):
 
-  def __init__(s, xlen):
-    s.inter = ALUInterface(xlen)
-    s.inter.apply(s)
+  def __init__(s, alu_interface):
+    UseInterface(s, alu_interface)
+    xlen = s.interface.Xlen
 
     CLOG2_XLEN = clog2(xlen)
     # PYMTL BROKEN:
@@ -69,23 +70,23 @@ class ALU(Model):
     def cycle():
       s.res_.v = 0
       if s.exec_call:
-        if s.func_ == ALUFunc.ADD:
+        if s.func_ == ALUFunc.ALU_ADD:
           s.res_.v = s.s0_ + s.s1_
-        elif s.func_ == ALUFunc.SUB:
+        elif s.func_ == ALUFunc.ALU_SUB:
           s.res_.v = s.s0_ - s.s1_
-        elif s.func_ == ALUFunc.AND:
+        elif s.func_ == ALUFunc.ALU_AND:
           s.res_.v = s.s0_ & s.s1_
-        elif s.func_ == ALUFunc.OR:
+        elif s.func_ == ALUFunc.ALU_OR:
           s.res_.v = s.s0_ | s.s1_
-        elif s.func_ == ALUFunc.XOR:
+        elif s.func_ == ALUFunc.ALU_XOR:
           s.res_.v = s.s0_ ^ s.s1_
-        elif s.func_ == ALUFunc.SLL:
+        elif s.func_ == ALUFunc.ALU_SLL:
           s.res_.v = s.s0_ << s.shamt_
-        elif s.func_ == ALUFunc.SRL:
+        elif s.func_ == ALUFunc.ALU_SRL:
           s.res_.v = s.s0_ >> s.shamt_
-        elif s.func_ == ALUFunc.SRA:
+        elif s.func_ == ALUFunc.ALU_SRA:
           s.res_.v = sext(s.s0_, TWO_XLEN) >> s.shamt_
-        elif s.func_ == ALUFunc.SLT:
+        elif s.func_ == ALUFunc.ALU_SLT:
           # Unsigned
           if s.usign_:
             s.res_.v = s.s0_ < s.s1_
