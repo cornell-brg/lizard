@@ -16,7 +16,7 @@ class EntryGroup(object):
     pass
 
 
-class Field(EntryGroup):
+class PrimitiveField(EntryGroup):
 
   def __init__(s, name, width):
     s.name = name
@@ -32,9 +32,27 @@ class Field(EntryGroup):
     return '{}[{}]'.format(s.name, s.width)
 
 
+class NestedField(EntryGroup):
+
+  def __init__(s, name, type_):
+    assert isinstance(type_, BitStruct) and hasattr(type_, '_spec')
+
+    s.name = name
+    s.type_ = type_._spec
+    s.width = s.type_.size()
+
+  def size(s):
+    return s.width
+
+  def offsets(s):
+    # name mangle since this is nested
+    for name, offset, size in s.type_.offsets():
+      yield '{}_{}'.format(s.name, name), offset, size
+
+
 class Group(EntryGroup):
 
-  def __init__(s, fields):
+  def __init__(s, *fields):
     s.fields = fields
     s.width = 0
     for field in s.fields:
@@ -53,7 +71,7 @@ class Group(EntryGroup):
 
 class Union(EntryGroup):
 
-  def __init__(s, fields):
+  def __init__(s, *fields):
     s.fields = fields
     s.width = 0
     for field in s.fields:
@@ -68,13 +86,29 @@ class Union(EntryGroup):
         yield name, offset, size
 
 
+def Field(name, type_):
+  if isinstance(type_, int):
+    return PrimitiveField(name, type_)
+  elif isinstance(type_, BitStruct) and hasattr(type_, '_spec'):
+    return Union(
+        PrimitiveField(name, type_._spec.size()),
+        NestedField(name, type_),
+    )
+  else:
+    print(type_.__dict__)
+    raise ValueError('Unknown field type: {}'.format(type(type_)))
+
+
+evil_hacky_global_type_dictionary = {}
+evil_hacky_global_counter = 0
+
+
 def bit_struct_generator(func):
   struct_name = func.__name__
 
   @wraps(func)
   def gen(*args):
-    fields = func(*args)
-    top = Group(fields)
+    top = Group(*func(*args))
 
     class_name = "{}_{}".format(struct_name, '_'.join(str(x) for x in args))
     bitstruct_class = type(class_name, (BitStruct,), {})
@@ -104,7 +138,20 @@ def bit_struct_generator(func):
 
     bitstruct_class.__str__ = gen_str
 
-    bitstruct_inst = bitstruct_class(top.size())
+    def gen_init(s, nbits=top.size()):
+      assert nbits == top.size()
+      super(bitstruct_class, s).__init__(top.size())
+      # save the spec inside all all instances so we can nest
+      s._spec = top
+
+    bitstruct_class.__init__ = gen_init
+    global evil_hacky_global_type_dictionary
+    global evil_hacky_global_counter
+    evil_global_id = evil_hacky_global_counter
+    evil_hacky_global_type_dictionary[evil_global_id] = bitstruct_class
+    evil_hacky_global_counter += 1
+
+    bitstruct_inst = bitstruct_class()
 
     # hack for verilog translation!
     # These are used in pymtl/tools/translation/cpp_helpers.py
@@ -125,13 +172,10 @@ def bit_struct_generator(func):
     #      list_.append( "s.{} = OutPort( {} )".format( p.name, msg._instantiate ) )
     #    else:
     #      list_.append( "s.{} = OutPort( {} )".format( p.name, p.nbits ) )
-    bitstruct_inst._module = func.__module__
-    bitstruct_inst._classname = struct_name
-    # Note that args is a tuple, so will print with parens around it
-    bitstruct_inst._instantiate = '{class_name}{args}'.format(
-        class_name=struct_name,
-        args=args,
-    )
+    bitstruct_inst._module = __name__
+    bitstruct_inst._classname = 'evil_hacky_global_type_dictionary'
+    bitstruct_inst._instantiate = 'evil_hacky_global_type_dictionary[{}]()'.format(
+        evil_global_id)
 
     return bitstruct_inst
 
