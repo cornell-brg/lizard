@@ -169,34 +169,33 @@ def bit_struct_generator(func):
       super(bitstruct_class, s).__init__(top.size())
       # save the spec inside all all instances so we can nest
       s._spec = top
+      # hack for verilog translation!
+      # These are used in pymtl/tools/translation/cpp_helpers.py
+      # They variables below are used to instantiate the given type
+      #  elif isinstance( p, InPort ):
+      #    if isinstance( p.dtype, BitStruct ):
+      #      msg = p.dtype
+      #      list_.append( "from {} import {}".format( msg._module, msg._classname ) )
+      #      list_.append( "s.{} = InPort( {} )".format( p.name, msg._instantiate ) )
+      #    else:
+      #      list_.append( "s.{} = InPort( {} )".format( p.name, p.nbits ) )
+      #
+      #  # TODO: fix msg type
+      #  elif isinstance( p, OutPort ):
+      #    if isinstance( p.dtype, BitStruct ):
+      #      msg = p.dtype
+      #      list_.append( "from {} import {}".format( msg._module, msg._classname ) )
+      #      list_.append( "s.{} = OutPort( {} )".format( p.name, msg._instantiate ) )
+      #    else:
+      #      list_.append( "s.{} = OutPort( {} )".format( p.name, p.nbits ) )
+      s._module = __name__
+      s._classname = '_regen_type'
+      # top.export() returns a tuple which will have parens around it
+      s._instantiate = '_regen_type({})'.format(top.export())
 
     bitstruct_class.__init__ = gen_init
 
     bitstruct_inst = bitstruct_class()
-
-    # hack for verilog translation!
-    # These are used in pymtl/tools/translation/cpp_helpers.py
-    # They variables below are used to instantiate the given type
-    #  elif isinstance( p, InPort ):
-    #    if isinstance( p.dtype, BitStruct ):
-    #      msg = p.dtype
-    #      list_.append( "from {} import {}".format( msg._module, msg._classname ) )
-    #      list_.append( "s.{} = InPort( {} )".format( p.name, msg._instantiate ) )
-    #    else:
-    #      list_.append( "s.{} = InPort( {} )".format( p.name, p.nbits ) )
-    #
-    #  # TODO: fix msg type
-    #  elif isinstance( p, OutPort ):
-    #    if isinstance( p.dtype, BitStruct ):
-    #      msg = p.dtype
-    #      list_.append( "from {} import {}".format( msg._module, msg._classname ) )
-    #      list_.append( "s.{} = OutPort( {} )".format( p.name, msg._instantiate ) )
-    #    else:
-    #      list_.append( "s.{} = OutPort( {} )".format( p.name, p.nbits ) )
-    bitstruct_inst._module = __name__
-    bitstruct_inst._classname = '_regen_type'
-    # top.export() returns a tuple which will have parens around it
-    bitstruct_inst._instantiate = '_regen_type({})'.format(top.export())
 
     return bitstruct_inst
 

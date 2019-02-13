@@ -1,15 +1,11 @@
 from pymtl import *
-from util.rtl.interface import Interface, IncludeSome, UseInterface
+from util.rtl.interface import Interface, UseInterface
 from util.rtl.method import MethodSpec
-from util.rtl.types import Array, canonicalize_type
-from bitutil import clog2, clog2nz
-from pclib.rtl import RegEn, RegEnRst, RegRst
+from util.rtl.register import Register, RegisterInterface
 from msg.codes import RVInstMask, Opcode, ExceptionCode
 
-from core.rtl.frontend.fetch import FetchInterface
 from core.rtl.controlflow import ControlFlowManagerInterface
-from core.rtl.messages import FetchMsg, DecodeMsg, PipelineMsg, ExecPipe
-from core.rtl.micro_op import MicroOp
+from core.rtl.messages import FetchMsg, DecodeMsg, ExecPipe
 
 
 class DecodeInterface(Interface):
@@ -51,7 +47,7 @@ class Decode(Model):
     s.cflow.require(s, 'cflow', 'check_redirect')
 
     # Outgoing pipeline register
-    s.decmsg_val_ = RegRst(Bits(1), reset_value=0)
+    s.decmsg_val_ = Register(RegisterInterface(Bits(1), False), reset_value=0)
     s.decmsg_ = Wire(DecodeMsg())
 
     s.dec_ = Wire(DecodeMsg())

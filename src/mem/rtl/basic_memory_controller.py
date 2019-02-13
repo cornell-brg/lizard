@@ -3,7 +3,7 @@ from util.rtl.interface import Interface, UseInterface
 from util.rtl.method import MethodSpec
 from mem.rtl.memory_bus import MemMsgType, MemMsgStatus
 from util.rtl.mux import Mux
-from util.rtl.register import Register
+from util.rtl.register import Register, RegisterInterface
 from bitutil import clog2, clog2nz
 
 
@@ -66,8 +66,13 @@ class BasicMemoryController(Model):
     s.recv_valid_chains = [Wire(1) for _ in range(nclients * (nclients + 1))]
 
     s.client_muxes = [Mux(mbi.MemMsg.resp, nclients) for _ in range(nclients)]
-    s.client_regs = [Register(mbi.MemMsg.resp, True) for _ in range(nclients)]
-    s.client_valid_regs = [Register(1, True) for _ in range(nclients)]
+    s.client_regs = [
+        Register(RegisterInterface(mbi.MemMsg.resp, True))
+        for _ in range(nclients)
+    ]
+    s.client_valid_regs = [
+        Register(RegisterInterface(1, True)) for _ in range(nclients)
+    ]
 
     # PYMTL_BROKEN
     s.bus_recv_msg_opaque = [Wire(nobits) for _ in range(nclients)]

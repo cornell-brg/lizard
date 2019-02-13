@@ -1,49 +1,47 @@
 from pymtl import *
-from bitutil import clog2, clog2nz
-from pclib.rtl import RegEn, RegEnRst, RegRst
+from pclib.rtl import RegRst
+from util.rtl.types import canonicalize_type
 from util.rtl.method import MethodSpec
-from util.rtl.interface import Interface
+from util.rtl.interface import Interface, UseInterface
 
 
 class DropUnitInterface(Interface):
 
   def __init__(s, dtype):
-    super(DropUnitInterface, s).__init__(
-        [
-            MethodSpec(
-                'input',
-                args={
-                    'data': dtype,
-                },
-                call=True,
-                rdy=False,
-            ),
-            MethodSpec(
-                'output',
-                rets={
-                    'data': dtype,
-                },
-                call=False,
-                rdy=True,
-            ),
-            MethodSpec(
-                'drop',
-                args={},
-                call=True,
-                rdy=False,
-            ),
-        ],
-        ordering_chains=[
-            ['input', 'drop', 'output'],
-        ],
-    )
+    s.Data = canonicalize_type(dtype)
+    super(DropUnitInterface, s).__init__([
+        MethodSpec(
+            'input',
+            args={
+                'data': dtype,
+            },
+            rets=None,
+            call=True,
+            rdy=False,
+        ),
+        MethodSpec(
+            'drop',
+            args=None,
+            rets=None,
+            call=True,
+            rdy=False,
+        ),
+        MethodSpec(
+            'output',
+            args=None,
+            rets={
+                'data': dtype,
+            },
+            call=False,
+            rdy=True,
+        ),
+    ],)
 
 
 class DropUnit(Model):
 
-  def __init__(s, dtype):
-    s.inter = DropUnitInterface(dtype)
-    s.inter.apply(s)
+  def __init__(s, interface):
+    UseInterface(s, interface)
 
     s.drop_ = RegRst(Bits(1))
     s.do_drop_ = Wire(1)

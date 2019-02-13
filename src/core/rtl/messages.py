@@ -1,80 +1,95 @@
 from pymtl import *
 from config.general import *
 from bitutil import clog2, bit_enum
+from bitutil.bit_struct_generator import *
 
 from core.rtl.micro_op import MicroOp
 
-# PYMTL_BROKEN: Why are things not name mangled?!?!?!
-ExecPipe = bit_enum(
-    'ExecPipe',
+PipelineMsgStatus = bit_enum(
+    'PipelineMsgStatus',
     None,
-    ('ALU_PIPE', 'alu'),
-    ('MULDIV_PIPE', 'mdiv'),
-    ('AGU_PIPE', 'agu'),
-    ('BRANCH_PIPE', 'br'),
-    ('CSR_PIPE', 'csr'),
-    #    ('AGU', 'agu')
+    ('PIPELINE_MSG_STATUS_VALID', 'va'),
+    ('PIPELINE_MSG_STATUS_EXCEPTION_RAISED', 'ex'),
+    ('PIPELINE_MSG_STATUS_INTERRUPTED', 'it'),
+    ('PIPELINE_MSG_STATUS_TRAPPED', 'tr'),
+)
+
+OpClass = bit_enum(
+    'OpClass',
+    None,
+    ('OP_CLASS_INT', 'in'),
+    ('OP_CLASS_MUL', 'md'),
+    ('OP_CLASS_BRANCH', 'br'),
+    ('OP_CLASS_CSR', 'cs'),
 )
 
 
-class PipelineMsg(BitStructDefinition):
-
-  def __init__(s):
-    # TODO: This is far too expensive to keep arround
-    # in every pipeline stage
-    # maybe lift to a global register and arbitrate
-    # based on sequence number
-    s.trap = BitField(1)
-    s.mcause = BitField(MCAUSE_NBITS)
-    s.mtval = BitField(XLEN)
-    s.pc = BitField(XLEN)
+def ValidValuePair(name, width):
+  return Group(
+      Field('{}_val'.format(name), 1),
+      Field(name, width),
+  )
 
 
-class FetchMsg(PipelineMsg):
-
-  def __init__(s):
-    super(FetchMsg, s).__init__()
-    s.inst = BitField(ILEN)
-    s.pc_succ = BitField(XLEN)
-
-
-class DecodeMsg(PipelineMsg):
-
-  def __init__(s):
-    super(DecodeMsg, s).__init__()
-    s.speculative = BitField(1)  # Set if requires RT snapshot
-    s.pc_succ = BitField(XLEN)
-    s.rs1_val = BitField(1)
-    s.rs1 = BitField(AREG_IDX_NBITS)
-    s.rs2_val = BitField(1)
-    s.rs2 = BitField(AREG_IDX_NBITS)
-    s.rd_val = BitField(1)
-    s.rd = BitField(AREG_IDX_NBITS)
-    s.imm_val = BitField(1)
-    s.imm = BitField(DECODED_IMM_LEN)
-    s.exec_pipe = BitField(
-        ExecPipe.bits)  # The execution pipe this will go down
-    s.op32 = BitField(1)
-    s.uop = BitField(MicroOp.bits)
+@bit_struct_generator
+def PipelineMsgHeader():
+  return [
+      Field('status', PipelineMsgStatus.bits),
+      Field('pc', XLEN),
+  ]
 
 
-class RenameMsg(PipelineMsg):
+@bit_struct_generator
+def ExceptionInfo():
+  return [
+      Field('mcause', MCAUSE_NBITS),
+      Field('mtval', XLEN),
+  ]
 
-  def __init__(s):
-    super(RenameMsg, s).__init__()
+
+@bit_struct_generator
+def PipelineMsg(*payload_group):
+  return [
+      Field('hdr', PipelineMsgHeader()),
+      Union(
+          Field('exception_info', ExceptionInfo()),
+          Group(*payload_group),
+      )
+  ]
 
 
-class DispatchMsg(PipelineMsg):
+FetchMsg = PipelineMsg(
+    Field('inst', ILEN),
+    Field('pc_succ', XLEN),
+)
 
-  def __init__(s):
-    super(DispatchMsg, s).__init__()
-    s.src1_val = BitField(1)
-    s.src1 = BitField(XLEN)
-    s.src2_val = BitField(1)
-    s.src2 = BitField(XLEN)
-    s.dst_val = BitField(1)
-    s.dst = BitField(XLEN)
-    s.imm_val = BitField(1)
-    s.imm = BitField(DECODED_IMM_LEN)
-    s.op32 = BitField(1)
-    s.uop = BitField(MicroOp.bits)
+DecodeMsg = PipelineMsg(
+    Field('speculative', 1),
+    Field('pc_succ', XLEN),
+    ValidValuePair('rs1', AREG_IDX_NBITS),
+    ValidValuePair('rs2', AREG_IDX_NBITS),
+    ValidValuePair('rd', AREG_IDX_NBITS),
+    ValidValuePair('imm', DECODED_IMM_LEN),
+    Field('op_class', OpClass.bits),
+)
+
+# class RenameMsg(PipelineMsg):
+#
+#   def __init__(s):
+#     super(RenameMsg, s).__init__()
+#
+#
+# class DispatchMsg(PipelineMsg):
+#
+#   def __init__(s):
+#     super(DispatchMsg, s).__init__()
+#     s.src1_val = BitField(1)
+#     s.src1 = BitField(XLEN)
+#     s.src2_val = BitField(1)
+#     s.src2 = BitField(XLEN)
+#     s.dst_val = BitField(1)
+#     s.dst = BitField(XLEN)
+#     s.imm_val = BitField(1)
+#     s.imm = BitField(DECODED_IMM_LEN)
+#     s.op32 = BitField(1)
+#     s.uop = BitField(MicroOp.bits)

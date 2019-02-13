@@ -14,6 +14,6 @@ def TestHarness(target, dut, translate_model, vcd_file=''):
     target.dut = dut
 
   for name in target.interface.methods.keys():
-    s.connect_m(getattr(target, name), getattr(target.dut, name))
+    target.connect_m(getattr(target, name), getattr(target.dut, name))
 
   target.vcd_file = vcd_file
