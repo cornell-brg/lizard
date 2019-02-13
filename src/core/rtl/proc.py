@@ -68,14 +68,10 @@ class Proc(Model):
 
     # Fetch
     s.fetch_interface = FetchInterface(XLEN, ILEN)
-    s.fetch = Fetch(
-        s.fetch_interface, s.cflow_interface,
-        s.mem_controller_interface.export({
-            'fetch_recv': 'recv',
-            'fetch_send': 'send'
-        }))
-    s.connect_m(s.mem_controller.fetch_recv, s.fetch.mem_recv)
-    s.connect_m(s.mem_controller.fetch_send, s.fetch.mem_send)
+    s.fetch = Fetch(s.fetch_interface, s.cflow_interface,
+                    s.mem_controller_interface)
+    s.connect_m(s.mem_controller.fetch_recv, s.fetch.mem_fetch_recv)
+    s.connect_m(s.mem_controller.fetch_send, s.fetch.mem_fetch_send)
     s.connect_m(s.cflow.check_redirect, s.fetch.check_redirect)
 
     # Decode
