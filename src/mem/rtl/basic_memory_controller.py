@@ -67,11 +67,12 @@ class BasicMemoryController(Model):
 
     s.client_muxes = [Mux(mbi.MemMsg.resp, nclients) for _ in range(nclients)]
     s.client_regs = [
-        Register(RegisterInterface(mbi.MemMsg.resp, True))
+        Register(RegisterInterface(mbi.MemMsg.resp, True, True))
         for _ in range(nclients)
     ]
     s.client_valid_regs = [
-        Register(RegisterInterface(1, True)) for _ in range(nclients)
+        Register(RegisterInterface(1, True, True), reset_value=0)
+        for _ in range(nclients)
     ]
 
     # PYMTL_BROKEN
