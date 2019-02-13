@@ -17,10 +17,21 @@ PipelineMsgStatus = bit_enum(
 OpClass = bit_enum(
     'OpClass',
     None,
-    ('OP_CLASS_INT', 'in'),
+    ('OP_CLASS_ALU', 'in'),
     ('OP_CLASS_MUL', 'md'),
     ('OP_CLASS_BRANCH', 'br'),
     ('OP_CLASS_CSR', 'cs'),
+    ('OP_CLASS_MEM', 'me'),
+)
+
+AluFunc = bit_enum(
+    'AluFunc',
+    None,
+    ('ALU_FUNC_ADD', 'ad'),
+    ('ALU_FUNC_SUB', 'sb'),
+    ('ALU_FUNC_SLL', 'sl'),
+    ('ALU_FUNC_SRL', 'sr'),
+    ('ALU_FUNC_SRA', 'sa'),
 )
 
 
@@ -58,38 +69,66 @@ def PipelineMsg(*payload_group):
   ]
 
 
+def BackendMsg(*payload_group):
+  return PipelineMsg(
+      Field('seq', MAX_SPEC_DEPTH),
+      Field('branch_mask', INST_IDX_NBITS),
+      Group(*payload_group),
+  )
+
+
+@bit_struct_generator
+def AluMsg():
+  return [
+      Field('func', AluFunc.bits),
+      Field('is_imm', 1),
+      Field('op32', 1),
+      Field('unsigned', 1),
+  ]
+
+
+ExecutionDataGroup = Group(
+    ValidValuePair('imm', DECODED_IMM_LEN), Field('op_class', OpClass.bits),
+    Union(Field('alu_msg', AluMsg()),))
+
 FetchMsg = PipelineMsg(
     Field('inst', ILEN),
     Field('pc_succ', XLEN),
 )
 
 DecodeMsg = PipelineMsg(
-    Field('speculative', 1),
-    Field('pc_succ', XLEN),
-    ValidValuePair('rs1', AREG_IDX_NBITS),
-    ValidValuePair('rs2', AREG_IDX_NBITS),
-    ValidValuePair('rd', AREG_IDX_NBITS),
-    ValidValuePair('imm', DECODED_IMM_LEN),
-    Field('op_class', OpClass.bits),
+    Field('speculative', 1), Field('pc_succ', XLEN),
+    ValidValuePair('rs1', AREG_IDX_NBITS), ValidValuePair(
+        'rs2', AREG_IDX_NBITS), ValidValuePair('rd', AREG_IDX_NBITS),
+    ValidValuePair('imm', DECODED_IMM_LEN), Field('op_class', OpClass.bits),
+    Union(Field('alu_msg', AluMsg()),))
+
+RenameMsg = BackendMsg(
+    ValidValuePair('rs1', PREG_IDX_NBITS),
+    Field('rs1_rdy', 1),
+    ValidValuePair('rs2', PREG_IDX_NBITS),
+    Field('rs2_rdy', 1),
+    ValidValuePair('rd', PREG_IDX_NBITS),
+    ExecutionDataGroup,
 )
 
-# class RenameMsg(PipelineMsg):
-#
-#   def __init__(s):
-#     super(RenameMsg, s).__init__()
-#
-#
-# class DispatchMsg(PipelineMsg):
-#
-#   def __init__(s):
-#     super(DispatchMsg, s).__init__()
-#     s.src1_val = BitField(1)
-#     s.src1 = BitField(XLEN)
-#     s.src2_val = BitField(1)
-#     s.src2 = BitField(XLEN)
-#     s.dst_val = BitField(1)
-#     s.dst = BitField(XLEN)
-#     s.imm_val = BitField(1)
-#     s.imm = BitField(DECODED_IMM_LEN)
-#     s.op32 = BitField(1)
-#     s.uop = BitField(MicroOp.bits)
+IssueMsg = BackendMsg(
+    ValidValuePair('rs1', PREG_IDX_NBITS),
+    ValidValuePair('rs2', PREG_IDX_NBITS),
+    ValidValuePair('rd', PREG_IDX_NBITS),
+    ExecutionDataGroup,
+)
+
+DispatchMsg = BackendMsg(
+    ValidValuePair('rs1', XLEN),
+    ValidValuePair('rs2', XLEN),
+    ValidValuePair('rd', PREG_IDX_NBITS),
+    ExecutionDataGroup,
+)
+
+ExecuteMsg = BackendMsg(
+    ValidValuePair('rd', PREG_IDX_NBITS),
+    ValidValuePair('result', XLEN),
+)
+
+WritebackMsg = BackendMsg(ValidValuePair('rd', PREG_IDX_NBITS),)
