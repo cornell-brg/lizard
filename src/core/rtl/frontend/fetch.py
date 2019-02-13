@@ -1,14 +1,11 @@
 from pymtl import *
-from util.rtl.interface import Interface, IncludeSome, UseInterface
+from util.rtl.interface import Interface, UseInterface
 from util.rtl.method import MethodSpec
-from util.rtl.types import Array, canonicalize_type
 from util.rtl.drop_unit import DropUnit, DropUnitInterface
 from core.rtl.controlflow import ControlFlowManagerInterface
-from bitutil import clog2, clog2nz
-from pclib.rtl import RegEn, RegEnRst, RegRst
-from pclib.ifcs import InValRdyBundle, OutValRdyBundle
-from msg.mem import MemMsg4B, MemMsgType, MemMsgStatus
-from core.rtl.messages import FetchMsg
+from pclib.rtl import RegRst
+from mem.rtl.memory_bus import MemMsgType, MemMsgStatus
+from core.rtl.messages import *
 from msg.codes import ExceptionCode
 
 
@@ -48,9 +45,8 @@ class Fetch(Model):
     memory_controller_interface.require(s, 'mem', 'recv')
     memory_controller_interface.require(s, 'mem', 'send')
 
-    # Don't know what to do with this since the memory controller has methods
-    # TODO: Aaron
-    s.drop_unit_ = DropUnit(memory_controller_interface['recv'].rets['msg'])
+    s.drop_unit_ = DropUnit(
+        DropUnitInterface(memory_controller_interface['recv'].rets['msg']))
     s.drop_unit_data_ = Wire(xlen)
     s.connect(s.drop_unit_data_, s.drop_unit_.output_data.data)
 
@@ -58,7 +54,6 @@ class Fetch(Model):
     s.cflow.require(s, '', 'check_redirect')
 
     # Outgoing pipeline registers
-    # Please use our registers, src/util/register.py with methods insead.
     s.fetch_val_ = RegRst(Bits(1), reset_value=0)
     s.fetchmsg_ = Wire(FetchMsg())
 
@@ -121,18 +116,19 @@ class Fetch(Model):
     @s.tick_rtl
     def handle_fetchmsg():
       # The PC of this message
-      s.fetchmsg_.pc.n = s.pc_req_ if s.send_req_ else s.fetchmsg_.pc
+      s.fetchmsg_.hdr_pc.n = s.pc_req_ if s.send_req_ else s.fetchmsg_.hdr_pc
       # The successors PC s.pc_req_ if s.send_req_ else s.fetchmsg_.pc
       s.fetchmsg_.pc_succ.n = s.pc_next_.in_ if s.send_req_ else s.fetchmsg_.pc_succ
       # The instruction data
       s.fetchmsg_.inst.n = s.drop_unit_data_[:
                                              ilen] if s.drop_unit_.output_rdy else s.fetchmsg_.inst
       # Exception information
-      s.fetchmsg_.trap.n = s.drop_unit_.output_data.stat != MemMsgStatus.OK
+      if s.drop_unit_.output_data.stat != MemMsgStatus.OK:
+        s.fetchmsg_.hdr_status.n = PipelineMsgStatus.PIPELINE_MSG_STATUS_EXCEPTION_RAISED
       if s.drop_unit_.output_data.stat == MemMsgStatus.ADDRESS_MISALIGNED:
-        s.fetchmsg_.mcause.n = ExceptionCode.INSTRUCTION_ADDRESS_MISALIGNED
+        s.fetchmsg_.exception_info_mcause.n = ExceptionCode.INSTRUCTION_ADDRESS_MISALIGNED
       elif s.drop_unit_.output_data.stat == MemMsgStatus.ACCESS_FAULT:
-        s.fetchmsg_.mcause.n = ExceptionCode.INSTRUCTION_ACCESS_FAULT
+        s.fetchmsg_.exception_info_mcause.n = ExceptionCode.INSTRUCTION_ACCESS_FAULT
 
   def line_trace(s):
     return str(s.fetchmsg_.pc)

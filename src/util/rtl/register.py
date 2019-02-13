@@ -9,6 +9,7 @@ class RegisterInterface(Interface):
 
   def __init__(s, dtype, write_read_bypass):
     s.Data = canonicalize_type(dtype)
+    s.write_read_bypass = write_read_bypass
 
     super(RegisterInterface, s).__init__(
         [
@@ -37,13 +38,13 @@ class RegisterInterface(Interface):
 
 class Register(Model):
 
-  def __init__(s, dtype, write_read_bypass, reset_value=0):
-    UseInterface(s, RegisterInterface(dtype, write_read_bypass))
+  def __init__(s, interface, reset_value=0):
+    UseInterface(s, interface)
 
     s.value = Wire(s.interface.Data)
     s.value_next = Wire(s.interface.Data)
 
-    if write_read_bypass:
+    if s.interface.write_read_bypass:
       s.connect(s.read_data, s.value_next)
       s.next_mux = Mux(s.interface.Data, 2)
       s.connect(s.next_mux.mux_in_[0], s.value)
