@@ -104,6 +104,7 @@ class MulPipelined(Model):
 
     m = s.interface.DataLen
     k = s.interface.DataLen // nstages
+    last = nstages - 1
 
     # All the inputs get converted to unsigned
     s.src1_usign_ = Wire(Bits(m))
@@ -154,8 +155,8 @@ class MulPipelined(Model):
       s.sign_in_.v =  0
       if s.mult_call:
         s.sign_in_.v =  s.mult_src1[m-1] ^ s.mult_src1[m-1]
-        s.src1_usign_.v = ((not s.mult_src1) + 1) if s.mult_src1[m-1] else s.mult_src1
-        s.src2_usign_.v = ((not s.mult_src2) + 1) if s.mult_src2[m-1] else s.mult_src2
+        s.src1_usign_.v = (~s.mult_src1 + 1) if s.mult_src1[m-1] else s.mult_src1
+        s.src2_usign_.v = (~s.mult_src2 + 1) if s.mult_src2[m-1] else s.mult_src2
 
 
     @s.combinational
@@ -168,7 +169,7 @@ class MulPipelined(Model):
     def set_rdy():
       for i in range(nstages):
         if i == nstages - 1:
-          s.rdy_[i].v = s.result_call or not s.valids_[nstages-1].out
+          s.rdy_[i].v = s.result_call or not s.valids_[last].out
         else:
           # A stage is ready to accept if it is invalid or next stage is ready
           s.rdy_[i].v = not s.valids_[i].out or s.rdy_[i+1]
@@ -182,8 +183,8 @@ class MulPipelined(Model):
     @s.combinational
     def set_valids():
       for i in range(nstages):
-        if i == nstages - 1:
-          s.valids_[i].in_.v = (not s.result_call and s.valids_[nstages-1].out) or s.exec_[nstages-1]
+        if i == last:
+          s.valids_[i].in_.v = (not s.result_call and s.valids_[last].out) or s.exec_[last]
         else:
           # Valid if blocked on next stage, or multuted this cycle
           s.valids_[i].in_.v = (not s.rdy_[i+1] and s.valids_[i].out) or s.exec_[i]
@@ -192,7 +193,7 @@ class MulPipelined(Model):
     if nstages == 1:
       @s.combinational
       def connect_stage():
-        s.vals_[0].in_.v = not s.units_[0].mult_res + 1 if s.sign_out_ else s.units_[0].mult_res
+        s.vals_[0].in_.v = ~s.units_[0].mult_res + 1 if s.sign_out_ else s.units_[0].mult_res
     else:
       @s.combinational
       def connect_stages():
@@ -205,7 +206,10 @@ class MulPipelined(Model):
           s.src2_[i].in_.v = s.src2_[i-1].out >> k
           s.signs_[i].in_.v = s.signs_[i-1].out
 
-        s.vals_[nstages - 1].in_.v = not s.vals_[nstages - 2].out + 1 if s.sign_out_ else s.vals_[nstages - 2].out
+        if s.sign_out_:
+          s.vals_[last].in_.v = ~(s.vals_[last- 1].out + (s.units_[last].mult_res << (k*last))) + 1
+        else:
+          s.vals_[last].in_.v = s.vals_[last - 1].out + (s.units_[last].mult_res << (k*last))
 
 
 class MulCombinationalInterface(Interface):

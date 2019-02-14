@@ -23,7 +23,7 @@ def test_basic():
   dut.reset()
 
   #print(dut.result())
-  print(dut.mult(src1=0xff, src2=0xff))
+  print(dut.mult(src1=0x80, src2=0x80))
   dut.cycle()
   dut.cycle()
   dut.cycle()
