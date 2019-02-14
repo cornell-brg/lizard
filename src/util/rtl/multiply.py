@@ -8,14 +8,15 @@ from bitutil import bit_enum
 
 class MulPipelinedInterface(Interface):
 
-  def __init__(s, data_len):
+  def __init__(s, data_len, keep_upper=True):
     s.DataLen = data_len
+    s.KeepUpper = keep_upper
     super(MulPipelinedInterface, s).__init__([
         MethodSpec(
             'result',
             args=None,
             rets={
-              'res': Bits(2*s.DataLen),
+              'res': Bits(2*s.DataLen if keep_upper else s.DataLen),
             },
             call=True,
             rdy=True,
@@ -103,8 +104,10 @@ class MulPipelined(Model):
     assert s.interface.DataLen % nstages == 0
 
     m = s.interface.DataLen
+    n = 2*m if s.interface.KeepUpper else m
     k = s.interface.DataLen // nstages
     last = nstages - 1
+
 
     # All the inputs get converted to unsigned
     s.src1_usign_ = Wire(Bits(m))
@@ -112,13 +115,18 @@ class MulPipelined(Model):
 
     # At step i, i = [0, nstages), product needs at most m + k(i+1) bits
     s.valids_ = [RegRst(Bits(1)) for _ in range(nstages)]
-    s.vals_ = [RegEn(Bits(m + k*(i+1))) for i in range(nstages)]
-    s.units_ = [MulCombinational(MulCombinationalInterface(m + k*i, k, m + k*(i+1)), use_mul) for i in range(nstages)]
+    if s.interface.KeepUpper:
+      s.vals_ = [RegEn(Bits(m + k*(i+1))) for i in range(nstages)]
+      s.units_ = [MulCombinational(MulCombinationalInterface(m + k*i, k, m + k*(i+1)), use_mul) for i in range(nstages)]
+      s.src2_ = [RegEn(Bits(m - k*i)) for i in range(nstages-1)]
+    else:
+      s.vals_ = [RegEn(Bits(m)) for i in range(nstages)]
+      s.units_ = [MulCombinational(MulCombinationalInterface(m, k, m), use_mul) for i in range(nstages)]
+      s.src2_ = [RegEn(Bits(m)) for i in range(nstages-1)]
 
     s.src1_ = [RegEn(Bits(m)) for i in range(nstages-1)]
-    s.src2_ = [RegEn(Bits(m - k*i)) for i in range(nstages-1)]
-    s.signs_ = [RegEn(Bits(1)) for i in range(nstages-1)]
 
+    s.signs_ = [RegEn(Bits(1)) for i in range(nstages-1)]
     s.exec_ = [Wire(Bits(1)) for _ in range(nstages)]
     s.rdy_ = [Wire(Bits(1)) for _ in range(nstages)]
 
@@ -234,23 +242,27 @@ class MulCombinationalInterface(Interface):
     ])
 
 
-
+# Unsigned only!
 class MulCombinational(Model):
   def __init__(s, mul_interface, use_mul=False):
     UseInterface(s, mul_interface)
-
     assert s.interface.MultiplierLen >= s.interface.MultiplicandLen
 
-    nbits = s.interface.MultiplierLen + s.interface.MultiplicandLen
+    plen = s.interface.ProductLen
 
-    s.src1_ = Wire(nbits)
+    s.src1_ = Wire(s.interface.ProductLen)
 
     if not use_mul:
-      s.partials_ = [Wire(nbits) for _ in range(s.interface.MultiplicandLen+1)]
+      s.partials_ = [Wire(plen) for _ in range(s.interface.MultiplicandLen+1)]
 
-    @s.combinational
-    def sign_ext():
-      s.src1_.v = sext(s.mult_src1, nbits)
+    if plen >= s.interface.MultiplierLen:
+      @s.combinational
+      def src1_zext():
+        s.src1_.v = zext(s.mult_src1, plen)
+    else:
+      @s.combinational
+      def src1_truncate():
+        s.src1_.v = s.mult_src1[:plen]
 
     if not use_mul:
       @s.combinational
@@ -261,6 +273,8 @@ class MulCombinational(Model):
 
         s.mult_res.v = s.partials_[s.interface.MultiplicandLen]
     else:
+      s.tmp_ = Wire(s.interface.MultiplierLen + s.interface.MultiplicandLen)
       @s.combinational
       def eval():
-        s.mult_res.v = s.mult_src1 * s.mult_src2
+        s.tmp_.v = (s.mult_src1 * s.mult_src2)
+        s.mult_res.v = s.tmp_[:plen]
