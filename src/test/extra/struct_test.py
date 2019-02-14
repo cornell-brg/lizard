@@ -14,6 +14,7 @@ def MyType(w1, w2):
       Field('w1', w1),
       Field('w2', w2),
       Union(
+          'test_union',
           Field('w3', 5),
           Field('w4', 10),
       )
