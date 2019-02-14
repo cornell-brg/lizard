@@ -15,15 +15,15 @@ def test_translation():
 
 # Create a single instance of an issue slot
 def test_basic():
-  iface = MulPipelinedInterface(8, False)
+  iface = MulPipelinedInterface(8, keep_upper=True)
   #mult = MulPipelined(iface, 1)
-  mult = MulPipelined(iface, 4, False)
+  mult = MulPipelined(iface, 4)
   mult.vcd_file = 'foo.vcd'
   dut = wrap_to_cl(mult)
   dut.reset()
 
   #print(dut.result())
-  print(dut.mult(src1=0x80, src2=0x80))
+  print(dut.mult(src1=0xff, src2=0xff, signed=False))
   dut.cycle()
   dut.cycle()
   dut.cycle()

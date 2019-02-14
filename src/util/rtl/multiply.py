@@ -26,6 +26,7 @@ class MulPipelinedInterface(Interface):
             args={
                 'src1': Bits(s.DataLen),
                 'src2': Bits(s.DataLen),
+                'signed': Bits(1),
             },
             rets=None,
             call=True,
@@ -40,9 +41,10 @@ class MulRetimedPipelined(Model):
     UseInterface(s, mul_interface)
     assert nstages > 0
     m = s.interface.DataLen
+    n = 2*m if s.interface.KeepUpper else m
 
     s.valids_ = [RegRst(Bits(1)) for _ in range(nstages)]
-    s.vals_ = [RegEn(Bits(2*m)) for i in range(nstages)]
+    s.vals_ = [RegEn(Bits(n)) for i in range(nstages)]
 
     s.exec_ = [Wire(Bits(1)) for _ in range(nstages)]
     s.rdy_ = [Wire(Bits(1)) for _ in range(nstages)]
@@ -87,8 +89,8 @@ class MulRetimedPipelined(Model):
         s.valids_[i].in_.v = (not s.rdy_[i+1] and s.valids_[i].out) or s.exec_[i]
 
     @s.combinational
-    def mult(width=2*m):
-      s.vals_[0].in_.v = s.value_
+    def mult():
+      s.vals_[0].in_.v = s.value_[:n]
       for i in range(1, nstages):
         s.vals_[i].in_.v =  s.vals_[i-1].out
 
@@ -162,9 +164,9 @@ class MulPipelined(Model):
       s.src2_usign_.v = 0
       s.sign_in_.v =  0
       if s.mult_call:
-        s.sign_in_.v =  s.mult_src1[m-1] ^ s.mult_src1[m-1]
-        s.src1_usign_.v = (~s.mult_src1 + 1) if s.mult_src1[m-1] else s.mult_src1
-        s.src2_usign_.v = (~s.mult_src2 + 1) if s.mult_src2[m-1] else s.mult_src2
+        s.sign_in_.v =  (s.mult_src1[m-1] ^ s.mult_src1[m-1]) if s.mult_signed else 0
+        s.src1_usign_.v = (~s.mult_src1 + 1) if (s.mult_src1[m-1] and s.mult_signed) else s.mult_src1
+        s.src2_usign_.v = (~s.mult_src2 + 1) if (s.mult_src2[m-1] and s.mult_signed) else s.mult_src2
 
 
     @s.combinational
