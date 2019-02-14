@@ -6,6 +6,7 @@ from msg.codes import RVInstMask, Opcode, ExceptionCode
 
 from core.rtl.controlflow import ControlFlowManagerInterface
 from core.rtl.messages import FetchMsg, DecodeMsg, ExecPipe
+from core.rtl.frontend.imm_decoder import ImmDecoderInterface, ImmDecoder
 
 
 class DecodeInterface(Interface):
@@ -45,6 +46,8 @@ class Decode(Model):
 
     s.cflow = cflow_interface
     s.cflow.require(s, 'cflow', 'check_redirect')
+
+    s.imm_decoder = ImmDecoder(ImmDecoderInterface(imm_len))
 
     # Outgoing pipeline register
     s.decmsg_val_ = Register(RegisterInterface(Bits(1), False), reset_value=0)
@@ -108,52 +111,6 @@ class Decode(Model):
     # MISC_MEM
     s.dec_misc_mem_fail_ = Wire(1)
     s.uop_misc_mem_ = Wire(MicroOp.bits)
-
-    # All the IMMs
-    # PYMTL_BROKEN: sext(concat()) does not work!
-    s.imm_i_ = Wire(imm_len)
-    s.imm_concat_i_ = Wire(s.inst_[RVInstMask.I_IMM].nbits)
-
-    s.imm_concat_s_ = Wire(s.inst_[RVInstMask.S_IMM1].nbits +
-                           s.inst_[RVInstMask.S_IMM0].nbits)
-    s.imm_s_ = Wire(imm_len)
-
-    s.imm_concat_b_ = Wire(
-        s.inst_[RVInstMask.B_IMM3].nbits + s.inst_[RVInstMask.B_IMM2].nbits +
-        s.inst_[RVInstMask.B_IMM1].nbits + s.inst_[RVInstMask.B_IMM0].nbits + 1)
-    s.imm_b_ = Wire(imm_len)
-
-    s.imm_concat_u_ = Wire(s.inst_[RVInstMask.U_IMM].nbits)
-    s.imm_u_ = Wire(imm_len)
-
-    s.imm_concat_j_ = Wire(
-        s.inst_[RVInstMask.J_IMM3].nbits + s.inst_[RVInstMask.J_IMM2].nbits +
-        s.inst_[RVInstMask.J_IMM1].nbits + s.inst_[RVInstMask.J_IMM0].nbits + 1)
-    s.imm_j_ = Wire(imm_len)
-
-    @s.combinational
-    def handle_imm():
-      # I-type
-      s.imm_concat_i_.v = s.inst_[RVInstMask.I_IMM]
-      s.imm_i_.v = sext(s.imm_concat_i_, imm_len)
-      # S-Type
-      s.imm_concat_s_.v = concat(s.inst_[RVInstMask.S_IMM1],
-                                 s.inst_[RVInstMask.S_IMM0])
-      s.imm_s_.v = sext(s.imm_concat_s_, imm_len)
-      # # B-type
-      s.imm_concat_b_.v = (
-          concat(s.inst_[RVInstMask.B_IMM3], s.inst_[RVInstMask.B_IMM2],
-                 s.inst_[RVInstMask.B_IMM1], s.inst_[RVInstMask.B_IMM0],
-                 Bits(1, 0)))
-      s.imm_b_.v = sext(s.imm_concat_b_, imm_len)
-      # # U type
-      s.imm_concat_u_.v = s.inst_[RVInstMask.U_IMM]
-      s.imm_u_.v = sext(s.imm_concat_u_, imm_len)
-      # # J-type
-      s.imm_concat_j_.v = concat(
-          s.inst_[RVInstMask.J_IMM3], s.inst_[RVInstMask.J_IMM2],
-          s.inst_[RVInstMask.J_IMM1], s.inst_[RVInstMask.J_IMM0], Bits(1, 0))
-      s.imm_j_.v = sext(s.imm_concat_j_, imm_len)
 
     @s.combinational
     def handle_flags():
