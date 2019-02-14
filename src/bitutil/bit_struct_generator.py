@@ -78,11 +78,17 @@ class Group(EntryGroup):
 
   def offsets(s):
     base = 0
-    yield s.name, 0, s.size()
+    if s.name is not None:
+      yield s.name, 0, s.size()
     for field in s.fields:
       for name, offset, size in field.offsets():
         yield name, (offset + base), size
       base += field.size()
+
+
+def Inline(name, type_):
+  # the spec for a full type is always a group, so just take the fields
+  return Group(name, *type_._spec.fields)
 
 
 class Union(EntryGroup):
@@ -98,7 +104,8 @@ class Union(EntryGroup):
     return s.width
 
   def offsets(s):
-    yield s.name, 0, s.size()
+    if s.name is not None:
+      yield s.name, 0, s.size()
     for field in s.fields:
       for name, offset, size in field.offsets():
         yield name, offset, size
@@ -138,7 +145,7 @@ def bit_struct_generator(func):
     if isinstance(gen, EntryGroup):
       top = gen
     else:
-      top = Group('_top', *gen)
+      top = Group(None, *gen)
 
     class_name = "{}_{}".format(_escape(struct_name), top.canonical_name())
     bitstruct_class = type(class_name, (BitStruct,), {})
