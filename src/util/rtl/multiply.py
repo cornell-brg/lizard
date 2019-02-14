@@ -161,8 +161,8 @@ class MulPipelined(Model):
     @s.combinational
     def connect_units():
       for i in range(nstages):
-        s.units_[i].mult_src1.v = s.src1_[i-1].out if i else s.mult_src1
-        s.units_[i].mult_src2.v = s.src2_[i-1].out[:k] if i else s.mult_src2[:k]
+        s.units_[i].mult_src1.v = s.src1_[i-1].out if i else s.src1_usign_
+        s.units_[i].mult_src2.v = s.src2_[i-1].out[:k] if i else s.src2_usign_[:k]
 
     @s.combinational
     def set_rdy():
@@ -188,7 +188,7 @@ class MulPipelined(Model):
           # Valid if blocked on next stage, or multuted this cycle
           s.valids_[i].in_.v = (not s.rdy_[i+1] and s.valids_[i].out) or s.exec_[i]
 
-    # Middle stage
+    # Hook up the pipeline stages
     if nstages == 1:
       @s.combinational
       def connect_stage():
