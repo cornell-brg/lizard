@@ -37,11 +37,7 @@ class MulRetimedPipelined(Model):
 
   def __init__(s, mul_interface, nstages):
     UseInterface(s, mul_interface)
-
-    # For now must be evenly divisible
     assert nstages > 0
-    assert s.interface.DataLen % nstages == 0
-
     m = s.interface.DataLen
 
     s.valids_ = [RegRst(Bits(1)) for _ in range(nstages)]
@@ -155,8 +151,9 @@ class MulPipelined(Model):
     def unsign_srcs_in():
       s.src1_usign_.v = 0
       s.src2_usign_.v = 0
-      s.sign_in_.v = s.mult_src1[m-1] ^ s.mult_src1[m-1]
+      s.sign_in_.v =  0
       if s.mult_call:
+        s.sign_in_.v =  s.mult_src1[m-1] ^ s.mult_src1[m-1]
         s.src1_usign_.v = ((not s.mult_src1) + 1) if s.mult_src1[m-1] else s.mult_src1
         s.src2_usign_.v = ((not s.mult_src2) + 1) if s.mult_src2[m-1] else s.mult_src2
 
@@ -191,25 +188,24 @@ class MulPipelined(Model):
           # Valid if blocked on next stage, or multuted this cycle
           s.valids_[i].in_.v = (not s.rdy_[i+1] and s.valids_[i].out) or s.exec_[i]
 
-
-    # The first and last stage in the pipeline
-    @s.combinational
-    def handle_inout_vals():
-      s.vals_[0].in_.v =  s.units_[0].mult_res
-      s.vals_[nstages-1].in_.v =  (not s.units_[nstages-1].mult_res + 1) if s.sign_out_ else s.units_[nstages-1].mult_res
-
-
     # Middle stage
-    if nstages > 1:
+    if nstages == 1:
       @s.combinational
-      def stage_withmidle():
+      def connect_stage():
+        s.vals_[0].in_.v = not s.units_[0].mult_res + 1 if s.sign_out_ else s.units_[0].mult_res
+    else:
+      @s.combinational
+      def connect_stages():
+        s.vals_[0].in_.v =  s.units_[0].mult_res
         s.src1_[0].in_.v = s.src1_usign_
         s.src2_[0].in_.v = s.src2_usign_ >> k
         for i in range(1, nstages-1):
-          s.vals_[i].in_.v =  (s.units_[i].mult_res << (k*i)) + s.vals_[i-1].out
+          s.vals_[i].in_.v =  s.vals_[i-1].out + (s.units_[i].mult_res << (k*i))
           s.src1_[i].in_.v = s.src1_[i-1].out
           s.src2_[i].in_.v = s.src2_[i-1].out >> k
           s.signs_[i].in_.v = s.signs_[i-1].out
+
+        s.vals_[nstages - 1].in_.v = not s.vals_[nstages - 2].out + 1 if s.sign_out_ else s.vals_[nstages - 2].out
 
 
 class MulCombinationalInterface(Interface):
