@@ -535,6 +535,8 @@ class TestModel(TestStateMachine):
             Test.add_argument_strategy(method, strategy.arguments)
 
     for method, arguments in argument_strategy.iteritems():
+      if isinstance(arguments, ArgumentStrategy):
+        arguments = arguments.arguments
       Test.add_argument_strategy(method, arguments)
 
     if not Test.interface:
@@ -576,9 +578,14 @@ class TestModel(TestStateMachine):
 def run_test_state_machine(rtl_class,
                            reference_class,
                            parameters,
-                           translate_model=False):
+                           translate_model=False,
+                           argument_strategy={}):
   state_machine_factory = TestModel._create_test_state_machine(
-      rtl_class, reference_class, parameters, translate_model=translate_model)
+      rtl_class,
+      reference_class,
+      parameters,
+      translate_model=translate_model,
+      argument_strategy=argument_strategy)
   TestModel._run_state_machine(state_machine_factory)
 
 
