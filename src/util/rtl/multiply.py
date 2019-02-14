@@ -12,21 +12,21 @@ class MulPipelinedInterface(Interface):
     s.DataLen = data_len
     super(MulPipelinedInterface, s).__init__([
         MethodSpec(
+            'result',
+            args=None,
+            rets={
+              'res': Bits(2*s.DataLen),
+            },
+            call=True,
+            rdy=True,
+        ),
+        MethodSpec(
             'mult',
             args={
                 'src1': Bits(s.DataLen),
                 'src2': Bits(s.DataLen),
             },
             rets=None,
-            call=True,
-            rdy=True,
-        ),
-        MethodSpec(
-            'result',
-            args=None,
-            rets={
-              'res': Bits(2*s.DataLen),
-            },
             call=True,
             rdy=True,
         ),
@@ -109,71 +109,107 @@ class MulPipelined(Model):
     m = s.interface.DataLen
     k = s.interface.DataLen // nstages
 
+    # All the inputs get converted to unsigned
+    s.src1_usign_ = Wire(Bits(m))
+    s.src2_usign_ = Wire(Bits(m))
+
     # At step i, i = [0, nstages), product needs at most m + k(i+1) bits
     s.valids_ = [RegRst(Bits(1)) for _ in range(nstages)]
-    s.src1_ = [RegEn(Bits(m)) for i in range(nstages)]
-    s.src2_ = [RegEn(Bits(m - k*i)) for i in range(nstages)]
     s.vals_ = [RegEn(Bits(m + k*(i+1))) for i in range(nstages)]
     s.units_ = [MulCombinational(MulCombinationalInterface(m + k*i, k, m + k*(i+1)), use_mul) for i in range(nstages)]
+
+    s.src1_ = [RegEn(Bits(m)) for i in range(nstages-1)]
+    s.src2_ = [RegEn(Bits(m - k*i)) for i in range(nstages-1)]
+    s.signs_ = [RegEn(Bits(1)) for i in range(nstages-1)]
 
     s.exec_ = [Wire(Bits(1)) for _ in range(nstages)]
     s.rdy_ = [Wire(Bits(1)) for _ in range(nstages)]
 
-    # Execute call
-    s.connect(s.mult_rdy, s.rdy_[0])
+    s.sign_out_ = Wire(Bits(1))
+    s.sign_in_ = Wire(Bits(1))
 
-    # Result call
+    # Connect the sign bit in the last stage
+    if nstages == 1:
+      s.connect_wire(s.sign_out_, s.sign_in_)
+    else:
+      s.connect(s.sign_out_, s.signs_[nstages-2].out)
+
+    # Execute call rdy
+    s.connect(s.mult_rdy, s.rdy_[0])
+    # Result call rdy
     s.connect(s.result_rdy, s.valids_[nstages-1].out)
     s.connect(s.result_res, s.vals_[nstages-1].out)
 
     for i in range(nstages):
-      s.connect(s.src1_[i].en, s.exec_[i])
-      s.connect(s.src2_[i].en, s.exec_[i])
       s.connect(s.vals_[i].en, s.exec_[i])
       s.connect(s.units_[i].mult_call, s.exec_[i])
+      # Last stage does not have these
+      if i < nstages - 1:
+        s.connect(s.src1_[i].en, s.exec_[i])
+        s.connect(s.src2_[i].en, s.exec_[i])
+        s.connect(s.signs_[i].en, s.exec_[i])
+
+
+    # Take twos compliment
+    @s.combinational
+    def unsign_srcs_in():
+      s.src1_usign_.v = 0
+      s.src2_usign_.v = 0
+      s.sign_in_.v = s.mult_src1[m-1] ^ s.mult_src1[m-1]
+      if s.mult_call:
+        s.src1_usign_.v = ((not s.mult_src1) + 1) if s.mult_src1[m-1] else s.mult_src1
+        s.src2_usign_.v = ((not s.mult_src2) + 1) if s.mult_src2[m-1] else s.mult_src2
 
 
     @s.combinational
     def connect_units():
-      s.units_[0].mult_src1.v = s.mult_src1
-      s.units_[0].mult_src2.v = s.mult_src2[:k]
-      for i in range(1, nstages):
-        s.units_[i].mult_src1.v = s.src1_[i-1].out
-        s.units_[i].mult_src2.v = s.src2_[i-1].out[:k]
+      for i in range(nstages):
+        s.units_[i].mult_src1.v = s.src1_[i-1].out if i else s.mult_src1
+        s.units_[i].mult_src2.v = s.src2_[i-1].out[:k] if i else s.mult_src2[:k]
 
     @s.combinational
     def set_rdy():
-      # Incoming call:
-      s.rdy_[nstages-1].v = s.result_call or not s.valids_[nstages-1].out
-      for i in range(nstages-1):
-        # A stage is ready to accept if it is invalid or next stage is ready
-        s.rdy_[i].v = not s.valids_[i].out or s.rdy_[i+1]
+      for i in range(nstages):
+        if i == nstages - 1:
+          s.rdy_[i].v = s.result_call or not s.valids_[nstages-1].out
+        else:
+          # A stage is ready to accept if it is invalid or next stage is ready
+          s.rdy_[i].v = not s.valids_[i].out or s.rdy_[i+1]
 
     @s.combinational
     def set_exec():
-      s.exec_[0].v = s.rdy_[0] and s.mult_call
-      for i in range(1, nstages):
+      for i in range(nstages):
         # Will execute if stage ready and current work is valid
-        s.exec_[i].v = s.rdy_[i] and s.valids_[i-1].out
+        s.exec_[i].v = s.rdy_[i] and s.valids_[i-1].out if i else (s.rdy_[0] and s.mult_call)
 
     @s.combinational
     def set_valids():
-      s.valids_[nstages-1].in_.v = (not s.result_call and s.valids_[nstages-1].out) or s.exec_[nstages-1]
-      for i in range(nstages-1):
-        # Valid if blocked on next stage, or multuted this cycle
-        s.valids_[i].in_.v = (not s.rdy_[i+1] and s.valids_[i].out) or s.exec_[i]
+      for i in range(nstages):
+        if i == nstages - 1:
+          s.valids_[i].in_.v = (not s.result_call and s.valids_[nstages-1].out) or s.exec_[nstages-1]
+        else:
+          # Valid if blocked on next stage, or multuted this cycle
+          s.valids_[i].in_.v = (not s.rdy_[i+1] and s.valids_[i].out) or s.exec_[i]
 
+
+    # The first and last stage in the pipeline
     @s.combinational
-    def mult():
+    def handle_inout_vals():
       s.vals_[0].in_.v =  s.units_[0].mult_res
-      s.src1_[0].in_.v = s.mult_src1
-      s.src2_[0].in_.v = s.mult_src2 >> k
-      for i in range(1, nstages):
-        s.vals_[i].in_.v =  (s.units_[i].mult_res << (k*i)) + s.vals_[i-1].out
-        s.src1_[i].in_.v = s.src1_[i-1].out
-        s.src2_[i].in_.v = s.src2_[i-1].out >> k
+      s.vals_[nstages-1].in_.v =  (not s.units_[nstages-1].mult_res + 1) if s.sign_out_ else s.units_[nstages-1].mult_res
 
 
+    # Middle stage
+    if nstages > 1:
+      @s.combinational
+      def stage_withmidle():
+        s.src1_[0].in_.v = s.src1_usign_
+        s.src2_[0].in_.v = s.src2_usign_ >> k
+        for i in range(1, nstages-1):
+          s.vals_[i].in_.v =  (s.units_[i].mult_res << (k*i)) + s.vals_[i-1].out
+          s.src1_[i].in_.v = s.src1_[i-1].out
+          s.src2_[i].in_.v = s.src2_[i-1].out >> k
+          s.signs_[i].in_.v = s.signs_[i-1].out
 
 
 class MulCombinationalInterface(Interface):
