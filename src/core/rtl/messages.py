@@ -39,6 +39,7 @@ AluFunc = bit_enum(
 
 def ValidValuePair(name, width):
   return Group(
+      '{}_val_pair'.format(name),
       Field('{}_val'.format(name), 1),
       Field(name, width),
   )
@@ -65,8 +66,9 @@ def PipelineMsg(*payload_group):
   return [
       Field('hdr', PipelineMsgHeader()),
       Union(
+          'pipeline_msg',
           Field('exception_info', ExceptionInfo()),
-          Group(*payload_group),
+          Group('pipeline_payload', *payload_group),
       )
   ]
 
@@ -75,7 +77,7 @@ def BackendMsg(*payload_group):
   return PipelineMsg(
       Field('seq', MAX_SPEC_DEPTH),
       Field('branch_mask', INST_IDX_NBITS),
-      Group(*payload_group),
+      Group('backend_payload', *payload_group),
   )
 
 
@@ -90,8 +92,14 @@ def AluMsg():
 
 
 ExecutionDataGroup = Group(
-    ValidValuePair('imm', DECODED_IMM_LEN), Field('op_class', OpClass.bits),
-    Union(Field('alu_msg', AluMsg()),))
+    'execution_data',
+    ValidValuePair('imm', DECODED_IMM_LEN),
+    Field('op_class', OpClass.bits),
+    Union(
+        'pipe_msg',
+        Field('alu_msg', AluMsg()),
+    ),
+)
 
 FetchMsg = PipelineMsg(
     Field('inst', ILEN),
@@ -99,11 +107,13 @@ FetchMsg = PipelineMsg(
 )
 
 DecodeMsg = PipelineMsg(
-    Field('speculative', 1), Field('pc_succ', XLEN),
-    ValidValuePair('rs1', AREG_IDX_NBITS), ValidValuePair(
-        'rs2', AREG_IDX_NBITS), ValidValuePair('rd', AREG_IDX_NBITS),
-    ValidValuePair('imm', DECODED_IMM_LEN), Field('op_class', OpClass.bits),
-    Union(Field('alu_msg', AluMsg()),))
+    Field('speculative', 1),
+    Field('pc_succ', XLEN),
+    ValidValuePair('rs1', AREG_IDX_NBITS),
+    ValidValuePair('rs2', AREG_IDX_NBITS),
+    ValidValuePair('rd', AREG_IDX_NBITS),
+    ExecutionDataGroup,
+)
 
 RenameMsg = BackendMsg(
     ValidValuePair('rs1', PREG_IDX_NBITS),
