@@ -24,7 +24,4 @@ class ImmDecoderFL(FLModel):
     def decode(inst, type_):
       inst = Bits(ILEN, inst)
       diss = rv64g.fields[s.field_map[type_]].disassemble(inst)
-      # for U types, the RTL version cuts off the low 20 bits
-      if type_ == ImmType.IMM_TYPE_U:
-        diss >>= 20
       return sext(diss, s.interface.decoded_length)
