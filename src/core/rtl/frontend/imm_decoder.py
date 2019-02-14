@@ -52,7 +52,7 @@ class ImmDecoder(Model):
     s.imm_b = Wire(
         sl(RVInstMask.B_IMM3, RVInstMask.B_IMM2, RVInstMask.B_IMM1, RVInstMask
            .B_IMM0) + 1)
-    s.imm_u = Wire(sl(RVInstMask.U_IMM) + 20)
+    s.imm_u = Wire(sl(RVInstMask.U_IMM))
     s.imm_j = Wire(
         sl(RVInstMask.J_IMM3, RVInstMask.J_IMM2, RVInstMask.J_IMM1, RVInstMask
            .J_IMM0) + 1)
@@ -67,7 +67,7 @@ class ImmDecoder(Model):
                  s.decode_inst[RVInstMask.B_IMM2],
                  s.decode_inst[RVInstMask.B_IMM1],
                  s.decode_inst[RVInstMask.B_IMM0], Bits(1, 0)))
-      s.imm_u.v = concat(s.decode_inst[RVInstMask.U_IMM], Bits(20, 0))
+      s.imm_u.v = s.decode_inst[RVInstMask.U_IMM]
       s.imm_j.v = concat(
           s.decode_inst[RVInstMask.J_IMM3], s.decode_inst[RVInstMask.J_IMM2],
           s.decode_inst[RVInstMask.J_IMM1], s.decode_inst[RVInstMask.J_IMM0],

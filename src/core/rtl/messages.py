@@ -32,6 +32,8 @@ AluFunc = bit_enum(
     ('ALU_FUNC_SLL', 'sl'),
     ('ALU_FUNC_SRL', 'sr'),
     ('ALU_FUNC_SRA', 'sa'),
+    ('ALU_FUNC_LUI', 'lu'),
+    ('ALU_FUNC_AUIPC', 'pc'),
 )
 
 
