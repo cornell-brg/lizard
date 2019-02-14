@@ -12,7 +12,7 @@ class MulPipelinedInterface(Interface):
     s.DataLen = data_len
     super(MulPipelinedInterface, s).__init__([
         MethodSpec(
-            'exec',
+            'mult',
             args={
                 'src1': Bits(s.DataLen),
                 'src2': Bits(s.DataLen),
@@ -58,7 +58,7 @@ class MulPipelined(Model):
 
 
     # Execute call
-    s.connect(s.exec_rdy, s.rdy_[0])
+    s.connect(s.mult_rdy, s.rdy_[0])
 
     # Result call
     s.connect(s.result_rdy, s.valids_[nstages-1].out)
@@ -69,41 +69,50 @@ class MulPipelined(Model):
       s.connect(s.src1_[i].en, s.exec_[i])
       s.connect(s.src2_[i].en, s.exec_[i])
       s.connect(s.vals_[i].en, s.exec_[i])
-      s.connect(s.units_[i].exec_call, s.exec_[i])
+      s.connect(s.units_[i].mult_call, s.exec_[i])
 
 
     @s.combinational
     def connect_units():
-      s.units_[0].exec_src1.v = s.exec_src1
-      s.units_[0].exec_src2.v = s.exec_src2[:k]
+      s.units_[0].mult_src1.v = s.mult_src1
+      s.units_[0].mult_src2.v = s.mult_src2[:k]
       for i in range(1, nstages):
-        s.units_[i].exec_src1.v = s.src1_[i-1].out
-        s.units_[i].exec_src2.v = s.src2_[i-1].out[:k]
+        s.units_[i].mult_src1.v = s.src1_[i-1].out
+        s.units_[i].mult_src2.v = s.src2_[i-1].out[:k]
 
     @s.combinational
-    def set_flags():
+    def set_rdy():
       # Incoming call:
       s.rdy_[nstages-1].v = s.result_call or not s.valids_[nstages-1].out
-      s.valids_[nstages-1].in_.v = (not s.result_call and s.valids_[nstages-1].out) or s.exec_[nstages-1]
       for i in range(nstages-1):
         # A stage is ready to accept if it is invalid or next stage is ready
         s.rdy_[i].v = not s.valids_[i].out or s.rdy_[i+1]
-        # Valid if blocked on next stage, or executed this cycle
-        s.valids_[i].in_.v = (not s.rdy_[i+1] and s.valids_[i].out) or s.exec_[i]
 
-      s.exec_[0].v = s.rdy_[0] and s.exec_call
+
+    @s.combinational
+    def set_exec():
+      s.exec_[0].v = s.rdy_[0] and s.mult_call
       for i in range(1, nstages):
         # Will execute if stage ready and current work is valid
         s.exec_[i].v = s.rdy_[i] and s.valids_[i-1].out
 
 
     @s.combinational
+    def set_valids():
+      s.valids_[nstages-1].in_.v = (not s.result_call and s.valids_[nstages-1].out) or s.exec_[nstages-1]
+      for i in range(nstages-1):
+        # Valid if blocked on next stage, or multuted this cycle
+        s.valids_[i].in_.v = (not s.rdy_[i+1] and s.valids_[i].out) or s.exec_[i]
+
+
+
+    @s.combinational
     def mult():
-      s.vals_[0].in_.v =  s.units_[0].exec_res
-      s.src1_[0].in_.v = s.exec_src1
-      s.src2_[0].in_.v = s.exec_src2 >> k
+      s.vals_[0].in_.v =  s.units_[0].mult_res
+      s.src1_[0].in_.v = s.mult_src1
+      s.src2_[0].in_.v = s.mult_src2 >> k
       for i in range(1, nstages):
-        s.vals_[i].in_.v =  (s.units_[i].exec_res << (k*i)) + s.vals_[i-1].out
+        s.vals_[i].in_.v =  (s.units_[i].mult_res << (k*i)) + s.vals_[i-1].out
         s.src1_[i].in_.v = s.src1_[i-1].out
         s.src2_[i].in_.v = s.src2_[i-1].out >> k
 
@@ -119,7 +128,7 @@ class MulCombinationalInterface(Interface):
     s.ProductLen = product_nbits
     super(MulCombinationalInterface, s).__init__([
         MethodSpec(
-            'exec',
+            'mult',
             args={
                 'src1': Bits(s.MultiplierLen),
                 'src2': Bits(s.MultiplicandLen),
@@ -140,19 +149,21 @@ class MulCombinational(Model):
 
     assert s.interface.MultiplierLen >= s.interface.MultiplicandLen
 
-    nbits = 2*s.interface.MultiplierLen
+    nbits = s.interface.MultiplierLen + s.interface.MultiplicandLen
 
     s.src1_ = Wire(nbits)
     s.res_ = Wire(nbits)
+    s.partials_ = [Wire(nbits) for _ in range(s.interface.MultiplicandLen+1)]
 
     @s.combinational
     def sign_ext():
-      s.src1_.v = sext(s.exec_src1, nbits)
-      s.exec_res.v = s.res_[:s.interface.ProductLen]
+      s.src1_.v = sext(s.mult_src1, nbits)
+      s.mult_res.v = s.res_[:s.interface.ProductLen]
 
     @s.combinational
     def eval():
-      s.res_.v = 0
-      if s.exec_call:
-        for i in range(s.interface.MultiplicandLen):
-          s.res_.v += (s.src1_ << i) if s.exec_src2[i] else 0
+      s.partials_[0].v = 0
+      for i in range(s.interface.MultiplicandLen):
+        s.partials_[i+1].v = s.partials_[i] + ((s.src1_ << i) if (s.mult_src2[i] and s.mult_call) else 0)
+
+      s.res_.v = s.partials_[s.interface.MultiplicandLen]
