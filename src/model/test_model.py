@@ -10,6 +10,7 @@ from util.rtl.types import Array
 from model.wrapper import wrap_to_cl
 from model.hardware_model import NotReady, Result
 from util.pretty_print import list_string_value, list_string
+from model.translate import translate
 import copy
 
 debug = True
@@ -492,7 +493,8 @@ class TestModel(TestStateMachine):
   def _create_test_state_machine(rtl_class,
                                  reference_class,
                                  parameters,
-                                 argument_strategy={}):
+                                 argument_strategy={},
+                                 translate_model=False):
 
     if isinstance(parameters, dict):
       parameters_string = "_".join(
@@ -505,6 +507,8 @@ class TestModel(TestStateMachine):
       parameters_string = "_".join([str(parameter) for parameter in parameters])
       model = rtl_class(*parameters)
       reference = reference_class(*parameters)
+    if translate_model:
+      model = translate(model)
 
     sim = wrap_to_cl(model)
 
@@ -569,9 +573,12 @@ class TestModel(TestStateMachine):
 #-------------------------------------------------------------------------
 # run_test_state_machine
 #-------------------------------------------------------------------------
-def run_test_state_machine(rtl_class, reference_class, parameters):
+def run_test_state_machine(rtl_class,
+                           reference_class,
+                           parameters,
+                           translate_model=False):
   state_machine_factory = TestModel._create_test_state_machine(
-      rtl_class, reference_class, parameters)
+      rtl_class, reference_class, parameters, translate_model=translate_model)
   TestModel._run_state_machine(state_machine_factory)
 
 
