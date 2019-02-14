@@ -32,11 +32,14 @@ AluFunc = bit_enum(
     ('ALU_FUNC_SLL', 'sl'),
     ('ALU_FUNC_SRL', 'sr'),
     ('ALU_FUNC_SRA', 'sa'),
+    ('ALU_FUNC_LUI', 'lu'),
+    ('ALU_FUNC_AUIPC', 'pc'),
 )
 
 
 def ValidValuePair(name, width):
   return Group(
+      '{}_val_pair'.format(name),
       Field('{}_val'.format(name), 1),
       Field(name, width),
   )
@@ -59,22 +62,22 @@ def ExceptionInfo():
 
 
 @bit_struct_generator
-def PipelineMsg(*payload_group):
+def PipelineMsg(payload):
   return [
       Field('hdr', PipelineMsgHeader()),
       Union(
+          'pipeline_msg',
           Field('exception_info', ExceptionInfo()),
-          Group(*payload_group),
+          Inline('pipeline_payload', payload),
       )
   ]
 
 
-def BackendMsg(*payload_group):
-  return PipelineMsg(
-      Field('seq', MAX_SPEC_DEPTH),
-      Field('branch_mask', INST_IDX_NBITS),
-      Group(*payload_group),
-  )
+BackendGroup = Group(
+    'backend_group',
+    Field('seq', MAX_SPEC_DEPTH),
+    Field('branch_mask', INST_IDX_NBITS),
+)
 
 
 @bit_struct_generator
@@ -88,47 +91,103 @@ def AluMsg():
 
 
 ExecutionDataGroup = Group(
-    ValidValuePair('imm', DECODED_IMM_LEN), Field('op_class', OpClass.bits),
-    Union(Field('alu_msg', AluMsg()),))
-
-FetchMsg = PipelineMsg(
-    Field('inst', ILEN),
-    Field('pc_succ', XLEN),
+    'execution_data',
+    ValidValuePair('imm', DECODED_IMM_LEN),
+    Field('op_class', OpClass.bits),
+    Union(
+        'pipe_msg',
+        Field('alu_msg', AluMsg()),
+    ),
 )
 
-DecodeMsg = PipelineMsg(
-    Field('speculative', 1), Field('pc_succ', XLEN),
-    ValidValuePair('rs1', AREG_IDX_NBITS), ValidValuePair(
-        'rs2', AREG_IDX_NBITS), ValidValuePair('rd', AREG_IDX_NBITS),
-    ValidValuePair('imm', DECODED_IMM_LEN), Field('op_class', OpClass.bits),
-    Union(Field('alu_msg', AluMsg()),))
 
-RenameMsg = BackendMsg(
-    ValidValuePair('rs1', PREG_IDX_NBITS),
-    Field('rs1_rdy', 1),
-    ValidValuePair('rs2', PREG_IDX_NBITS),
-    Field('rs2_rdy', 1),
-    ValidValuePair('rd', PREG_IDX_NBITS),
-    ExecutionDataGroup,
-)
+@bit_struct_generator
+def FetchPayload():
+  return [
+      Field('inst', ILEN),
+      Field('pc_succ', XLEN),
+  ]
 
-IssueMsg = BackendMsg(
-    ValidValuePair('rs1', PREG_IDX_NBITS),
-    ValidValuePair('rs2', PREG_IDX_NBITS),
-    ValidValuePair('rd', PREG_IDX_NBITS),
-    ExecutionDataGroup,
-)
 
-DispatchMsg = BackendMsg(
-    ValidValuePair('rs1', XLEN),
-    ValidValuePair('rs2', XLEN),
-    ValidValuePair('rd', PREG_IDX_NBITS),
-    ExecutionDataGroup,
-)
+FetchMsg = PipelineMsg(FetchPayload())
 
-ExecuteMsg = BackendMsg(
-    ValidValuePair('rd', PREG_IDX_NBITS),
-    ValidValuePair('result', XLEN),
-)
 
-WritebackMsg = BackendMsg(ValidValuePair('rd', PREG_IDX_NBITS),)
+@bit_struct_generator
+def DecodePayload():
+  return [
+      Field('speculative', 1),
+      Field('pc_succ', XLEN),
+      ValidValuePair('rs1', AREG_IDX_NBITS),
+      ValidValuePair('rs2', AREG_IDX_NBITS),
+      ValidValuePair('rd', AREG_IDX_NBITS),
+      ExecutionDataGroup,
+  ]
+
+
+DecodeMsg = PipelineMsg(DecodePayload())
+
+
+@bit_struct_generator
+def RenamePayload():
+  return [
+      BackendGroup,
+      ValidValuePair('rs1', PREG_IDX_NBITS),
+      Field('rs1_rdy', 1),
+      ValidValuePair('rs2', PREG_IDX_NBITS),
+      Field('rs2_rdy', 1),
+      ValidValuePair('rd', PREG_IDX_NBITS),
+      ExecutionDataGroup,
+  ]
+
+
+RenameMsg = PipelineMsg(RenamePayload())
+
+
+@bit_struct_generator
+def IssuePayload():
+  return [
+      BackendGroup,
+      ValidValuePair('rs1', PREG_IDX_NBITS),
+      ValidValuePair('rs2', PREG_IDX_NBITS),
+      ValidValuePair('rd', PREG_IDX_NBITS),
+      ExecutionDataGroup,
+  ]
+
+
+IssueMsg = PipelineMsg(IssuePayload())
+
+
+@bit_struct_generator
+def DispatchPayload():
+  return [
+      BackendGroup,
+      ValidValuePair('rs1', XLEN),
+      ValidValuePair('rs2', XLEN),
+      ValidValuePair('rd', PREG_IDX_NBITS),
+      ExecutionDataGroup,
+  ]
+
+
+DispatchMsg = PipelineMsg(DispatchPayload())
+
+
+@bit_struct_generator
+def ExecutePayload():
+  return [
+      BackendGroup,
+      ValidValuePair('rd', PREG_IDX_NBITS),
+      ValidValuePair('result', XLEN),
+  ]
+
+
+ExecuteMsg = PipelineMsg(ExecutePayload())
+
+
+@bit_struct_generator
+def WritebackPayload():
+  return [
+      ValidValuePair('rd', PREG_IDX_NBITS),
+  ]
+
+
+WritebackMsg = PipelineMsg(WritebackPayload())

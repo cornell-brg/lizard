@@ -44,13 +44,24 @@ def sane_lookup(d):
   return f
 
 
+def slice_len(slice_):
+  return len(range(*slice_.indices(slice_.stop)))
+
+
+def total_slice_len(*slices):
+  result = 0
+  for slice_ in slices:
+    result += slice_len(slice_)
+  return result
+
+
 def bit_enum(name, bits=None, *names, **pairs):
   assert not (names and pairs)
   if pairs:
     assert bits
   else:
-    min_bits = clog2(len(names))
-    bits = bits or clog2(len(names))
+    min_bits = clog2nz(len(names))
+    bits = bits or min_bits
     assert bits >= min_bits
 
   data = {}
@@ -70,6 +81,7 @@ def bit_enum(name, bits=None, *names, **pairs):
   data['name'] = sane_lookup(names_dict)
   data['short'] = sane_lookup(short)
   data['bits'] = bits
+  data['size'] = len(names)
   result = type(name, (), data)
 
   @staticmethod

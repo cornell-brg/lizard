@@ -66,7 +66,8 @@ class NestedField(EntryGroup):
 
 class Group(EntryGroup):
 
-  def __init__(s, *fields):
+  def __init__(s, name, *fields):
+    s.name = name
     s.fields = fields
     s.width = 0
     for field in s.fields:
@@ -77,15 +78,23 @@ class Group(EntryGroup):
 
   def offsets(s):
     base = 0
+    if s.name is not None:
+      yield s.name, 0, s.size()
     for field in s.fields:
       for name, offset, size in field.offsets():
         yield name, (offset + base), size
       base += field.size()
 
 
+def Inline(name, type_):
+  # the spec for a full type is always a group, so just take the fields
+  return Group(name, *type_._spec.fields)
+
+
 class Union(EntryGroup):
 
-  def __init__(s, *fields):
+  def __init__(s, name, *fields):
+    s.name = name
     s.fields = fields
     s.width = 0
     for field in s.fields:
@@ -95,6 +104,8 @@ class Union(EntryGroup):
     return s.width
 
   def offsets(s):
+    if s.name is not None:
+      yield s.name, 0, s.size()
     for field in s.fields:
       for name, offset, size in field.offsets():
         yield name, offset, size
@@ -118,7 +129,7 @@ def Field(name, type_):
     return PrimitiveField(name, type_)
   elif isinstance(type_, BitStruct) and hasattr(type_, '_spec'):
     return Union(
-        PrimitiveField(name, type_._spec.size()),
+        name,
         NestedField(name, type_),
     )
   else:
@@ -134,7 +145,7 @@ def bit_struct_generator(func):
     if isinstance(gen, EntryGroup):
       top = gen
     else:
-      top = Group(*gen)
+      top = Group(None, *gen)
 
     class_name = "{}_{}".format(_escape(struct_name), top.canonical_name())
     bitstruct_class = type(class_name, (BitStruct,), {})
