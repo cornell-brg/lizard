@@ -17,7 +17,7 @@ def test_translation():
 def test_basic():
   iface = MulPipelinedInterface(8)
   #mult = MulPipelined(iface, 1)
-  mult = MulRetimedPipelined(iface, 1)
+  mult = MulPipelined(iface, 2)
   mult.vcd_file = 'foo.vcd'
   dut = wrap_to_cl(mult)
   dut.reset()
