@@ -589,60 +589,89 @@ def run_test_state_machine(rtl_class,
   TestModel._run_state_machine(state_machine_factory)
 
 
+#-------------------------------------------------------------------------
+# init_strategy
+#-------------------------------------------------------------------------
+INIT_STRATEGY_MARKER = u'pymtl-method-based-init-strategy'
+
+
+def init_strategy(**kwargs):
+
+  def accept(f):
+    arg_list = kwargs
+
+    @st.composite
+    def parameter_strategy(draw):
+      parameters = {}
+      for key, arg in kwargs.iteritems():
+        # Type specified
+        if arg is Bits:
+          nbits = draw(st.integers(min_value=1, max_value=64))
+          parameters[key] = Bits(nbits)
+        elif arg is int:
+          value = draw(st.integers(min_value=1, max_value=64))
+          parameters[key] = value
+        elif arg is bool:
+          value = draw(st.booleans())
+          parameters[key] = value
+        elif isinstance(arg, SearchStrategy):
+          value = draw(parameter)
+          parameters[key] = value
+        elif isinstance(arg, int) or isinstance(arg, Bits) or isinstance(
+            arg, bool):
+          parameters[key] = arg
+        else:
+          raise TypeError("Unsupported parameter type")
+
+      return parameters
+
+    setattr(f, INIT_STRATEGY_MARKER, parameter_strategy)
+    return f
+
+  return accept
+
+
+#-------------------------------------------------------------------------
+# run_parameterized_test_state_machine
+#-------------------------------------------------------------------------
+
+
 def run_parameterized_test_state_machine(rtl_class,
                                          reference_class,
-                                         init_args=ArgumentStrategy(),
-                                         argument_dependencies=[]):
-  args, _, _, _ = inspect.getargspec(rtl_class.__init__)
-  arg_list = init_args.arguments
+                                         method_strategy_class,
+                                         translate_model=False):
 
-  @st.composite
-  def parameter_strategy(draw):
-    parameters = {}
-    for key in args[1:]:
-      # Type specified
-      arg = arg_list[key]
-      if arg is Bits:
-        nbits = draw(st.integers(min_value=1, max_value=64))
-        parameters[key] = Bits(nbits)
-      elif arg is int:
-        value = draw(st.integers(min_value=1, max_value=64))
-        parameters[key] = value
-      elif arg is bool:
-        value = draw(st.booleans())
-        parameters[key] = value
-      elif isinstance(arg, SearchStrategy):
-        value = draw(parameter)
-        parameters[key] = value
-      elif isinstance(arg, int) or isinstance(arg, Bits) or isinstance(
-          arg, bool):
-        parameters[key] = arg
-      else:
-        raise TypeError("Unsupported parameter type")
-
-    return parameters
+  parameter_strategy = getattr(method_strategy_class.__init__,
+                               INIT_STRATEGY_MARKER, None)
 
   @settings(deadline=None, max_examples=10)
   @given(parameter_strategy(), st.data())
   def run_multiple_state_machines(parameters, data):
     arguments = {}
-    for dep in argument_dependencies:
-      target = arguments.setdefault(dep.method, {})
-      args, _, _, _ = inspect.getargspec(dep.strategy_func)
-
-      if set(args) - set(parameters.keys()):
-        raise ValueError(""" 
+    args, _, _, _ = inspect.getargspec(method_strategy_class.__init__)
+    args = args[1:]
+    if set(args) - set(parameters.keys()):
+      raise ValueError(""" 
   Found arg in argument strategy function not in rtl model __init__ args!
     - strategy func: {strategy_func_arg}
     - rtl __init__ : {init_args}
-""".format(strategy_func_arg=list_string(args),
-           init_args=list_string(parameters.keys())))
+""".format(
+          strategy_func_arg=list_string(args),
+          init_args=list_string(parameters.keys())))
+    method_strategy = method_strategy_class(**parameters)
 
-      params = {k: parameters[k] for k in args}
-      target[dep.arg] = st.deferred(lambda: dep.strategy_func(**params))
+    for k, v in inspect.getmembers(method_strategy):
+      if isinstance(v, ArgumentStrategy):
+        target = arguments.setdefault(k, {})
+        for arg_name, strategy in v.arguments.iteritems():
+          target[arg_name] = st.deferred(lambda: strategy)
 
     state_machine_factory = TestModel._create_test_state_machine(
-        rtl_class, reference_class, parameters, arguments)
+        rtl_class,
+        reference_class,
+        parameters,
+        translate_model=translate_model,
+        argument_strategy=arguments)
     TestModel._run_state_machine(state_machine_factory)
 
   run_multiple_state_machines()
