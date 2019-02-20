@@ -4,7 +4,7 @@ import os
 import argparse
 import sys
 
-BINARY = "./yapf-brg"
+BINARY = "yapf-brg"
 DIR = os.path.dirname(os.path.realpath(__file__))
 STYLE_BRG = DIR + "/.style_brg.yapf"
 STYLE_SANE = DIR + "/.style_sane.yapf"
