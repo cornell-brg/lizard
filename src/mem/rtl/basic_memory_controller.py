@@ -33,7 +33,26 @@ class BasicMemoryControllerInterface(Interface):
           ),
       ])
 
-    super(BasicMemoryControllerInterface, s).__init__(methods)
+    super(BasicMemoryControllerInterface, s).__init__(
+        methods,
+        requirements=[
+            MethodSpec(
+                'bus_recv',
+                args=None,
+                rets={'msg': s.MemMsg.resp},
+                call=True,
+                rdy=True,
+                count=mbi.num_ports,
+            ),
+            MethodSpec(
+                'bus_send',
+                args={'msg': s.MemMsg.req},
+                rets=None,
+                call=True,
+                rdy=True,
+                count=mbi.num_ports,
+            ),
+        ])
 
 
 class BasicMemoryController(Model):
@@ -47,9 +66,6 @@ class BasicMemoryController(Model):
       raise ValueError('There should be exactly 1 port per client')
     if mbi.opaque_nbits < clog2(len(clients)):
       raise ValueError('Not enough opaque bits')
-
-    mbi.require(s, 'bus', 'recv', count=mbi.num_ports)
-    mbi.require(s, 'bus', 'send', count=mbi.num_ports)
 
     nobits = mbi.opaque_nbits
     nclients = len(clients)

@@ -28,19 +28,15 @@ class FetchTestHarness(Model):
     s.tcf = wrap_to_rtl(TestControlFlowManagerFL(64, 2, 0x200))
 
     TestHarness(s, Fetch(
-        FetchInterface(64, 32), s.tcf.interface, s.mc.interface), True,
+        FetchInterface(64, 32, s.tcf.interface, s.mc.interface)), True,
                 'bobby.vcd')
 
     s.connect_m(s.mb.recv, s.mc.bus_recv)
     s.connect_m(s.mb.send, s.mc.bus_send)
 
-    s.connect_m(s.mc.fetch_recv, s.dut.mem_fetch_recv)
-    s.connect_m(s.mc.fetch_send, s.dut.mem_fetch_send)
+    s.connect_m(s.mc.fetch_recv, s.dut.mem_recv)
+    s.connect_m(s.mc.fetch_send, s.dut.mem_send)
     s.connect_m(s.tcf.check_redirect, s.dut.check_redirect)
-
-
-# def test_translate_fetch():
-#   run_model_translation(Fetch(64, 32, 2, ))
 
 
 def test_basic():

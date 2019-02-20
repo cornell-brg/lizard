@@ -10,120 +10,141 @@ from msg.codes import ExceptionCode
 
 class FetchInterface(Interface):
 
-  def __init__(s, dlen, ilen):
+  def __init__(s, dlen, ilen, cflow_interface, memory_controller_interface):
     s.dlen = dlen
     s.ilen = ilen
+    s.MemMsg = memory_controller_interface.MemMsg
 
-    super(FetchInterface, s).__init__([
-        MethodSpec(
-            'get',
-            args=None,
-            rets={
-                'msg': FetchMsg(),
-            },
-            call=True,
-            rdy=True,
-        ),
-    ],)
+    super(FetchInterface, s).__init__(
+        [
+            MethodSpec(
+                'get',
+                args=None,
+                rets={
+                    'msg': FetchMsg(),
+                },
+                call=True,
+                rdy=True,
+            )
+        ],
+        requirements=[
+            MethodSpec(
+                'mem_recv',
+                args=None,
+                rets={'msg': s.MemMsg.resp},
+                call=True,
+                rdy=True,
+            ),
+            MethodSpec(
+                'mem_send',
+                args={'msg': s.MemMsg.req},
+                rets=None,
+                call=True,
+                rdy=True,
+            ),
+            cflow_interface['check_redirect'],
+        ],
+    )
 
 
 class Fetch(Model):
 
-  def __init__(s, fetch_interface, cflow_interface,
-               memory_controller_interface):
+  def __init__(s, fetch_interface):
     UseInterface(s, fetch_interface)
     xlen = s.interface.dlen
     ilen = s.interface.ilen
     ilen_bytes = ilen / 8
 
-    memory_controller_interface.require(s, 'mem', 'fetch_recv')
-    memory_controller_interface.require(s, 'mem', 'fetch_send')
-    cflow_interface.require(s, '', 'check_redirect')
+    s.drop_unit = DropUnit(DropUnitInterface(s.interface.MemMsg.resp))
+    s.connect_m(s.drop_unit.input, s.mem_recv, {
+        'msg': 'data',
+    })
 
-    s.drop_unit_ = DropUnit(
-        DropUnitInterface(memory_controller_interface.MemMsg.resp))
+    s.fetch_val = Register(
+        RegisterInterface(Bits(1), True, False), reset_value=0)
+    s.fetch_msg = Register(RegisterInterface(FetchMsg(), True, False))
 
-    # Outgoing pipeline registers
-    s.fetch_val_ = Register(
+    s.in_flight = Register(
         RegisterInterface(Bits(1), False, False), reset_value=0)
-    s.fetchmsg_ = Wire(FetchMsg())
+    s.pc = Register(RegisterInterface(Bits(xlen), True, False), reset_value=0)
 
-    # Is there a request in flight
-    s.inflight_reg_ = Register(
-        RegisterInterface(Bits(1), False, False), reset_value=0)
-    s.pc_next_ = Register(
-        RegisterInterface(Bits(xlen), False, False), reset_value=0)
-
-    s.pc_req_ = Wire(Bits(xlen))
-    # Should fetch send a memory request for the next instruction
-    s.send_req_ = Wire(1)
-
-    s.inflight_ = Wire(1)
-    s.rdy_ = Wire(1)
-
-    # Connect up the drop unit
-    s.connect(s.drop_unit_.input_data, s.mem_fetch_recv_msg)
-    s.connect(s.mem_fetch_recv_call,
-              s.mem_fetch_recv_rdy)  # We are always ready to recv
-    s.connect(s.drop_unit_.input_call, s.mem_fetch_recv_rdy)
+    s.advance_f1 = Wire(1)
+    s.advance_f0 = Wire(1)
 
     @s.combinational
-    def set_flags():
-      s.rdy_.v = s.get_call or not s.fetch_val_.read_data
-      s.inflight_.v = s.inflight_reg_.read_data and not s.mem_fetch_recv_call
-      # Send next request if not inflight or we just got a resp back
-      s.send_req_.v = not s.inflight_ and s.rdy_ and s.mem_fetch_send_rdy
-
-    # Insert BTB here!
-    @s.combinational
-    def calc_pc():
-      s.pc_req_.v = s.check_redirect_target if s.check_redirect_redirect else s.pc_next_.read_data
-      s.pc_next_.write_data.v = s.pc_req_ + ilen_bytes if s.send_req_ else s.pc_next_.read_data
+    def handle_advance():
+      s.advance_f1.v = s.drop_unit.output_rdy and (not s.fetch_val.read_data or
+                                                   s.get_call)
+      s.advance_f0.v = not s.in_flight.read_data or s.drop_unit.drop_status_occurred or s.advance_f1
 
     @s.combinational
-    def handle_req():
-      s.mem_fetch_send_msg.type_.v = MemMsgType.READ
-      s.mem_fetch_send_msg.addr.v = s.pc_req_
-      s.mem_fetch_send_msg.len_.v = 0
-      s.mem_fetch_send_msg.data.v = 0
-      # Send next request if not inflight or we just got a resp back
-      s.mem_fetch_send_call.v = s.send_req_
+    def handle_redirect():
+      if s.check_redirect_redirect:
+        # drop if in flight
+        s.drop_unit.drop_call.v = s.in_flight.read_data
+        # the new PC is the target
+        s.pc.write_data.v = s.check_redirect_target
+        s.pc.write_call.v = 1
+
+      else:
+        s.drop_unit.drop_call.v = 0
+        # if we are issuing now, the new PC is just ilen_bytes more than the last one
+        # Insert BTB here!
+        s.pc.write_data.v = s.pc.read_data + ilen_bytes
+        s.pc.write_call.v = s.advance_f0
+
+    s.connect(s.in_flight.write_data, s.advance_f0)
+    s.connect(s.get_msg, s.fetch_msg.read_data)
 
     @s.combinational
-    def handle_inflight():
-      # Either something still in flight, we just sent something out
-      s.inflight_reg_.write_data.v = s.inflight_ or s.send_req_
-      # The drop unit is told to drop if a redirect is sent
-      s.drop_unit_.drop_call.v = s.inflight_reg_.read_data and s.check_redirect_redirect
+    def handle_f1():
+      s.fetch_val.write_call.v = 0
+      s.fetch_val.write_data.v = 0
+      s.fetch_msg.write_call.v = 0
+      s.fetch_msg.write_data.v = 0
+
+      if s.check_redirect_redirect:
+        # invalidate the output
+        s.get_rdy.v = 0
+        # write a 0 into the valid register
+        s.fetch_val.write_call.v = 1
+      else:
+        s.get_rdy.v = s.fetch_val.read_data
+
+        if s.drop_unit.output_rdy and (not s.fetch_val.read_data or s.get_call):
+          s.fetch_val.write_call.v = 1
+          s.fetch_val.write_data.v = 1
+          s.fetch_msg.write_call.v = 1
+
+          s.fetch_msg.write_data.hdr_pc.v = s.pc.read_data
+          if s.drop_unit.output_data.stat != MemMsgStatus.OK:
+            s.fetch_msg.write_data.hdr_status.v = PipelineMsgStatus.PIPELINE_MSG_STATUS_EXCEPTION_RAISED
+            if s.drop_unit.output_data.stat == MemMsgStatus.ADDRESS_MISALIGNED:
+              s.fetch_msg.write_data.exception_info_mcause.v = ExceptionCode.INSTRUCTION_ADDRESS_MISALIGNED
+            elif s.drop_unit.output_data.stat == MemMsgStatus.ACCESS_FAULT:
+              s.fetch_msg.write_data.exception_info_mcause.v = ExceptionCode.INSTRUCTION_ACCESS_FAULT
+            # save the faulting PC as mtval
+            s.fetch_msg.write_data.exception_info_mtval.v = s.pc.read_data
+          else:
+            s.fetch_msg.write_data.hdr_status.v = PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID
+            s.fetch_msg.write_data.inst.v = s.drop_unit.output_data.data[:ilen]
+            s.fetch_msg.write_data.pc_succ.v = s.pc.write_data
+        elif s.get_call:
+          # someone is calling, but we are stalled, so give them output but
+          # unset valid
+          s.fetch_val.write_call.v = 1
+          s.fetch_val.write_data.v = 0
+
+    # handle_f0
+    s.connect(s.mem_send_msg.type_, int(MemMsgType.READ))
 
     @s.combinational
-    def handle_get():
-      s.get_rdy.v = s.fetch_val_.read_data and (not s.check_redirect_redirect)
-      s.get_msg.v = s.fetchmsg_
+    def write_addr():
+      s.mem_send_msg.addr.v = s.pc.write_data
 
-    @s.combinational
-    def handle_fetchval():
-      # The message is valid
-      s.fetch_val_.write_data.v = s.drop_unit_.output_rdy or (
-          s.fetch_val_.read_data and not s.get_call and
-          not s.check_redirect_redirect)
-
-    @s.tick_rtl
-    def handle_fetchmsg():
-      # The PC of this message
-      s.fetchmsg_.hdr_pc.n = s.pc_req_ if s.send_req_ else s.fetchmsg_.hdr_pc
-      # The successors PC s.pc_req_ if s.send_req_ else s.fetchmsg_.pc
-      s.fetchmsg_.pc_succ.n = s.pc_next_.write_data if s.send_req_ else s.fetchmsg_.pc_succ
-      # The instruction data
-      s.fetchmsg_.inst.n = s.drop_unit_.output_data.data[:
-                                                         ilen] if s.drop_unit_.output_rdy else s.fetchmsg_.inst
-      # Exception information
-      if s.drop_unit_.output_data.stat != MemMsgStatus.OK:
-        s.fetchmsg_.hdr_status.n = PipelineMsgStatus.PIPELINE_MSG_STATUS_EXCEPTION_RAISED
-      if s.drop_unit_.output_data.stat == MemMsgStatus.ADDRESS_MISALIGNED:
-        s.fetchmsg_.exception_info_mcause.n = ExceptionCode.INSTRUCTION_ADDRESS_MISALIGNED
-      elif s.drop_unit_.output_data.stat == MemMsgStatus.ACCESS_FAULT:
-        s.fetchmsg_.exception_info_mcause.n = ExceptionCode.INSTRUCTION_ACCESS_FAULT
+    s.connect(s.mem_send_msg.len_, ilen_bytes)
+    # can only send it if advancing
+    s.connect(s.mem_send_call, s.advance_f0)
 
   def line_trace(s):
-    return str(s.fetchmsg_.pc)
+    return str(s.fetch_msg.hdr_pc)
