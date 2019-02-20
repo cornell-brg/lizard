@@ -1,9 +1,11 @@
 from pymtl import *
 from util.rtl.multiply import MulPipelined, MulPipelinedInterface, MulRetimedPipelined
+from util.fl.multiply import MulFL
 from test.config import test_verilog
 from util.test_utils import run_model_translation, run_test_vector_sim
 from model.test_model import run_test_state_machine
 from model.wrapper import wrap_to_rtl, wrap_to_cl
+
 
 #Create a single instance of an issue slot
 def test_translation():
@@ -30,3 +32,39 @@ def test_basic():
   dut.cycle()
   print(dut.result())
   dut.cycle()
+
+
+def test_fail():
+  iface = MulPipelinedInterface(8)
+  #mult = MulPipelined(iface, 1)
+  mult = MulPipelined(iface, 4)
+  dut = wrap_to_cl(mult)
+  dut.reset()
+  dut.cycle()
+  print(dut.mult(signed=0, src1=0, src2=0))
+  dut.cycle()
+  print(dut.mult(signed=0, src1=1, src2=1))
+  dut.cycle()
+  print(dut.mult(signed=0, src1=0, src2=0))
+  dut.cycle()
+  dut.cycle()
+  print(dut.mult(signed=0, src1=0, src2=0))
+  dut.cycle()
+  print(dut.result())
+  dut.cycle()
+  print(dut.result())
+  dut.cycle()
+
+
+def test_state_machine():
+  run_test_state_machine(
+      MulPipelined,
+      MulFL, (MulPipelinedInterface(64), 4),
+      release_cycle_accuracy=True)
+
+
+def test_state_machine2():
+  run_test_state_machine(
+      MulRetimedPipelined,
+      MulFL, (MulPipelinedInterface(64), 4),
+      release_cycle_accuracy=True)
