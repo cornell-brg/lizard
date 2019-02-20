@@ -21,10 +21,11 @@ def UseInterface(s, interface):
 
 class ResidualMethodSpec:
 
-  def __init__(s, model, spec, port_map):
+  def __init__(s, model, spec, port_map, direction):
     s.model = model
     s.spec = spec
     s.port_map = port_map
+    s.direction = direction
     for name, port in port_map.iteritems():
       setattr(s, name, port)
 
@@ -76,7 +77,7 @@ def _call(parent, ModelClass, *functional_args, **output_map):
     parent.connect(getattr(getattr(model, method.name), name), value)
 
 
-def _connect_m(parent, dst, src):
+def _connect_m(parent, dst, src, src_to_dst_map=None):
   if isinstance(dst, tuple):
     dst, di = dst
   else:
@@ -86,9 +87,18 @@ def _connect_m(parent, dst, src):
   else:
     si = None
 
+  src_to_dst_map = src_to_dst_map or {}
+  for mapped_port_name in src_to_dst_map.keys():
+    if mapped_port_name not in src.port_map:
+      raise ValueError('Port in port map does not match src port: {}'.format(
+          mapped_port_name))
+  # fill in any unlisted mappings with the identity mapping
+  for src_port_name in src.port_map.keys():
+    if src_port_name not in src_to_dst_map:
+      src_to_dst_map[src_port_name] = src_port_name
   # make sure the ports are the same
   # if types are different, later connect calls should fail
-  if set(dst.port_map) != set(src.port_map):
+  if set(dst.port_map) != set(src_to_dst_map.values()):
     raise ValueError('Method specs disagree!')
 
   num_dst_methods = 1 if di is not None else dst.spec.num_permitted_calls()
@@ -100,19 +110,21 @@ def _connect_m(parent, dst, src):
             num_src_methods, num_dst_methods))
 
   # connecting a bundle of methods
-  for port_name in dst.port_map.keys():
+  for src_port_name in src.port_map.keys():
+    dst_port_name = src_to_dst_map[src_port_name]
     # connecting entire bundles to entire bundles
     if di is None and si is None:
-      _connect_ports(parent, dst.port_map[port_name], src.port_map[port_name])
+      _connect_ports(parent, dst.port_map[dst_port_name],
+                     src.port_map[src_port_name])
     elif di is not None and si is None:
-      _connect_ports(parent, dst.port_map[port_name][di],
-                     src.port_map[port_name])
+      _connect_ports(parent, dst.port_map[dst_port_name][di],
+                     src.port_map[src_port_name])
     elif di is None and si is not None:
-      _connect_ports(parent, dst.port_map[port_name],
-                     src.port_map[port_name][si])
+      _connect_ports(parent, dst.port_map[dst_port_name],
+                     src.port_map[src_port_name][si])
     else:
-      _connect_ports(parent, dst.port_map[port_name][di],
-                     src.port_map[port_name][si])
+      _connect_ports(parent, dst.port_map[dst_port_name][di],
+                     src.port_map[src_port_name][si])
 
 
 def _connect_ports(model, source_port, target_port):
@@ -172,7 +184,7 @@ class Interface(object):
   but with the prefix 'prefix_' (note the underscore is added).
   """
 
-  def __init__(s, spec, bases=None, ordering_chains=None):
+  def __init__(s, spec, bases=None, requirements=None, ordering_chains=None):
     """Initialize the method map.
 
     Subclasses must call this!
@@ -240,7 +252,7 @@ class Interface(object):
 
     spec_dict = {method.name: method for method in spec}
     s.methods = OrderedDict([(name, spec_dict[name]) for name in order])
-    s.requirements = []
+    s.requirements = {method.name: method for method in requirements or []}
 
   @staticmethod
   def bypass_chain(action1, action2, action1_action2_bypass):
@@ -265,9 +277,9 @@ class Interface(object):
   def mangled_name(prefix, name, port_name):
     return '{}{}_{}'.format(prefix, name, port_name)
 
-  def _set_residual(s, target, prefix, name, spec, port_map):
+  def _set_residual(s, target, prefix, name, spec, port_map, direction):
     _safe_setattr(target, '{}{}'.format(prefix, name),
-                  ResidualMethodSpec(target, spec, port_map))
+                  ResidualMethodSpec(target, spec, port_map, direction))
 
   def _inject(s, target, prefix, name, spec, count, direction):
     if count is None:
@@ -280,14 +292,14 @@ class Interface(object):
 
     for port_name, port in port_map.iteritems():
       _safe_setattr(target, s.mangled_name(prefix, name, port_name), port)
-    s._set_residual(target, prefix, name, spec, port_map)
+    s._set_residual(target, prefix, name, spec, port_map, direction)
 
-  def _generate_residual_spec(s, target, prefix, name, spec):
+  def _generate_residual_spec(s, target, prefix, name, spec, direction):
     port_map = {}
     for port_name in spec.ports():
       mangled = s.mangled_name(prefix, name, port_name)
       port_map[port_name] = getattr(target, mangled)
-    s._set_residual(target, prefix, name, spec, port_map)
+    s._set_residual(target, prefix, name, spec, port_map, direction)
 
   def apply(s, target):
     """Binds incoming ports to the target
@@ -296,10 +308,12 @@ class Interface(object):
     """
     for name, spec in s.methods.iteritems():
       s._inject(target, '', name, spec, spec.count, MethodSpec.DIRECTION_CALLEE)
+    for name, spec in s.requirements.iteritems():
+      s._inject(target, '', name, spec, spec.count, MethodSpec.DIRECTION_CALLER)
 
     # bind a connect_m to the target
-    def connect_m(dst, src):
-      _connect_m(target, dst, src)
+    def connect_m(dst, src, src_to_dst_map=None):
+      _connect_m(target, dst, src, src_to_dst_map)
 
     _safe_setattr(target, 'connect_m', connect_m)
 
@@ -312,46 +326,14 @@ class Interface(object):
 
     _safe_setattr(target, 'call', call)
 
-  def require(s, target, prefix, name, count=None):
-    """Binds an outgoing port from this interface to the target
-
-    This method should be called by client models.
-    """
-    if len(prefix) > 0:
-      prefix = '{}_'.format(prefix)
-
-    assert name in s.methods
-
-    spec = s.methods[name]
-    # Should be possible to prevent over-allocation
-    # if available is None and count is None:
-    #   pass
-    # elif available is not None and count is None:
-    #   available -= 1
-    # elif count <= available:
-    #   available -= count
-    # else:
-    #   raise ValueError('No more ports for method left: {}'.format(name))
-    if count == -1:
-      count = spec.count
-    s._inject(target, prefix, name, spec, count, MethodSpec.DIRECTION_CALLER)
-    target.interface.requirements.append((prefix, name, spec, count))
-
   def embed(s, target):
     _safe_setattr(target, 'interface', s)
     for name, spec in s.methods.iteritems():
-      s._generate_residual_spec(target, '', name, spec)
-    for prefix, name, spec, _ in s.requirements:
-      s._generate_residual_spec(target, prefix, name, spec)
-
-  def export(s, export_mapping):
-    exported_methods = []
-    for source, target in export_mapping.iteritems():
-      method = deepcopy(s[source])
-      method.name = target
-      exported_methods.append(method)
-
-    return Interface(exported_methods)
+      s._generate_residual_spec(target, '', name, spec,
+                                MethodSpec.DIRECTION_CALLEE)
+    for name, spec in s.requirements.iteritems():
+      s._generate_residual_spec(target, '', name, spec,
+                                MethodSpec.DIRECTION_CALLER)
 
   def __getitem__(s, key):
     return s.methods[key]
