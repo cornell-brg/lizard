@@ -6,7 +6,7 @@ from util.fl.mux import MuxFL
 from util.cl.mux import MuxCL
 from test.config import test_verilog
 from model.wrapper import wrap_to_cl, wrap_to_rtl
-from model.test_model import run_parameterized_test_state_machine, ArgumentDependency, ArgumentStrategy
+from model.test_model import run_parameterized_test_state_machine, ArgumentDependency, ArgumentStrategy, MethodStrategy, init_strategy
 from model.cl2rtlwrapper import CL2RTLWrapper
 
 
@@ -48,15 +48,12 @@ def test_method(model):
   assert result.out == 0b0010
 
 
+class MuxStrategy(MethodStrategy):
+
+  @init_strategy(dtype=Bits, nports=int)
+  def __init__(s, dtype, nports):
+    s.mux = ArgumentStrategy(select=ArgumentStrategy.value_strategy(nports))
+
+
 def test_state_machine():
-  run_parameterized_test_state_machine(
-      Mux,
-      MuxFL,
-      init_args=ArgumentStrategy(dtype=Bits, nports=int),
-      argument_dependencies=[
-          ArgumentDependency(
-              method="mux",
-              arg="select",
-              strategy_func=
-              lambda nports: ArgumentStrategy.value_strategy(nports))
-      ])
+  run_parameterized_test_state_machine(Mux, MuxFL, MuxStrategy)
