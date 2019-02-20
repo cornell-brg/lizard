@@ -76,6 +76,8 @@ class TestStateMachine(GenericStateMachine):
     self.__rules_strategy = MethodBasedRuleStrategy(self)
     self.__stream = CUnicodeIO()
     self.__printer = RepresentationPrinter(self.__stream)
+    self.__rtl_pending = {}
+    self.__fl_pending = {}
 
   def _sim_cycle(self, method_line_trace=""):
     self.sim.cycle()
@@ -183,19 +185,51 @@ class TestStateMachine(GenericStateMachine):
       index = rule.index
 
       # First check if methods are ready
-      s_result = self._call_func(self.sim, method_name, data, index)
-      r_result = self._call_func(self.reference, method_name, data)
+      if self.release_cycle_accuracy:
+        if self.__rtl_pending.has_key(method_name):
+          assert not self.__fl_pending.has_key(method_name)
+          data, r_result = self.__rtl_pending[method_name]
+          s_result = self._call_func(self.sim, method_name, data, index)
+          del self.__rtl_pending[method_name]
+        elif self.__fl_pending.has_key(method_name):
+          assert not self.__rtl_pending.has_key(method_name)
+          data, s_result = self.__fl_pending[method_name]
+          r_result = self._call_func(self.reference, method_name, data, index)
+          del self.__fl_pending[method_name]
+        else:
+          s_result = self._call_func(self.sim, method_name, data, index)
+          r_result = self._call_func(self.reference, method_name, data)
 
-      if isinstance(s_result, NotReady):
-        if not isinstance(r_result, NotReady):
+        if isinstance(s_result, NotReady):
+          if not isinstance(r_result, NotReady):
+            self.__rtl_pending[method_name] = (data, r_result)
+            continue
+          continue
+
+        if isinstance(r_result, NotReady):
+          self.__fl_pending[method_name] = (data, s_result)
+          continue
+
+      else:
+        s_result = self._call_func(self.sim, method_name, data, index)
+        r_result = self._call_func(self.reference, method_name, data)
+
+        if isinstance(s_result, NotReady):
+          if not isinstance(r_result, NotReady):
+            if self.release_cycle_accuracy:
+              self.__rtl_pending_data[method_name] = data
+              continue
+            raise RunMethodTestError(
+                "Reference model is rdy but RTL model is not: {}".format(
+                    method_name))
+          continue
+
+        if isinstance(r_result, NotReady):
+          if self.release_cycle_accuracy:
+            self.__fl_pending_data[method_name] = data
+            continue
           raise RunMethodTestError(
-              "Reference model is rdy but RTL model is not: {}".format(
-                  method_name))
-        continue
-
-      if isinstance(r_result, NotReady):
-        raise RunMethodTestError(
-            "RTL model is rdy but Reference is not: {}".format(method_name))
+              "RTL model is rdy but Reference is not: {}".format(method_name))
 
       # Method ready, add to result list
       method_names += [method_name]
@@ -494,7 +528,8 @@ class TestModel(TestStateMachine):
                                  reference_class,
                                  parameters,
                                  argument_strategy={},
-                                 translate_model=False):
+                                 translate_model=False,
+                                 release_cycle_accuracy=False):
 
     if isinstance(parameters, dict):
       parameters_string = "_".join(
@@ -562,6 +597,7 @@ class TestModel(TestStateMachine):
 
     Test.sim = sim
     Test.reference = reference
+    Test.release_cycle_accuracy = release_cycle_accuracy
 
     return Test
 
@@ -579,70 +615,103 @@ def run_test_state_machine(rtl_class,
                            reference_class,
                            parameters,
                            translate_model=False,
-                           argument_strategy={}):
+                           argument_strategy={},
+                           release_cycle_accuracy=False):
   state_machine_factory = TestModel._create_test_state_machine(
       rtl_class,
       reference_class,
       parameters,
       translate_model=translate_model,
-      argument_strategy=argument_strategy)
+      argument_strategy=argument_strategy,
+      release_cycle_accuracy=release_cycle_accuracy)
   TestModel._run_state_machine(state_machine_factory)
+
+
+#-------------------------------------------------------------------------
+# init_strategy
+#-------------------------------------------------------------------------
+INIT_STRATEGY_MARKER = u'pymtl-method-based-init-strategy'
+
+
+def init_strategy(**kwargs):
+
+  def accept(f):
+    arg_list = kwargs
+
+    @st.composite
+    def parameter_strategy(draw):
+      parameters = {}
+      for key, arg in kwargs.iteritems():
+        # Type specified
+        if arg is Bits:
+          nbits = draw(st.integers(min_value=1, max_value=64))
+          parameters[key] = Bits(nbits)
+        elif arg is int:
+          value = draw(st.integers(min_value=1, max_value=64))
+          parameters[key] = value
+        elif arg is bool:
+          value = draw(st.booleans())
+          parameters[key] = value
+        elif isinstance(arg, SearchStrategy):
+          value = draw(parameter)
+          parameters[key] = value
+        elif isinstance(arg, int) or isinstance(arg, Bits) or isinstance(
+            arg, bool):
+          parameters[key] = arg
+        else:
+          raise TypeError("Unsupported parameter type")
+
+      return parameters
+
+    setattr(f, INIT_STRATEGY_MARKER, parameter_strategy)
+    return f
+
+  return accept
+
+
+#-------------------------------------------------------------------------
+# run_parameterized_test_state_machine
+#-------------------------------------------------------------------------
 
 
 def run_parameterized_test_state_machine(rtl_class,
                                          reference_class,
-                                         init_args=ArgumentStrategy(),
-                                         argument_dependencies=[]):
-  args, _, _, _ = inspect.getargspec(rtl_class.__init__)
-  arg_list = init_args.arguments
+                                         method_strategy_class,
+                                         translate_model=False,
+                                         release_cycle_accuracy=False):
 
-  @st.composite
-  def parameter_strategy(draw):
-    parameters = {}
-    for key in args[1:]:
-      # Type specified
-      arg = arg_list[key]
-      if arg is Bits:
-        nbits = draw(st.integers(min_value=1, max_value=64))
-        parameters[key] = Bits(nbits)
-      elif arg is int:
-        value = draw(st.integers(min_value=1, max_value=64))
-        parameters[key] = value
-      elif arg is bool:
-        value = draw(st.booleans())
-        parameters[key] = value
-      elif isinstance(arg, SearchStrategy):
-        value = draw(parameter)
-        parameters[key] = value
-      elif isinstance(arg, int) or isinstance(arg, Bits) or isinstance(
-          arg, bool):
-        parameters[key] = arg
-      else:
-        raise TypeError("Unsupported parameter type")
-
-    return parameters
+  parameter_strategy = getattr(method_strategy_class.__init__,
+                               INIT_STRATEGY_MARKER, None)
 
   @settings(deadline=None, max_examples=10)
   @given(parameter_strategy(), st.data())
   def run_multiple_state_machines(parameters, data):
     arguments = {}
-    for dep in argument_dependencies:
-      target = arguments.setdefault(dep.method, {})
-      args, _, _, _ = inspect.getargspec(dep.strategy_func)
-
-      if set(args) - set(parameters.keys()):
-        raise ValueError(""" 
+    args, _, _, _ = inspect.getargspec(method_strategy_class.__init__)
+    args = args[1:]
+    if set(args) - set(parameters.keys()):
+      raise ValueError(""" 
   Found arg in argument strategy function not in rtl model __init__ args!
     - strategy func: {strategy_func_arg}
     - rtl __init__ : {init_args}
-""".format(strategy_func_arg=list_string(args),
-           init_args=list_string(parameters.keys())))
+""".format(
+          strategy_func_arg=list_string(args),
+          init_args=list_string(parameters.keys())))
+    method_strategy = method_strategy_class(**parameters)
 
-      params = {k: parameters[k] for k in args}
-      target[dep.arg] = st.deferred(lambda: dep.strategy_func(**params))
+    for k, v in inspect.getmembers(method_strategy):
+      if isinstance(v, ArgumentStrategy):
+        target = arguments.setdefault(k, {})
+        for arg_name, strategy in v.arguments.iteritems():
+          target[arg_name] = st.deferred(lambda: strategy)
 
     state_machine_factory = TestModel._create_test_state_machine(
-        rtl_class, reference_class, parameters, arguments)
+        rtl_class,
+        reference_class,
+        parameters,
+        translate_model=translate_model,
+        argument_strategy=arguments,
+        release_cycle_accuracy=release_cycle_accuracy)
     TestModel._run_state_machine(state_machine_factory)
 
   run_multiple_state_machines()
