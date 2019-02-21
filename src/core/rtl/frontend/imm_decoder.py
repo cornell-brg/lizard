@@ -16,6 +16,8 @@ ImmType = bit_enum(
     ('IMM_TYPE_U', 'u'),
     ('IMM_TYPE_J', 'j'),
     ('IMM_TYPE_C', 'c'),
+    ('IMM_TYPE_SHAMT32', 's3'),
+    ('IMM_TYPE_SHAMT64', 's6'),
 )
 
 
@@ -56,6 +58,8 @@ class ImmDecoder(Model):
     s.imm_j = Wire(msg.j_imm3.nbits + msg.j_imm2.nbits + msg.j_imm1.nbits +
                    msg.j_imm0.nbits + 1)
     s.imm_c = Wire(msg.c_imm.nbits)
+    s.imm_shamt32 = Wire(msg.shamt32.nbits)
+    s.imm_shamt64 = Wire(msg.shamt64.nbits)
 
     @s.combinational
     def handle_imm():
@@ -68,6 +72,8 @@ class ImmDecoder(Model):
       s.imm_j.v = concat(s.decode_inst.j_imm3, s.decode_inst.j_imm2,
                          s.decode_inst.j_imm1, s.decode_inst.j_imm0, Bits(1, 0))
       s.imm_c.v = s.decode_inst.c_imm
+      s.imm_shamt32.v = s.decode_inst.shamt32
+      s.imm_shamt64.v = s.decode_inst.shamt64
 
       s.mux.mux_in_[ImmType.IMM_TYPE_I].v = sext(s.imm_i, imm_len)
       s.mux.mux_in_[ImmType.IMM_TYPE_S].v = sext(s.imm_s, imm_len)
@@ -75,6 +81,8 @@ class ImmDecoder(Model):
       s.mux.mux_in_[ImmType.IMM_TYPE_U].v = sext(s.imm_u, imm_len)
       s.mux.mux_in_[ImmType.IMM_TYPE_J].v = sext(s.imm_j, imm_len)
       s.mux.mux_in_[ImmType.IMM_TYPE_C].v = zext(s.imm_c, imm_len)
+      s.mux.mux_in_[ImmType.IMM_TYPE_SHAMT32].v = zext(s.imm_shamt32, imm_len)
+      s.mux.mux_in_[ImmType.IMM_TYPE_SHAMT64].v = zext(s.imm_shamt64, imm_len)
 
     s.connect(s.mux.mux_select, s.decode_type_)
     s.connect(s.decode_imm, s.mux.mux_out)
