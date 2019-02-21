@@ -9,10 +9,12 @@ from core.rtl.frontend.imm_decoder import ImmType
 class AluDecoderInterface(Interface):
 
   def __init__(s):
-    super(AluDecoderInterface, s).__init__([],
-                                           bases=[
-                                               IncludeAll(SubDecoder(AluMsg())),
-                                           ])
+    super(AluDecoderInterface, s).__init__(
+        [],
+        bases=[
+            IncludeAll(SubDecoder(AluMsg())),
+        ],
+    )
 
 
 class AluDecoder(Model):
