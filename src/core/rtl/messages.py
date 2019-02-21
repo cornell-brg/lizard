@@ -2,6 +2,7 @@ from pymtl import *
 from config.general import *
 from bitutil import clog2, bit_enum
 from bitutil.bit_struct_generator import *
+from msg.codes import RVInstMask
 
 from core.rtl.micro_op import MicroOp
 
@@ -84,7 +85,6 @@ BackendGroup = Group(
 def AluMsg():
   return [
       Field('func', AluFunc.bits),
-      Field('is_imm', 1),
       Field('op32', 1),
       Field('unsigned', 1),
   ]
@@ -102,9 +102,40 @@ ExecutionDataGroup = Group(
 
 
 @bit_struct_generator
+def InstMsg():
+  return SlicedStruct(
+      ILEN,
+      opcode=RVInstMask.OPCODE,
+      funct3=RVInstMask.FUNCT3,
+      funct7=RVInstMask.FUNCT7,
+      funct7_shft64=RVInstMask.FUNCT7_SHFT64,
+      rd=RVInstMask.RD,
+      rs1=RVInstMask.RS1,
+      rs2=RVInstMask.RS2,
+      shamt32=RVInstMask.SHAMT32,
+      shamt64=RVInstMask.SHAMT64,
+      i_imm=RVInstMask.I_IMM,
+      s_imm0=RVInstMask.S_IMM0,
+      s_imm1=RVInstMask.S_IMM1,
+      b_imm0=RVInstMask.B_IMM0,
+      b_imm1=RVInstMask.B_IMM1,
+      b_imm2=RVInstMask.B_IMM2,
+      b_imm3=RVInstMask.B_IMM3,
+      u_imm=RVInstMask.U_IMM,
+      j_imm0=RVInstMask.J_IMM0,
+      j_imm1=RVInstMask.J_IMM1,
+      j_imm2=RVInstMask.J_IMM2,
+      j_imm3=RVInstMask.J_IMM3,
+      csrnum=RVInstMask.CSRNUM,
+      c_imm=RVInstMask.C_IMM,
+      fence_upper=RVInstMask.FENCE_UPPER,
+  )
+
+
+@bit_struct_generator
 def FetchPayload():
   return [
-      Field('inst', ILEN),
+      Field('inst', InstMsg()),
       Field('pc_succ', XLEN),
   ]
 

@@ -5,8 +5,7 @@ from util.rtl.method import MethodSpec
 from bitutil import bit_enum
 from bitutil import total_slice_len as sl
 from util.rtl.mux import Mux
-from config.general import ILEN
-from msg.codes import RVInstMask
+from core.rtl.messages import InstMsg
 
 ImmType = bit_enum(
     'ImmType',
@@ -16,6 +15,7 @@ ImmType = bit_enum(
     ('IMM_TYPE_B', 'b'),
     ('IMM_TYPE_U', 'u'),
     ('IMM_TYPE_J', 'j'),
+    ('IMM_TYPE_C', 'c'),
 )
 
 
@@ -27,7 +27,7 @@ class ImmDecoderInterface(Interface):
         MethodSpec(
             'decode',
             args={
-                'inst': Bits(ILEN),
+                'inst': InstMsg(),
                 'type_': Bits(ImmType.bits),
             },
             rets={
@@ -47,37 +47,34 @@ class ImmDecoder(Model):
 
     s.mux = Mux(Bits(imm_len), ImmType.size)
 
-    s.imm_i = Wire(sl(RVInstMask.I_IMM))
-    s.imm_s = Wire(sl(RVInstMask.S_IMM1, RVInstMask.S_IMM0))
-    s.imm_b = Wire(
-        sl(RVInstMask.B_IMM3, RVInstMask.B_IMM2, RVInstMask.B_IMM1, RVInstMask
-           .B_IMM0) + 1)
-    s.imm_u = Wire(sl(RVInstMask.U_IMM))
-    s.imm_j = Wire(
-        sl(RVInstMask.J_IMM3, RVInstMask.J_IMM2, RVInstMask.J_IMM1, RVInstMask
-           .J_IMM0) + 1)
+    msg = InstMsg()
+    s.imm_i = Wire(msg.i_imm.nbits)
+    s.imm_s = Wire(msg.s_imm1.nbits + msg.s_imm0.nbits)
+    s.imm_b = Wire(msg.b_imm3.nbits + msg.b_imm2.nbits + msg.b_imm1.nbits +
+                   msg.b_imm0.nbits + 1)
+    s.imm_u = Wire(msg.u_imm.nbits)
+    s.imm_j = Wire(msg.j_imm3.nbits + msg.j_imm2.nbits + msg.j_imm1.nbits +
+                   msg.j_imm0.nbits + 1)
+    s.imm_c = Wire(msg.c_imm.nbits)
 
     @s.combinational
     def handle_imm():
-      s.imm_i.v = s.decode_inst[RVInstMask.I_IMM]
-      s.imm_s.v = concat(s.decode_inst[RVInstMask.S_IMM1],
-                         s.decode_inst[RVInstMask.S_IMM0])
+      s.imm_i.v = s.decode_inst.i_imm
+      s.imm_s.v = concat(s.decode_inst.s_imm1, s.decode_inst.s_imm0)
       s.imm_b.v = (
-          concat(s.decode_inst[RVInstMask.B_IMM3],
-                 s.decode_inst[RVInstMask.B_IMM2],
-                 s.decode_inst[RVInstMask.B_IMM1],
-                 s.decode_inst[RVInstMask.B_IMM0], Bits(1, 0)))
-      s.imm_u.v = s.decode_inst[RVInstMask.U_IMM]
-      s.imm_j.v = concat(
-          s.decode_inst[RVInstMask.J_IMM3], s.decode_inst[RVInstMask.J_IMM2],
-          s.decode_inst[RVInstMask.J_IMM1], s.decode_inst[RVInstMask.J_IMM0],
-          Bits(1, 0))
+          concat(s.decode_inst.b_imm3, s.decode_inst.b_imm2,
+                 s.decode_inst.b_imm1, s.decode_inst.b_imm0, Bits(1, 0)))
+      s.imm_u.v = s.decode_inst.u_imm
+      s.imm_j.v = concat(s.decode_inst.j_imm3, s.decode_inst.j_imm2,
+                         s.decode_inst.j_imm1, s.decode_inst.j_imm0, Bits(1, 0))
+      s.imm_c.v = s.decode_inst.c_imm
 
       s.mux.mux_in_[ImmType.IMM_TYPE_I].v = sext(s.imm_i, imm_len)
       s.mux.mux_in_[ImmType.IMM_TYPE_S].v = sext(s.imm_s, imm_len)
       s.mux.mux_in_[ImmType.IMM_TYPE_B].v = sext(s.imm_b, imm_len)
       s.mux.mux_in_[ImmType.IMM_TYPE_U].v = sext(s.imm_u, imm_len)
       s.mux.mux_in_[ImmType.IMM_TYPE_J].v = sext(s.imm_j, imm_len)
+      s.mux.mux_in_[ImmType.IMM_TYPE_C].v = zext(s.imm_c, imm_len)
 
     s.connect(s.mux.mux_select, s.decode_type_)
     s.connect(s.decode_imm, s.mux.mux_out)
