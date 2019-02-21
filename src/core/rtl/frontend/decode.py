@@ -11,7 +11,7 @@ from core.rtl.frontend.imm_decoder import ImmDecoderInterface, ImmDecoder
 
 class DecodeInterface(Interface):
 
-  def __init__(s, dlen, ilen, imm_len):
+  def __init__(s, dlen, ilen, imm_len, fetch_interface, cflow_interface):
     s.DataLen = dlen
     s.InstLen = ilen
     s.ImmLen = imm_len
@@ -27,37 +27,26 @@ class DecodeInterface(Interface):
                 rdy=True,
             ),
         ],
-        ordering_chains=[
-            [],
+        requirements=[
+            fetch_interface['get'].prefix('fetch'),
+            cflow_interface['check_redirect'],
         ],
     )
 
 
 class Decode(Model):
 
-  def __init__(s, decode_interface, fetch_interface, cflow_interface):
+  def __init__(s, decode_interface):
     UseInterface(s, decode_interface)
     xlen = s.interface.DataLen
     ilen = s.interface.InstLen
     imm_len = s.interface.ImmLen
 
-    s.fetch = fetch_interface
-    s.fetch.require(s, 'fetch', 'get')
-
-    s.cflow = cflow_interface
-    s.cflow.require(s, 'cflow', 'check_redirect')
-
     s.imm_decoder = ImmDecoder(ImmDecoderInterface(imm_len))
 
-    # Outgoing pipeline register
-    s.decmsg_val_ = Register(RegisterInterface(Bits(1), False), reset_value=0)
-    s.decmsg_ = Wire(DecodeMsg())
-
-    s.dec_ = Wire(DecodeMsg())
-    s.rdy_ = Wire(1)
-    s.accepted_ = Wire(1)
-    s.msg_ = Wire(FetchMsg())
-    s.inst_ = Wire(Bits(ilen))
+    s.decode_val = Register(
+        RegisterInterface(Bits(1), True, False), reset_value=0)
+    s.decode_msg = Register(RegisterInterface(DecodeMsg(), True, False))
 
     s.dec_fail_ = Wire(1)
 
@@ -122,7 +111,7 @@ class Decode(Model):
     def set_valreg():
       s.decmsg_val_.in_.v = s.accepted_ or (s.decmsg_val_.out and
                                             not s.get_call)
-      s.get_rdy.v = s.decmsg_val_.out if not s.cflow_check_redirect_redirect else 0
+      s.get_rdy.v = s.decmsg_val_.out if not s.check_redirect_redirect else 0
 
     @s.combinational
     def decode():
@@ -279,120 +268,6 @@ class Decode(Model):
     # Handle the annoying funct7_shift case
     s.func7_shft_ = Wire(s.inst_[RVInstMask.FUNCT7_SHFT64].nbits)
     s.connect(s.func7_shft_, s.inst_[RVInstMask.FUNCT7_SHFT64])
-
-    @s.combinational
-    def decode_op_imm():
-      s.dec_opimm_fail_.v = 0
-      if s.func3_ == 0b000:
-        s.uop_opimm_.v = MicroOp.UOP_ADDI
-      elif s.func3_ == 0b010:
-        s.uop_opimm_.v = MicroOp.UOP_SLTI
-      elif s.func3_ == 0b011:
-        s.uop_opimm_.v = MicroOp.UOP_SLTIU
-      elif s.func3_ == 0b100:
-        s.uop_opimm_.v = MicroOp.UOP_XORI
-      elif s.func3_ == 0b110:
-        s.uop_opimm_.v = MicroOp.UOP_ORI
-      elif s.func3_ == 0b111:
-        s.uop_opimm_.v = MicroOp.UOP_ANDI
-      elif s.func3_ == 0b001 and s.func7_shft_ == 0:
-        s.uop_opimm_.v = MicroOp.UOP_SLLI
-      elif s.func3_ == 0b101 and s.func7_shft_ == 0:
-        s.uop_opimm_.v = MicroOp.UOP_SRLI
-      elif s.func3_ == 0b101 and s.func7_shft_ == 0b010000:
-        s.uop_opimm_.v = MicroOp.UOP_SRAI
-      else:  # Illegal
-        s.uop_opimm_.v = 0
-        s.dec_opimm_fail_.v = 1
-
-    @s.combinational
-    def decode_op_imm32():
-      s.dec_opimm32_fail_.v = 0
-      if s.func3_ == 0b000:
-        s.uop_opimm32_.v = MicroOp.UOP_ADDIW
-      elif s.func3_ == 0b001 and s.func7_ == 0:
-        s.uop_opimm32_.v = MicroOp.UOP_SLLIW
-      elif s.func3_ == 0b101 and s.func7_ == 0:
-        s.uop_opimm32_.v = MicroOp.UOP_SRLIW
-      elif s.func3_ == 0b101 and s.func7_ == 0b0100000:
-        s.uop_opimm32_.v = MicroOp.UOP_SRAIW
-      else:  # Illegal
-        s.uop_opimm32_.v = 0
-        s.dec_opimm32_fail_.v = 1
-
-    @s.combinational
-    def decode_op_32():
-      s.dec_op_32_fail_.v = 0
-      # Pick the correct execution pipe:
-      s.pipe_op_.v = ExecPipe.MULDIV_PIPE if s.func7_ == 0b1 else ExecPipe.ALU_PIPE
-      if s.func3_ == 0b000 and s.func7_ == 0:
-        s.uop_op_32_.v = MicroOp.UOP_ADDW
-      elif s.func3_ == 0b000 and s.func7_ == 0b0100000:
-        s.uop_op_32_.v = MicroOp.UOP_SUBW
-      elif s.func3_ == 0b001 and s.func7_ == 0:
-        s.uop_op_32_.v = MicroOp.UOP_SLLW
-      elif s.func3_ == 0b101 and s.func7_ == 0:
-        s.uop_op_32_.v = MicroOp.UOP_SRLW
-      elif s.func3_ == 0b101 and s.func7_ == 0b0100000:
-        s.uop_op_32_.v = MicroOp.UOP_SRAW
-      elif s.func3_ == 0b000 and s.func7_ == 0b1:
-        s.uop_op_32_.v = MicroOp.UOP_MULW
-      elif s.func3_ == 0b100 and s.func7_ == 0b1:
-        s.uop_op_32_.v = MicroOp.UOP_DIVW
-      elif s.func3_ == 0b101 and s.func7_ == 0b1:
-        s.uop_op_32_.v = MicroOp.UOP_DIVUW
-      elif s.func3_ == 0b110 and s.func7_ == 0b1:
-        s.uop_op_32_.v = MicroOp.UOP_REMW
-      elif s.func3_ == 0b111 and s.func7_ == 0b1:
-        s.uop_op_32_.v = MicroOp.UOP_REMUW
-      else:  # Illegal
-        s.uop_op_32_.v = 0
-        s.dec_op_32_fail_.v = 1
-
-    @s.combinational
-    def decode_op():
-      s.dec_op_fail_.v = 0
-      # Pick the correct execution pipe:
-      s.pipe_op_.v = ExecPipe.MULDIV_PIPE if s.func7_ == 0b1 else ExecPipe.ALU_PIPE
-      if s.func3_ == 0b000 and s.func7_ == 0:
-        s.uop_op_.v = MicroOp.UOP_ADD
-      elif s.func3_ == 0b000 and s.func7_ == 0b0100000:
-        s.uop_op_.v = MicroOp.UOP_SUB
-      elif s.func3_ == 0b001 and s.func7_ == 0:
-        s.uop_op_.v = MicroOp.UOP_SLL
-      elif s.func3_ == 0b010 and s.func7_ == 0:
-        s.uop_op_.v = MicroOp.UOP_SLT
-      elif s.func3_ == 0b011 and s.func7_ == 0:
-        s.uop_op_.v = MicroOp.UOP_SLTU
-      elif s.func3_ == 0b100 and s.func7_ == 0:
-        s.uop_op_.v = MicroOp.UOP_XOR
-      elif s.func3_ == 0b101 and s.func7_ == 0:
-        s.uop_op_.v = MicroOp.UOP_SRL
-      elif s.func3_ == 0b101 and s.func7_ == 0b0100000:
-        s.uop_op_.v = MicroOp.UOP_SRA
-      elif s.func3_ == 0b110 and s.func7_ == 0:
-        s.uop_op_.v = MicroOp.UOP_OR
-      elif s.func3_ == 0b111 and s.func7_ == 0:
-        s.uop_op_.v = MicroOp.UOP_AND
-      elif s.func3_ == 0b000 and s.func7_ == 0b1:
-        s.uop_op_.v = MicroOp.UOP_MUL
-      elif s.func3_ == 0b001 and s.func7_ == 0b1:
-        s.uop_op_.v = MicroOp.UOP_MULH
-      elif s.func3_ == 0b010 and s.func7_ == 0b1:
-        s.uop_op_.v = MicroOp.UOP_MULHSU
-      elif s.func3_ == 0b011 and s.func7_ == 0b1:
-        s.uop_op_.v = MicroOp.UOP_MULHU
-      elif s.func3_ == 0b100 and s.func7_ == 0b1:
-        s.uop_op_.v = MicroOp.UOP_DIV
-      elif s.func3_ == 0b101 and s.func7_ == 0b1:
-        s.uop_op_.v = MicroOp.UOP_DIVU
-      elif s.func3_ == 0b110 and s.func7_ == 0b1:
-        s.uop_op_.v = MicroOp.UOP_REM
-      elif s.func3_ == 0b111 and s.func7_ == 0b1:
-        s.uop_op_.v = MicroOp.UOP_REMU
-      else:  # Illegal
-        s.uop_op_.v = 0
-        s.dec_op_fail_.v = 1
 
     @s.combinational
     def decode_load():

@@ -14,6 +14,7 @@ class ImmDecoderFL(FLModel):
       int(ImmType.IMM_TYPE_B): "b_imm",
       int(ImmType.IMM_TYPE_U): "u_imm",
       int(ImmType.IMM_TYPE_J): "j_imm",
+      int(ImmType.IMM_TYPE_C): "c_imm",
   }
 
   @HardwareModel.validate
@@ -24,4 +25,9 @@ class ImmDecoderFL(FLModel):
     def decode(inst, type_):
       inst = Bits(ILEN, inst)
       diss = rv64g.fields[s.field_map[type_]].disassemble(inst)
-      return sext(diss, s.interface.decoded_length)
+
+      extension = sext
+      if type_ == ImmType.IMM_TYPE_C:
+        extension = zext
+
+      return extension(diss, s.interface.decoded_length)

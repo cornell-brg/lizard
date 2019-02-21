@@ -1,5 +1,6 @@
 from pymtl import *
 from util.rtl.types import Array, canonicalize_type, type_str
+from copy import deepcopy
 
 
 def canonicalize_method_spec(spec):
@@ -108,6 +109,11 @@ class MethodSpec(object):
       return 1
     else:
       return self.count
+
+  def prefix(self, prefix):
+    result = deepcopy(self)
+    result.name = '{}_{}'.format(prefix, result.name)
+    return result
 
   @staticmethod
   def str_spec_dict(spec_dict):

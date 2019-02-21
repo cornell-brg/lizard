@@ -15,7 +15,6 @@ class RVInstMask:
   SHAMT64 = slice(20, 26)
 
   I_IMM = slice(20, 32)
-  CSRNUM = slice(20, 32)
   S_IMM0 = slice(7, 12)
   S_IMM1 = slice(25, 32)
 
@@ -30,6 +29,9 @@ class RVInstMask:
   J_IMM1 = slice(20, 21)
   J_IMM2 = slice(12, 20)
   J_IMM3 = slice(31, 32)
+
+  CSRNUM = slice(20, 32)
+  C_IMM = slice(15, 20)
 
   FENCE_UPPER = slice(28, 32)
 

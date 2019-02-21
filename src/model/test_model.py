@@ -411,10 +411,11 @@ class ArgumentStrategy(object):
 
     @st.composite
     def strategy(draw):
-      new_bitstruct = create_test_bitstruct(bitstruct)()
+      new_bitstruct = bitstruct()
       for name, slice_ in type(bitstruct)._bitfields.iteritems():
         if not name in kwargs.keys():
-          data = draw(bits_strategy(slice_.stop - slice_.start))
+          data = draw(
+              ArgumentStrategy.bits_strategy(slice_.stop - slice_.start))
         else:
           data = draw(kwargs[name])
         exec ("new_bitstruct.{} = data".format(name)) in locals()

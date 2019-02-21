@@ -2,6 +2,7 @@ from pymtl import *
 import abc
 from functools import wraps
 from collections import OrderedDict
+from bitutil import slice_len
 
 
 def _escape(string):
@@ -134,6 +135,12 @@ def Field(name, type_):
     )
   else:
     raise ValueError('Unknown field type: {}'.format(type(type_)))
+
+
+def SlicedStruct(width, **kwargs):
+  return ExplicitStructDefinition(width,
+                                  [(name, slice_.start, slice_len(slice_))
+                                   for name, slice_ in kwargs.iteritems()])
 
 
 def bit_struct_generator(func):
