@@ -15,6 +15,8 @@ class ImmDecoderFL(FLModel):
       int(ImmType.IMM_TYPE_U): "u_imm",
       int(ImmType.IMM_TYPE_J): "j_imm",
       int(ImmType.IMM_TYPE_C): "c_imm",
+      int(ImmType.IMM_TYPE_SHAMT32): "shamt32",
+      int(ImmType.IMM_TYPE_SHAMT64): "shamt64",
   }
 
   @HardwareModel.validate
@@ -27,7 +29,7 @@ class ImmDecoderFL(FLModel):
       diss = rv64g.fields[s.field_map[type_]].disassemble(inst)
 
       extension = sext
-      if type_ == ImmType.IMM_TYPE_C:
+      if type_ == ImmType.IMM_TYPE_C or type_ == ImmType.IMM_TYPE_SHAMT32 or type_ == ImmType.IMM_TYPE_SHAMT64:
         extension = zext
 
       return extension(diss, s.interface.decoded_length)
