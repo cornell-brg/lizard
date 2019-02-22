@@ -654,11 +654,18 @@ def init_strategy(**kwargs):
           value = draw(st.booleans())
           parameters[key] = value
         elif isinstance(arg, SearchStrategy):
-          value = draw(parameter)
+          value = draw(arg)
           parameters[key] = value
         elif isinstance(arg, int) or isinstance(arg, Bits) or isinstance(
             arg, bool):
           parameters[key] = arg
+        elif callable(arg):
+          args, _, _, _ = inspect.getargspec(arg)
+          arg_dict = {}
+          for a in args:
+            arg_dict[a] = parameters[a]
+          value = draw(arg(**arg_dict))
+          parameters[key] = value
         else:
           raise TypeError("Unsupported parameter type")
 
@@ -704,8 +711,8 @@ def run_parameterized_test_state_machine(rtl_class,
       if isinstance(v, ArgumentStrategy):
         target = arguments.setdefault(k, {})
         for arg_name, strategy in v.arguments.iteritems():
-          target[arg_name] = st.deferred(lambda: strategy)
-
+          target[arg_name] = st.deferred(lambda s=strategy: s)
+    print arguments
     state_machine_factory = TestModel._create_test_state_machine(
         rtl_class,
         reference_class,

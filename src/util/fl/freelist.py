@@ -37,7 +37,6 @@ class FreeListFL(FLModel):
 
     @s.ready_method
     def alloc():
-      print(s.bits)
       return s.bits != 0
 
     @s.model_method
