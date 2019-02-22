@@ -20,7 +20,7 @@ class SnapshottingFreeListFL(FLModel):
                                       nsnapshots))
 
     s.nslots = nslots
-    s.zero_snapshot = [Bits(nslots) for _ in range(nslots)]
+    s.zero_snapshot = [Bits(nslots) for _ in range(nsnapshots)]
     s.nsnapshots = nsnapshots
 
     s.state(
@@ -53,7 +53,7 @@ class SnapshottingFreeListFL(FLModel):
 
     @s.model_method
     def reset_alloc_tracking(target_id):
-      s.snapshots[target_id] = copy_bits(s.zero_snapshot)
+      s.snapshots[target_id] = copy_bits(s.zero_snapshot[0])
 
     @s.model_method
     def revert_allocs(source_id):
