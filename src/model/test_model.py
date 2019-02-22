@@ -662,7 +662,14 @@ def init_strategy(**kwargs):
         elif callable(arg):
           args, _, _, _ = inspect.getargspec(arg)
           arg_dict = {}
+          parameter_keys = parameters.keys()
           for a in args:
+            if not a in parameter_keys:
+              raise ValueError("""
+  Init parameter strategy can only depend on parameters defined previously!
+    - defined parameters: {parameter_keys}
+    - found: {parameter}
+""".format(parameter_keys=list_string(parameter_keys), parameter=a))
             arg_dict[a] = parameters[a]
           value = draw(arg(**arg_dict))
           parameters[key] = value
@@ -695,16 +702,28 @@ def run_parameterized_test_state_machine(rtl_class,
   @given(parameter_strategy(), st.data())
   def run_multiple_state_machines(parameters, data):
     arguments = {}
-    args, _, _, _ = inspect.getargspec(method_strategy_class.__init__)
-    args = args[1:]
-    if set(args) - set(parameters.keys()):
+
+    init_args, _, _, default = inspect.getargspec(rtl_class.__init__)
+    init_args = init_args[1:len(init_args) - len(default)]
+    if set(init_args) - set(parameters.keys()):
       raise ValueError(""" 
-  Found arg in argument strategy function not in rtl model __init__ args!
-    - strategy func: {strategy_func_arg}
+  Found arg in rtl model __init__ args not int init_strategy!
+    - init_strategy: {strategy_func_arg}
     - rtl __init__ : {init_args}
 """.format(
+          strategy_func_arg=list_string(parameters.keys()),
+          init_args=list_string(init_args)))
+
+    args, _, _, _ = inspect.getargspec(method_strategy_class.__init__)
+    args = args[1:]
+    if set(init_args) - set(args):
+      raise ValueError(""" 
+  Found arg in rtl model __init__ args not int method_strategy class __init__!
+    - method_strategy: {strategy_func_arg}
+    - rtl model      : {init_args}
+""".format(
           strategy_func_arg=list_string(args),
-          init_args=list_string(parameters.keys())))
+          init_args=list_string(init_args)))
     method_strategy = method_strategy_class(**parameters)
 
     for k, v in inspect.getmembers(method_strategy):
@@ -712,7 +731,6 @@ def run_parameterized_test_state_machine(rtl_class,
         target = arguments.setdefault(k, {})
         for arg_name, strategy in v.arguments.iteritems():
           target[arg_name] = st.deferred(lambda s=strategy: s)
-    print arguments
     state_machine_factory = TestModel._create_test_state_machine(
         rtl_class,
         reference_class,
