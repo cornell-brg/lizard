@@ -211,11 +211,6 @@ def bit_struct_generator(func):
       # top.export() returns a tuple which will have parens around it
       s._instantiate = '_regen_type({})'.format(top.export())
 
-      def __getitem__(s, name):
-        return s._bitfields[name]
-
-      s.__getitem__ = __getitem__
-
     bitstruct_class.__init__ = gen_init
 
     bitstruct_inst = bitstruct_class()

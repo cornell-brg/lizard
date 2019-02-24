@@ -74,7 +74,7 @@ class And(Model):
 
         @s.combinational
         def next(i=i, j=i - 1):
-          s.partials[i] = s.op_in_[i] and s.partials[j]
+          s.partials[i].v = s.op_in_[i] and s.partials[j]
 
     s.connect(s.op_out, s.partials[-1])
 

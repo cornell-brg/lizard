@@ -1,5 +1,5 @@
 from pymtl import *
-from util.rtl.interface import Interface, IncludeAll
+from util.rtl.interface import Interface, IncludeAll, UseInterface
 from util.rtl.method import MethodSpec
 from core.rtl.frontend.imm_decoder import ImmType
 from core.rtl.messages import OpClass, PipeMsg
@@ -18,11 +18,11 @@ class SubDecoderInterface(Interface):
             },
             rets={
                 'success': Bits(1),
-                'rs1_valid': Bits(1),
-                'rs2_valid': Bits(1),
-                'rd_valid': Bits(1),
+                'rs1_val': Bits(1),
+                'rs2_val': Bits(1),
+                'rd_val': Bits(1),
                 'imm_type': Bits(ImmType.bits),
-                'imm_valid': Bits(1),
+                'imm_val': Bits(1),
                 'op_class': OpClass.bits,
                 'result': PipeMsg(),
             },
@@ -53,7 +53,7 @@ class CompositeDecoderInterface(Interface):
   def __init__(s, nchildren):
     sub_decoder = SubDecoderInterface()
     s.nchildren = nchildren
-    super(BinaryCompositeDecoderInterface, s).__init__(
+    super(CompositeDecoderInterface, s).__init__(
         [],
         bases=[
             IncludeAll(sub_decoder),
@@ -76,20 +76,20 @@ class BinaryCompositeDecoder(Model):
     def pick():
       if s.decode_a_success:
         s.decode_success.v = s.decode_a_success
-        s.decode_rs1_valid.v = s.decode_a_rs1_valid
-        s.decode_rs2_valid.v = s.decode_a_rs2_valid
-        s.decode_rd_valid.v = s.decode_a_rd_valid
+        s.decode_rs1_val.v = s.decode_a_rs1_val
+        s.decode_rs2_val.v = s.decode_a_rs2_val
+        s.decode_rd_val.v = s.decode_a_rd_val
         s.decode_imm_type.v = s.decode_a_imm_type
-        s.decode_imm_valid.v = s.decode_a_imm_valid
+        s.decode_imm_val.v = s.decode_a_imm_val
         s.decode_op_class.v = s.decode_a_op_class
         s.decode_result.v = s.decode_a_result
       else:
         s.decode_success.v = s.decode_b_success
-        s.decode_rs1_valid.v = s.decode_b_rs1_valid
-        s.decode_rs2_valid.v = s.decode_b_rs2_valid
-        s.decode_rd_valid.v = s.decode_b_rd_valid
+        s.decode_rs1_val.v = s.decode_b_rs1_val
+        s.decode_rs2_val.v = s.decode_b_rs2_val
+        s.decode_rd_val.v = s.decode_b_rd_val
         s.decode_imm_type.v = s.decode_b_imm_type
-        s.decode_imm_valid.v = s.decode_b_imm_valid
+        s.decode_imm_val.v = s.decode_b_imm_val
         s.decode_op_class.v = s.decode_b_op_class
         s.decode_result.v = s.decode_b_result
 
