@@ -350,4 +350,6 @@ class Interface(object):
       return result
 
   def __str__(s):
-    return '; '.join(str(method) for method in s.methods.values())
+    return '[methods: {} requirments: {}]'.format(
+        '; '.join(str(method) for method in s.methods.values()), '; '.join(
+            str(method) for method in s.requirements.values()))
