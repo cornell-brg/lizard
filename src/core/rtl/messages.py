@@ -31,10 +31,12 @@ AluFunc = bit_enum(
     ('ALU_FUNC_ADD', 'ad'),
     ('ALU_FUNC_SUB', 'sb'),
     ('ALU_FUNC_SLL', 'sl'),
+    ('ALU_FUNC_SLT', 'lt'),
+    ('ALU_FUNC_XOR', 'xo'),
     ('ALU_FUNC_SRL', 'sr'),
     ('ALU_FUNC_SRA', 'sa'),
-    ('ALU_FUNC_LUI', 'lu'),
-    ('ALU_FUNC_AUIPC', 'pc'),
+    ('ALU_FUNC_OR', 'or'),
+    ('ALU_FUNC_AND', 'an'),
 )
 
 
@@ -90,14 +92,21 @@ def AluMsg():
   ]
 
 
+@bit_struct_generator
+def PipeMsg():
+  return [
+      Union(
+          'pipe_msg',
+          Field('alu_msg', AluMsg()),
+      ),
+  ]
+
+
 ExecutionDataGroup = Group(
     'execution_data',
     ValidValuePair('imm', DECODED_IMM_LEN),
     Field('op_class', OpClass.bits),
-    Union(
-        'pipe_msg',
-        Field('alu_msg', AluMsg()),
-    ),
+    Inline('pipe_specific_msg', PipeMsg()),
 )
 
 

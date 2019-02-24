@@ -115,6 +115,12 @@ class MethodSpec(object):
     result.name = '{}_{}'.format(prefix, result.name)
     return result
 
+  def variant(self, name=None, count=None):
+    result = deepcopy(self)
+    result.name = name or result.name
+    result.count = count or result.count
+    return result
+
   @staticmethod
   def str_spec_dict(spec_dict):
     temp = [
