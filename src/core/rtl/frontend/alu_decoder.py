@@ -6,79 +6,9 @@ from util.rtl.lookup_table import LookupTableInterface, LookupTable
 from util.rtl.logic import BinaryComparatorInterface, LogicOperatorInterface, Equals, And
 from util.rtl.case_mux import case_mux
 from core.rtl.messages import AluMsg, OpClass, AluFunc, InstMsg, PipeMsg
-from core.rtl.frontend.sub_decoder import SubDecoderInterface, CompositeDecoder, CompositeDecoderInterface
+from core.rtl.frontend.sub_decoder import SubDecoderInterface, CompositeDecoder, CompositeDecoderInterface, GenDecoder
 from core.rtl.frontend.imm_decoder import ImmType
 from msg.codes import Opcode
-
-
-class GenDecoder(Model):
-
-  def __init__(s,
-               op_class,
-               result_field,
-               fixed_map,
-               field_list,
-               field_map,
-               rs1_val=0,
-               rs2_val=0,
-               rd_val=0,
-               imm_type=0,
-               imm_val=0):
-    UseInterface(s, SubDecoderInterface())
-
-    msg = InstMsg()
-    width = sum(
-        [slice_len(msg._bitfields[field_name]) for field_name in field_list])
-    merged_field_map = {}
-    for values, output in field_map.iteritems():
-      if not isinstance(values, tuple):
-        values = (values,)
-      merged_value = Bits(width)
-      base = 0
-      for field_name, value in zip(field_list, values):
-        end = base + slice_len(msg._bitfields[field_name])
-        merged_value[base:end] = value
-        base = end
-      merged_field_map[merged_value] = output
-
-    result_field_slice = PipeMsg()._bitfields[result_field]
-    Kind = Bits(slice_len(result_field_slice))
-    s.lut = LookupTable(LookupTableInterface(width, Kind), merged_field_map)
-
-    base = 0
-    for field_name in field_list:
-      end = base + slice_len(msg._bitfields[field_name])
-      s.connect(s.lut.lookup_in_[base:end],
-                s.decode_inst[msg._bitfields[field_name]])
-      base = end
-
-    s.connect(s.decode_rs1_val, rs1_val)
-    s.connect(s.decode_rs2_val, rs2_val)
-    s.connect(s.decode_rd_val, rd_val)
-    s.connect(s.decode_imm_type, int(imm_type))
-    s.connect(s.decode_imm_val, imm_val)
-    s.connect(s.decode_op_class, int(op_class))
-
-    @s.combinational
-    def connect_result(rs=result_field_slice.start, re=result_field_slice.stop):
-      s.decode_result.v = 0
-      s.decode_result[rs:re] = s.lut.lookup_out
-
-    fixed_keys = fixed_map.keys()
-    s.fixed_equals = [Wire(1) for _ in range(len(fixed_map))]
-    s.equals_units = [
-        Equals(
-            BinaryComparatorInterface(slice_len(msg._bitfields[field_name])))
-        for field_name in fixed_keys
-    ]
-    s.and_unit = And(LogicOperatorInterface(len(fixed_map) + 1))
-    for i, key in enumerate(fixed_keys):
-      s.connect(s.equals_units[i].compare_in_a,
-                s.decode_inst[msg._bitfields[key]])
-      s.connect(s.equals_units[i].compare_in_b, int(fixed_map[key]))
-      s.connect(s.and_unit.op_in_[i], s.equals_units[i].compare_out)
-    s.connect(s.and_unit.op_in_[-1], s.lut.lookup_valid)
-    s.connect(s.decode_success, s.and_unit.op_out)
 
 
 def alu_msg(func, unsigned=0, op32=0):
