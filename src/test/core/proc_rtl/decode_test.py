@@ -19,7 +19,7 @@ class DecodeTestHarness(Model):
     s.tcf = wrap_to_rtl(TestControlFlowManagerFL(64, 2, 0x200))
 
     TestHarness(s, Decode(DecodeInterface(s.f.interface, s.tcf.interface)),
-                False, 'bobby.vcd')
+                True, 'bobby.vcd')
     s.connect_m(s.f.get, s.dut.fetch_get)
     s.connect_m(s.tcf.check_redirect, s.dut.check_redirect)
 
