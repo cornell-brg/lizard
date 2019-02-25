@@ -33,7 +33,11 @@ class ControlFlowManagerInterface(Interface):
             ),
             MethodSpec(
                 'register',
-                args={'speculative': Bits(1)},
+                args={
+                  'speculative': Bits(1),
+                  'pc': Bits(dlen),
+                  'pc_succ': Bits(dlen),
+                },
                 rets={'seq': Bits(seq_idx_nbits)},
                 call=True,
                 rdy=True,
