@@ -64,7 +64,7 @@ class DataFlowManagerInterface(Interface):
                 count=num_dst_ports,
             ),
             MethodSpec(
-                'read_tag',
+                'read',
                 args={
                     'tag': s.Preg,
                 },
@@ -77,7 +77,7 @@ class DataFlowManagerInterface(Interface):
                 count=num_src_ports,
             ),
             MethodSpec(
-                'write_tag',
+                'write',
                 args={
                     'tag': s.Preg,
                     'value': Bits(dlen),
@@ -88,7 +88,7 @@ class DataFlowManagerInterface(Interface):
                 count=num_dst_ports,
             ),
             MethodSpec(
-                'commit_tag',
+                'commit',
                 args={
                     'tag': s.Preg,
                 },
@@ -128,8 +128,8 @@ class DataFlowManagerInterface(Interface):
         ],
         ordering_chains=[
             [
-                'write_tag', 'get_src', 'get_dst', 'commit_tag', 'read_tag',
-                'snapshot', 'free_snapshot', 'restore', 'rollback'
+                'write', 'get_src', 'get_dst', 'commit', 'read', 'snapshot',
+                'free_snapshot', 'restore', 'rollback'
             ],
         ],
     )
@@ -204,8 +204,8 @@ class DataFlowManager(Model):
     # 2 write ports are needed for every dst port:
     # The second set to update all the destination states during issue,
     # (get_dst), and the first set to write the computed value
-    # (write_tag)
-    # We give write_tag the first set since it is sequenced before get_dst
+    # (write)
+    # We give write the first set since it is sequenced before get_dst
     # In practice, there should be no conflicts (or the processor is doing
     # something dumb). But, we must adhere to the interface even if the
     # user does something dumb and tries to write to a bogus tag which
@@ -245,17 +245,17 @@ class DataFlowManager(Model):
         True,
         reset_values=initial_map)
 
-    # commit_tag
+    # commit
     s.is_commit_not_zero_tag = [Wire(1) for _ in range(num_dst_ports)]
     for i in range(num_dst_ports):
       # Determine if the commit is not the zero tag
       @s.combinational
       def check_commit(i=i):
-        s.is_commit_not_zero_tag[i].v = (s.commit_tag_tag[i] !=
-                                         s.ZERO_TAG) and s.commit_tag_call[i]
+        s.is_commit_not_zero_tag[i].v = (s.commit_tag[i] !=
+                                         s.ZERO_TAG) and s.commit_call[i]
 
       # Read the areg associated with this tag
-      s.connect(s.inverse.read_addr[i], s.commit_tag_tag[i])
+      s.connect(s.inverse.read_addr[i], s.commit_tag[i])
       # Read the preg currently associated with this areg
       s.connect(s.areg_file.read_addr[i], s.inverse.read_data[i])
       # Free the preg currently backing this areg
@@ -265,7 +265,7 @@ class DataFlowManager(Model):
 
       # Write into the ARF the new preg
       s.connect(s.areg_file.write_addr[i], s.inverse.read_data[i])
-      s.connect(s.areg_file.write_data[i], s.commit_tag_tag[i])
+      s.connect(s.areg_file.write_data[i], s.commit_tag[i])
       # Only write if not the zero tag
       s.connect(s.areg_file.write_call[i], s.is_commit_not_zero_tag[i])
 
@@ -275,25 +275,25 @@ class DataFlowManager(Model):
       s.connect(s.arch_used_pregs.write_call[i], s.is_commit_not_zero_tag[i])
       # Mark the new preg used by the ARF as used
       s.connect(s.arch_used_pregs.write_addr[i + num_dst_ports],
-                s.commit_tag_tag[i])
+                s.commit_tag[i])
       s.connect(s.arch_used_pregs.write_data[i + num_dst_ports], 1)
       s.connect(s.arch_used_pregs.write_call[i + num_dst_ports],
                 s.is_commit_not_zero_tag[i])
 
-    # write_tag
+    # write
     s.is_write_not_zero_tag = [Wire(1) for _ in range(num_dst_ports)]
     for i in range(num_dst_ports):
       # Determine if the write is not the zero tag
       @s.combinational
       def check_write(i=i):
-        s.is_write_not_zero_tag[i].v = (s.write_tag_tag[i] !=
-                                        s.ZERO_TAG) and s.write_tag_call[i]
+        s.is_write_not_zero_tag[i].v = (s.write_tag[i] !=
+                                        s.ZERO_TAG) and s.write_call[i]
 
       # All operations on the preg file are on the first set of write ports
       # at the offset 0
       # Write the value and ready into the preg file
-      s.connect(s.preg_file.write_addr[i], s.write_tag_tag[i])
-      s.connect(s.preg_file.write_data[i].value, s.write_tag_value[i])
+      s.connect(s.preg_file.write_addr[i], s.write_tag[i])
+      s.connect(s.preg_file.write_data[i].value, s.write_value[i])
       s.connect(s.preg_file.write_data[i].ready, 1)
       # Only write if not the zero tag
       s.connect(s.preg_file.write_call[i], s.is_write_not_zero_tag[i])
@@ -340,27 +340,27 @@ class DataFlowManager(Model):
       s.connect(s.inverse.write_data[i], s.get_dst_areg[i])
       s.connect(s.inverse.write_call[i], s.get_dst_need_writeback[i])
 
-    # read_tag
-    s.read_tag_muxes_ready = [Mux(Bits(1), 2) for _ in range(num_src_ports)]
-    s.read_tag_muxes_value = [Mux(Bits(dlen), 2) for _ in range(num_src_ports)]
-    s.read_tag_is_zero_tag = [Wire(1) for _ in range(num_src_ports)]
+    # read
+    s.read_muxes_ready = [Mux(Bits(1), 2) for _ in range(num_src_ports)]
+    s.read_muxes_value = [Mux(Bits(dlen), 2) for _ in range(num_src_ports)]
+    s.read_is_zero_tag = [Wire(1) for _ in range(num_src_ports)]
     for i in range(num_src_ports):
 
       @s.combinational
-      def handle_read_tag(i=i):
-        s.read_tag_is_zero_tag[i].v = s.read_tag_tag[i] == s.ZERO_TAG
+      def handle_read(i=i):
+        s.read_is_zero_tag[i].v = s.read_tag[i] == s.ZERO_TAG
 
-      s.connect(s.read_tag_tag[i], s.preg_file.read_addr[i])
-      s.connect(s.read_tag_muxes_ready[i].mux_in_[0],
+      s.connect(s.read_tag[i], s.preg_file.read_addr[i])
+      s.connect(s.read_muxes_ready[i].mux_in_[0],
                 s.preg_file.read_data[i].ready)
-      s.connect(s.read_tag_muxes_value[i].mux_in_[0],
+      s.connect(s.read_muxes_value[i].mux_in_[0],
                 s.preg_file.read_data[i].value)
-      s.connect(s.read_tag_muxes_ready[i].mux_in_[1], 1)
-      s.connect(s.read_tag_muxes_value[i].mux_in_[1], 0)
-      s.connect(s.read_tag_muxes_ready[i].mux_select, s.read_tag_is_zero_tag[i])
-      s.connect(s.read_tag_muxes_value[i].mux_select, s.read_tag_is_zero_tag[i])
-      s.connect(s.read_tag_ready[i], s.read_tag_muxes_ready[i].mux_out)
-      s.connect(s.read_tag_value[i], s.read_tag_muxes_value[i].mux_out)
+      s.connect(s.read_muxes_ready[i].mux_in_[1], 1)
+      s.connect(s.read_muxes_value[i].mux_in_[1], 0)
+      s.connect(s.read_muxes_ready[i].mux_select, s.read_is_zero_tag[i])
+      s.connect(s.read_muxes_value[i].mux_select, s.read_is_zero_tag[i])
+      s.connect(s.read_ready[i], s.read_muxes_ready[i].mux_out)
+      s.connect(s.read_value[i], s.read_muxes_value[i].mux_out)
 
     # snapshot
     # ready if a snapshot ID is available
