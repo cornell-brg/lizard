@@ -49,10 +49,19 @@ def ValidValuePair(name, width):
 
 
 @bit_struct_generator
-def PipelineMsgHeader():
+def FrontendHeader():
   return [
       Field('status', PipelineMsgStatus.bits),
       Field('pc', XLEN),
+  ]
+
+
+@bit_struct_generator
+def BackendHeader():
+  return [
+      Inline('frontend_hdr', FrontendHeader()),
+      Field('seq', MAX_SPEC_DEPTH),
+      Field('branch_mask', INST_IDX_NBITS),
   ]
 
 
@@ -64,10 +73,9 @@ def ExceptionInfo():
   ]
 
 
-@bit_struct_generator
-def PipelineMsg(payload):
+def gen_pipeline_msg(payload, header):
   return [
-      Field('hdr', PipelineMsgHeader()),
+      Field('hdr', header()),
       Union(
           'pipeline_msg',
           Field('exception_info', ExceptionInfo()),
@@ -76,11 +84,14 @@ def PipelineMsg(payload):
   ]
 
 
-BackendGroup = Group(
-    'backend_group',
-    Field('seq', MAX_SPEC_DEPTH),
-    Field('branch_mask', INST_IDX_NBITS),
-)
+@bit_struct_generator
+def FrontendMsg(payload):
+  return gen_pipeline_msg(payload, FrontendHeader)
+
+
+@bit_struct_generator
+def BackendMsg(payload):
+  return gen_pipeline_msg(payload, BackendHeader)
 
 
 @bit_struct_generator
@@ -149,7 +160,7 @@ def FetchPayload():
   ]
 
 
-FetchMsg = PipelineMsg(FetchPayload())
+FetchMsg = FrontendMsg(FetchPayload())
 
 
 @bit_struct_generator
@@ -164,13 +175,12 @@ def DecodePayload():
   ]
 
 
-DecodeMsg = PipelineMsg(DecodePayload())
+DecodeMsg = FrontendMsg(DecodePayload())
 
 
 @bit_struct_generator
 def RenamePayload():
   return [
-      BackendGroup,
       ValidValuePair('rs1', PREG_IDX_NBITS),
       Field('rs1_rdy', 1),
       ValidValuePair('rs2', PREG_IDX_NBITS),
@@ -180,13 +190,12 @@ def RenamePayload():
   ]
 
 
-RenameMsg = PipelineMsg(RenamePayload())
+RenameMsg = BackendMsg(RenamePayload())
 
 
 @bit_struct_generator
 def IssuePayload():
   return [
-      BackendGroup,
       ValidValuePair('rs1', PREG_IDX_NBITS),
       ValidValuePair('rs2', PREG_IDX_NBITS),
       ValidValuePair('rd', PREG_IDX_NBITS),
@@ -194,13 +203,12 @@ def IssuePayload():
   ]
 
 
-IssueMsg = PipelineMsg(IssuePayload())
+IssueMsg = BackendMsg(IssuePayload())
 
 
 @bit_struct_generator
 def DispatchPayload():
   return [
-      BackendGroup,
       ValidValuePair('rs1', XLEN),
       ValidValuePair('rs2', XLEN),
       ValidValuePair('rd', PREG_IDX_NBITS),
@@ -208,19 +216,18 @@ def DispatchPayload():
   ]
 
 
-DispatchMsg = PipelineMsg(DispatchPayload())
+DispatchMsg = BackendMsg(DispatchPayload())
 
 
 @bit_struct_generator
 def ExecutePayload():
   return [
-      BackendGroup,
       ValidValuePair('rd', PREG_IDX_NBITS),
       ValidValuePair('result', XLEN),
   ]
 
 
-ExecuteMsg = PipelineMsg(ExecutePayload())
+ExecuteMsg = BackendMsg(ExecutePayload())
 
 
 @bit_struct_generator
@@ -230,4 +237,4 @@ def WritebackPayload():
   ]
 
 
-WritebackMsg = PipelineMsg(WritebackPayload())
+WritebackMsg = BackendMsg(WritebackPayload())
