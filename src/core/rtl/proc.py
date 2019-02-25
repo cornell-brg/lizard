@@ -102,3 +102,7 @@ class Proc(Model):
     s.decode = Decode(s.decode_interface)
     s.connect_m(s.fetch.get, s.decode.fetch_get)
     s.connect_m(s.cflow.check_redirect, s.decode.check_redirect)
+
+    # Rename
+    s.rename_interface = RenameInterface()
+    s.rename = Rename(s.rename_interface)

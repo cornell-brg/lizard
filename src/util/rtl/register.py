@@ -40,9 +40,7 @@ class Register(Model):
 
   def __init__(s, interface, reset_value=None):
     UseInterface(s, interface)
-
     s.reg_value = Wire(s.interface.Data)
-
     s.update = Wire(1)
 
     if s.interface.enable:
@@ -51,13 +49,9 @@ class Register(Model):
       s.connect(s.update, 1)
 
     if s.interface.write_read_bypass:
-
       @s.combinational
       def read():
-        if s.update:
-          s.read_data.v = s.write_data
-        else:
-          s.read_data.v = s.reg_value
+        s.read_data.v = s.write_data.n if s.update else s.reg_value
     else:
       s.connect(s.read_data, s.reg_value)
 
