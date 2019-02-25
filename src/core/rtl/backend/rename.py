@@ -40,8 +40,12 @@ class Rename(Model):
 
     s.rdy_ = Wire(1)
     s.accepted_ = Wire(1)
-    s.msg_ = Wire(RenameMsg())
+
     s.decoded_ = Wire(DecodeMsg())
+
+    # Outgoing pipeline reigster
+    s.msg_val_ = RegEnRst(Bits(1))
+    s.msg_ = RegEn(RenameMsg())
 
     s.connect(s.decoded_, s.decode_get_msg)
     #s.connect_wire(s.cflow_register_speculative, s.decoded_.speculative)
