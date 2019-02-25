@@ -182,9 +182,7 @@ DecodeMsg = FrontendMsg(DecodePayload())
 def RenamePayload():
   return [
       ValidValuePair('rs1', PREG_IDX_NBITS),
-      Field('rs1_rdy', 1),
       ValidValuePair('rs2', PREG_IDX_NBITS),
-      Field('rs2_rdy', 1),
       ValidValuePair('rd', PREG_IDX_NBITS),
       ExecutionDataGroup,
   ]
