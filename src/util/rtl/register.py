@@ -51,6 +51,7 @@ class Register(Model):
       s.connect(s.update_, 1)
 
     if s.interface.write_read_bypass:
+
       @s.combinational
       def read():
         s.read_data.v = s.write_data if s.update_ else s.value
@@ -59,6 +60,7 @@ class Register(Model):
 
     # Create the sequential update block:
     if reset_value is not None:
+
       @s.tick_rtl
       def update():
         if s.reset:
@@ -66,6 +68,7 @@ class Register(Model):
         elif s.update_:
           s.value.n = s.write_data
     else:
+
       @s.tick_rtl
       def update():
         if s.update_:
