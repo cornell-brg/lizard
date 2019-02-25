@@ -185,3 +185,29 @@ class CompositeDecoder(Model):
     s.connect_m(s.decode, s.binary_decoder.decode)
     s.connect_m(s.binary_decoder.decode_a, s.decode_child[0])
     s.connect_m(s.binary_decoder.decode_b, s.rest_decoder.decode)
+
+
+def compose_decoders(*classes):
+  # name mangle so that any combiation of classes produces a unique name, even when nested
+  # compositions occur
+  name = ''.join([
+      '{}L{}'.format(len(class_.__name__), class_.__name__)
+      for class_ in classes
+  ])
+  name = 'CD{}'.format(name)
+
+  class Composed(Model):
+
+    def __init__(s):
+      UseInterface(s, SubDecoderInterface())
+      s.composite_decoder = CompositeDecoder(
+          CompositeDecoderInterface(len(classes)))
+
+      s.decs = [class_() for class_ in classes]
+      for i in range(len(classes)):
+        s.connect_m(s.composite_decoder.decode_child[i], s.decs[i].decode)
+
+      s.connect_m(s.decode, s.composite_decoder.decode)
+
+  Composed.__name__ = name
+  return Composed

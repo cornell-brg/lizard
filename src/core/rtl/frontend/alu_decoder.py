@@ -6,7 +6,7 @@ from util.rtl.lookup_table import LookupTableInterface, LookupTable
 from util.rtl.logic import BinaryComparatorInterface, LogicOperatorInterface, Equals, And
 from util.rtl.case_mux import case_mux
 from core.rtl.messages import AluMsg, OpClass, AluFunc, InstMsg, PipeMsg
-from core.rtl.frontend.sub_decoder import SubDecoderInterface, CompositeDecoder, CompositeDecoderInterface, GenDecoder
+from core.rtl.frontend.sub_decoder import SubDecoderInterface, GenDecoder, compose_decoders
 from core.rtl.frontend.imm_decoder import ImmType
 from msg.codes import Opcode
 
@@ -135,25 +135,6 @@ def OpImm32ShiftDecoder():
   )
 
 
-class AluDecoder(Model):
-
-  def __init__(s):
-    UseInterface(s, SubDecoderInterface())
-
-    s.composite_decoder = CompositeDecoder(CompositeDecoderInterface(6))
-
-    s.dec0 = OpDecoder()
-    s.dec1 = Op32Decoder()
-    s.dec2 = OpImmDecoder()
-    s.dec3 = OpImm32Decoder()
-    s.dec4 = OpImmShiftDecoder()
-    s.dec5 = OpImm32ShiftDecoder()
-
-    s.connect_m(s.composite_decoder.decode_child[0], s.dec0.decode)
-    s.connect_m(s.composite_decoder.decode_child[1], s.dec1.decode)
-    s.connect_m(s.composite_decoder.decode_child[2], s.dec2.decode)
-    s.connect_m(s.composite_decoder.decode_child[3], s.dec3.decode)
-    s.connect_m(s.composite_decoder.decode_child[4], s.dec4.decode)
-    s.connect_m(s.composite_decoder.decode_child[5], s.dec5.decode)
-
-    s.connect_m(s.decode, s.composite_decoder.decode)
+AluDecoder = compose_decoders(OpDecoder, Op32Decoder, OpImmDecoder,
+                              OpImm32Decoder, OpImmShiftDecoder,
+                              OpImm32ShiftDecoder)
