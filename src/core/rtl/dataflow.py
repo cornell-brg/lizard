@@ -13,13 +13,6 @@ from core.rtl.renametable import RenameTableInterface, RenameTable
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 
 
-class PregState(BitStructDefinition):
-
-  def __init__(s, dlen):
-    s.value = BitField(dlen)
-    s.ready = BitField(1)
-
-
 class DataFlowManagerInterface(Interface):
 
   def __init__(s, dlen, naregs, npregs, nsnapshots, num_src_ports,
@@ -64,12 +57,23 @@ class DataFlowManagerInterface(Interface):
                 count=num_dst_ports,
             ),
             MethodSpec(
-                'read',
+                'is_ready',
                 args={
                     'tag': s.Preg,
                 },
                 rets={
                     'ready': Bits(1),
+                },
+                call=False,
+                rdy=False,
+                count=num_src_ports,
+            ),
+            MethodSpec(
+                'read',
+                args={
+                    'tag': s.Preg,
+                },
+                rets={
                     'value': Bits(dlen),
                 },
                 call=False,
@@ -86,6 +90,16 @@ class DataFlowManagerInterface(Interface):
                 call=True,
                 rdy=False,
                 count=num_dst_ports,
+            ),
+            MethodSpec(
+                'get_updated',
+                args=None,
+                rets={
+                    'tags': Array(s.Preg, num_dst_ports),
+                    'valid': Array(Bits(1), num_dst_ports),
+                },
+                call=False,
+                rdy=False,
             ),
             MethodSpec(
                 'commit',
@@ -128,8 +142,9 @@ class DataFlowManagerInterface(Interface):
         ],
         ordering_chains=[
             [
-                'write', 'get_src', 'get_dst', 'commit', 'read', 'snapshot',
-                'free_snapshot', 'restore', 'rollback'
+                'is_ready', 'write', 'get_updated', 'get_src', 'get_dst',
+                'commit', 'read', 'snapshot', 'free_snapshot', 'restore',
+                'rollback'
             ],
         ],
     )
@@ -145,8 +160,6 @@ class DataFlowManager(Model):
     nsnapshots = s.interface.NumSnapshots
     num_src_ports = s.interface.NumSrcPorts
     num_dst_ports = s.interface.NumDstPorts
-
-    s.PregState = PregState(dlen)
 
     # used to allocate snapshot IDs
     s.snapshot_allocator = SnapshottingFreeList(nsnapshots, 1, 1, nsnapshots)
@@ -186,15 +199,14 @@ class DataFlowManager(Model):
     s.ZERO_TAG = s.rename_table.ZERO_TAG
 
     # Build the physical register file initial state
-    preg_reset = [s.PregState() for _ in range(npregs)]
+    preg_reset = [0 for _ in range(npregs)]
+    ready_reset = [1 for _ in range(npregs)]
     # Build the inverse (preg -> areg map) initial state
     inverse_reset = [s.interface.Areg for _ in range(npregs)]
 
     # Only the first (naregs - 1) physical registers,
     # those that are initially mapped to x1..x(naregs-1)
     for x in range(naregs - 1):
-      preg_reset[x].value = 0
-      preg_reset[x].ready = 1
       # Initially p0 is x1
       inverse_reset[x] = x + 1
 
@@ -212,17 +224,27 @@ class DataFlowManager(Model):
     # is currently free.
     # Writes are bypassed before reads, and the dump/set is not used
     s.preg_file = RegisterFile(
-        s.PregState(),
+        Bits(dlen),
         npregs,
         num_src_ports,
         num_dst_ports * 2,
         True,
         False,
-        reset_values=preg_reset)
+        reset_values=preg_reset,
+    )
+    # The ready table is not bypassed; is_ready comes before all the the writes
+    # (which are in get_dst and write)
+    s.ready_table = RegisterFile(
+        Bits(1),
+        npregs,
+        num_src_ports,
+        num_dst_ports * 2,
+        False,
+        False,
+        reset_values=ready_reset,
+    )
     # The preg -> areg map, written to during get_dst, and read from
     # during commit
-    # TODO: probably doesn't need write_read_bypass?
-    # TODO: certainly doesn't need write_dump_bypass
     s.inverse = RegisterFile(
         s.interface.Areg,
         npregs,
@@ -230,7 +252,8 @@ class DataFlowManager(Model):
         num_dst_ports,
         True,
         False,
-        reset_values=inverse_reset)
+        reset_values=inverse_reset,
+    )
 
     # The arhitectural areg -> preg mapping
     # Written and read only in commit
@@ -243,7 +266,8 @@ class DataFlowManager(Model):
         num_dst_ports,
         False,
         True,
-        reset_values=initial_map)
+        reset_values=initial_map,
+    )
 
     # commit
     s.is_commit_not_zero_tag = [Wire(1) for _ in range(num_dst_ports)]
@@ -293,10 +317,19 @@ class DataFlowManager(Model):
       # at the offset 0
       # Write the value and ready into the preg file
       s.connect(s.preg_file.write_addr[i], s.write_tag[i])
-      s.connect(s.preg_file.write_data[i].value, s.write_value[i])
-      s.connect(s.preg_file.write_data[i].ready, 1)
+      s.connect(s.preg_file.write_data[i], s.write_value[i])
       # Only write if not the zero tag
       s.connect(s.preg_file.write_call[i], s.is_write_not_zero_tag[i])
+
+      s.connect(s.ready_table.write_addr[i], s.write_tag[i])
+      s.connect(s.ready_table.write_data[i], 1)
+      # Only write if not the zero tag
+      s.connect(s.ready_table.write_call[i], s.is_write_not_zero_tag[i])
+
+    # get_updated
+    for i in range(num_dst_ports):
+      s.connect(s.get_updated_tags[i], s.write_tag[i])
+      s.connect(s.get_updated_valid[i], s.is_write_not_zero_tag[i])
 
     # get_src
     s.connect_m(s.get_src, s.rename_table.lookup)
@@ -331,17 +364,34 @@ class DataFlowManager(Model):
       # All operations on the preg file are on the second set of write ports
       # at the offset +num_dst_ports
       s.connect(s.preg_file.write_addr[i + num_dst_ports], s.get_dst_preg[i])
-      s.connect(s.preg_file.write_data[i + num_dst_ports].value, 0)
-      s.connect(s.preg_file.write_data[i + num_dst_ports].ready, 0)
+      s.connect(s.preg_file.write_data[i + num_dst_ports], 0)
       s.connect(s.preg_file.write_call[i + num_dst_ports],
+                s.get_dst_need_writeback[i])
+      s.connect(s.ready_table.write_addr[i + num_dst_ports], s.get_dst_preg[i])
+      s.connect(s.ready_table.write_data[i + num_dst_ports], 0)
+      s.connect(s.ready_table.write_call[i + num_dst_ports],
                 s.get_dst_need_writeback[i])
       # save the inverse
       s.connect(s.inverse.write_addr[i], s.get_dst_preg[i])
       s.connect(s.inverse.write_data[i], s.get_dst_areg[i])
       s.connect(s.inverse.write_call[i], s.get_dst_need_writeback[i])
 
-    # read
+    # is_ready
     s.read_muxes_ready = [Mux(Bits(1), 2) for _ in range(num_src_ports)]
+    s.is_ready_is_zero_tag = [Wire(1) for _ in range(num_src_ports)]
+    for i in range(num_src_ports):
+
+      @s.combinational
+      def handle_read(i=i):
+        s.is_ready_is_zero_tag[i].v = s.is_ready_tag[i] == s.ZERO_TAG
+
+      s.connect(s.is_ready_tag[i], s.ready_table.read_addr[i])
+      s.connect(s.read_muxes_ready[i].mux_in_[0], s.ready_table.read_data[i])
+      s.connect(s.read_muxes_ready[i].mux_in_[1], 1)
+      s.connect(s.read_muxes_ready[i].mux_select, s.is_ready_is_zero_tag[i])
+      s.connect(s.is_ready_ready[i], s.read_muxes_ready[i].mux_out)
+
+    # read
     s.read_muxes_value = [Mux(Bits(dlen), 2) for _ in range(num_src_ports)]
     s.read_is_zero_tag = [Wire(1) for _ in range(num_src_ports)]
     for i in range(num_src_ports):
@@ -351,15 +401,9 @@ class DataFlowManager(Model):
         s.read_is_zero_tag[i].v = s.read_tag[i] == s.ZERO_TAG
 
       s.connect(s.read_tag[i], s.preg_file.read_addr[i])
-      s.connect(s.read_muxes_ready[i].mux_in_[0],
-                s.preg_file.read_data[i].ready)
-      s.connect(s.read_muxes_value[i].mux_in_[0],
-                s.preg_file.read_data[i].value)
-      s.connect(s.read_muxes_ready[i].mux_in_[1], 1)
+      s.connect(s.read_muxes_value[i].mux_in_[0], s.preg_file.read_data[i])
       s.connect(s.read_muxes_value[i].mux_in_[1], 0)
-      s.connect(s.read_muxes_ready[i].mux_select, s.read_is_zero_tag[i])
       s.connect(s.read_muxes_value[i].mux_select, s.read_is_zero_tag[i])
-      s.connect(s.read_ready[i], s.read_muxes_ready[i].mux_out)
       s.connect(s.read_value[i], s.read_muxes_value[i].mux_out)
 
     # snapshot
