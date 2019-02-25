@@ -2,12 +2,11 @@ from pymtl import *
 from util.rtl.interface import Interface, UseInterface
 from util.rtl.method import MethodSpec
 from util.rtl.types import canonicalize_type
-from util.rtl.mux import Mux
 
 
 class RegisterInterface(Interface):
 
-  def __init__(s, dtype, enable, write_read_bypass):
+  def __init__(s, dtype, enable=False, write_read_bypass=False):
     s.Data = canonicalize_type(dtype)
     s.enable = enable
     s.write_read_bypass = write_read_bypass
@@ -43,35 +42,34 @@ class Register(Model):
     UseInterface(s, interface)
 
     s.value = Wire(s.interface.Data)
-    s.value_next = Wire(s.interface.Data)
-    s.value_after_reset = Wire(s.interface.Data)
+
+    s.update_ = Wire(1)
 
     if s.interface.enable:
-      s.next_mux = Mux(s.interface.Data, 2)
-      s.connect(s.next_mux.mux_in_[0], s.value)
-      s.connect(s.next_mux.mux_in_[1], s.write_data)
-      s.connect(s.next_mux.mux_select, s.write_call)
-      s.connect(s.next_mux.mux_out, s.value_next)
+      s.connect(s.update_, s.write_call)
     else:
-      s.connect(s.write_data, s.value_next)
+      s.connect(s.update_, 1)
 
     if s.interface.write_read_bypass:
-      s.connect(s.read_data, s.value_next)
+      @s.combinational
+      def read():
+        s.read_data.v = s.write_data if s.update_ else s.value
     else:
       s.connect(s.read_data, s.value)
 
+    # Create the sequential update block:
     if reset_value is not None:
-      s.reset_mux = Mux(s.interface.Data, 2)
-      s.connect(s.reset_mux.mux_in_[0], s.value_next)
-      s.connect(s.reset_mux.mux_in_[1], int(reset_value))
-      s.connect(s.reset_mux.mux_select, s.reset)
-      s.connect(s.value_after_reset, s.reset_mux.mux_out)
+      @s.tick_rtl
+      def update():
+        if s.reset:
+          s.value.n = reset_value
+        elif s.update_:
+          s.value.n = s.write_data
     else:
-      s.connect_wire(s.value_after_reset, s.value_next)
-
-    @s.tick_rtl
-    def update():
-      s.value.n = s.value_after_reset
+      @s.tick_rtl
+      def update():
+        if s.update_:
+          s.value.n = s.write_data
 
   def line_trace(s):
     return "{}".format(s.value)
