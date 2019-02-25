@@ -10,52 +10,59 @@ from msg.codes import ExceptionCode
 
 class FetchInterface(Interface):
 
-  def __init__(s, dlen, ilen, cflow_interface, memory_controller_interface):
+  def __init__(s, dlen, ilen):
     s.dlen = dlen
     s.ilen = ilen
-    s.MemMsg = memory_controller_interface.MemMsg
 
-    super(FetchInterface, s).__init__(
-        [
-            MethodSpec(
-                'get',
-                args=None,
-                rets={
-                    'msg': FetchMsg(),
-                },
-                call=True,
-                rdy=True,
-            )
-        ],
-        requirements=[
-            MethodSpec(
-                'mem_recv',
-                args=None,
-                rets={'msg': s.MemMsg.resp},
-                call=True,
-                rdy=True,
-            ),
-            MethodSpec(
-                'mem_send',
-                args={'msg': s.MemMsg.req},
-                rets=None,
-                call=True,
-                rdy=True,
-            ),
-            cflow_interface['check_redirect'],
-        ],
-    )
+    super(FetchInterface, s).__init__([
+        MethodSpec(
+            'get',
+            args=None,
+            rets={
+                'msg': FetchMsg(),
+            },
+            call=True,
+            rdy=True,
+        )
+    ],)
 
 
 class Fetch(Model):
 
-  def __init__(s, fetch_interface):
+  def __init__(s, fetch_interface, MemMsg):
     UseInterface(s, fetch_interface)
+    s.MemMsg = MemMsg
     xlen = s.interface.dlen
     ilen = s.interface.ilen
     ilen_bytes = ilen / 8
+    s.require(
+        MethodSpec(
+            'mem_recv',
+            args=None,
+            rets={'msg': s.MemMsg.resp},
+            call=True,
+            rdy=True,
+        ),
+        MethodSpec(
+            'mem_send',
+            args={'msg': s.MemMsg.req},
+            rets=None,
+            call=True,
+            rdy=True,
+        ),
+        MethodSpec(
+            'check_redirect',
+            args={},
+            rets={
+                'redirect': Bits(1),
+                'target': Bits(xlen),
+            },
+            call=False,
+            rdy=False,
+        ),
+    )
 
-    s.drop_unit = DropUnit(DropUnitInterface(s.interface.MemMsg.resp))
+    s.drop_unit = DropUnit(DropUnitInterface(s.MemMsg.resp))
     s.connect_m(s.drop_unit.input, s.mem_recv, {
         'msg': 'data',
     })

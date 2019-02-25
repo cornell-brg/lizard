@@ -14,7 +14,7 @@ class BasicMemoryControllerTestHarness(Model):
   def __init__(s, num_clients):
     mbi = MemoryBusInterface(num_clients, clog2nz(num_clients), 2, 64, 8)
     s.clients = ['client_{}'.format(x) for x in range(num_clients)]
-    bmci = BasicMemoryControllerInterface(mbi, s.clients)
+    bmci = BasicMemoryControllerInterface(mbi.MemMsg, s.clients)
 
     s.tmb = TestMemoryBusFL(mbi)
     s.mb = wrap_to_rtl(s.tmb)

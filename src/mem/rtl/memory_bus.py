@@ -53,6 +53,10 @@ MemMsgStatus = bit_enum(
 class MemReqMsg(BitStructDefinition):
 
   def __init__(s, opaque_nbits, addr_nbits, data_nbytes):
+    s.opaque_nbits = opaque_nbits
+    s.addr_nbits = addr_nbits
+    s.data_nbytes = data_nbytes
+
     s.type_ = BitField(MemMsgType.bits)
     s.opaque = BitField(opaque_nbits)
     s.addr = BitField(addr_nbits)
@@ -126,6 +130,10 @@ class MemReqMsg(BitStructDefinition):
 class MemRespMsg(BitStructDefinition):
 
   def __init__(s, opaque_nbits, test_nbits, data_nbytes):
+    s.opaque_nbits = opaque_nbits
+    s.test_nbits = test_nbits
+    s.data_nbytes = data_nbytes
+
     s.type_ = BitField(MemMsgType.bits)
     s.opaque = BitField(opaque_nbits)
     s.test = BitField(test_nbits)
@@ -174,6 +182,11 @@ class MemRespMsg(BitStructDefinition):
 class MemMsg(object):
 
   def __init__(s, opaque_nbits, test_nbits, addr_nbits, data_nbytes):
+    s.opaque_nbits = opaque_nbits
+    s.test_nbits = test_nbits
+    s.addr_nbits = addr_nbits
+    s.data_nbytes = data_nbytes
+
     s.req = MemReqMsg(opaque_nbits, addr_nbits, data_nbytes)
     s.resp = MemRespMsg(opaque_nbits, test_nbits, data_nbytes)
 

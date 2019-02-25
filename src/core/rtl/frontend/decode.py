@@ -14,30 +14,45 @@ from config.general import DECODED_IMM_LEN, XLEN
 
 class DecodeInterface(Interface):
 
-  def __init__(s, fetch_interface, cflow_interface):
-    super(DecodeInterface, s).__init__(
-        [
-            MethodSpec(
-                'get',
-                args={},
-                rets={
-                    'msg': DecodeMsg(),
-                },
-                call=True,
-                rdy=True,
-            ),
-        ],
-        requirements=[
-            fetch_interface['get'].prefix('fetch'),
-            cflow_interface['check_redirect'],
-        ],
-    )
+  def __init__(s):
+    super(DecodeInterface, s).__init__([
+        MethodSpec(
+            'get',
+            args={},
+            rets={
+                'msg': DecodeMsg(),
+            },
+            call=True,
+            rdy=True,
+        ),
+    ])
 
 
 class Decode(Model):
 
   def __init__(s, decode_interface):
     UseInterface(s, decode_interface)
+    s.require(
+        MethodSpec(
+            'fetch_get',
+            args=None,
+            rets={
+                'msg': FetchMsg(),
+            },
+            call=True,
+            rdy=True,
+        ),
+        MethodSpec(
+            'check_redirect',
+            args={},
+            rets={
+                'redirect': Bits(1),
+                'target': Bits(XLEN),
+            },
+            call=False,
+            rdy=False,
+        ),
+    )
 
     s.imm_decoder = ImmDecoder(ImmDecoderInterface(DECODED_IMM_LEN))
 

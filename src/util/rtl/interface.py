@@ -77,6 +77,16 @@ def _call(parent, ModelClass, *functional_args, **output_map):
     parent.connect(getattr(getattr(model, method.name), name), value)
 
 
+def _require(parent, *specs):
+  for spec in specs:
+    if spec.name in parent._requirements:
+      raise ValueError('Method of same name already aqcuired: {}'.format(
+          spec.name))
+    parent._requirements[spec.name] = spec
+    Interface._inject(parent, '', spec.name, spec, spec.count,
+                      MethodSpec.DIRECTION_CALLER)
+
+
 def _connect_m(parent, dst, src, src_to_dst_map=None):
   if isinstance(dst, tuple):
     dst, di = dst
@@ -184,7 +194,7 @@ class Interface(object):
   but with the prefix 'prefix_' (note the underscore is added).
   """
 
-  def __init__(s, spec, bases=None, requirements=None, ordering_chains=None):
+  def __init__(s, spec, bases=None, ordering_chains=None):
     """Initialize the method map.
 
     Subclasses must call this!
@@ -252,7 +262,6 @@ class Interface(object):
 
     spec_dict = {method.name: method for method in spec}
     s.methods = OrderedDict([(name, spec_dict[name]) for name in order])
-    s.requirements = {method.name: method for method in requirements or []}
 
   @staticmethod
   def bypass_chain(action1, action2, action1_action2_bypass):
@@ -277,11 +286,13 @@ class Interface(object):
   def mangled_name(prefix, name, port_name):
     return '{}{}_{}'.format(prefix, name, port_name)
 
-  def _set_residual(s, target, prefix, name, spec, port_map, direction):
+  @staticmethod
+  def _set_residual(target, prefix, name, spec, port_map, direction):
     _safe_setattr(target, '{}{}'.format(prefix, name),
                   ResidualMethodSpec(target, spec, port_map, direction))
 
-  def _inject(s, target, prefix, name, spec, count, direction):
+  @staticmethod
+  def _inject(target, prefix, name, spec, count, direction):
     if count is None:
       port_map = spec.generate(direction)
     else:
@@ -291,15 +302,17 @@ class Interface(object):
         port_map[port_name] = [ports[i][port_name] for i in range(count)]
 
     for port_name, port in port_map.iteritems():
-      _safe_setattr(target, s.mangled_name(prefix, name, port_name), port)
-    s._set_residual(target, prefix, name, spec, port_map, direction)
+      _safe_setattr(target, Interface.mangled_name(prefix, name, port_name),
+                    port)
+    Interface._set_residual(target, prefix, name, spec, port_map, direction)
 
-  def _generate_residual_spec(s, target, prefix, name, spec, direction):
+  @staticmethod
+  def _generate_residual_spec(target, prefix, name, spec, direction):
     port_map = {}
     for port_name in spec.ports():
-      mangled = s.mangled_name(prefix, name, port_name)
+      mangled = Interface.mangled_name(prefix, name, port_name)
       port_map[port_name] = getattr(target, mangled)
-    s._set_residual(target, prefix, name, spec, port_map, direction)
+    Interface._set_residual(target, prefix, name, spec, port_map, direction)
 
   def apply(s, target):
     """Binds incoming ports to the target
@@ -308,14 +321,18 @@ class Interface(object):
     """
     for name, spec in s.methods.iteritems():
       s._inject(target, '', name, spec, spec.count, MethodSpec.DIRECTION_CALLEE)
-    for name, spec in s.requirements.iteritems():
-      s._inject(target, '', name, spec, spec.count, MethodSpec.DIRECTION_CALLER)
 
     # bind a connect_m to the target
     def connect_m(dst, src, src_to_dst_map=None):
       _connect_m(target, dst, src, src_to_dst_map)
 
     _safe_setattr(target, 'connect_m', connect_m)
+
+    def require(*specs):
+      _require(target, *specs)
+
+    _safe_setattr(target, 'require', require)
+    _safe_setattr(target, '_requirements', {})
 
     # bind to the target a counter for anonymous modules
     _safe_setattr(target, '_anonymous_counter', 0)
@@ -326,12 +343,13 @@ class Interface(object):
 
     _safe_setattr(target, 'call', call)
 
-  def embed(s, target):
+  def embed(s, target, requirements):
     _safe_setattr(target, 'interface', s)
+    _safe_setattr(target, '_requirements', requirements)
     for name, spec in s.methods.iteritems():
       s._generate_residual_spec(target, '', name, spec,
                                 MethodSpec.DIRECTION_CALLEE)
-    for name, spec in s.requirements.iteritems():
+    for name, spec in requirements.iteritems():
       s._generate_residual_spec(target, '', name, spec,
                                 MethodSpec.DIRECTION_CALLER)
 
@@ -350,6 +368,4 @@ class Interface(object):
       return result
 
   def __str__(s):
-    return '[methods: {} requirments: {}]'.format(
-        '; '.join(str(method) for method in s.methods.values()), '; '.join(
-            str(method) for method in s.requirements.values()))
+    return '; '.join(str(method) for method in s.methods.values())

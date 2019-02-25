@@ -9,9 +9,8 @@ from bitutil import clog2, clog2nz
 
 class BasicMemoryControllerInterface(Interface):
 
-  def __init__(s, mbi, clients):
-    s.MemMsg = mbi.MemMsg
-    s.mbi = mbi
+  def __init__(s, MemMsg, clients):
+    s.MemMsg = MemMsg
     s.clients = clients
 
     methods = []
@@ -33,42 +32,36 @@ class BasicMemoryControllerInterface(Interface):
           ),
       ])
 
-    super(BasicMemoryControllerInterface, s).__init__(
-        methods,
-        requirements=[
-            MethodSpec(
-                'bus_recv',
-                args=None,
-                rets={'msg': s.MemMsg.resp},
-                call=True,
-                rdy=True,
-                count=mbi.num_ports,
-            ),
-            MethodSpec(
-                'bus_send',
-                args={'msg': s.MemMsg.req},
-                rets=None,
-                call=True,
-                rdy=True,
-                count=mbi.num_ports,
-            ),
-        ])
+    super(BasicMemoryControllerInterface, s).__init__(methods)
 
 
 class BasicMemoryController(Model):
 
   def __init__(s, interface):
     UseInterface(s, interface)
-    mbi = s.interface.mbi
+    MemMsg = s.interface.MemMsg
     clients = s.interface.clients
-
-    if mbi.num_ports != len(clients):
-      raise ValueError('There should be exactly 1 port per client')
-    if mbi.opaque_nbits < clog2(len(clients)):
-      raise ValueError('Not enough opaque bits')
-
-    nobits = mbi.opaque_nbits
     nclients = len(clients)
+    s.require(
+        MethodSpec(
+            'bus_recv',
+            args=None,
+            rets={'msg': s.interface.MemMsg.resp},
+            call=True,
+            rdy=True,
+            count=nclients,
+        ),
+        MethodSpec(
+            'bus_send',
+            args={'msg': s.interface.MemMsg.req},
+            rets=None,
+            call=True,
+            rdy=True,
+            count=nclients,
+        ),
+    )
+
+    nobits = MemMsg.opaque_nbits
     s.in_flight = Wire(nclients)
     s.can_send = Wire(nclients)
     s.in_flight_next = Wire(nclients)
@@ -81,9 +74,9 @@ class BasicMemoryController(Model):
     ]
     s.recv_valid_chains = [Wire(1) for _ in range(nclients * (nclients + 1))]
 
-    s.client_muxes = [Mux(mbi.MemMsg.resp, nclients) for _ in range(nclients)]
+    s.client_muxes = [Mux(MemMsg.resp, nclients) for _ in range(nclients)]
     s.client_regs = [
-        Register(RegisterInterface(mbi.MemMsg.resp, True, True))
+        Register(RegisterInterface(MemMsg.resp, True, True))
         for _ in range(nclients)
     ]
     s.client_valid_regs = [
