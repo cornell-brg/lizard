@@ -5,7 +5,7 @@ from model.flmodel import FLModel
 from core.fl.renametable import RenameTableFL
 from util.fl.registerfile import RegisterFileFL
 from util.fl.snapshotting_freelist import SnapshottingFreeListFL
-from core.rtl.dataflow import PregState, DataFlowManagerInterface
+from core.rtl.dataflow import DataFlowManagerInterface
 from bitutil import copy_bits
 
 
@@ -21,8 +21,6 @@ class DataFlowManagerFL(FLModel):
     nsnapshots = s.interface.NumSnapshots
     num_src_ports = s.interface.NumSrcPorts
     num_dst_ports = s.interface.NumDstPorts
-
-    s.PregState = PregState(dlen)
 
     s.state(
         snapshot_allocator=SnapshottingFreeListFL(nsnapshots, 1, 1, nsnapshots),
@@ -53,22 +51,31 @@ class DataFlowManagerFL(FLModel):
                                    nsnapshots, True, initial_map))
     s.ZERO_TAG = s.rename_table.ZERO_TAG
 
-    preg_reset = [s.PregState() for _ in range(npregs)]
+    preg_reset = [0 for _ in range(npregs)]
+    ready_reset = [1 for _ in range(npregs)]
     inverse_reset = [s.interface.Areg for _ in range(npregs)]
     for x in range(naregs - 1):
-      preg_reset[x].value = 0
-      preg_reset[x].ready = 1
       inverse_reset[x] = x + 1
 
     s.state(
         preg_file=RegisterFileFL(
-            s.PregState(),
+            Bits(dlen),
             npregs,
             num_src_ports,
             num_dst_ports * 2,
             True,
             False,
-            reset_values=preg_reset),
+            reset_values=preg_reset,
+        ),
+        ready_table=RegisterFileFL(
+            Bits(1),
+            npregs,
+            num_src_ports,
+            num_dst_ports * 2,
+            False,
+            False,
+            reset_values=ready_reset,
+        ),
         inverse=RegisterFileFL(
             s.interface.Areg,
             npregs,
@@ -76,7 +83,8 @@ class DataFlowManagerFL(FLModel):
             num_dst_ports,
             True,
             False,
-            reset_values=inverse_reset),
+            reset_values=inverse_reset,
+        ),
         areg_file=RegisterFileFL(
             s.interface.Preg,
             naregs,
@@ -84,7 +92,9 @@ class DataFlowManagerFL(FLModel):
             num_dst_ports,
             False,
             True,
-            reset_values=initial_map),
+            reset_values=initial_map,
+        ),
+        updated=[],
     )
 
     @s.model_method
@@ -102,10 +112,20 @@ class DataFlowManagerFL(FLModel):
     def write(tag, value):
       if tag == s.ZERO_TAG:
         return
-      new_preg_state = s.PregState()
-      new_preg_state.value = value
-      new_preg_state.ready = 1
-      s.preg_file.write(addr=tag, data=new_preg_state)
+      s.preg_file.write(addr=tag, data=value)
+      s.ready_table.write(addr=tag, data=1)
+      print('super bob: {}'.format(tag))
+      s.updated.append(tag)
+
+    @s.model_method
+    def get_updated():
+      tags = [0 for _ in range(num_dst_ports)]
+      valid = [0 for _ in range(num_dst_ports)]
+      for i, preg in enumerate(s.updated):
+        tags[i] = preg
+        valid[i] = 1
+      s.updated = []
+      return Result(tags=tags, valid=valid)
 
     @s.model_method
     def get_src(areg):
@@ -122,21 +142,25 @@ class DataFlowManagerFL(FLModel):
       allocation = s.free_regs.alloc()
 
       s.rename_table.update(areg=areg, preg=allocation.index)
-      new_preg_state = s.PregState()
-      new_preg_state.value = 0
-      new_preg_state.ready = 0
-      s.preg_file.write(addr=allocation.index, data=new_preg_state)
+      s.preg_file.write(addr=allocation.index, data=0)
+      s.ready_table.write(addr=allocation.index, data=0)
       s.inverse.write(addr=allocation.index, data=areg)
 
       return allocation.index
 
     @s.model_method
+    def is_ready(tag):
+      if tag == s.ZERO_TAG:
+        return 1
+      else:
+        return s.ready_table.read(addr=tag).data
+
+    @s.model_method
     def read(tag):
       if tag == s.ZERO_TAG:
-        return Result(ready=1, value=0)
+        return 0
       else:
-        preg_state = s.preg_file.read(addr=tag).data
-        return Result(ready=preg_state.ready, value=preg_state.value)
+        return s.preg_file.read(addr=tag).data
 
     @s.ready_method
     def snapshot():

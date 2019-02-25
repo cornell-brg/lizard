@@ -20,10 +20,8 @@ def test_method(model):
   d1_preg = df.get_dst(2)
   assert d1_preg.preg == 31
   s1_read = df.read(s1_preg.preg)
-  assert s1_read.ready == 1
   assert s1_read.value == 0
   s2_read = df.read(s2_preg.preg)
-  assert s2_read.ready == 1
   assert s2_read.value == 0
   df.cycle()
 
@@ -39,7 +37,6 @@ def test_method(model):
   d1_preg = df.get_dst(2)
   assert d1_preg.preg == 1
   s1_read = df.read(s1_preg.preg)
-  assert s1_read.ready == 1
   assert s1_read.value == 0
   df.cycle()
 
