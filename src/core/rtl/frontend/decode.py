@@ -7,7 +7,7 @@ from msg.codes import RVInstMask, Opcode, ExceptionCode
 from core.rtl.controlflow import ControlFlowManagerInterface
 from core.rtl.messages import FetchMsg, DecodeMsg, PipelineMsgStatus
 from core.rtl.frontend.imm_decoder import ImmDecoderInterface, ImmDecoder
-from core.rtl.frontend.sub_decoder import CompositeDecoder, CompositeDecoderInterface
+from core.rtl.frontend.sub_decoder import compose_decoders
 from core.rtl.frontend.alu_decoder import AluDecoder
 from config.general import DECODED_IMM_LEN, XLEN
 
@@ -45,9 +45,7 @@ class Decode(Model):
         RegisterInterface(Bits(1), True, False), reset_value=0)
     s.decode_msg = Register(RegisterInterface(DecodeMsg(), True, False))
 
-    s.decoder = CompositeDecoder(CompositeDecoderInterface(1))
-    s.alu_decoder = AluDecoder()
-    s.connect_m(s.decoder.decode_child[0], s.alu_decoder.decode)
+    s.decoder = compose_decoders(AluDecoder)()
 
     s.advance = Wire(1)
 
