@@ -60,8 +60,8 @@ def FrontendHeader():
 def BackendHeader():
   return [
       Inline('frontend_hdr', FrontendHeader()),
-      Field('seq', MAX_SPEC_DEPTH),
-      Field('branch_mask', INST_IDX_NBITS),
+      Field('seq', INST_IDX_NBITS),
+      Field('branch_mask', MAX_SPEC_DEPTH),
   ]
 
 
