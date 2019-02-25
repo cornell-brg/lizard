@@ -1,5 +1,6 @@
 from pymtl import *
 from util.rtl.interface import Interface, UseInterface
+from util.rtl.method import MethodSpec
 from core.rtl.controlflow import ControlFlowManager, ControlFlowManagerInterface
 from core.rtl.dataflow import DataFlowManager, DataFlowManagerInterface
 from core.rtl.frontend.fetch import Fetch, FetchInterface
@@ -38,17 +39,40 @@ class Proc(Model):
   8. Commit: Reorder the instruction in a ROB and retire then when they reach the head
   """
 
-  def __init__(s, interface=ProcInterface()):
+  def __init__(s, interface, MemMsg):
     UseInterface(s, interface)
-
-    # External ports
-    s.memory_bus_interface = MemoryBusInterface(1, 1, 2, 64, 8)
-    s.debug_bus_interface = ProcDebugBusInterface(XLEN)
-
-    s.memory_bus_interface.require(s, 'mb', 'recv', -1)
-    s.memory_bus_interface.require(s, 'mb', 'send', -1)
-    s.debug_bus_interface.require(s, 'db', 'recv')
-    s.debug_bus_interface.require(s, 'db', 'send')
+    s.require(
+        MethodSpec(
+            'mb_recv',
+            args=None,
+            rets={'msg': MemMsg.resp},
+            call=True,
+            rdy=True,
+            count=2,
+        ),
+        MethodSpec(
+            'mb_send',
+            args={'msg': MemMsg.req},
+            rets=None,
+            call=True,
+            rdy=True,
+            count=2,
+        ),
+        MethodSpec(
+            'db_recv',
+            args=None,
+            rets={'msg': Bits(XLEN)},
+            call=True,
+            rdy=True,
+        ),
+        MethodSpec(
+            'db_send',
+            args={'msg': Bits(XLEN)},
+            rets=None,
+            call=True,
+            rdy=True,
+        ),
+    )
 
     # Control flow
     s.cflow_interface = ControlFlowManagerInterface(XLEN, INST_IDX_NBITS)
@@ -61,25 +85,20 @@ class Proc(Model):
 
     # Mem
     s.mem_controller_interface = BasicMemoryControllerInterface(
-        s.memory_bus_interface, ['fetch'])
+        MemMsg, ['fetch'])
     s.mem_controller = BasicMemoryController(s.mem_controller_interface)
-    s.connect_m(s.mb_recv, s.mem_controller.bus_recv)
-    s.connect_m(s.mb_send, s.mem_controller.bus_send)
+    s.connect_m(s.mb_recv[0], s.mem_controller.bus_recv[0])
+    s.connect_m(s.mb_send[0], s.mem_controller.bus_send[0])
 
     # Fetch
     s.fetch_interface = FetchInterface(XLEN, ILEN)
-    s.fetch = Fetch(s.fetch_interface, s.cflow_interface,
-                    s.mem_controller_interface)
-    s.connect_m(s.mem_controller.fetch_recv, s.fetch.mem_fetch_recv)
-    s.connect_m(s.mem_controller.fetch_send, s.fetch.mem_fetch_send)
+    s.fetch = Fetch(s.fetch_interface, MemMsg)
+    s.connect_m(s.mem_controller.fetch_recv, s.fetch.mem_recv)
+    s.connect_m(s.mem_controller.fetch_send, s.fetch.mem_send)
     s.connect_m(s.cflow.check_redirect, s.fetch.check_redirect)
 
     # Decode
-    s.decode_interface = DecodeInterface(XLEN, ILEN, DECODED_IMM_LEN)
-    s.decode = Decode(s.decode_interface, s.fetch_interface, s.cflow_interface)
+    s.decode_interface = DecodeInterface()
+    s.decode = Decode(s.decode_interface)
     s.connect_m(s.fetch.get, s.decode.fetch_get)
-    s.connect_m(s.cflow.check_redirect, s.decode.cflow_check_redirect)
-
-    # ALU
-    s.alu_interface = ALUInterface(XLEN, DECODED_IMM_LEN)
-    s.alu = ALU(s.alu_interface)
+    s.connect_m(s.cflow.check_redirect, s.decode.check_redirect)

@@ -41,22 +41,25 @@ class Register(Model):
   def __init__(s, interface, reset_value=None):
     UseInterface(s, interface)
 
-    s.value = Wire(s.interface.Data)
+    s.reg_value = Wire(s.interface.Data)
 
-    s.update_ = Wire(1)
+    s.update = Wire(1)
 
     if s.interface.enable:
-      s.connect(s.update_, s.write_call)
+      s.connect(s.update, s.write_call)
     else:
-      s.connect(s.update_, 1)
+      s.connect(s.update, 1)
 
     if s.interface.write_read_bypass:
 
       @s.combinational
       def read():
-        s.read_data.v = s.write_data if s.update_ else s.value
+        if s.update:
+          s.read_data.v = s.write_data
+        else:
+          s.read_data.v = s.reg_value
     else:
-      s.connect(s.read_data, s.value)
+      s.connect(s.read_data, s.reg_value)
 
     # Create the sequential update block:
     if reset_value is not None:
@@ -64,15 +67,15 @@ class Register(Model):
       @s.tick_rtl
       def update():
         if s.reset:
-          s.value.n = reset_value
-        elif s.update_:
-          s.value.n = s.write_data
+          s.reg_value.n = reset_value
+        elif s.update:
+          s.reg_value.n = s.write_data
     else:
 
       @s.tick_rtl
       def update():
-        if s.update_:
-          s.value.n = s.write_data
+        if s.update:
+          s.reg_value.n = s.write_data
 
   def line_trace(s):
-    return "{}".format(s.value)
+    return "{}".format(s.reg_value)

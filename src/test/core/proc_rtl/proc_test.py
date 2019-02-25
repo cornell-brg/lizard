@@ -14,11 +14,11 @@ from core.rtl.proc import ProcInterface, Proc
 class ProcTestHarness(Model):
 
   def __init__(s, initial_mem):
-    s.mbi = MemoryBusInterface(1, 1, 2, 64, 8)
+    s.mbi = MemoryBusInterface(2, 1, 2, 64, 8)
     s.tmb = TestMemoryBusFL(s.mbi, initial_mem)
     s.mb = wrap_to_rtl(s.tmb)
 
-    TestHarness(s, Proc(ProcInterface()), True)
+    TestHarness(s, Proc(ProcInterface(), s.mbi.MemMsg), True)
 
     s.connect_m(s.mb.recv, s.dut.mb_recv)
     s.connect_m(s.mb.send, s.dut.mb_send)

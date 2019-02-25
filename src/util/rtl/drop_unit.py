@@ -9,50 +9,47 @@ class DropUnitInterface(Interface):
 
   def __init__(s, dtype):
     s.Data = canonicalize_type(dtype)
-    super(DropUnitInterface, s).__init__(
-        [
-            MethodSpec(
-                'drop',
-                args=None,
-                rets=None,
-                call=True,
-                rdy=True,
-            ),
-            MethodSpec(
-                'drop_status',
-                args=None,
-                rets={'occurred': Bits(1)},
-                call=False,
-                rdy=False,
-            ),
-            MethodSpec(
-                'output',
-                args=None,
-                rets={
-                    'data': dtype,
-                },
-                call=True,
-                rdy=True,
-            ),
-        ],
-        requirements=[
-            MethodSpec(
-                'input',
-                args=None,
-                rets={
-                    'data': dtype,
-                },
-                call=True,
-                rdy=True,
-            ),
-        ],
-    )
+    super(DropUnitInterface, s).__init__([
+        MethodSpec(
+            'drop',
+            args=None,
+            rets=None,
+            call=True,
+            rdy=True,
+        ),
+        MethodSpec(
+            'drop_status',
+            args=None,
+            rets={'occurred': Bits(1)},
+            call=False,
+            rdy=False,
+        ),
+        MethodSpec(
+            'output',
+            args=None,
+            rets={
+                'data': dtype,
+            },
+            call=True,
+            rdy=True,
+        ),
+    ],)
 
 
 class DropUnit(Model):
 
   def __init__(s, interface):
     UseInterface(s, interface)
+    s.require(
+        MethodSpec(
+            'input',
+            args=None,
+            rets={
+                'data': s.interface.Data,
+            },
+            call=True,
+            rdy=True,
+        ))
 
     s.drop_pending = Register(
         RegisterInterface(Bits(1), False, False), reset_value=0)

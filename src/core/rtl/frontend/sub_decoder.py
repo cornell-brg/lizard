@@ -35,38 +35,6 @@ class SubDecoderInterface(Interface):
     ])
 
 
-class BinaryCompositeDecoderInterface(Interface):
-
-  def __init__(s):
-    sub_decoder = SubDecoderInterface()
-    super(BinaryCompositeDecoderInterface, s).__init__(
-        [],
-        bases=[
-            IncludeAll(sub_decoder),
-        ],
-        requirements=[
-            sub_decoder['decode'].variant(name='decode_a'),
-            sub_decoder['decode'].variant(name='decode_b'),
-        ],
-    )
-
-
-class CompositeDecoderInterface(Interface):
-
-  def __init__(s, nchildren):
-    sub_decoder = SubDecoderInterface()
-    s.nchildren = nchildren
-    super(CompositeDecoderInterface, s).__init__(
-        [],
-        bases=[
-            IncludeAll(sub_decoder),
-        ],
-        requirements=[
-            sub_decoder['decode'].variant(name='decode_child', count=nchildren),
-        ],
-    )
-
-
 class GenDecoder(Model):
 
   def __init__(s,
@@ -140,7 +108,11 @@ class GenDecoder(Model):
 class BinaryCompositeDecoder(Model):
 
   def __init__(s):
-    UseInterface(s, BinaryCompositeDecoderInterface())
+    UseInterface(s, SubDecoderInterface())
+    s.require(
+        s.interface['decode'].variant(name='decode_a'),
+        s.interface['decode'].variant(name='decode_b'),
+    )
 
     s.connect(s.decode_a_inst, s.decode_inst)
     s.connect(s.decode_b_inst, s.decode_inst)
@@ -169,16 +141,17 @@ class BinaryCompositeDecoder(Model):
 
 class CompositeDecoder(Model):
 
-  def __init__(s, interface):
-    UseInterface(s, interface)
+  def __init__(s, nchildren):
+    UseInterface(s, SubDecoderInterface())
+    s.require(
+        s.interface['decode'].variant(name='decode_child', count=nchildren),)
 
-    if s.interface.nchildren == 1:
+    if nchildren == 1:
       s.connect_m(s.decode, s.decode_child[0])
       return
 
-    s.rest_decoder = CompositeDecoder(
-        CompositeDecoderInterface(s.interface.nchildren - 1))
-    for i in range(1, s.interface.nchildren):
+    s.rest_decoder = CompositeDecoder(nchildren - 1)
+    for i in range(1, nchildren):
       s.connect_m(s.rest_decoder.decode_child[i - 1], s.decode_child[i])
 
     s.binary_decoder = BinaryCompositeDecoder()
@@ -200,8 +173,7 @@ def compose_decoders(*classes):
 
     def __init__(s):
       UseInterface(s, SubDecoderInterface())
-      s.composite_decoder = CompositeDecoder(
-          CompositeDecoderInterface(len(classes)))
+      s.composite_decoder = CompositeDecoder(len(classes))
 
       s.decs = [class_() for class_ in classes]
       for i in range(len(classes)):

@@ -23,12 +23,10 @@ class FetchTestHarness(Model):
     s.tmb = TestMemoryBusFL(s.mbi, initial_mem)
     s.mb = wrap_to_rtl(s.tmb)
     s.mc = BasicMemoryController(
-        BasicMemoryControllerInterface(s.mbi, ['fetch']))
-    #s.tcf = ControlFlowManager(64, 0x200, 2)
+        BasicMemoryControllerInterface(s.mbi.MemMsg, ['fetch']))
     s.tcf = wrap_to_rtl(TestControlFlowManagerFL(64, 2, 0x200))
 
-    TestHarness(s, Fetch(
-        FetchInterface(64, 32, s.tcf.interface, s.mc.interface)), True,
+    TestHarness(s, Fetch(FetchInterface(64, 32), s.mbi.MemMsg), True,
                 'bobby.vcd')
 
     s.connect_m(s.mb.recv, s.mc.bus_recv)
