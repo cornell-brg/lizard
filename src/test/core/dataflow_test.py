@@ -19,18 +19,18 @@ def test_method(model):
   assert s2_preg.preg == 63
   d1_preg = df.get_dst(2)
   assert d1_preg.preg == 31
-  s1_read = df.read_tag(s1_preg.preg)
+  s1_read = df.read(s1_preg.preg)
   assert s1_read.ready == 1
   assert s1_read.value == 0
-  s2_read = df.read_tag(s2_preg.preg)
+  s2_read = df.read(s2_preg.preg)
   assert s2_read.ready == 1
   assert s2_read.value == 0
   df.cycle()
 
-  df.write_tag(tag=d1_preg.preg, value=0)
+  df.write(tag=d1_preg.preg, value=0)
   df.cycle()
 
-  df.commit_tag(d1_preg.preg)
+  df.commit(d1_preg.preg)
   df.cycle()
 
   # simulate addi x2, x2, 42
@@ -38,15 +38,15 @@ def test_method(model):
   assert s1_preg.preg == 31
   d1_preg = df.get_dst(2)
   assert d1_preg.preg == 1
-  s1_read = df.read_tag(s1_preg.preg)
+  s1_read = df.read(s1_preg.preg)
   assert s1_read.ready == 1
   assert s1_read.value == 0
   df.cycle()
 
-  df.write_tag(tag=d1_preg.preg, value=42)
+  df.write(tag=d1_preg.preg, value=42)
   df.cycle()
 
-  df.commit_tag(d1_preg.preg)
+  df.commit(d1_preg.preg)
   df.cycle()
 
 

@@ -88,7 +88,7 @@ class DataFlowManagerFL(FLModel):
     )
 
     @s.model_method
-    def commit_tag(tag):
+    def commit(tag):
       if tag == s.ZERO_TAG:
         return
       old_areg = s.inverse.read(tag).data
@@ -99,7 +99,7 @@ class DataFlowManagerFL(FLModel):
       s.arch_used_pregs.write(addr=tag, data=1)
 
     @s.model_method
-    def write_tag(tag, value):
+    def write(tag, value):
       if tag == s.ZERO_TAG:
         return
       new_preg_state = s.PregState()
@@ -131,7 +131,7 @@ class DataFlowManagerFL(FLModel):
       return allocation.index
 
     @s.model_method
-    def read_tag(tag):
+    def read(tag):
       if tag == s.ZERO_TAG:
         return Result(ready=1, value=0)
       else:
