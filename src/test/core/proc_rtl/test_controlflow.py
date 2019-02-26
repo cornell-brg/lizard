@@ -11,7 +11,7 @@ class TestControlFlowManagerFL(FLModel):
     super(TestControlFlowManagerFL, s).__init__(
         ControlFlowManagerInterface(xlen, seq_idx_nbits))
 
-    s.state(init=True)
+    s.state(init=True, head=0)
 
     @s.model_method
     def check_redirect():
@@ -26,8 +26,10 @@ class TestControlFlowManagerFL(FLModel):
       pass
 
     @s.model_method
-    def register(speculative):
-      return 0
+    def register(speculative, pc, pc_succ):
+      ret = s.head
+      s.head += 1
+      return ret
 
     @s.ready_method
     def register():
