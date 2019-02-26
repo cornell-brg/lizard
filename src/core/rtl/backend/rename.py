@@ -83,6 +83,10 @@ class Rename(Model):
     s.msg_ = Register(RegisterInterface(RenameMsg(), enable=True))
     s.out_ = Wire(RenameMsg())
 
+    # Connect up get call
+    s.connect(s.get_rdy, s.msg_val_.read_data)
+    s.connect(s.get_msg, s.msg_.read_data)
+
     s.connect(s.decoded_, s.decode_get_msg)
     s.connect(s.msg_.write_data, s.out_)
 
