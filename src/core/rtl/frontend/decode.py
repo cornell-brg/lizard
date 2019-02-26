@@ -2,9 +2,8 @@ from pymtl import *
 from util.rtl.interface import Interface, UseInterface
 from util.rtl.method import MethodSpec
 from util.rtl.register import Register, RegisterInterface
-from msg.codes import RVInstMask, Opcode, ExceptionCode
+from msg.codes import ExceptionCode
 
-from core.rtl.controlflow import ControlFlowManagerInterface
 from core.rtl.messages import FetchMsg, DecodeMsg, PipelineMsgStatus
 from core.rtl.frontend.imm_decoder import ImmDecoderInterface, ImmDecoder
 from core.rtl.frontend.sub_decoder import compose_decoders

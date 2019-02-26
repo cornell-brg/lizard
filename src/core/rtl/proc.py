@@ -7,6 +7,7 @@ from core.rtl.frontend.fetch import Fetch, FetchInterface
 from core.rtl.frontend.decode import Decode, DecodeInterface
 from core.rtl.backend.rename import Rename, RenameInterface
 from core.rtl.backend.alu import ALU, ALUInterface
+from core.rtl.backend.writeback import Writeback, WritebackInterface
 from core.rtl.proc_debug_bus import ProcDebugBusInterface
 from mem.rtl.memory_bus import MemoryBusInterface
 from mem.rtl.basic_memory_controller import BasicMemoryController, BasicMemoryControllerInterface
@@ -111,3 +112,19 @@ class Proc(Model):
     s.connect_m(s.dflow.get_src[0], s.rename.get_src[0])
     s.connect_m(s.dflow.get_src[1], s.rename.get_src[1])
     s.connect_m(s.dflow.get_dst[0], s.rename.get_dst)
+
+    # Issue
+    # TODO
+
+    # Dispatch
+    # TODO
+
+    # Execute
+    # TODO
+
+    # Writeback
+    s.writeback_interface = WritebackInterface()
+    s.writeback = Writeback(s.writeback_interface)
+    # s.connect_m(s.execute.get, s.writeback.execute_get)
+    s.connect_m(s.writeback.dataflow_write, s.dflow.write[0])
+    # Writeback
