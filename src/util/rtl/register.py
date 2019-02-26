@@ -49,6 +49,7 @@ class Register(Model):
       s.connect(s.update, 1)
 
     if s.interface.write_read_bypass:
+
       @s.combinational
       def read():
         s.read_data.v = s.write_data.n if s.update else s.reg_value

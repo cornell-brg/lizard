@@ -47,9 +47,9 @@ class Rename(Model):
         MethodSpec(
             'register',
             args={
-              'speculative': Bits(1),
-              'pc': Bits(pc_nbits),
-              'pc_succ': Bits(pc_nbits),
+                'speculative': Bits(1),
+                'pc': Bits(pc_nbits),
+                'pc_succ': Bits(pc_nbits),
             },
             rets={'seq': Bits(seq_idx_nbits)},
             call=True,
@@ -101,15 +101,16 @@ class Rename(Model):
     # Handle the conditional calls
     @s.combinational
     def handle_calls():
-      s.get_dst_call.v = s.decoded_.rd_val and (s.decoded_.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID)
+      s.get_dst_call.v = s.decoded_.rd_val and (
+          s.decoded_.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID)
 
     # Connect the outgoing signals
     @s.combinational
     def handle_out():
-      s.out_.v = 0 # No inferred latches
+      s.out_.v = 0  # No inferred latches
       s.out_.hdr_frontend_hdr.v = s.decoded_.hdr
       s.out_.hdr_seq.v = s.register_seq
-      s.out_.hdr_branch_mask.v = 0 # TODO set this properly with cflow
+      s.out_.hdr_branch_mask.v = 0  # TODO set this properly with cflow
       # We need to propogate exception info
       if s.decoded_.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID:
         s.out_.rs1_val.v = s.decoded_.rs1_val
@@ -124,11 +125,11 @@ class Rename(Model):
       else:
         s.out_.exception_info.v = s.decoded_.exception_info
 
-
     # Set the valid register
     @s.combinational
     def set_val():
-      s.msg_val_.write_data.v = s.accepted_ or (s.msg_val_.read_data and not s.get_call)
+      s.msg_val_.write_data.v = s.accepted_ or (s.msg_val_.read_data and
+                                                not s.get_call)
 
     @s.combinational
     def set_rdy():
