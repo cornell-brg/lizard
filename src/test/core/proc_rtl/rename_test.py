@@ -18,7 +18,9 @@ class RenameTestHarness(Model):
   def __init__(s, decode_msgs):
     s.td = TestDecodeFL(decode_msgs)
     s.decode = wrap_to_rtl(s.td)
-    s.tcf = wrap_to_rtl(TestControlFlowManagerFL(64, RenameMsg().hdr_seq.nbits, 0x200))
+    s.tcf = wrap_to_rtl(
+        TestControlFlowManagerFL(64,
+                                 RenameMsg().hdr_seq.nbits, 0x200))
     s.dflow_interface = DataFlowManagerInterface(64, 32, 48, 1, 2, 1)
     s.tdf = wrap_to_rtl(DataFlowManagerFL(s.dflow_interface))
 
@@ -29,8 +31,14 @@ class RenameTestHarness(Model):
     s.connect_m(s.tcf.register, s.dut.register)
 
 
-
-def mk_dmsg(pc, status, rd=None, rs1=None, rs2=None, spec = False, pc_succ=0, exec_data=None):
+def mk_dmsg(pc,
+            status,
+            rd=None,
+            rs1=None,
+            rs2=None,
+            spec=False,
+            pc_succ=0,
+            exec_data=None):
   ret = DecodeMsg()
   ret.speculative = spec
   ret.pc_succ = pc_succ
@@ -51,11 +59,11 @@ def test_basic():
   EXCEP = PipelineMsgStatus.PIPELINE_MSG_STATUS_EXCEPTION_RAISED
 
   msgs = [
-    mk_dmsg(0, OK),
-    mk_dmsg(4, OK, 0x1),
-    mk_dmsg(8, OK, 0x2, 0x3),
-    mk_dmsg(12, OK, 0x4, 0x5, 0x6),
-    mk_dmsg(16, EXCEP, 0x7),
+      mk_dmsg(0, OK),
+      mk_dmsg(4, OK, 0x1),
+      mk_dmsg(8, OK, 0x2, 0x3),
+      mk_dmsg(12, OK, 0x4, 0x5, 0x6),
+      mk_dmsg(16, EXCEP, 0x7),
   ]
 
   rth = RenameTestHarness(msgs)
