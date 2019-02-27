@@ -95,8 +95,7 @@ class DataFlowManagerInterface(Interface):
                 'get_updated',
                 args=None,
                 rets={
-                    'tags': Array(s.Preg, num_dst_ports),
-                    'valid': Array(Bits(1), num_dst_ports),
+                    'mask': Bits(npregs),
                 },
                 call=False,
                 rdy=False,
@@ -327,9 +326,20 @@ class DataFlowManager(Model):
       s.connect(s.ready_table.write_call[i], s.is_write_not_zero_tag[i])
 
     # get_updated
+    s.get_updated_incremental_masks = [
+        Wire(npregs) for _ in range(num_dst_ports + 1)
+    ]
+    s.connect(s.get_updated_incremental_masks[0], 0)
     for i in range(num_dst_ports):
-      s.connect(s.get_updated_tags[i], s.write_tag[i])
-      s.connect(s.get_updated_valid[i], s.is_write_not_zero_tag[i])
+
+      @s.combinational
+      def get_updated_mask(curr=i + 1, last=i):
+        s.get_updated_incremental_masks[
+            curr].v = s.get_updated_incremental_masks[last]
+        if s.is_write_not_zero_tag[last]:
+          s.get_updated_incremental_masks[curr][s.write_tag[last]].v = 1
+
+    s.connect(s.get_updated_mask, s.get_updated_incremental_masks[-1])
 
     # get_src
     s.connect_m(s.get_src, s.rename_table.lookup)
