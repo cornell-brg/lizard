@@ -37,11 +37,16 @@ class Rename(Model):
     areg_nbits = DecodeMsg().rs1.nbits
     s.require(
         MethodSpec(
-            'decode_get',
+            'decode_peek',
             args=None,
             rets={'msg': DecodeMsg()},
-            call=True,
+            call=False,
             rdy=True,
+        ),
+        MethodSpec(
+            'decode_take',
+            call=True,
+            rdy=False,
         ),
         # Methods needed from cflow:
         MethodSpec(
@@ -51,9 +56,12 @@ class Rename(Model):
                 'pc': Bits(pc_nbits),
                 'pc_succ': Bits(pc_nbits),
             },
-            rets={'seq': Bits(seq_idx_nbits)},
+            rets={
+                'seq': Bits(seq_idx_nbits),
+                'success' : Bits(1),
+            },
             call=True,
-            rdy=True,
+            rdy=False,
         ),
         # Methods from dataflow
         MethodSpec(
@@ -86,7 +94,7 @@ class Rename(Model):
     s.connect(s.get_rdy, s.msg_val_.read_data)
     s.connect(s.get_msg, s.msg_.read_data)
 
-    s.connect(s.decoded_, s.decode_get_msg)
+    s.connect(s.decoded_, s.decode_peek_msg)
     s.connect(s.msg_.write_data, s.out_)
 
     # Outgoing call's arguments
@@ -98,8 +106,8 @@ class Rename(Model):
     s.connect(s.get_dst_areg, s.decoded_.rd)
 
     # Outgoing call's call signal:
-    s.connect(s.decode_get_call, s.accepted_)
-    s.connect(s.register_call, s.accepted_)
+    s.connect(s.decode_take_call, s.accepted_)
+    s.connect(s.register_call, s.rdy_)
     s.connect(s.msg_.write_call, s.accepted_)
     # Handle the conditional calls
     @s.combinational
@@ -136,5 +144,6 @@ class Rename(Model):
 
     @s.combinational
     def set_rdy():
-      s.rdy_.v = s.register_rdy and s.get_dst_rdy
-      s.accepted_.v = s.rdy_ and s.decode_get_rdy
+      s.rdy_.v = s.get_dst_rdy and s.decode_peek_rdy and (
+                                          not s.msg_val_.read_data or s.get_call)
+      s.accepted_.v = s.rdy_ and s.register_success
