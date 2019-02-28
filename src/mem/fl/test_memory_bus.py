@@ -19,6 +19,7 @@ class TestMemoryBusFL(FLModel):
       MemMsgType.AMO_MAX: max,
   }
 
+  @HardwareModel.validate
   def __init__(s, memory_bus_interface, initial_memory={}):
     super(TestMemoryBusFL, s).__init__(memory_bus_interface)
     s.data_nbytes = s.interface.data_nbytes

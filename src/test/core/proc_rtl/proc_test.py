@@ -8,8 +8,11 @@ from model.wrapper import wrap_to_rtl, wrap_to_cl
 from util.rtl.interface import Interface, UseInterface, IncludeAll
 from mem.rtl.memory_bus import MemoryBusInterface, MemMsgType
 from mem.fl.test_memory_bus import TestMemoryBusFL
+from core.rtl.proc_debug_bus import ProcDebugBusInterface
+from core.fl.test_proc_debug_bus import TestProcDebugBusFL
 from core.rtl.proc import ProcInterface, Proc
 from util.arch.rv64g import isa, assembler
+from config.general import *
 
 
 class ProcTestHarness(Model):
@@ -19,10 +22,16 @@ class ProcTestHarness(Model):
     s.tmb = TestMemoryBusFL(s.mbi, initial_mem)
     s.mb = wrap_to_rtl(s.tmb)
 
+    s.dbi = ProcDebugBusInterface(XLEN)
+    s.tdb = TestProcDebugBusFL(s.dbi)
+    s.db = wrap_to_rtl(s.tdb)
+
     TestHarness(s, Proc(ProcInterface(), s.mbi.MemMsg), True, "proc.vcd")
 
     s.connect_m(s.mb.recv, s.dut.mb_recv)
     s.connect_m(s.mb.send, s.dut.mb_send)
+    s.connect_m(s.db.recv, s.dut.db_recv)
+    s.connect_m(s.db.send, s.dut.db_send)
 
 
 def test_basic():
@@ -47,9 +56,14 @@ def test_basic():
 
 def test_asm():
   asm = """
-  addi x1, x2, 0
-  add x3, x4, x5
-  sub x6, x7, x8
+  addi x1, x0, 42
+  nop
+  nop
+  nop
+  nop
+  nop
+  nop
+  csrw proc2mngr, x1
   """
   mem_image = assembler.assemble(asm).get_section(".text").data
   initial_mem = {}
@@ -63,3 +77,4 @@ def test_asm():
   dut.reset()
   for i in range(20):
     dut.cycle()
+    print(pth.tdb.received_messages)
