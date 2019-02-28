@@ -9,6 +9,7 @@ from core.rtl.backend.rename import Rename, RenameInterface
 from core.rtl.backend.alu import ALU, ALUInterface
 from core.rtl.pipeline_arbiter import PipelineArbiterInterface, PipelineArbiter
 from core.rtl.backend.writeback import Writeback, WritebackInterface
+from core.rtl.backend.commit import Commit, CommitInterface
 from core.rtl.proc_debug_bus import ProcDebugBusInterface
 from core.rtl.messages import ExecuteMsg
 from mem.rtl.memory_bus import MemoryBusInterface
@@ -134,3 +135,9 @@ class Proc(Model):
     s.writeback = Writeback(s.writeback_interface)
     s.connect_m(s.writeback_arbiter.get, s.writeback.execute_get)
     s.connect_m(s.writeback.dataflow_write, s.dflow.write[0])
+
+    # Commit
+    s.commit_interface = CommitInterface()
+    s.commit = Commit(s.commit_interface)
+    s.connect_m(s.writeback.get, s.commit.writeback_get)
+    s.connect_m(s.commit.dataflow_commit, s.dflow.commit[0])
