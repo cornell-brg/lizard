@@ -3,6 +3,7 @@ from util.rtl.interface import Interface, UseInterface
 from util.rtl.method import MethodSpec
 from core.rtl.controlflow import ControlFlowManager, ControlFlowManagerInterface
 from core.rtl.dataflow import DataFlowManager, DataFlowManagerInterface
+from core.rtl.csr_manager import CSRManager, CSRManagerInterface
 from core.rtl.frontend.fetch import Fetch, FetchInterface
 from core.rtl.frontend.decode import Decode, DecodeInterface
 from core.rtl.backend.rename import Rename, RenameInterface
@@ -87,6 +88,12 @@ class Proc(Model):
     s.dflow_interface = DataFlowManagerInterface(XLEN, AREG_COUNT, PREG_COUNT,
                                                  MAX_SPEC_DEPTH, 2, 1)
     s.dflow = DataFlowManager(s.dflow_interface)
+
+    # CSR
+    s.csr_interface = CSRManagerInterface()
+    s.csr = CSRManager(s.csr_interface)
+    s.connect_m(s.db_recv, s.csr.debug_recv)
+    s.connect_m(s.db_send, s.csr.debug_send)
 
     # Mem
     s.mem_controller_interface = BasicMemoryControllerInterface(
