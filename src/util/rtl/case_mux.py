@@ -2,8 +2,6 @@ from pymtl import *
 from util.rtl.interface import Interface, UseInterface
 from util.rtl.method import MethodSpec
 from util.rtl.types import Array, canonicalize_type
-from util.rtl.lookup_table import LookupTableInterface, LookupTable
-from util.rtl.mux import Mux
 from bitutil import clog2, clog2nz
 
 
@@ -12,6 +10,7 @@ class CaseMuxInterface(Interface):
   def __init__(s, dtype, stype, nports):
     s.Data = canonicalize_type(dtype)
     s.Select = canonicalize_type(stype)
+    s.nports = nports
 
     super(CaseMuxInterface, s).__init__([
         MethodSpec(
@@ -23,6 +22,7 @@ class CaseMuxInterface(Interface):
             },
             rets={
                 'out': s.Data,
+                'matched': Bits(1),
             },
             call=False,
             rdy=False,
@@ -35,27 +35,31 @@ class CaseMux(Model):
   def __init__(s, interface, svalues):
     UseInterface(s, interface)
 
-    mapping = {value: index for index, value in enumerate(svalues)}
+    size = s.interface.nports
+    assert size == len(svalues)
 
-    s.mux = Mux(s.interface.Data, len(svalues) + 1)
-    s.lut = LookupTable(
-        LookupTableInterface(s.interface.Select, s.mux.interface.Select),
-        mapping)
-
-    s.connect(s.lut.lookup_in_, s.mux_select)
-
+    s.out_chain = [Wire(s.interface.Data) for _ in range(size + 1)]
+    s.valid_chain = [Wire(1) for _ in range(size + 1)]
+    # PYMTL_BROKEN
     @s.combinational
-    def handle_select(last=len(svalues)):
-      if s.lut.lookup_valid:
-        s.mux.mux_select.v = s.lut.lookup_out
-      else:
-        s.mux.mux_select.v = last
+    def connect_is_broken():
+      s.out_chain[0].v = s.mux_default
 
-    for i in range(len(svalues)):
-      s.connect(s.mux.mux_in_[i], s.mux_in_[i])
-    s.connect(s.mux.mux_in_[len(svalues)], s.mux_default)
+    s.connect(s.valid_chain[0], 0)
 
-    s.connect(s.mux_out, s.mux.mux_out)
+    for i, svalue in enumerate(svalues):
+
+      @s.combinational
+      def chain(curr=i + 1, last=i, svalue=int(svalue)):
+        if s.mux_select == svalue:
+          s.out_chain[curr].v = s.mux_in_[last]
+          s.valid_chain[curr].v = 1
+        else:
+          s.out_chain[curr].v = s.out_chain[last]
+          s.valid_chain[curr].v = s.valid_chain[last]
+
+    s.connect(s.mux_out, s.out_chain[-1])
+    s.connect(s.mux_matched, s.valid_chain[size])
 
   def line_trace(s):
     return "[{}][{}]: {}".format(', '.join([str(x) for x in s.mux_in_]),

@@ -1,6 +1,6 @@
 from pymtl import *
 
-from model.hardware_model import HardwareModel
+from model.hardware_model import HardwareModel, Result
 from model.flmodel import FLModel
 from util.rtl.case_mux import CaseMuxInterface
 
@@ -15,6 +15,6 @@ class CaseMuxFL(FLModel):
     def mux(in_, select, default):
       select = int(select)
       if select in svalues:
-        return in_[svalues.index(select)]
+        return Result(out=in_[svalues.index(select)], matched=1)
       else:
-        return default
+        return Result(out=default, matched=0)
