@@ -3,7 +3,7 @@ from pymtl import *
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 from util.rtl.interface import Interface, IncludeSome, UseInterface
 from util.rtl.method import MethodSpec
-from pclib.rtl import RegEn, RegEnRst, RegRst
+from util.rtl.register import Register, RegisterInterface
 
 
 class ControlFlowManagerInterface(Interface):
@@ -61,23 +61,23 @@ class ControlFlowManager(Model):
     s.redirect_valid_ = Wire(1)
 
     # Dealloc from tail, alloc at head
-    s.tail = RegRst(seqidx_nbits, reset_value=0)
-    s.head = RegRst(seqidx_nbits, reset_value=0)
-    s.num = RegRst(seqidx_nbits + 1, reset_value=0)
+    s.tail = Register(RegisterInterface(Bits(seqidx_nbits)), reset_value=0)
+    s.head = Register(RegisterInterface(Bits(seqidx_nbits)), reset_value=0)
+    s.num = Register(RegisterInterface(Bits(seqidx_nbits+1)), reset_value=0)
 
     s.connect(s.check_redirect_redirect, s.redirect_valid_)
     s.connect(s.check_redirect_target, s.redirect_)
 
-    s.connect(s.register_seq, s.head.out)
+    s.connect(s.register_seq, s.head.read_data)
 
     # flags
     s.empty = Wire(1)
 
     @s.combinational
     def set_flags():
-      s.empty.v = s.num.out == 0
+      s.empty.v = s.num.read_data == 0
       # Ready signals:
-      s.register_rdy.v = s.num.out < (1 << seqidx_nbits)  # Alloc rdy
+      s.register_rdy.v = s.num.read_data < (1 << seqidx_nbits)  # Alloc rdy
 
     # @s.combinational
     # def update_tail():
@@ -85,13 +85,13 @@ class ControlFlowManager(Model):
 
     @s.combinational
     def update_head():
-      s.head.in_.v = (s.head.out + 1) if s.register_call else s.head.out
+      s.head.write_data.v = (s.head.read_data + 1) if s.register_call else s.head.read_data
 
     @s.combinational
     def update_num():
-      s.num.in_.v = s.num.out
+      s.num.write_data.v = s.num.read_data
       if s.register_call:
-        s.num.in_.v = s.num.out + 1
+        s.num.write_data.v = s.num.read_data + 1
       # if s.alloc_port.call and not s.remove_port.call:
       #   s.num.in_.v = s.num.out + 1
       # elif not s.alloc_port.call and s.remove_port.call:
