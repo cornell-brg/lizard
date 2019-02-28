@@ -137,3 +137,4 @@ class ALU(Model):
       s.out_.write_data.hdr.v = s.msg_.hdr
       s.out_.write_data.result.v = s.res_
       s.out_.write_data.rd.v = s.msg_.rd
+      s.out_.write_data.rd_val.v = s.msg_.rd_val
