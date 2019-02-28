@@ -128,7 +128,7 @@ class Proc(Model):
 
     # Issue
     s.issue_interface = IssueInterface()
-    s.issue = Issue(s.issue_interface)
+    s.issue = Issue(s.issue_interface, num_slots=4)
     s.connect_m(s.rename.get, s.issue.rename_get)
     s.connect_m(s.dflow.is_ready, s.issue.is_ready)
 
