@@ -225,7 +225,7 @@ class IssueQueueInterface(Interface):
 
 class CompactingIssueQueue(Model):
 
-  def __init__(s, interface, num_slots=2):
+  def __init__(s, interface, num_slots=4):
     """ This model implements a generic issue queue
 
       create_slot: A function that instatiates a model that conforms
@@ -275,10 +275,10 @@ class CompactingIssueQueue(Model):
 
     # if ith slot shitting, ith slot input called, and i+1 output called
     for i in range(num_slots-1):
-      s.connect(s.slots_[i].input_call, s.do_shift_[i])
-      # Connect value
-      s.connect(s.slots_[i].input_value, s.slots_[i+1].output_value)
-
+      @s.combinational
+      def slot_input(i=i):
+        s.slots_[i].input_call.v = s.do_shift_[i]
+        s.slots_[i].input_value.v = s.slots_[i+1].output_value
 
     # Broadcast kill and notify signal to each slot
     for i in range(num_slots):

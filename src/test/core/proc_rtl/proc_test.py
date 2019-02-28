@@ -18,7 +18,7 @@ class ProcTestHarness(Model):
     s.tmb = TestMemoryBusFL(s.mbi, initial_mem)
     s.mb = wrap_to_rtl(s.tmb)
 
-    TestHarness(s, Proc(ProcInterface(), s.mbi.MemMsg), True)
+    TestHarness(s, Proc(ProcInterface(), s.mbi.MemMsg), True, "proc.vcd")
 
     s.connect_m(s.mb.recv, s.dut.mb_recv)
     s.connect_m(s.mb.send, s.dut.mb_send)
@@ -43,4 +43,6 @@ def test_basic():
   pth = ProcTestHarness(initial_mem)
   dut = wrap_to_cl(pth)
 
-  pth.reset()
+  dut.reset()
+  for i in range(2 * len(data)):
+    dut.cycle()
