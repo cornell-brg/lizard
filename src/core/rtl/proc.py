@@ -9,6 +9,7 @@ from core.rtl.frontend.decode import Decode, DecodeInterface
 from core.rtl.backend.rename import Rename, RenameInterface
 from core.rtl.backend.issue import Issue, IssueInterface
 from core.rtl.backend.alu import ALU, ALUInterface
+from core.rtl.backend.csr import CSR, CSRInterface
 from core.rtl.pipeline_arbiter import PipelineArbiterInterface, PipelineArbiter
 from core.rtl.backend.writeback import Writeback, WritebackInterface
 from core.rtl.backend.commit import Commit, CommitInterface
@@ -136,10 +137,17 @@ class Proc(Model):
     # Execute
     # TODO
 
+    # Execute.CSR
+    s.csr_pipe_interface = CSRInterface()
+    s.csr_pipe = CSR(s.csr_pipe_interface)
+    s.connect_m(s.csr_pipe.csr_op, s.csr.op)
+    # s.connect_m(s.csr_pipe.dispatch_get, s.dispatch...)
+
     # Writeback Arbiter
     s.writeback_arbiter_interface = PipelineArbiterInterface(ExecuteMsg())
-    s.writeback_arbiter = PipelineArbiter(s.writeback_arbiter_interface, 1)
-    # s.connect_m(s.writeback_arbiter.in_get[0], ...)
+    s.writeback_arbiter = PipelineArbiter(s.writeback_arbiter_interface, 2)
+    # s.connect_m(s.writeback_arbiter.in_get[0], ALU)
+    s.connect_m(s.writeback_arbiter.in_get[1], s.csr_pipe.get)
 
     # Writeback
     s.writeback_interface = WritebackInterface()
