@@ -95,6 +95,9 @@ class Dispatch(Model):
         s.dispatched_.exception_info.v = s.issued_.exception_info
       else:
         s.dispatched_.rs1.v = s.read_value[0]
+        s.dispatched_.rs1_val.v = s.issued_.rs1_val
         s.dispatched_.rs2.v = s.read_value[1]
+        s.dispatched_.rs2_val.v = s.issued_.rs2_val
         s.dispatched_.rd.v = s.issued_.rd
+        s.dispatched_.rd_val.v = s.issued_.rd_val
         s.dispatched_.execution_data.v = s.issued_.execution_data
