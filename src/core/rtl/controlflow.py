@@ -88,9 +88,8 @@ class ControlFlowManager(Model):
     @s.combinational
     def set_flags():
       s.empty.v = s.num.read_data == 0
-      s.register_success_.v = s.register_call and (
-                              not s.register_speculative or (
-                              s.num.read_data < (1 << seqidx_nbits)))
+      # TODO handle speculative
+      s.register_success_.v = s.register_call and (s.num.read_data < (1 << seqidx_nbits))
 
     # @s.combinational
     # def update_tail():
