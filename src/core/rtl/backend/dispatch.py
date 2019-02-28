@@ -9,6 +9,7 @@ from util.rtl.register import Register, RegisterInterface
 from core.rtl.messages import IssueMsg, DispatchMsg, PipelineMsgStatus
 from msg.codes import RVInstMask, Opcode, ExceptionCode
 
+
 class DispatchInterface(Interface):
 
   def __init__(s):
@@ -33,26 +34,24 @@ class Dispatch(Model):
     data_nbits = DispatchMsg().rs1.nbits
 
     s.require(
-      MethodSpec(
-          'issue_get',
-          args=None,
-          rets={'msg': IssueMsg()},
-          call=True,
-          rdy=True,
-      ),
-      # Methods needed from dflow:
-      MethodSpec(
-          'read',
-          args={
-              'tag': preg_nbits
-          },
-          rets={
-              'value': data_nbits,
-          },
-          call=False,
-          rdy=False,
-          count=2,
-      ),
+        MethodSpec(
+            'issue_get',
+            args=None,
+            rets={'msg': IssueMsg()},
+            call=True,
+            rdy=True,
+        ),
+        # Methods needed from dflow:
+        MethodSpec(
+            'read',
+            args={'tag': preg_nbits},
+            rets={
+                'value': data_nbits,
+            },
+            call=False,
+            rdy=False,
+            count=2,
+        ),
     )
 
     s.out_val_ = Register(RegisterInterface(Bits(1)), reset_value=0)
@@ -78,11 +77,13 @@ class Dispatch(Model):
 
     @s.combinational
     def set_valid():
-      s.out_val_.write_data.v = s.accepted_ or (s.out_val_.read_data and not s.get_call)
+      s.out_val_.write_data.v = s.accepted_ or (s.out_val_.read_data and
+                                                not s.get_call)
 
     @s.combinational
     def set_accepted():
-      s.accepted_.v = (s.get_call or not s.out_val_.read_data) and s.issue_get_rdy
+      s.accepted_.v = (s.get_call or
+                       not s.out_val_.read_data) and s.issue_get_rdy
 
     @s.combinational
     def set_output():
