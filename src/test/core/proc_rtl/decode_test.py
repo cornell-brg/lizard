@@ -28,7 +28,7 @@ def test_basic():
   msg.inst = 0xdeadbeef
 
   msg2 = FetchMsg()
-  msg2.inst = isa.assemble_inst({}, 0, 'addi x0, x0, 0')
+  msg2.inst = isa.assemble_inst({}, 0, 'addi x1, x2, 0')
   msg3 = FetchMsg()
   msg3.inst = isa.assemble_inst({}, 0, 'csrrs x1, mngr2proc, x0')
 
