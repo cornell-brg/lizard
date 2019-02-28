@@ -39,7 +39,6 @@ class LookupTable(Model):
     s.connect(s.mux.mux_default, 0)
     s.connect(s.mux.mux_select, s.lookup_in_)
     for i, sout in enumerate(souts):
-      print('i = {}   sout = {}'.format(i, sout))
       s.connect(s.mux.mux_in_[i], int(sout))
     s.connect(s.lookup_out, s.mux.mux_out)
     s.connect(s.lookup_valid, s.mux.mux_matched)
