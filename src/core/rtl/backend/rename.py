@@ -72,7 +72,6 @@ class Rename(Model):
             rdy=True,
         ),
     )
-
     s.rdy_ = Wire(1)
     s.accepted_ = Wire(1)
 

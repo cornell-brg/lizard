@@ -6,6 +6,7 @@ from core.rtl.dataflow import DataFlowManager, DataFlowManagerInterface
 from core.rtl.frontend.fetch import Fetch, FetchInterface
 from core.rtl.frontend.decode import Decode, DecodeInterface
 from core.rtl.backend.rename import Rename, RenameInterface
+from core.rtl.backend.issue import Issue, IssueInterface
 from core.rtl.backend.alu import ALU, ALUInterface
 from core.rtl.proc_debug_bus import ProcDebugBusInterface
 from mem.rtl.memory_bus import MemoryBusInterface
@@ -111,3 +112,8 @@ class Proc(Model):
     s.connect_m(s.dflow.get_src[0], s.rename.get_src[0])
     s.connect_m(s.dflow.get_src[1], s.rename.get_src[1])
     s.connect_m(s.dflow.get_dst[0], s.rename.get_dst)
+
+    # Issue
+    s.issue_interface = IssueInterface()
+    s.issue = Issue(s.issue_interface)
+    s.connect_m(s.rename.get, s.issue.rename_get)
