@@ -83,12 +83,21 @@ class ALU(Model):
       s.accepted_.v = (s.get_call or not s.out_val_.read_data
                       ) and s.alu_.exec_rdy and s.dispatch_get_rdy
 
+    # PYMTL_BROKEN
+    s.rs1_ = Wire(data_len)
+    s.rs2_ = Wire(data_len)
+    s.res_ = Wire(data_len)
+    s.connect_wire(s.rs1_, s.msg_.rs1)
+    s.connect_wire(s.rs2_, s.msg_.rs2)
+    s.connect(s.res_, s.alu_.exec_res)
+    @s.combinational
+    def slice32():
+      s.src1_32_.v = s.rs1_[:32]
+      s.src2_32_.v = s.rs2_[:32]
+      s.res_32_.v = s.res_[:32]
+
     @s.combinational
     def set_src_res():
-      s.src1_32_.v = s.msg_.rs1[:32]
-      s.src2_32_.v = s.msg_.rs2[:32]
-      s.res_32_.v = s.alu_.exec_res[:32]
-
       if s.msg_.alu_msg_op32:
         s.src1_.v = zext(s.src1_32_,
                          data_len) if s.msg_.alu_msg_unsigned else sext(
@@ -100,9 +109,9 @@ class ALU(Model):
                         data_len) if s.msg_.alu_msg_unsigned else sext(
                             s.res_32_, data_len)
       else:
-        s.src1_.v = s.msg_.rs1
-        s.src2_.v = s.msg_.rs2
-        s.res_.v = s.alu_.exec_res
+        s.src1_.v = s.rs1_
+        s.src2_.v = s.rs2_
+        s.res_.v = s.res_
 
     @s.combinational
     def set_inputs():
