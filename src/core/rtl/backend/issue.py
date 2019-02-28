@@ -28,7 +28,7 @@ class IssueInterface(Interface):
 
 class Issue(Model):
 
-  def __init__(s, interface):
+  def __init__(s, interface, num_slots=4):
     UseInterface(s, interface)
     s.require(
         # Called on rename stage
@@ -59,7 +59,7 @@ class Issue(Model):
     # TODO, Instead of opaque being OutMsg, remove rs1 and rs2 from message
     SlotType = AbstractIssueType(preg_nbits, branch_mask_nbits, IssueMsg())
 
-    s.iq = CompactingIssueQueue(IssueQueueInterface(SlotType), num_slots=4)
+    s.iq = CompactingIssueQueue(IssueQueueInterface(SlotType), num_slots)
 
     s.renamed_ = Wire(RenameMsg())
     s.connect(s.renamed_, s.rename_get_msg)
