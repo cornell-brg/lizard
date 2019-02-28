@@ -29,8 +29,10 @@ def test_basic():
 
   msg2 = FetchMsg()
   msg2.inst = isa.assemble_inst({}, 0, 'addi x0, x0, 0')
+  msg3 = FetchMsg()
+  msg3.inst = isa.assemble_inst({}, 0, 'csrrs x1, mngr2proc, x0')
 
-  fth = DecodeTestHarness([msg, msg2])
+  fth = DecodeTestHarness([msg, msg2, msg3])
   fth.vcd_file = "out.vcd"
   dut = wrap_to_cl(fth)
   dut.reset()
