@@ -139,7 +139,10 @@ class Proc(Model):
     s.connect_m(s.dflow.read, s.dispatch.read)
 
     # Execute
-    # TODO
+    ## ALU
+    s.alu_interface = ALUInterface(XLEN)
+    s.alu = ALU(s.alu_interface)
+    s.connect_m(s.dispatch.get, s.alu.dispatch_get)
 
     # Execute.CSR
     s.csr_pipe_interface = CSRInterface()

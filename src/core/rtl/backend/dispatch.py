@@ -82,7 +82,7 @@ class Dispatch(Model):
 
     @s.combinational
     def set_accepted():
-      s.accepted_.v = s.get_call or not s.out_val_.read_data
+      s.accepted_.v = (s.get_call or not s.out_val_.read_data) and s.issue_get_rdy
 
     @s.combinational
     def set_output():
