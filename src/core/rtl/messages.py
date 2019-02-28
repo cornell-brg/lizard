@@ -39,6 +39,14 @@ AluFunc = bit_enum(
     ('ALU_FUNC_AND', 'an'),
 )
 
+CsrFunc = bit_enum(
+    'CsrFunc',
+    None,
+    ('CSR_FUNC_RW', 'rw'),
+    ('CSR_FUNC_RS', 'rs'),
+    ('CSR_FUNC_RC', 'rc'),
+)
+
 
 def ValidValuePair(name, width):
   return Group(
@@ -104,11 +112,21 @@ def AluMsg():
 
 
 @bit_struct_generator
+def CsrMsg():
+  return [
+      Field('func', CsrFunc.bits),
+      Field('csr_num', CSR_SPEC_NBITS),
+      Field('rs1_is_x0', 1),
+  ]
+
+
+@bit_struct_generator
 def PipeMsg():
   return [
       Union(
           'pipe_msg',
           Field('alu_msg', AluMsg()),
+          Field('csr_msg', CsrMsg()),
       ),
   ]
 

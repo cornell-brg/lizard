@@ -6,7 +6,7 @@ from util.rtl.lookup_table import LookupTableInterface, LookupTable
 from util.rtl.logic import BinaryComparatorInterface, LogicOperatorInterface, Equals, And
 from util.rtl.case_mux import case_mux
 from core.rtl.messages import AluMsg, OpClass, AluFunc, InstMsg, PipeMsg
-from core.rtl.frontend.sub_decoder import SubDecoderInterface, GenDecoder, compose_decoders
+from core.rtl.frontend.sub_decoder import SubDecoderInterface, GenDecoderFixed, compose_decoders
 from core.rtl.frontend.imm_decoder import ImmType
 from msg.codes import Opcode
 
@@ -20,7 +20,7 @@ def alu_msg(func, unsigned=0, op32=0):
 
 
 def OpDecoder():
-  return GenDecoder(
+  return GenDecoderFixed(
       OpClass.OP_CLASS_ALU,
       'alu_msg',
       {'opcode': Opcode.OP},
@@ -44,7 +44,7 @@ def OpDecoder():
 
 
 def Op32Decoder():
-  return GenDecoder(
+  return GenDecoderFixed(
       OpClass.OP_CLASS_ALU,
       'alu_msg',
       {'opcode': Opcode.OP_32},
@@ -63,7 +63,7 @@ def Op32Decoder():
 
 
 def OpImmDecoder():
-  return GenDecoder(
+  return GenDecoderFixed(
       OpClass.OP_CLASS_ALU,
       'alu_msg',
       {'opcode': Opcode.OP_IMM},
@@ -84,7 +84,7 @@ def OpImmDecoder():
 
 
 def OpImmShiftDecoder():
-  return GenDecoder(
+  return GenDecoderFixed(
       OpClass.OP_CLASS_ALU,
       'alu_msg',
       {'opcode': Opcode.OP_IMM},
@@ -102,7 +102,7 @@ def OpImmShiftDecoder():
 
 
 def OpImm32Decoder():
-  return GenDecoder(
+  return GenDecoderFixed(
       OpClass.OP_CLASS_ALU,
       'alu_msg',
       {'opcode': Opcode.OP_IMM_32},
@@ -118,7 +118,7 @@ def OpImm32Decoder():
 
 
 def OpImm32ShiftDecoder():
-  return GenDecoder(
+  return GenDecoderFixed(
       OpClass.OP_CLASS_ALU,
       'alu_msg',
       {'opcode': Opcode.OP_IMM_32},

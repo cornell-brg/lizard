@@ -8,6 +8,7 @@ from core.rtl.messages import FetchMsg, DecodeMsg, PipelineMsgStatus
 from core.rtl.frontend.imm_decoder import ImmDecoderInterface, ImmDecoder
 from core.rtl.frontend.sub_decoder import compose_decoders
 from core.rtl.frontend.alu_decoder import AluDecoder
+from core.rtl.frontend.csr_decoder import CsrDecoder
 from config.general import DECODED_IMM_LEN, XLEN
 
 
@@ -59,7 +60,7 @@ class Decode(Model):
         RegisterInterface(Bits(1), True, False), reset_value=0)
     s.decode_msg = Register(RegisterInterface(DecodeMsg(), True, False))
 
-    s.decoder = compose_decoders(AluDecoder)()
+    s.decoder = compose_decoders(AluDecoder, CsrDecoder)()
 
     s.advance = Wire(1)
 
