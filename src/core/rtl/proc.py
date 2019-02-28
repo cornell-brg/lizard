@@ -3,12 +3,14 @@ from util.rtl.interface import Interface, UseInterface
 from util.rtl.method import MethodSpec
 from core.rtl.controlflow import ControlFlowManager, ControlFlowManagerInterface
 from core.rtl.dataflow import DataFlowManager, DataFlowManagerInterface
+from core.rtl.csr_manager import CSRManager, CSRManagerInterface
 from core.rtl.frontend.fetch import Fetch, FetchInterface
 from core.rtl.frontend.decode import Decode, DecodeInterface
 from core.rtl.backend.rename import Rename, RenameInterface
 from core.rtl.backend.issue import Issue, IssueInterface
 from core.rtl.backend.dispatch import Dispatch, DispatchInterface
 from core.rtl.backend.alu import ALU, ALUInterface
+from core.rtl.backend.csr import CSR, CSRInterface
 from core.rtl.pipeline_arbiter import PipelineArbiterInterface, PipelineArbiter
 from core.rtl.backend.writeback import Writeback, WritebackInterface
 from core.rtl.backend.commit import Commit, CommitInterface
@@ -89,6 +91,12 @@ class Proc(Model):
                                                  MAX_SPEC_DEPTH, 2, 1)
     s.dflow = DataFlowManager(s.dflow_interface)
 
+    # CSR
+    s.csr_interface = CSRManagerInterface()
+    s.csr = CSRManager(s.csr_interface)
+    s.connect_m(s.db_recv, s.csr.debug_recv)
+    s.connect_m(s.db_send, s.csr.debug_send)
+
     # Mem
     s.mem_controller_interface = BasicMemoryControllerInterface(
         MemMsg, ['fetch'])
@@ -133,10 +141,17 @@ class Proc(Model):
     # Execute
     # TODO
 
+    # Execute.CSR
+    s.csr_pipe_interface = CSRInterface()
+    s.csr_pipe = CSR(s.csr_pipe_interface)
+    s.connect_m(s.csr_pipe.csr_op, s.csr.op)
+    # s.connect_m(s.csr_pipe.dispatch_get, s.dispatch...)
+
     # Writeback Arbiter
     s.writeback_arbiter_interface = PipelineArbiterInterface(ExecuteMsg())
-    s.writeback_arbiter = PipelineArbiter(s.writeback_arbiter_interface, 1)
-    # s.connect_m(s.writeback_arbiter.in_get[0], ...)
+    s.writeback_arbiter = PipelineArbiter(s.writeback_arbiter_interface, 2)
+    # s.connect_m(s.writeback_arbiter.in_get[0], ALU)
+    s.connect_m(s.writeback_arbiter.in_get[1], s.csr_pipe.get)
 
     # Writeback
     s.writeback_interface = WritebackInterface()

@@ -38,33 +38,47 @@ class CSRManagerInterface(Interface):
 
 class CSRManager(Model):
 
-  def __init__(s, interface, proc_debug_bus_interface):
+  def __init__(s, interface):
     UseInterface(s, interface)
 
-    proc_debug_bus_interface.require(s, '', 'recv')
-    proc_debug_bus_interface.require(s, '', 'send')
+    s.require(
+        MethodSpec(
+            'debug_recv',
+            args=None,
+            rets={'msg': Bits(XLEN)},
+            call=True,
+            rdy=True,
+        ),
+        MethodSpec(
+            'debug_send',
+            args={'msg': Bits(XLEN)},
+            rets=None,
+            call=True,
+            rdy=True,
+        ),
+    )
 
     @s.combinational
     def handle_op():
-      s.recv_call.v = 0
+      s.debug_recv_call.v = 0
 
-      s.send_call.v = 0
-      s.send_msg.v = 0
+      s.debug_send_call.v = 0
+      s.debug_send_msg.v = 0
 
       s.op_success.v = 0
       s.op_old.v = 0
 
       if s.op_call:
-        if s.csr == CsrRegisters.proc2mngr:
-          if s.op_op == CSROpType.READ_WRITE and s.send_rdy:
-            s.send_call.v = 1
-            s.send_msg.v = s.op_value
+        if s.op_csr == CsrRegisters.proc2mngr:
+          if s.op_op == CSROpType.READ_WRITE and s.debug_send_rdy:
+            s.debug_send_call.v = 1
+            s.debug_send_msg.v = s.op_value
 
             s.op_success.v = 1
             s.op_old.v = 0
-        elif s.csr == CsrRegisters.mngr2proc:
-          if s.op_op != CSROpType.READ_WRITE and s.recv_rdy and s.op_rs1_is_x0:
-            s.recv_call.v = 1
+        elif s.op_csr == CsrRegisters.mngr2proc:
+          if s.op_op != CSROpType.READ_WRITE and s.debug_recv_rdy and s.op_rs1_is_x0:
+            s.debug_recv_call.v = 1
 
             s.op_success.v = 1
-            s.op_old.v = s.recv_msg
+            s.op_old.v = s.debug_recv_msg

@@ -9,6 +9,7 @@ from core.rtl.messages import RenameMsg, IssueMsg, PipelineMsgStatus
 from msg.codes import RVInstMask, Opcode, ExceptionCode
 from util.rtl.issue_queue import CompactingIssueQueue, IssueQueueInterface, AbstractIssueType
 
+
 class IssueInterface(Interface):
 
   def __init__(s):
@@ -26,30 +27,31 @@ class IssueInterface(Interface):
 
 
 class Issue(Model):
+
   def __init__(s, interface):
     UseInterface(s, interface)
     s.require(
-      # Called on rename stage
-      MethodSpec(
-        'rename_get',
-        args=None,
-        rets={'msg': RenameMsg()},
-        call=True,
-        rdy=True,
-      ),
-      # Called on dataflow
-      MethodSpec(
-        'is_ready',
-        args={
-            'tag': RenameMsg().rs1,
-        },
-        rets={
-            'ready': Bits(1),
-        },
-        call=False,
-        rdy=False,
-        count=2,
-      ),
+        # Called on rename stage
+        MethodSpec(
+            'rename_get',
+            args=None,
+            rets={'msg': RenameMsg()},
+            call=True,
+            rdy=True,
+        ),
+        # Called on dataflow
+        MethodSpec(
+            'is_ready',
+            args={
+                'tag': RenameMsg().rs1,
+            },
+            rets={
+                'ready': Bits(1),
+            },
+            call=False,
+            rdy=False,
+            count=2,
+        ),
     )
     preg_nbits = RenameMsg().rs1.nbits
     branch_mask_nbits = RenameMsg().hdr_branch_mask.nbits
@@ -108,6 +110,7 @@ class Issue(Model):
     # Connect the output
     s.connect(s.get_rdy, s.iq.remove_rdy)
     s.connect(s.iq.remove_call, s.get_call)
+
     @s.combinational
     def handle_output():
       # Copy over the source info again
