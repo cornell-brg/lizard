@@ -7,6 +7,7 @@ from core.rtl.frontend.fetch import Fetch, FetchInterface
 from core.rtl.frontend.decode import Decode, DecodeInterface
 from core.rtl.backend.rename import Rename, RenameInterface
 from core.rtl.backend.issue import Issue, IssueInterface
+from core.rtl.backend.dispatch import Dispatch, DispatchInterface
 from core.rtl.backend.alu import ALU, ALUInterface
 from core.rtl.pipeline_arbiter import PipelineArbiterInterface, PipelineArbiter
 from core.rtl.backend.writeback import Writeback, WritebackInterface
@@ -124,7 +125,10 @@ class Proc(Model):
     s.connect_m(s.dflow.is_ready, s.issue.is_ready)
 
     # Dispatch
-    # TODO
+    s.dispatch_interface = DispatchInterface()
+    s.dispatch = Dispatch(s.dispatch_interface)
+    s.connect_m(s.issue.get, s.dispatch.issue_get)
+    s.connect_m(s.dflow.read, s.dispatch.read)
 
     # Execute
     # TODO
