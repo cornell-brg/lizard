@@ -42,9 +42,9 @@ class CsrDecoder(Model):
         {'opcode': Opcode.SYSTEM},
         ['funct3'],
         {
-            0b001: CsrFunc.CSR_FUNC_RW,
-            0b010: CsrFunc.CSR_FUNC_RS,
-            0b011: CsrFunc.CSR_FUNC_RC,
+            0b001: CsrFunc.CSR_FUNC_READ_WRITE,
+            0b010: CsrFunc.CSR_FUNC_READ_SET,
+            0b011: CsrFunc.CSR_FUNC_READ_CLEAR,
         },
         Bits(CsrFunc.bits),
         rs1_val=1,

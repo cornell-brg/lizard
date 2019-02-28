@@ -42,9 +42,9 @@ AluFunc = bit_enum(
 CsrFunc = bit_enum(
     'CsrFunc',
     None,
-    ('CSR_FUNC_RW', 'rw'),
-    ('CSR_FUNC_RS', 'rs'),
-    ('CSR_FUNC_RC', 'rc'),
+    ('CSR_FUNC_READ_WRITE', 'rw'),
+    ('CSR_FUNC_READ_SET', 'rs'),
+    ('CSR_FUNC_READ_CLEAR', 'rc'),
 )
 
 
