@@ -11,6 +11,7 @@ from mem.fl.test_memory_bus import TestMemoryBusFL
 from core.rtl.proc import ProcInterface, Proc
 from util.arch.rv64g import isa, assembler
 
+
 class ProcTestHarness(Model):
 
   def __init__(s, initial_mem):
@@ -22,7 +23,6 @@ class ProcTestHarness(Model):
 
     s.connect_m(s.mb.recv, s.dut.mb_recv)
     s.connect_m(s.mb.send, s.dut.mb_send)
-
 
 
 def test_basic():
@@ -54,7 +54,7 @@ def test_asm():
   mem_image = assembler.assemble(asm).get_section(".text").data
   initial_mem = {}
   # There has to be a better way to do this
-  for i,b in enumerate(mem_image):
+  for i, b in enumerate(mem_image):
     initial_mem[i + 0x200] = b
 
   pth = ProcTestHarness(initial_mem)
