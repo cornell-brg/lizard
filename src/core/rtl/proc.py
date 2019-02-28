@@ -152,9 +152,9 @@ class Proc(Model):
 
     # Writeback Arbiter
     s.writeback_arbiter_interface = PipelineArbiterInterface(ExecuteMsg())
-    s.writeback_arbiter = PipelineArbiter(s.writeback_arbiter_interface, 2)
-    # s.connect_m(s.writeback_arbiter.in_get[0], ALU)
-    s.connect_m(s.writeback_arbiter.in_get[1], s.csr_pipe.get)
+    s.writeback_arbiter = PipelineArbiter(s.writeback_arbiter_interface, 1)
+    s.connect_m(s.writeback_arbiter.in_get[0], s.alu.get)
+    # s.connect_m(s.writeback_arbiter.in_get[1], s.csr_pipe.get)
 
     # Writeback
     s.writeback_interface = WritebackInterface()
