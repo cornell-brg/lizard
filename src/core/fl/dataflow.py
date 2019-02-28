@@ -114,18 +114,15 @@ class DataFlowManagerFL(FLModel):
         return
       s.preg_file.write(addr=tag, data=value)
       s.ready_table.write(addr=tag, data=1)
-      print('super bob: {}'.format(tag))
       s.updated.append(tag)
 
     @s.model_method
     def get_updated():
-      tags = [0 for _ in range(num_dst_ports)]
-      valid = [0 for _ in range(num_dst_ports)]
-      for i, preg in enumerate(s.updated):
-        tags[i] = preg
-        valid[i] = 1
+      result = Bits(npregs)
+      for preg in s.updated:
+        result[preg] = 1
       s.updated = []
-      return Result(tags=tags, valid=valid)
+      return result
 
     @s.model_method
     def get_src(areg):

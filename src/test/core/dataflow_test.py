@@ -48,5 +48,7 @@ def test_method(model):
 
 
 def test_state_machine():
-  run_test_state_machine(DataFlowManager, DataFlowManagerFL,
-                         (DataFlowManagerInterface(64, 32, 64, 4, 2, 1)))
+  run_test_state_machine(
+      DataFlowManager,
+      DataFlowManagerFL, (DataFlowManagerInterface(64, 32, 64, 4, 2, 1)),
+      translate_model=False)
