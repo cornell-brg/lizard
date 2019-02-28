@@ -24,40 +24,6 @@ class IssueInterface(Interface):
         )
     ])
 
-"""
-        MethodSpec(
-            'add',
-            args={
-              'value' : s.SlotType,
-            },
-            rets=None,
-            call=True,
-            rdy=True),
-        MethodSpec(
-            'remove',
-            args=None,
-            rets={
-              'value' : s.SlotType,
-            },
-            call=True,
-            rdy=True),
-        MethodSpec(
-            'notify',
-            args={'value': s.SrcTag},
-            rets=None,
-            call=True,
-            rdy=False),
-        MethodSpec(
-            'kill',
-            args={
-                'value': s.BranchMask,
-                'force': Bits(1)
-            },
-            rets=None,
-            call=True,
-            rdy=False),
-"""
-
 
 class Issue(Model):
   def __init__(s, interface):
@@ -98,17 +64,22 @@ class Issue(Model):
 
     s.iq_msg_in = Wire(IssueMsg())
     s.iq_slot_in = Wire(SlotType)
-    s.connect(s.iq_slot_in, s.iq.add_value)
-    s.connect(s.iq_msg_in, s.iq.add_value.opaque)
+    s.accepted_ = Wire(1)
 
     # Connect the ready methods on dataflow
     s.connect(s.is_ready_tag[0], s.renamed_.rs1)
     s.connect(s.is_ready_tag[1], s.renamed_.rs2)
 
-    # Connect the Input
+    @s.combinational
+    def set_accepted():
+      s.accepted_.v = s.rename_get_rdy and s.iq.add_rdy
+
+    s.connect(s.rename_get_call, s.accepted_)
+    s.connect(s.iq.add_call, s.accepted_)
+
+    # Connect the Input value into the iq
     @s.combinational
     def handle_input():
-      s.iq.add_call.v = s.rename_get_rdy and s.iq.add_rdy
       s.iq_slot_in.v = 0
       # Copy header
       s.iq_msg_in.hdr.v = s.renamed_.hdr
@@ -131,6 +102,8 @@ class Issue(Model):
         s.iq_slot_in.src0_rdy.v = s.is_ready_ready[0]
         s.iq_slot_in.src1_rdy.v = s.is_ready_ready[1]
 
+      s.iq.add_value.v = s.iq_slot_in
+      s.iq.add_value.opaque.v = s.iq_msg_in
 
     # Connect the output
     s.connect(s.get_rdy, s.iq.remove_rdy)
