@@ -9,6 +9,7 @@ from core.rtl.frontend.decode import Decode, DecodeInterface
 from core.rtl.backend.rename import Rename, RenameInterface
 from core.rtl.backend.issue import Issue, IssueInterface
 from core.rtl.backend.dispatch import Dispatch, DispatchInterface
+from core.rtl.backend.pipe_selector import PipeSelector
 from core.rtl.backend.alu import ALU, ALUInterface
 from core.rtl.backend.csr import CSR, CSRInterface
 from core.rtl.pipeline_arbiter import PipelineArbiterInterface, PipelineArbiter
@@ -138,23 +139,27 @@ class Proc(Model):
     s.connect_m(s.issue.get, s.dispatch.issue_get)
     s.connect_m(s.dflow.read, s.dispatch.read)
 
+    # Split
+    s.pipe_selector = PipeSelector()
+    s.connect_m(s.pipe_selector.dispatch_get, s.dispatch.get)
+
     # Execute
     ## ALU
     s.alu_interface = ALUInterface(XLEN)
     s.alu = ALU(s.alu_interface)
-    s.connect_m(s.dispatch.get, s.alu.dispatch_get)
+    s.connect_m(s.alu.dispatch_get, s.pipe_selector.alu_get)
 
-    # Execute.CSR
+    ## CSR
     s.csr_pipe_interface = CSRInterface()
     s.csr_pipe = CSR(s.csr_pipe_interface)
     s.connect_m(s.csr_pipe.csr_op, s.csr.op)
-    # s.connect_m(s.csr_pipe.dispatch_get, s.dispatch...)
+    s.connect_m(s.csr_pipe.dispatch_get, s.pipe_selector.csr_get)
 
     # Writeback Arbiter
     s.writeback_arbiter_interface = PipelineArbiterInterface(ExecuteMsg())
-    s.writeback_arbiter = PipelineArbiter(s.writeback_arbiter_interface, 1)
+    s.writeback_arbiter = PipelineArbiter(s.writeback_arbiter_interface, 2)
     s.connect_m(s.writeback_arbiter.in_get[0], s.alu.get)
-    # s.connect_m(s.writeback_arbiter.in_get[1], s.csr_pipe.get)
+    s.connect_m(s.writeback_arbiter.in_get[1], s.csr_pipe.get)
 
     # Writeback
     s.writeback_interface = WritebackInterface()
