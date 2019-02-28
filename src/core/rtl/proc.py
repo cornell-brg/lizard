@@ -121,7 +121,8 @@ class Proc(Model):
     # Rename
     s.rename_interface = RenameInterface()
     s.rename = Rename(s.rename_interface)
-    s.connect_m(s.decode.get, s.rename.decode_get)
+    s.connect_m(s.decode.peek, s.rename.decode_peek)
+    s.connect_m(s.decode.take, s.rename.decode_take)
     s.connect_m(s.cflow.register, s.rename.register)
     s.connect_m(s.dflow.get_src[0], s.rename.get_src[0])
     s.connect_m(s.dflow.get_src[1], s.rename.get_src[1])
