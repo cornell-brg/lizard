@@ -52,7 +52,7 @@ class Register(Model):
 
       @s.combinational
       def read():
-        s.read_data.v = s.write_data.n if s.update else s.reg_value
+        s.read_data.v = s.write_data if s.update else s.reg_value
     else:
       s.connect(s.read_data, s.reg_value)
 
