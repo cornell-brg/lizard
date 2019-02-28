@@ -8,7 +8,10 @@ from core.rtl.frontend.decode import Decode, DecodeInterface
 from core.rtl.backend.rename import Rename, RenameInterface
 from core.rtl.backend.issue import Issue, IssueInterface
 from core.rtl.backend.alu import ALU, ALUInterface
+from core.rtl.pipeline_arbiter import PipelineArbiterInterface, PipelineArbiter
+from core.rtl.backend.writeback import Writeback, WritebackInterface
 from core.rtl.proc_debug_bus import ProcDebugBusInterface
+from core.rtl.messages import ExecuteMsg
 from mem.rtl.memory_bus import MemoryBusInterface
 from mem.rtl.basic_memory_controller import BasicMemoryController, BasicMemoryControllerInterface
 from mem.rtl.memory_bus import MemMsg, MemMsgType
@@ -117,3 +120,21 @@ class Proc(Model):
     s.issue_interface = IssueInterface()
     s.issue = Issue(s.issue_interface)
     s.connect_m(s.rename.get, s.issue.rename_get)
+
+
+    # Dispatch
+    # TODO
+
+    # Execute
+    # TODO
+
+    # Writeback Arbiter
+    s.writeback_arbiter_interface = PipelineArbiterInterface(ExecuteMsg())
+    s.writeback_arbiter = PipelineArbiter(s.writeback_arbiter_interface, 1)
+    # s.connect_m(s.writeback_arbiter.in_get[0], ...)
+
+    # Writeback
+    s.writeback_interface = WritebackInterface()
+    s.writeback = Writeback(s.writeback_interface)
+    s.connect_m(s.writeback_arbiter.get, s.writeback.execute_get)
+    s.connect_m(s.writeback.dataflow_write, s.dflow.write[0])
