@@ -3,101 +3,130 @@ from util.rtl.interface import Interface, IncludeSome, UseInterface
 from util.rtl.method import MethodSpec
 from util.rtl.types import Array, canonicalize_type
 from util.rtl import alu
-from core.rtl.controlflow import ControlFlowManagerInterface
-from core.rtl.dataflow import DataFlowManagerInterface
+from util.rtl.register import Register, RegisterInterface
 from bitutil import clog2, clog2nz
-from pclib.rtl import RegEn, RegEnRst, RegRst
-from core.rtl.messages import DispatchMsg
-from msg.codes import RVInstMask, Opcode, ExceptionCode
-from core.rtl.frontend.decode import DecodeInterface
-from core.rtl.micro_op import MicroOp
-
+from core.rtl.messages import DispatchMsg, ExecuteMsg, AluMsg, AluFunc
 
 class ALUInterface(Interface):
 
-  def __init__(s, data_len, imm_len):
+  def __init__(s, data_len):
     s.DataLen = data_len
-    s.ImmLen = imm_len
-    super(ALUInterface, s).__init__(
-        [],
-        ordering_chains=[
-            [],
-        ],
-    )
+    super(ALUInterface, s).__init__([
+        MethodSpec(
+            'get',
+            args=None,
+            rets={
+                'msg': ExecuteMsg(),
+            },
+            call=True,
+            rdy=True,
+        ),
+    ])
 
 
 class ALU(Model):
 
   def __init__(s, alu_interface):
     UseInterface(s, alu_interface)
-    data_len = alu_interface.DataLen
-    imm_len = alu_interface.ImmLen
+    s.require(
+      MethodSpec(
+          'dispatch_get',
+          args=None,
+          rets={'msg': DispatchMsg()},
+          call=True,
+          rdy=True,
+      ),
+    )
 
-    s.alu_interface_ = alu.ALUInterface(data_len)
-    s.alu_ = alu.ALU(s.alu_interface_)
-    # Import the execute method
-    s.alu_interface_.require(s, 'alu', 'exec')
+    imm_len = DispatchMsg().imm.nbits
+    data_len = s.interface.DataLen
 
-    s.rdy_ = Wire(1)
+    s.out_val_ = Register(RegisterInterface(Bits(1)), reset_value=0)
+    s.out_ = Register(RegisterInterface(ExecuteMsg(), enable=True))
+
+    s.alu_ = alu.ALU(alu.ALUInterface(data_len))
     s.accepted_ = Wire(1)
     s.msg_ = Wire(DispatchMsg())
-
-    s.connect(s.msg_, 0x0)
 
     # PYMTL_BROKEN, cant do msg.src1[:32]
     s.src1_ = Wire(data_len)
     s.src1_32_ = Wire(32)
     s.src2_ = Wire(data_len)
     s.src2_32_ = Wire(32)
-    s.imm_ = Wire(imm_len)
-    s.connect_wire(s.imm_, s.msg_.imm)
-    s.uop_ = Wire(s.msg_.uop.nbits)
-    s.connect_wire(s.uop_, s.msg_.uop)
+    s.imm_ = Wire(data_len)
 
     s.res_ = Wire(data_len)
     s.res_32_ = Wire(32)
-    # Connect up ALU
-    s.connect(s.alu_exec_src0, s.src1_)
-    s.connect(s.alu_exec_src1, s.src2_)
 
-    uop_32s = [
-        MicroOp.UOP_ADDIW, MicroOp.UOP_SLLIW, MicroOp.UOP_SRLIW,
-        MicroOp.UOP_SRAIW, MicroOp.UOP_ADDW, MicroOp.UOP_SUBW, MicroOp.UOP_SLLW,
-        MicroOp.UOP_SRLW, MicroOp.UOP_SRAW
-    ]
-    #
-    #
-    # @s.combinational
-    # def set_op32(i=i):
+    # Connect to disptach get method
+    s.connect(s.msg_, s.dispatch_get_msg)
+    s.connect(s.dispatch_get_call, s.accepted_)
 
-    @s.combinational
-    def set_ops():
-      # PYMTL_BROKEN sext(foo[x:y]) does not work if foo is bitstruct
-      s.src1_ = s.msg_.src1
-      s.src2_ = s.msg_.src2
-      if s.accepted_:
-        s.src1_.v = s.src1_ if not s.msg_.op32 else sext(s.src1_32_, data_len)
-        s.src2_.v = s.src2_ if not s.msg_.op32 else sext(s.src2_32_, data_len)
-        if s.msg_.imm_val:  # Replace src2 with imm
-          if s.uop_ == MicroOp.UOP_LUI:
-            s.src2_.v = sext(s.imm_, data_len) << 12
-          elif s.uop_ == MicroOp.UOP_AUIPC:
-            s.src1_.v = s.msg_.pc
-            s.src2_.v = sext(s.imm_, data_len) << 12
-          else:
-            s.src2_.v = sext(s.imm_, data_len)
+    # Connect to registers
+    s.connect(s.out_.write_call, s.accepted_)
 
-      s.src1_32_.v = s.src1_[:32]
-      s.src2_32_.v = s.src2_[:32]
+    # Connect up alu call
+    s.connect(s.alu_.exec_unsigned, s.msg_.alu_msg_unsigned)
+    s.connect(s.alu_.exec_call, s.accepted_)
+
+    # Connect get call
+    s.connect(s.get_msg, s.out_.read_data)
+    s.connect(s.get_rdy, s.out_val_.read_data)
 
     @s.combinational
-    def set_res():
-      s.res_32_.v = s.alu_exec_res[:32]
-      s.res_.v = s.alu_exec_res if not s.msg_.op32 else sext(
-          s.res_32_, data_len)
+    def set_valid():
+      s.out_val_.write_data.v = s.accepted_ or (s.out_val_.read_data and not s.get_call)
 
     @s.combinational
-    def set_rdy():
-      # TODO, fill these out
-      s.rdy_.v = 1
-      s.accepted_.v = 1
+    def set_accepted():
+      s.accepted_.v = (s.get_call or not s.out_val_.read_data) and s.alu_.exec_rdy and s.dispatch_get_rdy
+
+    @s.combinational
+    def set_src_res():
+      s.src1_32_.v = s.msg_.rs1[:32]
+      s.src2_32_.v = s.msg_.rs2[:32]
+      s.res_32_.v = s.alu_.exec_res[:32]
+
+      if s.msg_.alu_msg_op32:
+        s.src1_.v = zext(s.src1_32_, data_len) if s.msg_.alu_msg_unsigned else sext(s.src1_32_, data_len)
+        s.src2_.v = zext(s.src2_32_, data_len) if s.msg_.alu_msg_unsigned else sext(s.src2_32_, data_len)
+        s.res_.v = zext(s.res_32_, data_len) if s.msg_.alu_msg_unsigned else sext(s.res_32_, data_len)
+      else:
+        s.src1_.v = s.msg_.rs1
+        s.src2_.v = s.msg_.rs2
+        s.res_.v = s.alu_.exec_res
+
+
+    @s.combinational
+    def set_inputs():
+      s.imm_.v = sext(s.msg_.imm, data_len)
+      # TODO handle LUI and AUIPC
+      s.alu_.exec_src0.v = s.src1_
+      s.alu_.exec_src1.v = s.src2_ if s.msg_.rs2_val else s.imm_
+      # Set the function
+      s.alu_.exec_func.v = 0
+      if s.msg_.alu_msg_func == AluFunc.ALU_FUNC_ADD:
+        s.alu_.exec_func.v = alu.ALUFunc.ALU_ADD
+      elif s.msg_.alu_msg_func == AluFunc.ALU_FUNC_SUB:
+        s.alu_.exec_func.v = alu.ALUFunc.ALU_SUB
+      elif s.msg_.alu_msg_func == AluFunc.ALU_FUNC_AND:
+        s.alu_.exec_func.v = alu.ALUFunc.ALU_AND
+      elif s.msg_.alu_msg_func == AluFunc.ALU_FUNC_OR:
+        s.alu_.exec_func.v = alu.ALUFunc.ALU_OR
+      elif s.msg_.alu_msg_func == AluFunc.ALU_FUNC_XOR:
+        s.alu_.exec_func.v = alu.ALUFunc.ALU_XOR
+      elif s.msg_.alu_msg_func == AluFunc.ALU_FUNC_SLL:
+        s.alu_.exec_func.v = alu.ALUFunc.ALU_SLL
+      elif s.msg_.alu_msg_func == AluFunc.ALU_FUNC_SRL:
+        s.alu_.exec_func.v = alu.ALUFunc.ALU_SRL
+      elif s.msg_.alu_msg_func == AluFunc.ALU_FUNC_SRA:
+        s.alu_.exec_func.v = alu.ALUFunc.ALU_SRA
+      elif s.msg_.alu_msg_func == AluFunc.ALU_FUNC_SLT:
+        s.alu_.exec_func.v = alu.ALUFunc.ALU_SLT
+
+    @s.combinational
+    def set_value_reg_input():
+      s.out_.write_data.v = 0
+      s.out_.write_data.hdr.v = s.msg_.hdr
+      s.out_.write_data.result.v = s.res_
+      s.out_.write_data.rd.v = s.msg_.rd
