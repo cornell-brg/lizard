@@ -6,6 +6,7 @@ from core.rtl.dataflow import DataFlowManager, DataFlowManagerInterface
 from core.rtl.frontend.fetch import Fetch, FetchInterface
 from core.rtl.frontend.decode import Decode, DecodeInterface
 from core.rtl.backend.rename import Rename, RenameInterface
+from core.rtl.backend.issue import Issue, IssueInterface
 from core.rtl.backend.alu import ALU, ALUInterface
 from core.rtl.pipeline_arbiter import PipelineArbiterInterface, PipelineArbiter
 from core.rtl.backend.writeback import Writeback, WritebackInterface
@@ -117,7 +118,10 @@ class Proc(Model):
     s.connect_m(s.dflow.get_dst[0], s.rename.get_dst)
 
     # Issue
-    # TODO
+    s.issue_interface = IssueInterface()
+    s.issue = Issue(s.issue_interface)
+    s.connect_m(s.rename.get, s.issue.rename_get)
+    s.connect_m(s.dflow.is_ready, s.issue.is_ready)
 
     # Dispatch
     # TODO

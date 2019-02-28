@@ -6,10 +6,10 @@ from util.rtl.types import canonicalize_type
 
 class RegisterInterface(Interface):
 
-  def __init__(s, dtype, enable=False, write_read_bypass=False):
+  def __init__(s, dtype, enable=False, bypass=False):
     s.Data = canonicalize_type(dtype)
     s.enable = enable
-    s.write_read_bypass = write_read_bypass
+    s.write_read_bypass = bypass
 
     super(RegisterInterface, s).__init__(
         [
@@ -32,7 +32,7 @@ class RegisterInterface(Interface):
                 rdy=False,
             ),
         ],
-        ordering_chains=[s.bypass_chain('write', 'read', write_read_bypass)],
+        ordering_chains=[s.bypass_chain('write', 'read', bypass)],
     )
 
 
