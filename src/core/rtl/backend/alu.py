@@ -90,6 +90,7 @@ class ALU(Model):
     s.connect_wire(s.rs1_, s.msg_.rs1)
     s.connect_wire(s.rs2_, s.msg_.rs2)
     s.connect(s.res_, s.alu_.exec_res)
+
     @s.combinational
     def slice32():
       s.src1_32_.v = s.rs1_[:32]

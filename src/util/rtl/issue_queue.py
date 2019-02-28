@@ -301,6 +301,7 @@ class CompactingIssueQueue(Model):
         s.last_slot_in_.src1_rdy.v = 1
 
     if num_slots > 1:
+
       @s.combinational
       def shift0():
         # The 0th slot only shifts in if invalid or issuing
@@ -309,6 +310,7 @@ class CompactingIssueQueue(Model):
                                                    not s.will_issue_[1])
 
     for i in range(1, num_slots - 1):
+
       @s.combinational
       def shiftk(i=i):
         # We can only shift in if current slot is invalid, issuing, or shifting out
@@ -317,12 +319,14 @@ class CompactingIssueQueue(Model):
                             s.do_shift_[i - 1]) and (s.slots_[i + 1].valid_ret
                                                      and
                                                      not s.will_issue_[i + 1])
+
     @s.combinational
     def output0():
       # The 0th slot only outputs if issuing
       s.slots_[0].output_call.v = s.will_issue_[0]
 
     for i in range(1, num_slots):
+
       @s.combinational
       def outputk(i=i):
         s.slots_[i].output_call.v = s.will_issue_[i] or s.do_shift_[i - 1]
