@@ -2,8 +2,7 @@ from pymtl import *
 from util.rtl.interface import Interface, UseInterface
 from util.rtl.method import MethodSpec
 from util.rtl.register import Register, RegisterInterface
-from core.rtl.messages import DispatchMsg, ExecuteMsg, PipelineMsgStatus
-from core.rtl.csr_manager import CSROpType
+from core.rtl.messages import DispatchMsg, ExecuteMsg, PipelineMsgStatus, CsrFunc
 from config.general import *
 
 
@@ -41,7 +40,7 @@ class CSR(Model):
             'csr_op',
             args={
                 'csr': Bits(CSR_SPEC_NBITS),
-                'op': Bits(CSROpType.bits),
+                'op': Bits(CsrFunc.bits),
                 'rs1_is_x0': Bits(1),
                 'value': Bits(XLEN),
             },
@@ -89,8 +88,13 @@ class CSR(Model):
         s.execute_val.write_call.v = 1
         if s.dispatch_get_msg.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID:
           s.execute_msg.write_data.rd_val_pair.v = s.dispatch_get_msg.rd_val_pair
+          s.csr_op_csr.v = s.dispatch_get_msg.csr_msg_csr_num
+          s.csr_op_op.v = s.dispatch_get_msg.csr_msg_func
+          s.csr_op_rs1_is_x0 = s.dispatch_get_msg.csr_msg_rs1_is_x0
+          s.csr_op_value.v = s.dispatch_get_msg.rs1
+          s.csr_op_call.v = 1
 
-          # TODO do CSR op
+          # TODO handle failure
         else:
           s.execute_msg.write_data.exception_info.v = s.dispatch_get_msg.exception_info
       else:

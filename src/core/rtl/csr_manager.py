@@ -1,17 +1,10 @@
 from pymtl import *
 from util.rtl.interface import Interface, UseInterface
 from util.rtl.method import MethodSpec
+from core.rtl.messages import CsrFunc
 from msg.codes import CsrRegisters
 from config.general import CSR_SPEC_NBITS, XLEN
 from bitutil import bit_enum
-
-CSROpType = bit_enum(
-    'CSROpType',
-    None,
-    ('READ_WRITE', 'rw'),
-    ('READ_SET', 'rs'),
-    ('READ_CLEAR', 'rc'),
-)
 
 
 class CSRManagerInterface(Interface):
@@ -22,7 +15,7 @@ class CSRManagerInterface(Interface):
             'op',
             args={
                 'csr': Bits(CSR_SPEC_NBITS),
-                'op': Bits(CSROpType.bits),
+                'op': Bits(CsrFunc.bits),
                 'rs1_is_x0': Bits(1),
                 'value': Bits(XLEN),
             },
@@ -70,14 +63,14 @@ class CSRManager(Model):
 
       if s.op_call:
         if s.op_csr == CsrRegisters.proc2mngr:
-          if s.op_op == CSROpType.READ_WRITE and s.debug_send_rdy:
+          if s.op_op == CsrFunc.CSR_FUNC_READ_WRITE and s.debug_send_rdy:
             s.debug_send_call.v = 1
             s.debug_send_msg.v = s.op_value
 
             s.op_success.v = 1
             s.op_old.v = 0
         elif s.op_csr == CsrRegisters.mngr2proc:
-          if s.op_op != CSROpType.READ_WRITE and s.debug_recv_rdy and s.op_rs1_is_x0:
+          if s.op_op != CsrFunc.CSR_FUNC_READ_WRITE and s.debug_recv_rdy and s.op_rs1_is_x0:
             s.debug_recv_call.v = 1
 
             s.op_success.v = 1
