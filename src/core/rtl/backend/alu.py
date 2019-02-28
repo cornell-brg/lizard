@@ -7,6 +7,7 @@ from util.rtl.register import Register, RegisterInterface
 from bitutil import clog2, clog2nz
 from core.rtl.messages import DispatchMsg, ExecuteMsg, AluMsg, AluFunc
 
+
 class ALUInterface(Interface):
 
   def __init__(s, data_len):
@@ -29,14 +30,13 @@ class ALU(Model):
   def __init__(s, alu_interface):
     UseInterface(s, alu_interface)
     s.require(
-      MethodSpec(
-          'dispatch_get',
-          args=None,
-          rets={'msg': DispatchMsg()},
-          call=True,
-          rdy=True,
-      ),
-    )
+        MethodSpec(
+            'dispatch_get',
+            args=None,
+            rets={'msg': DispatchMsg()},
+            call=True,
+            rdy=True,
+        ),)
 
     imm_len = DispatchMsg().imm.nbits
     data_len = s.interface.DataLen
@@ -75,11 +75,13 @@ class ALU(Model):
 
     @s.combinational
     def set_valid():
-      s.out_val_.write_data.v = s.accepted_ or (s.out_val_.read_data and not s.get_call)
+      s.out_val_.write_data.v = s.accepted_ or (s.out_val_.read_data and
+                                                not s.get_call)
 
     @s.combinational
     def set_accepted():
-      s.accepted_.v = (s.get_call or not s.out_val_.read_data) and s.alu_.exec_rdy and s.dispatch_get_rdy
+      s.accepted_.v = (s.get_call or not s.out_val_.read_data
+                      ) and s.alu_.exec_rdy and s.dispatch_get_rdy
 
     @s.combinational
     def set_src_res():
@@ -88,14 +90,19 @@ class ALU(Model):
       s.res_32_.v = s.alu_.exec_res[:32]
 
       if s.msg_.alu_msg_op32:
-        s.src1_.v = zext(s.src1_32_, data_len) if s.msg_.alu_msg_unsigned else sext(s.src1_32_, data_len)
-        s.src2_.v = zext(s.src2_32_, data_len) if s.msg_.alu_msg_unsigned else sext(s.src2_32_, data_len)
-        s.res_.v = zext(s.res_32_, data_len) if s.msg_.alu_msg_unsigned else sext(s.res_32_, data_len)
+        s.src1_.v = zext(s.src1_32_,
+                         data_len) if s.msg_.alu_msg_unsigned else sext(
+                             s.src1_32_, data_len)
+        s.src2_.v = zext(s.src2_32_,
+                         data_len) if s.msg_.alu_msg_unsigned else sext(
+                             s.src2_32_, data_len)
+        s.res_.v = zext(s.res_32_,
+                        data_len) if s.msg_.alu_msg_unsigned else sext(
+                            s.res_32_, data_len)
       else:
         s.src1_.v = s.msg_.rs1
         s.src2_.v = s.msg_.rs2
         s.res_.v = s.alu_.exec_res
-
 
     @s.combinational
     def set_inputs():
