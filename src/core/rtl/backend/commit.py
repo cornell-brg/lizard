@@ -55,6 +55,7 @@ class Commit(Model):
     )
 
     s.advance = Wire(1)
+    s.rob_remove = Wire(1)
 
     s.rob = ReorderBuffer(ReorderBufferInterface(WritebackMsg(), rob_size))
 
@@ -74,12 +75,17 @@ class Commit(Model):
     s.connect(s.rob.free_idx, s.cflow_get_head_seq)
 
     @s.combinational
+    def set_rob_remove():
+      s.rob_remove.v = s.cflow_get_head_rdy and s.rob.check_done_is_rdy
+
+    @s.combinational
     def handle_commit():
       s.dataflow_commit_call.v = 0
       s.dataflow_commit_tag.v = 0
-      s.rob.free_call.v = s.cflow_get_head_rdy and s.rob.check_done_is_rdy
-      # The head is ready
-      if s.rob.free_call:
+      s.rob.free_call.v = s.rob_remove
+      s.cflow_commit_call.v = s.rob_remove
+      # The head is ready to commit
+      if s.rob_remove:
         if s.rob.free_value.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID:
           if s.rob.free_value.rd_val:
             s.dataflow_commit_call.v = 1
