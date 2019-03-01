@@ -45,6 +45,20 @@ class ControlFlowManagerInterface(Interface):
                 call=True,
                 rdy=False,
             ),
+            MethodSpec(
+                'get_head',
+                args={},
+                rets={'seq': Bits(seq_idx_nbits)},
+                call=False,
+                rdy=True,
+            ),
+            MethodSpec(
+                'commit',
+                args={},
+                rets={},
+                call=True,
+                rdy=True,
+            ),
         ],
         ordering_chains=[
             [],
