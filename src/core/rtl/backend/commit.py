@@ -39,7 +39,7 @@ class Commit(Model):
         MethodSpec(
             'cflow_get_head',
             args={},
-            rets={'seq': s.SeqIdxNbits },
+            rets={'seq': s.SeqIdxNbits},
             call=False,
             rdy=True,
         ),
