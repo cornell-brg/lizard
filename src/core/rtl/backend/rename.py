@@ -58,7 +58,7 @@ class Rename(Model):
             },
             rets={
                 'seq': Bits(seq_idx_nbits),
-                'success' : Bits(1),
+                'success': Bits(1),
             },
             call=True,
             rdy=False,
@@ -145,5 +145,5 @@ class Rename(Model):
     @s.combinational
     def set_rdy():
       s.rdy_.v = s.get_dst_rdy and s.decode_peek_rdy and (
-                                          not s.msg_val_.read_data or s.get_call)
+          not s.msg_val_.read_data or s.get_call)
       s.accepted_.v = s.rdy_ and s.register_success
