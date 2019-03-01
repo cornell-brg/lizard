@@ -85,7 +85,7 @@ class ControlFlowManager(Model):
     # Connect up enable
     s.connect(s.tail.write_call, s.register_success_)
     s.connect(s.head.write_call, s.register_success_)
-    s.connect(s.num.write_call, s.register_success_)
+    s.connect(s.num.write_call, 0)
 
     @s.combinational
     def set_flags():

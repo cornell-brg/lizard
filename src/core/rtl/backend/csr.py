@@ -88,6 +88,7 @@ class CSR(Model):
         s.execute_val.write_call.v = 1
         if s.dispatch_get_msg.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID:
           s.execute_msg.write_data.rd_val_pair.v = s.dispatch_get_msg.rd_val_pair
+          s.execute_msg.write_data.result.v = s.csr_op_old
           s.csr_op_csr.v = s.dispatch_get_msg.csr_msg_csr_num
           s.csr_op_op.v = s.dispatch_get_msg.csr_msg_func
           s.csr_op_rs1_is_x0.v = s.dispatch_get_msg.csr_msg_rs1_is_x0
