@@ -5,6 +5,7 @@ from util.rtl.mux import Mux
 from util.rtl.register import Register, RegisterInterface
 from util.rtl.interface import Interface, UseInterface
 from util.rtl.registerfile import RegisterFile, RegisterFileInterface
+from util.rtl.async_ram import AsynchronousRAM, AsynchronousRAMInterface
 from util.rtl.types import Array, canonicalize_type
 from util.rtl.onehot import OneHotEncoder
 from util.pretty_print import bitstruct_values
@@ -62,7 +63,8 @@ class ReorderBuffer(Model):
     num_entries = s.interface.NumEntries
     entry_type = s.interface.EntryType
     # All the finished instructions are stored here:
-    s.entries_ = RegisterFile(entry_type, num_entries, 1, 1, False, False)
+    #s.entries_ = RegisterFile(entry_type, num_entries, 1, 1, False, False)
+    s.entries_ = AsynchronousRAM(AsynchronousRAMInterface(entry_type, num_entries, 1, 1))
     iface = RegisterInterface(Bits(num_entries), enable=True)
     # TODO: This needs to be replaced with some sort of kill/vaid unit
     # Mask of valid entries
@@ -71,9 +73,6 @@ class ReorderBuffer(Model):
 
     s.add_encoder_ = OneHotEncoder(num_entries)
     s.free_encoder_ = OneHotEncoder(num_entries)
-
-    # We do not use the dump or set methods
-    s.connect(s.entries_.set_call, 0)
 
     # Check done
     # Connect up the mux for check done method
