@@ -1,97 +1,106 @@
 from pymtl import *
 from bitutil import clog2, clog2nz
-from pclib.rtl import RegEn, RegEnRst, RegRst
 from util.rtl.method import MethodSpec
+from util.rtl.mux import Mux
+from util.rtl.register import Register, RegisterInterface
+from util.rtl.interface import Interface, UseInterface
+from util.rtl.registerfile import RegisterFile, RegisterFileInterface
+from util.rtl.types import Array, canonicalize_type
+from util.rtl.onehot import OneHotEncoder
+from util.pretty_print import bitstruct_values
 
 
-class ReorderBufferInterface:
 
-  def __init__(s, IDX_NBITS, ENTRY_BITWIDTH):
-    s.Value = Bits(ENTRY_BITWIDTH)
-    s.Index = Bits(IDX_NBITS)
+class ReorderBufferInterface(Interface):
 
-    s.alloc_port = MethodSpec({
-        'value': s.Value
-    }, {'index': s.Index}, True, True)
+  def __init__(s, entry_type, num_entries):
+    s.EntryType = entry_type
+    s.EntryIdx = clog2(num_entries)
+    s.NumEntries = num_entries
 
-    # Update entry
-    s.update_port = MethodSpec({
-        'index': s.Index,
-        'value': s.Value
-    }, None, True, True)
-
-    s.remove_port = MethodSpec(None, None, True, True)
-
-    # Peek at the head
-    s.peek_port = MethodSpec(None, {'value': s.Value}, True, True)
+    super(ReorderBufferInterface, s).__init__([
+        MethodSpec(
+            'add',
+            args={
+                'idx': s.EntryIdx,
+                'value': s.EntryType,
+            },
+            rets=None,
+            call=True,
+            rdy=False,
+        ),
+        MethodSpec(
+            'check_done',
+            args={
+                'idx': s.EntryIdx,
+            },
+            rets={
+                'is_rdy': Bits(1),
+            },
+            call=False,
+            rdy=False,
+        ),
+        MethodSpec(
+            'free',
+            args={
+                'idx': s.EntryIdx,
+            },
+            rets={
+                'value': s.EntryType,
+            },
+            call=True,
+            rdy=False,
+        ),
+    ])
 
 
 class ReorderBuffer(Model):
-  # This stores (key, value) pairs in a finite size FIFO queue
-  def __init__(s, NUM_ENTRIES, ENTRY_BITWIDTH):
-    # We want to be a power of two so mod arithmetic is efficient
-    IDX_NBITS = clog2(NUM_ENTRIES)
-    assert 2**IDX_NBITS == NUM_ENTRIES
-    # Dealloc from tail, alloc at head
-    s.tail = RegRst(IDX_NBITS, reset_value=0)
-    s.head = RegRst(IDX_NBITS, reset_value=0)
-    s.num = RegRst(IDX_NBITS + 1, reset_value=0)
-    s.data = RegEn[NUM_ENTRIES](Bits(ENTRY_BITWIDTH))
 
-    s.interface = ReorderBufferInterface(IDX_NBITS, ENTRY_BITWIDTH)
-    # These are the methods that can be performed
-    s.alloc_port = s.interface.alloc_port.in_port()
-    s.update_port = s.interface.update_port.in_port()
-    s.remove_port = s.interface.remove_port.in_port()
-    s.peek_port = s.interface.peek_port.in_port()
+  def __init__(s, interface):
+    UseInterface(s, interface)
 
-    # flags
-    s.empty = Wire(1)
+    num_entries = s.interface.NumEntries
+    entry_type = s.interface.EntryType
+    # All the finished instructions are stored here:
+    s.entries_ = RegisterFile(entry_type, num_entries, 1, 1, False, False)
+    iface = RegisterInterface(Bits(num_entries), enable=True)
+    # TODO: This needs to be replaced with some sort of kill/vaid unit
+    # Mask of valid entries
+    s.valids_ = Register(iface, reset_value=0)
+    s.mux_done_ = Mux(Bits(1), num_entries)
+
+    s.add_encoder_ = OneHotEncoder(num_entries)
+    s.free_encoder_ = OneHotEncoder(num_entries)
+
+    # Check done
+    # Connect up the mux for check done method
+    @s.combinational
+    def mux_in():
+      for i in range(num_entries):
+        s.mux_done_.mux_in_[i].v = s.valids_.read_data[i]
+    s.connect(s.mux_done_.mux_select, s.check_done_idx)
+    s.connect(s.check_done_is_rdy, s.mux_done_.mux_out)
+
+    # Add
+    s.connect(s.entries_.write_call[0], s.add_call)
+    s.connect(s.entries_.write_addr[0], s.add_idx)
+    s.connect(s.entries_.write_data[0], s.add_value)
+    s.connect(s.add_encoder_.encode_number, s.add_idx)
+
+    # free
+    s.connect(s.entries_.read_addr[0], s.free_idx)
+    s.connect(s.free_value, s.entries_.read_data[0])
+    s.connect(s.free_encoder_.encode_number, s.free_idx)
+
 
     @s.combinational
-    def set_flags():
-      s.empty.v = s.num.out == 0
-      # Ready signals:
-      s.alloc_port.rdy.v = s.num.out < NUM_ENTRIES  # Alloc rdy
-      s.update_port.rdy.v = not s.empty
-      s.remove_port.rdy.v = not s.empty
-      s.peek_port.rdy.v = not s.empty
+    def set_valids():
+      s.valids_.write_data.v = s.valids_.read_data
+      # Clear anything being freed
+      s.valids_.write_data.v &= ~s.add_encoder_.encode_onehot
+      # Set anything being added
+      s.valids_.write_data.v |= s.free_encoder_.encode_onehot
 
-    @s.combinational
-    def update_tail():
-      s.tail.in_.v = (s.tail.out + 1) if s.remove_port.call else s.tail.out
-
-    @s.combinational
-    def update_head():
-      s.head.in_.v = (s.head.out + 1) if s.alloc_port.call else s.head.out
-
-    @s.combinational
-    def update_num():
-      s.num.in_.v = s.num.out
-      if s.alloc_port.call and not s.remove_port.call:
-        s.num.in_.v = s.num.out + 1
-      elif not s.alloc_port.call and s.remove_port.call:
-        s.num.in_.v = s.num.out - 1
-
-    @s.combinational
-    def handle_calls():
-      # Set enables to regs to false
-      for i in range(NUM_ENTRIES):
-        s.data[i].en.v = 0
-
-      # Handle alloc
-      s.alloc_port.index.v = s.head.out
-      if s.alloc_port.call:
-        s.data[s.head.out].en.v = 1
-        s.data[s.head.out].in_.v = s.alloc_port.value.v
-
-      # Handle update
-      if s.update_port.call:
-        s.data[s.update_port.index].en.v = 1
-        s.data[s.update_port.index].in_.v = s.update_port.value.v
-
-      # Handle peek
-      s.peek_port.value.v = s.data[s.tail.out].out
 
   def line_trace(s):
-    return ":".join(["{}".format(x.out) for x in s.data])
+    return str(s.valids_.read_data)

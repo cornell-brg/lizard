@@ -3,6 +3,7 @@ from util.rtl.interface import Interface, UseInterface
 from util.rtl.method import MethodSpec
 from core.rtl.messages import WritebackMsg, PipelineMsgStatus
 from util.rtl.register import Register, RegisterInterface
+from util.rtl.reorder_buffer import ReorderBuffer, ReorderBufferInterface
 from config.general import *
 
 
@@ -14,7 +15,7 @@ class CommitInterface(Interface):
 
 class Commit(Model):
 
-  def __init__(s, interface):
+  def __init__(s, interface, rob_size):
     UseInterface(s, interface)
     s.SeqIdxNbits = WritebackMsg().hdr_seq.nbits
     s.require(
@@ -43,31 +44,46 @@ class Commit(Model):
             call=False,
             rdy=True,
         ),
+        # Call this to commit the head
         MethodSpec(
             'cflow_commit',
             args={},
             rets={},
             call=True,
-            rdy=True,
+            rdy=False,
         ),
     )
 
     s.advance = Wire(1)
 
+    s.rob = ReorderBuffer(ReorderBufferInterface(WritebackMsg(), rob_size))
+
+    # Connect head status check
+    s.connect(s.rob.check_done_idx, s.cflow_get_head_seq)
+
     # if writeback is ready, take the data and commit
     s.connect(s.advance, s.writeback_get_rdy)
     s.connect(s.writeback_get_call, s.advance)
+
+    # Add incoming message into ROB
+    s.connect(s.rob.add_value, s.writeback_get_msg)
+    s.connect(s.rob.add_idx, s.writeback_get_msg.hdr_seq)
+    s.connect(s.rob.add_call, s.advance)
+
+    # Connect up free
+    s.connect(s.rob.free_idx, s.cflow_get_head_seq)
 
     @s.combinational
     def handle_commit():
       s.dataflow_commit_call.v = 0
       s.dataflow_commit_tag.v = 0
-
-      if s.advance:
-        if s.writeback_get_msg.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID:
-          if s.writeback_get_msg.rd_val:
+      s.rob.free_call.v = s.cflow_get_head_rdy and s.rob.check_done_is_rdy
+      # The head is ready
+      if s.rob.free_call:
+        if s.rob.free_value.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID:
+          if s.rob.free_value.rd_val:
             s.dataflow_commit_call.v = 1
-            s.dataflow_commit_tag.v = s.writeback_get_msg.rd
+            s.dataflow_commit_tag.v = s.rob.free_value.rd
         else:
           # TODO handle exception
           # PYMTL_BROKEN pass doesn't work
