@@ -22,8 +22,8 @@ class CircularBufferInterface(Interface):
         MethodSpec(
             'add',
             args={
-              'idx' : s.EntryIdx,
-              'value': s.EntryType,
+                'idx': s.EntryIdx,
+                'value': s.EntryType,
             },
             rets=None,
             call=True,
@@ -32,10 +32,10 @@ class CircularBufferInterface(Interface):
         MethodSpec(
             'check_done',
             args={
-              'idx' : s.EntryIdx,
+                'idx': s.EntryIdx,
             },
             rets={
-              'rdy' : Bits(1),
+                'rdy': Bits(1),
             },
             call=False,
             rdy=False,
@@ -43,10 +43,10 @@ class CircularBufferInterface(Interface):
         MethodSpec(
             'free',
             args={
-              'idx' : s.EntryIdx,
+                'idx': s.EntryIdx,
             },
             rets={
-              'value' : s.EntryType,
+                'value': s.EntryType,
             },
             call=True,
             rdy=False,
@@ -58,8 +58,6 @@ class CircularBuffer(Model):
 
   def __init__(s, interface):
     UseInterface(s, interface)
-
-
 
   def line_trace(s):
     return ":".join(["{}".format(x.valid_out) for x in s.slots_])
