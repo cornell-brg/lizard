@@ -8,7 +8,7 @@ from pclib.rtl import RegEn, RegEnRst, RegRst
 from core.rtl.messages import RenameMsg, IssueMsg, PipelineMsgStatus
 from msg.codes import RVInstMask, Opcode, ExceptionCode
 from util.rtl.issue_queue import CompactingIssueQueue, IssueQueueInterface, AbstractIssueType
-
+from util.rtl.coders import PriorityDecoder
 
 class IssueInterface(Interface):
 
@@ -28,8 +28,9 @@ class IssueInterface(Interface):
 
 class Issue(Model):
 
-  def __init__(s, interface, num_slots=4):
+  def __init__(s, interface, num_pregs, num_slots=4):
     UseInterface(s, interface)
+    s.NumPregs = num_pregs
     s.require(
         # Called on rename stage
         MethodSpec(
@@ -52,6 +53,15 @@ class Issue(Model):
             rdy=False,
             count=2,
         ),
+        MethodSpec(
+            'get_updated',
+            args={},
+            rets={
+                'mask': Bits(num_pregs),
+            },
+            call=False,
+            rdy=False,
+        ),
     )
     preg_nbits = RenameMsg().rs1.nbits
     branch_mask_nbits = RenameMsg().hdr_branch_mask.nbits
@@ -60,6 +70,11 @@ class Issue(Model):
     SlotType = AbstractIssueType(preg_nbits, branch_mask_nbits, IssueMsg())
 
     s.iq = CompactingIssueQueue(IssueQueueInterface(SlotType), num_slots)
+    # Connect the notify signal
+    s.updated_ = PriorityDecoder(s.NumPregs)
+    s.connect(s.updated_.decode_signal, s.get_updated_mask)
+    s.connect(s.iq.notify_value, s.updated_.decode_decoded)
+    s.connect(s.iq.notify_call, s.updated_.decode_valid)
 
     s.renamed_ = Wire(RenameMsg())
     s.connect(s.renamed_, s.rename_get_msg)
