@@ -130,9 +130,10 @@ class Proc(Model):
 
     # Issue
     s.issue_interface = IssueInterface()
-    s.issue = Issue(s.issue_interface, num_slots=1)
+    s.issue = Issue(s.issue_interface, PREG_COUNT, num_slots=1)
     s.connect_m(s.rename.get, s.issue.rename_get)
     s.connect_m(s.dflow.is_ready, s.issue.is_ready)
+    s.connect_m(s.dflow.get_updated, s.issue.get_updated)
 
     # Dispatch
     s.dispatch_interface = DispatchInterface()
