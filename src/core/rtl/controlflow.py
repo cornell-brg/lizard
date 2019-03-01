@@ -97,9 +97,8 @@ class ControlFlowManager(Model):
     s.connect(s.register_success, s.register_success_)
 
     # Connect up enable
-    s.connect(s.tail.write_call, s.register_success_)
+    s.connect(s.tail.write_call, s.commit_call)
     s.connect(s.head.write_call, s.register_success_)
-    s.connect(s.num.write_call, 0)
 
     @s.combinational
     def set_flags():
@@ -108,9 +107,9 @@ class ControlFlowManager(Model):
       s.register_success_.v = s.register_call and (s.num.read_data <
                                                    (1 << seqidx_nbits))
 
-    # @s.combinational
-    # def update_tail():
-    #   s.tail.in_.v = (s.tail.out + 1) if s.remove_port.call else s.tail.out
+    @s.combinational
+    def update_tail():
+      s.tail.write_data.v = s.tail.read_data + 1
 
     @s.combinational
     def update_head():
@@ -118,7 +117,12 @@ class ControlFlowManager(Model):
 
     @s.combinational
     def update_num():
-      s.num.write_data.v = s.num.read_data + 1
+      s.num.write_call.v = s.register_success_ ^ s.commit_call
+      s.num.write_data.v = 0
+      if s.register_success_:
+        s.num.write_data.v = s.num.write_data + 1
+      if s.commit_call:
+        s.num.write_data.v = s.num.write_data - 1
 
     @s.tick_rtl
     def handle_reset():
