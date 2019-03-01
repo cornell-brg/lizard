@@ -7,8 +7,6 @@ from core.rtl.messages import OpClass, PipeMsg, InstMsg
 from util.rtl.lookup_table import LookupTableInterface, LookupTable
 from util.rtl.logic import BinaryComparatorInterface, LogicOperatorInterface, Equals, And
 
-from config.general import ILEN
-
 
 class SubDecoderInterface(Interface):
 
@@ -17,7 +15,7 @@ class SubDecoderInterface(Interface):
         MethodSpec(
             'decode',
             args={
-                'inst': Bits(ILEN),
+                'inst': InstMsg(),
             },
             rets={
                 'success': Bits(1),

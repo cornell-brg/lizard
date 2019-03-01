@@ -90,7 +90,7 @@ class CSR(Model):
           s.execute_msg.write_data.rd_val_pair.v = s.dispatch_get_msg.rd_val_pair
           s.csr_op_csr.v = s.dispatch_get_msg.csr_msg_csr_num
           s.csr_op_op.v = s.dispatch_get_msg.csr_msg_func
-          s.csr_op_rs1_is_x0 = s.dispatch_get_msg.csr_msg_rs1_is_x0
+          s.csr_op_rs1_is_x0.v = s.dispatch_get_msg.csr_msg_rs1_is_x0
           s.csr_op_value.v = s.dispatch_get_msg.rs1
           s.csr_op_call.v = 1
 
