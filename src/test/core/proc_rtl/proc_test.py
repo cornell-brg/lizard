@@ -5,13 +5,14 @@ def test_basic():
   asm_test(
       """
   addi x1, x0, 42
+  addi x2, x1, 1
   nop
   nop
   nop
   nop
   nop
   nop
-  csrw proc2mngr, x1 > 42
+  csrw proc2mngr, x2 > 43
   """,
       True,
       'proc.vcd',
