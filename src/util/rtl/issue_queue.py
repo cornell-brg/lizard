@@ -256,8 +256,6 @@ class CompactingIssueQueue(Model):
     # Mux all the outputs from the slots
     s.mux_ = Mux(s.interface.SlotType, num_slots)
 
-    # Connect to last issue slots input
-    s.connect(s.last_slot_in_, s.slots_[num_slots - 1].input_value)
     # Connect packer's output to decoder
     s.connect(s.slot_select_.decode_signal, s.pdecode_packer_.pack_packed)
     # Connect packed ready signals into slot decoder
@@ -267,9 +265,12 @@ class CompactingIssueQueue(Model):
     # Also connect slot select mux to onehot encode
     s.connect(s.slot_issue_.encode_number, s.slot_select_.decode_decoded)
 
+    @s.combinational
+    def last_slot_input():
+      s.slots_[num_slots - 1].input_value.v = s.last_slot_in_.v
+      
     # if ith slot shitting, ith slot input called, and i+1 output called
     for i in range(num_slots - 1):
-
       @s.combinational
       def slot_input(i=i):
         s.slots_[i].input_call.v = s.do_shift_[i]
