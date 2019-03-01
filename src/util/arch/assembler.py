@@ -117,19 +117,15 @@ class Assembler(object):
 
     mem_image = SparseMemoryImage()
     if len(text_bytes) > 0:
-      mem_image.add_section(
-          SparseMemoryImage.Section(".text", self.text_offset, text_bytes))
+      mem_image.add_section(".text", self.text_offset, text_bytes)
     if len(mngr2proc_bytes) > 0:
-      mem_image.add_section(
-          SparseMemoryImage.Section(".mngr2proc", self.mngr2proc_offset,
-                                    mngr2proc_bytes))
+      mem_image.add_section(".mngr2proc", self.mngr2proc_offset,
+                            mngr2proc_bytes)
     if len(proc2mngr_bytes) > 0:
-      mem_image.add_section(
-          SparseMemoryImage.Section(".proc2mngr", self.proc2mngr_offset,
-                                    proc2mngr_bytes))
+      mem_image.add_section(".proc2mngr", self.proc2mngr_offset,
+                            proc2mngr_bytes)
     if len(data_bytes) > 0:
-      mem_image.add_section(
-          SparseMemoryImage.Section(".data", self.data_offset, data_bytes))
+      mem_image.add_section(".data", self.data_offset, data_bytes)
 
     return mem_image
 

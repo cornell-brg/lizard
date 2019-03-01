@@ -66,12 +66,13 @@ class ALU(Model):
     s.connect(s.func_, s.exec_func)
     s.connect(s.usign_, s.exec_unsigned)
 
-    @s.combinational
+    # TODO: AARON BROKEN
+    # @s.combinational
     def set_shamt():
       s.shamt_.v = s.s0_[:CLOG2_XLEN]
       s.cmp_u_.v = s.s0_ < s.s1_ if s.usign_ else concat(
-          not s.s0_[-1], s.s0_[:XLEN_M1]) < concat(not s.s1_[-1],
-                                                   s.s1_[0:XLEN_M1])
+          not s.s0_[xlen - 1], s.s0_[:XLEN_M1]) < concat(
+              not s.s1_[xlen - 1], s.s1_[0:XLEN_M1])
       s.sra_.v = sext(s.s0_, TWO_XLEN) >> s.shamt_
 
     @s.combinational

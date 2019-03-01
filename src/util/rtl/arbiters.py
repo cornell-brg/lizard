@@ -34,7 +34,8 @@ class PriorityArbiter(Model):
 
     @s.combinational
     def compute():
-      s.grant_grant.v = s.grant_reqs & -s.grant_reqs
+      # PYMTL_BROKEN unary - translates but does not simulate
+      s.grant_grant.v = s.grant_reqs & (0 - s.grant_reqs)
 
   def line_trace(s):
     return "{} -> {}".format(s.grant_reqs, s.grant_grant)
