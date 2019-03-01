@@ -17,13 +17,18 @@ class DecodeInterface(Interface):
   def __init__(s):
     super(DecodeInterface, s).__init__([
         MethodSpec(
-            'get',
+            'peek',
             args={},
             rets={
                 'msg': DecodeMsg(),
             },
-            call=True,
+            call=False,
             rdy=True,
+        ),
+        MethodSpec(
+            'take',
+            call=True,
+            rdy=False,
         ),
     ])
 
@@ -67,10 +72,10 @@ class Decode(Model):
     @s.combinational
     def handle_advance():
       s.advance.v = (not s.decode_val.read_data or
-                     s.get_call) and s.fetch_get_rdy
+                     s.take_call) and s.fetch_get_rdy
 
-    s.connect(s.get_rdy, s.decode_val.read_data)
-    s.connect(s.get_msg, s.decode_msg.read_data)
+    s.connect(s.peek_rdy, s.decode_val.read_data)
+    s.connect(s.peek_msg, s.decode_msg.read_data)
 
     s.connect(s.fetch_get_call, s.advance)
     s.connect(s.fetch_get_msg.inst, s.decoder.decode_inst)
@@ -111,7 +116,7 @@ class Decode(Model):
         else:
           s.decode_msg.write_data.exception_info.v = s.fetch_get_msg.exception_info
       else:
-        s.decode_val.write_call.v = s.get_call
+        s.decode_val.write_call.v = s.take_call
 
   def line_trace(s):
     return str(s.decode_msg.read_data)
