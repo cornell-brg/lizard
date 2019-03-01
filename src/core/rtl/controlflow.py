@@ -39,8 +39,8 @@ class ControlFlowManagerInterface(Interface):
                     'pc_succ': Bits(dlen),
                 },
                 rets={
-                  'seq': Bits(seq_idx_nbits),
-                  'success' : Bits(1),
+                    'seq': Bits(seq_idx_nbits),
+                    'success': Bits(1),
                 },
                 call=True,
                 rdy=False,
@@ -68,9 +68,12 @@ class ControlFlowManager(Model):
     s.register_success_ = Wire(1)
 
     # Dealloc from tail, alloc at head
-    s.tail = Register(RegisterInterface(Bits(seqidx_nbits), enable=True), reset_value=0)
-    s.head = Register(RegisterInterface(Bits(seqidx_nbits), enable=True), reset_value=0)
-    s.num = Register(RegisterInterface(Bits(seqidx_nbits+1), enable=True), reset_value=0)
+    s.tail = Register(
+        RegisterInterface(Bits(seqidx_nbits), enable=True), reset_value=0)
+    s.head = Register(
+        RegisterInterface(Bits(seqidx_nbits), enable=True), reset_value=0)
+    s.num = Register(
+        RegisterInterface(Bits(seqidx_nbits + 1), enable=True), reset_value=0)
 
     s.connect(s.check_redirect_redirect, s.redirect_valid_)
     s.connect(s.check_redirect_target, s.redirect_)
@@ -84,12 +87,12 @@ class ControlFlowManager(Model):
     s.connect(s.head.write_call, s.register_success_)
     s.connect(s.num.write_call, s.register_success_)
 
-
     @s.combinational
     def set_flags():
       s.empty.v = s.num.read_data == 0
       # TODO handle speculative
-      s.register_success_.v = s.register_call and (s.num.read_data < (1 << seqidx_nbits))
+      s.register_success_.v = s.register_call and (s.num.read_data <
+                                                   (1 << seqidx_nbits))
 
     # @s.combinational
     # def update_tail():
@@ -102,7 +105,6 @@ class ControlFlowManager(Model):
     @s.combinational
     def update_num():
       s.num.write_data.v = s.num.read_data + 1
-
 
     @s.tick_rtl
     def handle_reset():
