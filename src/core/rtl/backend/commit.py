@@ -2,6 +2,7 @@ from pymtl import *
 from util.rtl.interface import Interface, UseInterface
 from util.rtl.method import MethodSpec
 from core.rtl.messages import WritebackMsg, PipelineMsgStatus
+from util.rtl.register import Register, RegisterInterface
 from config.general import *
 
 
@@ -15,6 +16,7 @@ class Commit(Model):
 
   def __init__(s, interface):
     UseInterface(s, interface)
+    s.SeqIdxNbits = WritebackMsg().hdr_seq.nbits
     s.require(
         MethodSpec(
             'writeback_get',
@@ -33,6 +35,20 @@ class Commit(Model):
             rets=None,
             call=True,
             rdy=False,
+        ),
+        MethodSpec(
+            'cflow_get_head',
+            args={},
+            rets={'seq': s.SeqIdxNbits },
+            call=False,
+            rdy=True,
+        ),
+        MethodSpec(
+            'cflow_commit',
+            args={},
+            rets={},
+            call=True,
+            rdy=True,
         ),
     )
 
