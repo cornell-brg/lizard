@@ -126,7 +126,7 @@ class RTL2CLWrapper(CLModel):
 
   def line_trace(s):
     s.sim.eval_combinational()
-    return "{:>3}: {}".format(s.sim.ncycles, s.model.line_trace())
+    return s.model.line_trace()
 
   def _pre_cycle(s):
     super(RTL2CLWrapper, s)._pre_cycle()
