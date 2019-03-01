@@ -72,6 +72,9 @@ class ReorderBuffer(Model):
     s.add_encoder_ = OneHotEncoder(num_entries)
     s.free_encoder_ = OneHotEncoder(num_entries)
 
+    # We do not use the dump or set methods
+    s.connect(s.entries_.set_call, 0)
+
     # Check done
     # Connect up the mux for check done method
     @s.combinational
