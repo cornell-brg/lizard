@@ -171,6 +171,6 @@ class Proc(Model):
 
     # Commit
     s.commit_interface = CommitInterface()
-    s.commit = Commit(s.commit_interface)
+    s.commit = Commit(s.commit_interface, ROB_SIZE)
     s.connect_m(s.writeback.get, s.commit.writeback_get)
     s.connect_m(s.commit.dataflow_commit, s.dflow.commit[0])
