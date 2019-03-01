@@ -190,6 +190,10 @@ class MemMsg(object):
     s.req = MemReqMsg(opaque_nbits, addr_nbits, data_nbytes)
     s.resp = MemRespMsg(opaque_nbits, test_nbits, data_nbytes)
 
+  def __str__(s):
+    return 'MemMsg: op: {} ts: {} ad: {} da: {}'.format(
+        s.opaque_nbits, s.test_nbits, s.addr_nbits, s.data_nbytes)
+
 
 class MemoryBusInterface(Interface):
 
