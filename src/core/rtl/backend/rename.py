@@ -112,7 +112,7 @@ class Rename(Model):
     # Handle the conditional calls
     @s.combinational
     def handle_calls():
-      s.get_dst_call.v = s.decoded_.rd_val and (
+      s.get_dst_call.v = s.accepted_ and s.decoded_.rd_val and (
           s.decoded_.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID)
 
     # Connect the outgoing signals

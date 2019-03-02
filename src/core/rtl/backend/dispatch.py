@@ -61,6 +61,13 @@ class Dispatch(Model):
     s.dispatched_ = Wire(DispatchMsg())
     s.accepted_ = Wire(1)
 
+    s.pc_ = Wire(64)
+    s.connect(s.pc_, s.issue_get_msg.hdr_pc)
+
+    s.opclass = Wire(3)
+    s.connect(s.opclass, s.issue_get_msg.op_class)
+
+
     s.connect(s.issued_, s.issue_get_msg)
     s.connect(s.dispatched_, s.out_.write_data)
 

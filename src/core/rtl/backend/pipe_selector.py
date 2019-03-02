@@ -36,6 +36,9 @@ class PipeSelector(Model):
             rdy=True,
         ),)
 
+    s.opclass = Wire(3)
+    s.connect(s.opclass, s.dispatch_get_msg.op_class)
+
     s.splitter = PipelineSplitter(s.interface)
     s.controller = PipeSelectorController()
     s.connect_m(s.splitter.sort, s.controller.sort)

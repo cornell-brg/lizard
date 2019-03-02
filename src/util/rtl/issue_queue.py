@@ -268,7 +268,7 @@ class CompactingIssueQueue(Model):
     @s.combinational
     def last_slot_input():
       s.slots_[num_slots - 1].input_value.v = s.last_slot_in_.v
-      
+
     # if ith slot shitting, ith slot input called, and i+1 output called
     for i in range(num_slots - 1):
       @s.combinational
@@ -296,10 +296,12 @@ class CompactingIssueQueue(Model):
       # TODO: The kills from this cycle need to be forwarded to this:
       s.slots_[num_slots - 1].input_call.v = s.add_call
       s.last_slot_in_.v = s.add_value
-      if s.notify_value == s.add_value.src0:
-        s.last_slot_in_.src0_rdy.v = 1
-      if s.notify_value == s.add_value.src1:
-        s.last_slot_in_.src1_rdy.v = 1
+      # Forward any notifications from current cycle
+      if s.notify_call:
+        if s.notify_value == s.add_value.src0:
+          s.last_slot_in_.src0_rdy.v = 1
+        if s.notify_value == s.add_value.src1:
+          s.last_slot_in_.src1_rdy.v = 1
 
     if num_slots > 1:
 

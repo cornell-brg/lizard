@@ -57,7 +57,7 @@ class ControlFlowManagerInterface(Interface):
                 args={},
                 rets={},
                 call=True,
-                rdy=True,
+                rdy=False,
             ),
         ],
         ordering_chains=[
@@ -73,15 +73,18 @@ class ControlFlowManager(Model):
     xlen = s.interface.DataLen
     seqidx_nbits = s.interface.SeqIdxNbits
 
+    max_entries = 1 << seqidx_nbits
+
     # The redirect registers
     s.redirect_ = Wire(xlen)
     s.redirect_valid_ = Wire(1)
 
     # flags
     s.empty = Wire(1)
+    s.full = Wire(1)
     s.register_success_ = Wire(1)
 
-    # Dealloc from tail, alloc at head
+    # Dealloc from head, alloc at tail
     s.tail = Register(
         RegisterInterface(Bits(seqidx_nbits), enable=True), reset_value=0)
     s.head = Register(
@@ -97,15 +100,21 @@ class ControlFlowManager(Model):
     s.connect(s.register_success, s.register_success_)
 
     # Connect up enable
-    s.connect(s.tail.write_call, s.commit_call)
-    s.connect(s.head.write_call, s.register_success_)
+    s.connect(s.tail.write_call, s.register_success_)
+    s.connect(s.head.write_call, s.commit_call)
+
+    # Connect get head method
+    s.connect(s.get_head_seq, s.head.read_data)
+    @s.combinational
+    def set_get_head_rdy():
+      s.get_head_rdy.v = not s.empty
 
     @s.combinational
     def set_flags():
+      s.full.v = s.num.read_data == max_entries
       s.empty.v = s.num.read_data == 0
       # TODO handle speculative
-      s.register_success_.v = s.register_call and (s.num.read_data <
-                                                   (1 << seqidx_nbits))
+      s.register_success_.v = s.register_call and not s.full
 
     @s.combinational
     def update_tail():
@@ -120,9 +129,9 @@ class ControlFlowManager(Model):
       s.num.write_call.v = s.register_success_ ^ s.commit_call
       s.num.write_data.v = 0
       if s.register_success_:
-        s.num.write_data.v = s.num.write_data + 1
+        s.num.write_data.v = s.num.read_data + 1
       if s.commit_call:
-        s.num.write_data.v = s.num.write_data - 1
+        s.num.write_data.v = s.num.read_data - 1
 
     @s.tick_rtl
     def handle_reset():

@@ -65,10 +65,7 @@ class ReorderBuffer(Model):
     # All the finished instructions are stored here:
     #s.entries_ = RegisterFile(entry_type, num_entries, 1, 1, False, False)
     s.entries_ = AsynchronousRAM(AsynchronousRAMInterface(entry_type, num_entries, 1, 1))
-    iface = RegisterInterface(Bits(num_entries), enable=True)
-    # TODO: This needs to be replaced with some sort of kill/vaid unit
-    # Mask of valid entries
-    s.valids_ = Register(iface, reset_value=0)
+    s.valids_ = Register(RegisterInterface(Bits(num_entries)), reset_value=0)
     s.mux_done_ = Mux(Bits(1), num_entries)
 
     s.add_encoder_ = OneHotEncoder(num_entries)
@@ -99,9 +96,11 @@ class ReorderBuffer(Model):
     def set_valids():
       s.valids_.write_data.v = s.valids_.read_data
       # Clear anything being freed
-      s.valids_.write_data.v &= ~s.add_encoder_.encode_onehot
+      if s.free_call:
+        s.valids_.write_data.v &= ~s.add_encoder_.encode_onehot
       # Set anything being added
-      s.valids_.write_data.v |= s.free_encoder_.encode_onehot
+      if s.add_call:
+        s.valids_.write_data.v |= s.free_encoder_.encode_onehot
 
 
   def line_trace(s):
