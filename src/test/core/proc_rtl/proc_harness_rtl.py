@@ -64,6 +64,11 @@ def asm_test(asm, translate, vcd_file, max_cycles=2000):
     i += 1
     print("{:>3}: {}".format(i, dut.line_trace()))
     while len(pth.tdb.received_messages) > curr:
-      assert pth.tdb.received_messages[curr] == proc2mngr_data[curr]
+      if pth.tdb.received_messages[curr] != proc2mngr_data[curr]:
+        msg = "Expected: {}, got {}".format(int(proc2mngr_data[curr]), int(pth.tdb.received_messages[curr]))
+        # Cycle once so line trace looks good
+        dut.cycle()
+        assert pth.tdb.received_messages[curr] == proc2mngr_data[curr], msg
+
       curr += 1
     dut.cycle()

@@ -58,6 +58,9 @@ class CSR(Model):
     s.execute_msg = Register(RegisterInterface(ExecuteMsg(), True, False))
 
     s.advance = Wire(1)
+    s.pc_ = Wire(64)
+    s.connect(s.pc_, s.dispatch_get_msg.hdr_pc)
+
 
     @s.combinational
     def handle_advance():
