@@ -3,6 +3,7 @@ from mem.rtl.memory_bus import MemMsgType, MemMsgStatus, MemoryBusInterface
 from model.hardware_model import HardwareModel, Result
 from model.flmodel import FLModel
 from collections import deque
+from functools import partial
 
 
 class TestMemoryBusFL(FLModel):
@@ -29,25 +30,29 @@ class TestMemoryBusFL(FLModel):
     s.max_addr = s.MemMsg.req.addr._max
 
     s.state(
-        results=deque(),
+        results=[deque() for _ in range(s.num_ports)],
         mem=initial_memory,
     )
 
-    @s.ready_method
-    def recv():
-      return len(s.results) != 0
+    for i in range(s.num_ports):
+      recv_name = 'recv_{}'.format(i)
+      send_name = 'send_{}'.format(i)
+      s.ready_method_explicit(recv_name, partial(s.recv_rdy, i), False)
+      s.ready_method_explicit(send_name, partial(s.send_rdy, i), False)
+      s.model_method_explicit(recv_name, partial(s.recv, i), False)
+      s.model_method_explicit(send_name, partial(s.send, i), False)
 
-    @s.model_method
-    def recv():
-      return s.results.popleft()
+  def recv_rdy(s, port):
+    return len(s.results[port]) != 0
 
-    @s.ready_method
-    def send():
-      return len(s.results) != s.num_ports
+  def recv(s, port):
+    return s.results[port].popleft()
 
-    @s.model_method
-    def send(msg):
-      s.results.append(s.handle_request(msg))
+  def send_rdy(s, port):
+    return len(s.results[port]) == 0
+
+  def send(s, port, msg):
+    s.results[port].append(s.handle_request(msg))
 
   def handle_request(s, req):
     nbytes = int(req.len_)

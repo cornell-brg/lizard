@@ -72,7 +72,7 @@ class Fetch(Model):
     s.fetch_msg = Register(RegisterInterface(FetchMsg(), True, False))
 
     s.in_flight = Register(
-        RegisterInterface(Bits(1), False, False), reset_value=0)
+        RegisterInterface(Bits(1), True, False), reset_value=0)
     s.pc = Register(RegisterInterface(Bits(xlen), True, False), reset_value=0)
 
     s.advance_f1 = Wire(1)
@@ -100,7 +100,8 @@ class Fetch(Model):
         s.pc.write_data.v = s.pc.read_data + ilen_bytes
         s.pc.write_call.v = s.advance_f0
 
-    s.connect(s.in_flight.write_data, s.advance_f0)
+    s.connect(s.in_flight.write_data, 1)
+    s.connect(s.in_flight.write_call, s.advance_f0)
     s.connect(s.get_msg, s.fetch_msg.read_data)
 
     @s.combinational
@@ -109,6 +110,7 @@ class Fetch(Model):
       s.fetch_val.write_data.v = 0
       s.fetch_msg.write_call.v = 0
       s.fetch_msg.write_data.v = 0
+      s.drop_unit.output_call.v = 0
 
       if s.check_redirect_redirect:
         # invalidate the output
@@ -122,6 +124,7 @@ class Fetch(Model):
           s.fetch_val.write_call.v = 1
           s.fetch_val.write_data.v = 1
           s.fetch_msg.write_call.v = 1
+          s.drop_unit.output_call.v = 1
 
           s.fetch_msg.write_data.hdr_pc.v = s.pc.read_data
           if s.drop_unit.output_data.stat != MemMsgStatus.OK:

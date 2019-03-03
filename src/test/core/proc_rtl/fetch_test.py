@@ -9,7 +9,6 @@ from model.hardware_model import NotReady, Result
 from model.test_harness import TestHarness
 from mem.rtl.memory_bus import MemoryBusInterface, MemMsgType
 from mem.fl.test_memory_bus import TestMemoryBusFL
-from mem.rtl.basic_memory_controller import BasicMemoryController, BasicMemoryControllerInterface
 from test.core.proc_rtl.test_controlflow import TestControlFlowManagerFL
 
 from core.rtl.frontend.fetch import Fetch, FetchInterface
@@ -22,18 +21,13 @@ class FetchTestHarness(Model):
     s.mbi = MemoryBusInterface(1, 1, 2, 64, 8)
     s.tmb = TestMemoryBusFL(s.mbi, initial_mem)
     s.mb = wrap_to_rtl(s.tmb)
-    s.mc = BasicMemoryController(
-        BasicMemoryControllerInterface(s.mbi.MemMsg, ['fetch']))
     s.tcf = wrap_to_rtl(TestControlFlowManagerFL(64, 2, 0x200))
 
     TestHarness(s, Fetch(FetchInterface(64, 32), s.mbi.MemMsg), True,
                 'bobby.vcd')
 
-    s.connect_m(s.mb.recv, s.mc.bus_recv)
-    s.connect_m(s.mb.send, s.mc.bus_send)
-
-    s.connect_m(s.mc.fetch_recv, s.dut.mem_recv)
-    s.connect_m(s.mc.fetch_send, s.dut.mem_send)
+    s.connect_m(s.mb.recv_0, s.dut.mem_recv)
+    s.connect_m(s.mb.send_0, s.dut.mem_send)
     s.connect_m(s.tcf.check_redirect, s.dut.check_redirect)
 
 
