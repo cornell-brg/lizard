@@ -7,7 +7,12 @@ from util.rtl.types import Array, canonicalize_type
 
 class AsynchronousRAMInterface(Interface):
 
-  def __init__(s, dtype, nwords, num_read_ports, num_write_ports, write_read_bypass=False):
+  def __init__(s,
+               dtype,
+               nwords,
+               num_read_ports,
+               num_write_ports,
+               write_read_bypass=False):
     s.Addr = Bits(clog2nz(nwords))
     s.Data = canonicalize_type(dtype)
     s.Bypass = write_read_bypass
@@ -44,6 +49,7 @@ class AsynchronousRAMInterface(Interface):
         ordering_chains=ordering_chains,
     )
 
+
 # https://people.ece.cornell.edu/land/courses/ece5760/DE1_SOC/HDL_style_qts_qii51007.pdf
 # Thanks Bruce Land, See 12-12
 class AsynchronousRAM(Model):
@@ -57,6 +63,7 @@ class AsynchronousRAM(Model):
     s.regs = [Wire(s.interface.Data) for _ in range(nwords)]
 
     if s.interface.Bypass:
+
       @s.combinational
       def handle_reads():
         for i in range(num_read_ports):
@@ -66,6 +73,7 @@ class AsynchronousRAM(Model):
             if s.write_call[j] and s.write_addr[j] == s.read_addr[i]:
               s.read_data[i].v = s.write_data[j]
     else:
+
       @s.combinational
       def handle_reads():
         for i in range(num_read_ports):
@@ -77,8 +85,6 @@ class AsynchronousRAM(Model):
       for i in range(num_write_ports):
         if s.write_call[i]:
           s.regs[s.write_addr[i]].n = s.write_data[i]
-
-
 
   def line_trace(s):
     return ":".join(["{}".format(x) for x in s.regs])

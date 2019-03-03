@@ -67,7 +67,6 @@ class Dispatch(Model):
     s.opclass = Wire(3)
     s.connect(s.opclass, s.issue_get_msg.op_class)
 
-
     s.connect(s.issued_, s.issue_get_msg)
     s.connect(s.dispatched_, s.out_.write_data)
 

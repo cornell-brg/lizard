@@ -11,7 +11,6 @@ from util.rtl.onehot import OneHotEncoder
 from util.pretty_print import bitstruct_values
 
 
-
 class ReorderBufferInterface(Interface):
 
   def __init__(s, entry_type, num_entries):
@@ -64,7 +63,8 @@ class ReorderBuffer(Model):
     entry_type = s.interface.EntryType
     # All the finished instructions are stored here:
     #s.entries_ = RegisterFile(entry_type, num_entries, 1, 1, False, False)
-    s.entries_ = AsynchronousRAM(AsynchronousRAMInterface(entry_type, num_entries, 1, 1))
+    s.entries_ = AsynchronousRAM(
+        AsynchronousRAMInterface(entry_type, num_entries, 1, 1))
     s.valids_ = Register(RegisterInterface(Bits(num_entries)), reset_value=0)
     s.mux_done_ = Mux(Bits(1), num_entries)
 
@@ -77,6 +77,7 @@ class ReorderBuffer(Model):
     def mux_in():
       for i in range(num_entries):
         s.mux_done_.mux_in_[i].v = s.valids_.read_data[i]
+
     s.connect(s.mux_done_.mux_select, s.check_done_idx)
     s.connect(s.check_done_is_rdy, s.mux_done_.mux_out)
 
@@ -91,7 +92,6 @@ class ReorderBuffer(Model):
     s.connect(s.free_value, s.entries_.read_data[0])
     s.connect(s.free_encoder_.encode_number, s.free_idx)
 
-
     @s.combinational
     def set_valids():
       s.valids_.write_data.v = s.valids_.read_data
@@ -101,7 +101,6 @@ class ReorderBuffer(Model):
       # Set anything being added
       if s.add_call:
         s.valids_.write_data.v |= s.free_encoder_.encode_onehot
-
 
   def line_trace(s):
     return str(s.valids_.read_data)

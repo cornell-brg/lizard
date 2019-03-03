@@ -61,7 +61,6 @@ class CSR(Model):
     s.pc_ = Wire(64)
     s.connect(s.pc_, s.dispatch_get_msg.hdr_pc)
 
-
     @s.combinational
     def handle_advance():
       s.advance.v = (not s.execute_val.read_data or
