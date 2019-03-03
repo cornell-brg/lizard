@@ -3,24 +3,25 @@ from model.hardware_model import HardwareModel
 
 class FLModel(HardwareModel):
 
-  def __init__(s, interface, validate_args=True):
-    super(FLModel, s).__init__(interface, validate_args=validate_args)
+  def __init__(s, interface):
+    super(FLModel, s).__init__(interface)
 
-  def ready_method(s, func):
+  def ready_method_explicit(s, name, func_like, validate_args):
+    # We can't really validate the args of func, which is what validate_args means
 
     def ignore_call_index_wrapper(call_index):
-      return func()
+      return func_like()
 
-    ignore_call_index_wrapper.__name__ = func.__name__
-    super(FLModel, s).ready_method(ignore_call_index_wrapper)
+    super(FLModel, s).ready_method_explicit(name, ignore_call_index_wrapper,
+                                            True)
 
   def _cycle(s):
     pass
 
-  def _pre_call(s, func, method, call_index):
+  def _pre_call(s, method, call_index):
     pass
 
-  def _post_call(s, func, method, call_index):
+  def _post_call(s, method, call_index):
     pass
 
   def _pre_cycle(s):

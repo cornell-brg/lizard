@@ -11,7 +11,7 @@ class RTL2CLWrapper(CLModel):
 
   @HardwareModel.validate
   def __init__(s, rtl_model, translate=False):
-    super(RTL2CLWrapper, s).__init__(rtl_model.interface, False)
+    super(RTL2CLWrapper, s).__init__(rtl_model.interface)
     s.model = rtl_model
     if translate:
       s.model = TranslationTool(s.model, lint=True)
@@ -20,9 +20,9 @@ class RTL2CLWrapper(CLModel):
 
     for method_name in s.interface.methods.keys():
       wrapper, ready = s._gen_wrapper_function(method_name)
-      s.model_method(wrapper)
+      s.model_method_explicit(method_name, wrapper, False)
       if ready is not None:
-        s.ready_method(ready)
+        s.ready_method_explicit(method_name, ready, False)
 
   def _gen_wrapper_function(s, method_name):
     method = s.interface[method_name]
@@ -65,16 +65,12 @@ class RTL2CLWrapper(CLModel):
 
       return Result(**result_dict)
 
-    wrapper.__name__ = method_name
-
     # check the rdy signal, if present
     if method.rdy:
 
       def ready_wrapper(call_index):
         s.sim.eval_combinational()
         return s.resolve_port(method, 'rdy', instance=call_index) == 1
-
-      ready_wrapper.__name__ = method_name
     else:
       ready_wrapper = None
 

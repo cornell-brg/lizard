@@ -4,7 +4,7 @@ from model.clmodel import CLModel
 class FL2CLWrapper(CLModel):
 
   def __init__(s, flmodel):
-    super(FL2CLWrapper, s).__init__(flmodel.interface, validate_args=False)
+    super(FL2CLWrapper, s).__init__(flmodel.interface)
     s.state(fl=flmodel)
 
     ready_states = {}
@@ -13,9 +13,9 @@ class FL2CLWrapper(CLModel):
         ready_states[method_name] = 0
 
       wrapper, ready = s._gen_wrapper_function(method_name)
-      s.model_method(wrapper)
+      s.model_method_explicit(method_name, wrapper, False)
       if ready is not None:
-        s.ready_method(ready)
+        s.ready_method_explicit(method_name, ready, False)
 
     s.state(ready_states=ready_states)
 
@@ -24,8 +24,6 @@ class FL2CLWrapper(CLModel):
 
     def wrapper(*args, **kwargs):
       return getattr(s.fl, method_name)(*args, **kwargs)
-
-    wrapper.__name__ = method_name
 
     if method.rdy:
 
@@ -38,8 +36,6 @@ class FL2CLWrapper(CLModel):
         else:
           result = s.fl.ready_methods[method.name](call_index)
         return result
-
-      ready.__name__ = method_name
     else:
       ready = None
 
@@ -51,8 +47,8 @@ class FL2CLWrapper(CLModel):
     for method_name in s.ready_states.keys():
       s.ready_states[method_name] = 0
 
-  def _pre_call(s, func, method, call_index):
-    super(FL2CLWrapper, s)._pre_call(func, method, call_index)
+  def _pre_call(s, method, call_index):
+    super(FL2CLWrapper, s)._pre_call(method, call_index)
 
     if method.rdy:
       # advance the ready boundary to the next method if the method is ready

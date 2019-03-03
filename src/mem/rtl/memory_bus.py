@@ -206,21 +206,22 @@ class MemoryBusInterface(Interface):
 
     s.MemMsg = MemMsg(opaque_nbits, test_nbits, addr_nbits, data_nbytes)
 
-    super(MemoryBusInterface, s).__init__([
-        MethodSpec(
-            'recv',
-            args=None,
-            rets={'msg': s.MemMsg.resp},
-            call=True,
-            rdy=True,
-            count=num_ports,
-        ),
-        MethodSpec(
-            'send',
-            args={'msg': s.MemMsg.req},
-            rets=None,
-            call=True,
-            rdy=True,
-            count=num_ports,
-        ),
-    ])
+    methods = []
+    for i in range(num_ports):
+      methods.extend([
+          MethodSpec(
+              'recv_{}'.format(i),
+              args=None,
+              rets={'msg': s.MemMsg.resp},
+              call=True,
+              rdy=True,
+          ),
+          MethodSpec(
+              'send_{}'.format(i),
+              args={'msg': s.MemMsg.req},
+              rets=None,
+              call=True,
+              rdy=True,
+          ),
+      ])
+    super(MemoryBusInterface, s).__init__(methods)

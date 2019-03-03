@@ -5,14 +5,14 @@ from util.rtl.types import Array
 
 class CLModel(HardwareModel):
 
-  def __init__(s, interface, validate_args=True):
-    super(CLModel, s).__init__(interface, validate_args=validate_args)
+  def __init__(s, interface):
+    super(CLModel, s).__init__(interface)
 
     s.methods = s.interface.methods.values()
     s.index_map = {s.methods[i].name: i for i in range(len(s.methods))}
 
-  def _pre_call(s, func, method, call_index):
-    method_index = s.index_map[func.__name__]
+  def _pre_call(s, method, call_index):
+    method_index = s.index_map[method.name]
 
     # if all done
     if s.sequence_method == len(s.methods):
@@ -38,7 +38,7 @@ class CLModel(HardwareModel):
       s.sequence_call = 0
       s.sequence_method += 1
 
-  def _post_call(s, func, method, call_index):
+  def _post_call(s, method, call_index):
     s._advance()
 
   def _pre_cycle(s):

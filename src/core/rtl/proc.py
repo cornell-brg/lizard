@@ -18,7 +18,6 @@ from core.rtl.backend.commit import Commit, CommitInterface
 from core.rtl.proc_debug_bus import ProcDebugBusInterface
 from core.rtl.messages import ExecuteMsg
 from mem.rtl.memory_bus import MemoryBusInterface
-from mem.rtl.basic_memory_controller import BasicMemoryController, BasicMemoryControllerInterface
 from mem.rtl.memory_bus import MemMsg, MemMsgType
 from config.general import *
 
@@ -52,20 +51,18 @@ class Proc(Model):
     UseInterface(s, interface)
     s.require(
         MethodSpec(
-            'mb_recv',
+            'mb_recv_0',
             args=None,
             rets={'msg': MemMsg.resp},
             call=True,
             rdy=True,
-            count=2,
         ),
         MethodSpec(
-            'mb_send',
+            'mb_send_0',
             args={'msg': MemMsg.req},
             rets=None,
             call=True,
             rdy=True,
-            count=2,
         ),
         MethodSpec(
             'db_recv',
@@ -98,18 +95,11 @@ class Proc(Model):
     s.connect_m(s.db_recv, s.csr.debug_recv)
     s.connect_m(s.db_send, s.csr.debug_send)
 
-    # Mem
-    s.mem_controller_interface = BasicMemoryControllerInterface(
-        MemMsg, ['fetch'])
-    s.mem_controller = BasicMemoryController(s.mem_controller_interface)
-    s.connect_m(s.mb_recv[0], s.mem_controller.bus_recv[0])
-    s.connect_m(s.mb_send[0], s.mem_controller.bus_send[0])
-
     # Fetch
     s.fetch_interface = FetchInterface(XLEN, ILEN)
     s.fetch = Fetch(s.fetch_interface, MemMsg)
-    s.connect_m(s.mem_controller.fetch_recv, s.fetch.mem_recv)
-    s.connect_m(s.mem_controller.fetch_send, s.fetch.mem_send)
+    s.connect_m(s.mb_recv_0, s.fetch.mem_recv)
+    s.connect_m(s.mb_send_0, s.fetch.mem_send)
     s.connect_m(s.cflow.check_redirect, s.fetch.check_redirect)
 
     # Decode

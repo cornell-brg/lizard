@@ -25,8 +25,8 @@ class ProcTestHarness(Model):
 
     TestHarness(s, Proc(ProcInterface(), s.mbi.MemMsg), translate, vcd_file)
 
-    s.connect_m(s.mb.recv, s.dut.mb_recv)
-    s.connect_m(s.mb.send, s.dut.mb_send)
+    s.connect_m(s.mb.recv_0, s.dut.mb_recv_0)
+    s.connect_m(s.mb.send_0, s.dut.mb_send_0)
     s.connect_m(s.db.recv, s.dut.db_recv)
     s.connect_m(s.db.send, s.dut.db_send)
 
@@ -65,7 +65,8 @@ def asm_test(asm, translate, vcd_file, max_cycles=2000):
     print("{:>3}: {}".format(i, dut.line_trace()))
     while len(pth.tdb.received_messages) > curr:
       if pth.tdb.received_messages[curr] != proc2mngr_data[curr]:
-        msg = "Expected: {}, got {}".format(int(proc2mngr_data[curr]), int(pth.tdb.received_messages[curr]))
+        msg = "Expected: {}, got {}".format(
+            int(proc2mngr_data[curr]), int(pth.tdb.received_messages[curr]))
         # Cycle once so line trace looks good
         dut.cycle()
         assert pth.tdb.received_messages[curr] == proc2mngr_data[curr], msg

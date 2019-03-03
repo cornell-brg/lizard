@@ -1,5 +1,5 @@
 import abc
-from inspect import getargspec, ismethod
+from inspect import getargspec
 from functools import wraps
 from util.pretty_print import list_string_value
 from bitutil import copy_bits
@@ -10,7 +10,7 @@ class HardwareModel(object):
 
   __metaclass__ = abc.ABCMeta
 
-  def __init__(s, interface, validate_args=True):
+  def __init__(s, interface):
     s.interface = interface
     s.model_methods = {}
     s.ready_methods = {}
@@ -18,7 +18,6 @@ class HardwareModel(object):
     s.saved_state = {}
     s.state_reset_values = {}
     s.anonymous_state_counter = 0
-    s.validate_args = validate_args
 
   def reset(s):
     s._pre_cycle_wrapper()
@@ -35,11 +34,11 @@ class HardwareModel(object):
     pass
 
   @abc.abstractmethod
-  def _pre_call(s, func, method, call_index):
+  def _pre_call(s, method, call_index):
     pass
 
   @abc.abstractmethod
-  def _post_call(s, func, method, call_index):
+  def _post_call(s, method, call_index):
     pass
 
   def _pre_cycle_wrapper(s):
@@ -123,71 +122,65 @@ class HardwareModel(object):
 
     return validate_init
 
-  def _check_method(s, func, method_dict):
-    if func.__name__ in method_dict:
-      raise ValueError('Duplicate function: {}'.format(func.__name__))
-    if func.__name__ not in s.interface.methods:
-      raise ValueError('Method not in interface: {}'.format(func.__name__))
-    if ismethod(func):
-      raise ValueError('Expected function, got method: {}'.format(
-          func.__name__))
+  def _check_method(s, name, method_dict):
+    if name in method_dict:
+      raise ValueError('Duplicate function: {}'.format(name))
+    if name not in s.interface.methods:
+      raise ValueError('Method not in interface: {}'.format(name))
 
   def ready_method(s, func):
-    s._check_method(func, s.ready_methods)
-    method = s.interface.methods[func.__name__]
+    s.ready_method_explicit(func.__name__, func, True)
 
-    if not method.rdy:
-      raise ValueError('Method has no ready signal: {}'.format(func.__name__))
-    arg_spec = getargspec(func)
-    if len(
-        arg_spec.args
-    ) != 1 or arg_spec.varargs is not None or arg_spec.keywords is not None:
-      raise ValueError(
-          'Ready function must take exactly 1 argument (call_index)')
-
-    s.ready_methods[func.__name__] = func
+  def ready_method_explicit(s, name, func_like, validate_args):
+    s._check_method(name, s.ready_methods)
+    if validate_args:
+      arg_spec = getargspec(func_like)
+      if len(
+          arg_spec.args
+      ) != 1 or arg_spec.varargs is not None or arg_spec.keywords is not None:
+        raise ValueError(
+            'Ready function must take exactly 1 argument (call_index)')
+    s.ready_methods[name] = func_like
 
   def model_method(s, func):
-    s._check_method(func, s.model_methods)
+    s.model_method_explicit(func.__name__, func, True)
 
-    method = s.interface.methods[func.__name__]
-    if s.validate_args:
-      arg_spec = getargspec(func)
+  def model_method_explicit(s, name, func_like, validate_args):
+    s._check_method(name, s.model_methods)
+
+    method = s.interface.methods[name]
+    if validate_args:
+      arg_spec = getargspec(func_like)
       for arg in arg_spec.args:
         if not isinstance(arg, str):
-          raise ValueError('Illegal argument nest in function: {}'.format(
-              func.__name__))
+          raise ValueError('Illegal argument nest in function: {}'.format(name))
         if arg not in method.args:
           raise ValueError('Argument not found: {} in function: {}'.format(
-              arg, func.__name__))
+              arg, name))
       if len(arg_spec.args) != len(method.args):
-        raise ValueError('Incorrect number of arguments in function: {}'.format(
-            func.__name__))
+        raise ValueError(
+            'Incorrect number of arguments in function: {}'.format(name))
       if arg_spec.varargs is not None:
-        raise ValueError('Function must have no *args: {}'.format(
-            func.__name__))
+        raise ValueError('Function must have no *args: {}'.format(name))
       if arg_spec.keywords is not None:
-        raise ValueError('Function must have no *kwargs: {}'.format(
-            func.__name__))
+        raise ValueError('Function must have no *kwargs: {}'.format(name))
 
-    s.model_methods[func.__name__] = func
+    s.model_methods[name] = func_like
 
-    @wraps(func)
     def wrapper(_call_index, *args, **kwargs):
-      method = s.interface.methods[func.__name__]
+      method = s.interface.methods[name]
 
-      s._pre_call(func, method, _call_index)
+      s._pre_call(method, _call_index)
       # check to see if the method is ready
-      if func.__name__ in s.ready_methods and not s.ready_methods[
-          func.__name__](_call_index):
+      if name in s.ready_methods and not s.ready_methods[name](_call_index):
         result = not_ready_instance
       else:
         # call this method
-        result = func(*args, **kwargs)
+        result = func_like(*args, **kwargs)
         if isinstance(result, NotReady):
           raise ValueError(
               'Method may not return not ready -- use ready_method decorator')
-      s._post_call(func, method, _call_index)
+      s._post_call(method, _call_index)
 
       # interpret the result
       if not isinstance(result, NotReady):
@@ -202,14 +195,14 @@ class HardwareModel(object):
         if len(method.rets) != returned_size:
           raise ValueError(
               'CL function {}: incorrect return size: expected: {} actual: {}'
-              .format(func.__name__, len(method.rets), returned_size))
+              .format(name, len(method.rets), returned_size))
 
         if isinstance(
             result,
             Result) and set(method.rets.keys()) != set(result._data.keys()):
           raise ValueError(
               'CL function {}: incorrect return names: expected: {} actual: {}'
-              .format(func.__name__, list_string_value(method.rets.keys()),
+              .format(name, list_string_value(method.rets.keys()),
                       list_string_value(result._data.keys())))
 
         # Normalize a singleton return into a result
@@ -224,11 +217,10 @@ class HardwareModel(object):
       # Freeze the result so if the caller preserves it across multiple cycles it doesn't change
       return s._freeze_result(result)
 
-    if hasattr(s, func.__name__):
+    if hasattr(s, name):
       raise ValueError('Internal wrapper error')
 
-    setattr(s, func.__name__,
-            MethodDispatcher(func.__name__, wrapper, s.ready_methods))
+    setattr(s, name, MethodDispatcher(name, wrapper, s.ready_methods))
 
   def cycle(s):
     s._post_cycle_wrapper()
