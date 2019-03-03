@@ -10,6 +10,7 @@ from msg.codes import RVInstMask, Opcode, ExceptionCode
 from util.rtl.issue_queue import CompactingIssueQueue, IssueQueueInterface, AbstractIssueType
 from util.rtl.coders import PriorityDecoder
 
+
 class IssueInterface(Interface):
 
   def __init__(s):

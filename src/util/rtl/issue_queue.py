@@ -271,6 +271,7 @@ class CompactingIssueQueue(Model):
 
     # if ith slot shitting, ith slot input called, and i+1 output called
     for i in range(num_slots - 1):
+
       @s.combinational
       def slot_input(i=i):
         s.slots_[i].input_call.v = s.do_shift_[i]

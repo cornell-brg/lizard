@@ -105,6 +105,7 @@ class ControlFlowManager(Model):
 
     # Connect get head method
     s.connect(s.get_head_seq, s.head.read_data)
+
     @s.combinational
     def set_get_head_rdy():
       s.get_head_rdy.v = not s.empty
