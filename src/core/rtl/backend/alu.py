@@ -47,6 +47,7 @@ class ALU(Model):
     s.alu_ = alu.ALU(alu.ALUInterface(data_len))
     s.accepted_ = Wire(1)
     s.msg_ = Wire(DispatchMsg())
+    s.msg_imm_ = Wire(imm_len)
 
     # PYMTL_BROKEN, cant do msg.src1[:32]
     s.src1_ = Wire(data_len)
@@ -87,6 +88,7 @@ class ALU(Model):
     s.rs1_ = Wire(data_len)
     s.rs2_ = Wire(data_len)
     s.res_ = Wire(data_len)
+    s.res_trunc_ = Wire(data_len)
     s.connect_wire(s.rs1_, s.msg_.rs1)
     s.connect_wire(s.rs2_, s.msg_.rs2)
     s.connect(s.res_, s.alu_.exec_res)
@@ -106,17 +108,20 @@ class ALU(Model):
         s.src2_.v = zext(s.src2_32_,
                          data_len) if s.msg_.alu_msg_unsigned else sext(
                              s.src2_32_, data_len)
-        s.res_.v = zext(s.res_32_,
+        s.res_trunc_.v = zext(s.res_32_,
                         data_len) if s.msg_.alu_msg_unsigned else sext(
                             s.res_32_, data_len)
       else:
         s.src1_.v = s.rs1_
         s.src2_.v = s.rs2_
-        s.res_.v = s.res_
+        s.res_trunc_.v = s.res_
 
     @s.combinational
     def set_inputs():
-      s.imm_.v = sext(s.msg_.imm, data_len)
+      s.msg_imm_.v = s.msg_.imm
+      # PYMTL_BROKEN: sext(s.msg_.imm) does not create valid verilog
+      # Vivado errors: "range is not allowed in prefix"
+      s.imm_.v = sext(s.msg_imm_, data_len)
       # TODO handle LUI and AUIPC
       s.alu_.exec_src0.v = s.src1_
       s.alu_.exec_src1.v = s.src2_ if s.msg_.rs2_val else s.imm_
@@ -145,6 +150,6 @@ class ALU(Model):
     def set_value_reg_input():
       s.out_.write_data.v = 0
       s.out_.write_data.hdr.v = s.msg_.hdr
-      s.out_.write_data.result.v = s.res_
+      s.out_.write_data.result.v = s.res_trunc_
       s.out_.write_data.rd.v = s.msg_.rd
       s.out_.write_data.rd_val.v = s.msg_.rd_val

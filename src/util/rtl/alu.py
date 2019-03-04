@@ -59,7 +59,11 @@ class ALU(Model):
 
     # Since single cycle, always ready
     s.connect(s.exec_rdy, 1)
-    s.connect(s.exec_res, s.res_)
+    # PYMTL_BROKEN: s.connect(s.exec_res, s.res_) translates as a continous
+    # assign to a reg named s.res_
+    @s.combinational
+    def assign_res():
+      s.exec_res.v =  s.res_
 
     s.connect(s.s0_, s.exec_src0)
     s.connect(s.s1_, s.exec_src1)
