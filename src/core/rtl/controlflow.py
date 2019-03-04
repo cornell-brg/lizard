@@ -96,7 +96,7 @@ class ControlFlowManager(Model):
     s.connect(s.check_redirect_target, s.redirect_)
 
     # Connect up register method rets
-    s.connect(s.register_seq, s.head.read_data)
+    s.connect(s.register_seq, s.tail.read_data)
     s.connect(s.register_success, s.register_success_)
 
     # Connect up enable
