@@ -3,6 +3,7 @@ from bitutil import clog2, clog2nz
 from util.rtl.interface import Interface, UseInterface
 from util.rtl.method import MethodSpec
 from util.rtl.types import Array, canonicalize_type
+from util.rtl.async_ram import AsynchronousRAM, AsynchronousRAMInterface
 
 
 class RegisterFileInterface(Interface):

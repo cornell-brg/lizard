@@ -54,7 +54,7 @@ class AsynchronousRAMInterface(Interface):
 # Thanks Bruce Land, See 12-12
 class AsynchronousRAM(Model):
 
-  def __init__(s, interface):
+  def __init__(s, interface, reset_values=None):
     UseInterface(s, interface)
     nwords = s.interface.NumWords
     num_read_ports = len(s.read_data)
@@ -62,8 +62,8 @@ class AsynchronousRAM(Model):
     # The core ram
     s.regs = [Wire(s.interface.Data) for _ in range(nwords)]
 
+    # combinational read block
     if s.interface.Bypass:
-
       @s.combinational
       def handle_reads():
         for i in range(num_read_ports):
@@ -73,18 +73,44 @@ class AsynchronousRAM(Model):
             if s.write_call[j] and s.write_addr[j] == s.read_addr[i]:
               s.read_data[i].v = s.write_data[j]
     else:
-
       @s.combinational
       def handle_reads():
         for i in range(num_read_ports):
           s.read_data[i].v = s.regs[s.read_addr[i]]
 
-    # Sequential block
-    @s.tick_rtl
-    def handle_writes():
-      for i in range(num_write_ports):
-        if s.write_call[i]:
-          s.regs[s.write_addr[i]].n = s.write_data[i]
+    # Sequential write  block
+    if reset_values is None: # No reset value
+      @s.tick_rtl
+      def handle_writes():
+        for i in range(num_write_ports):
+          if s.write_call[i]:
+            s.regs[s.write_addr[i]].n = s.write_data[i]
+    elif isinstance(reset_values, list): # A list of reset values
+      assert len(reset_values) == nwords
+      # Need to lift constants into wire signals
+      s.reset_values = [Wire(s.interface.Data) for _ in range(nwords)]
+      for i in range(nwords):
+        s.connect(s.reset_values[i], int(reset_values[i]))
+      @s.tick_rtl
+      def handle_writes():
+        if s.reset:
+          for i in range(nwords):
+            s.regs[i].n = s.reset_values[i]
+        else:
+          for i in range(num_write_ports):
+            if s.write_call[i]:
+              s.regs[s.write_addr[i]].n = s.write_data[i]
+    else: # Constant reset value
+      @s.tick_rtl
+      def handle_writes():
+        if s.reset:
+          for i in range(nwords):
+            s.regs[i].n = reset_values
+        else:
+          for i in range(num_write_ports):
+            if s.write_call[i]:
+              s.regs[s.write_addr[i]].n = s.write_data[i]
+
 
   def line_trace(s):
     return ":".join(["{}".format(x) for x in s.regs])

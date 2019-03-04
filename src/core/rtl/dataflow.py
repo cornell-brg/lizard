@@ -8,6 +8,7 @@ from util.rtl.mux import Mux
 from util.rtl.packers import Packer
 from util.rtl.snapshotting_freelist import SnapshottingFreeList
 from util.rtl.registerfile import RegisterFile
+from util.rtl.async_ram import AsynchronousRAM, AsynchronousRAMInterface
 from core.rtl.renametable import RenameTableInterface, RenameTable
 
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
@@ -197,9 +198,6 @@ class DataFlowManager(Model):
                                  nsnapshots, True, initial_map)
     s.ZERO_TAG = s.rename_table.ZERO_TAG
 
-    # Build the physical register file initial state
-    preg_reset = [0 for _ in range(npregs)]
-    ready_reset = [1 for _ in range(npregs)]
     # Build the inverse (preg -> areg map) initial state
     inverse_reset = [s.interface.Areg for _ in range(npregs)]
 
@@ -222,35 +220,35 @@ class DataFlowManager(Model):
     # user does something dumb and tries to write to a bogus tag which
     # is currently free.
     # Writes are bypassed before reads, and the dump/set is not used
-    s.preg_file = RegisterFile(
+    s.preg_file = AsynchronousRAM(AsynchronousRAMInterface(
         Bits(dlen),
         npregs,
         num_src_ports,
         num_dst_ports * 2,
         True,
-        False,
-        reset_values=preg_reset,
+        ),
+        reset_values=0,
     )
     # The ready table is not bypassed; is_ready comes before all the the writes
     # (which are in get_dst and write)
-    s.ready_table = RegisterFile(
+    s.ready_table = AsynchronousRAM(AsynchronousRAMInterface(
         Bits(1),
         npregs,
         num_src_ports,
         num_dst_ports * 2,
         False,
-        False,
-        reset_values=ready_reset,
+        ),
+        reset_values=1,
     )
     # The preg -> areg map, written to during get_dst, and read from
     # during commit
-    s.inverse = RegisterFile(
+    s.inverse = AsynchronousRAM(AsynchronousRAMInterface(
         s.interface.Areg,
         npregs,
         num_dst_ports,
         num_dst_ports,
         True,
-        False,
+        ),
         reset_values=inverse_reset,
     )
 
