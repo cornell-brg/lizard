@@ -56,6 +56,7 @@ class Commit(Model):
 
     s.advance = Wire(1)
     s.rob_remove = Wire(1)
+    s.seq_num = Wire(s.SeqIdxNbits)
 
     s.rob = ReorderBuffer(ReorderBufferInterface(WritebackMsg(), rob_size))
 
@@ -65,14 +66,19 @@ class Commit(Model):
     # if writeback is ready, take the data and commit
     s.connect(s.advance, s.writeback_get_rdy)
     s.connect(s.writeback_get_call, s.advance)
+    s.connect(s.seq_num, s.writeback_get_msg.hdr_seq)
 
     # Add incoming message into ROB
     s.connect(s.rob.add_value, s.writeback_get_msg)
-    s.connect(s.rob.add_idx, s.writeback_get_msg.hdr_seq)
+    s.connect_wire(s.rob.add_idx, s.seq_num)
     s.connect(s.rob.add_call, s.advance)
 
-    # Connect up free
+    # Connect up ROB free
     s.connect(s.rob.free_idx, s.cflow_get_head_seq)
+    s.connect(s.rob.free_call, s.rob_remove)
+
+    # Connect up cflow commit
+    s.connect(s.cflow_commit_call, s.rob_remove)
 
     @s.combinational
     def set_rob_remove():
@@ -82,8 +88,7 @@ class Commit(Model):
     def handle_commit():
       s.dataflow_commit_call.v = 0
       s.dataflow_commit_tag.v = 0
-      s.rob.free_call.v = s.rob_remove
-      s.cflow_commit_call.v = s.rob_remove
+
       # The head is ready to commit
       if s.rob_remove:
         if s.rob.free_value.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID:

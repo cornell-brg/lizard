@@ -71,6 +71,8 @@ class ReorderBuffer(Model):
     s.add_encoder_ = OneHotEncoder(num_entries)
     s.free_encoder_ = OneHotEncoder(num_entries)
 
+    s.valids_update_ = Wire(num_entries)
+
     # Check done
     # Connect up the mux for check done method
     @s.combinational
@@ -92,15 +94,18 @@ class ReorderBuffer(Model):
     s.connect(s.free_value, s.entries_.read_data[0])
     s.connect(s.free_encoder_.encode_number, s.free_idx)
 
+    # Valid update
+    s.connect(s.valids_.write_data, s.valids_update_)
+
     @s.combinational
     def set_valids():
-      s.valids_.write_data.v = s.valids_.read_data
+      s.valids_update_.v = s.valids_.read_data
       # Clear anything being freed
       if s.free_call:
-        s.valids_.write_data.v &= ~s.add_encoder_.encode_onehot
+        s.valids_update_.v = s.valids_update_ & ~s.free_encoder_.encode_onehot
       # Set anything being added
       if s.add_call:
-        s.valids_.write_data.v |= s.free_encoder_.encode_onehot
+        s.valids_update_.v = s.valids_update_ | s.add_encoder_.encode_onehot
 
   def line_trace(s):
     return str(s.valids_.read_data)
