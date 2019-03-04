@@ -63,7 +63,7 @@ class ALU(Model):
     # assign to a reg named s.res_
     @s.combinational
     def assign_res():
-      s.exec_res.v =  s.res_
+      s.exec_res.v = s.res_
 
     s.connect(s.s0_, s.exec_src0)
     s.connect(s.s1_, s.exec_src1)
@@ -75,6 +75,7 @@ class ALU(Model):
     s.s0_up_ = Wire(1)
     s.s1_lower_ = Wire(XLEN_M1)
     s.s1_up_ = Wire(1)
+
     @s.combinational
     def set_cmp():
       # We flip the upper most bit if signed
@@ -84,7 +85,6 @@ class ALU(Model):
       s.s1_lower_.v = s.s1_[0:XLEN_M1]
       # Now we can concat and compare
       s.cmp_u_.v = concat(s.s0_up_, s.s0_lower_) < concat(s.s1_up_, s.s1_lower_)
-
 
     @s.combinational
     def set_shamt():

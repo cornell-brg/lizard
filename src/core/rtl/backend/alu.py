@@ -109,8 +109,8 @@ class ALU(Model):
                          data_len) if s.msg_.alu_msg_unsigned else sext(
                              s.src2_32_, data_len)
         s.res_trunc_.v = zext(s.res_32_,
-                        data_len) if s.msg_.alu_msg_unsigned else sext(
-                            s.res_32_, data_len)
+                              data_len) if s.msg_.alu_msg_unsigned else sext(
+                                  s.res_32_, data_len)
       else:
         s.src1_.v = s.rs1_
         s.src2_.v = s.rs2_
