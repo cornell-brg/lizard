@@ -53,7 +53,7 @@ class ALU(Model):
 
     # Internals
     s.shamt_ = Wire(CLOG2_XLEN)
-    # PYMTL_BROKEN: These are all work arrounds
+    # PYMTL_BROKEN: These are all work arrounds due to slicing
     s.cmp_u_ = Wire(1)
     s.sra_ = Wire(TWO_XLEN)
 
@@ -66,17 +66,29 @@ class ALU(Model):
     s.connect(s.func_, s.exec_func)
     s.connect(s.usign_, s.exec_unsigned)
 
-    # TODO: AARON BROKEN
-    # @s.combinational
+    # All workarorunds due to slicing in concat() issues:
+    s.s0_lower_ = Wire(XLEN_M1)
+    s.s0_up_ = Wire(1)
+    s.s1_lower_ = Wire(XLEN_M1)
+    s.s1_up_ = Wire(1)
+    @s.combinational
+    def set_cmp():
+      # We flip the upper most bit if signed
+      s.s0_up_.v = s.s0_[XLEN_M1] if s.usign_ else not s.s0_[XLEN_M1]
+      s.s1_up_.v = s.s1_[XLEN_M1] if s.usign_ else not s.s1_[XLEN_M1]
+      s.s0_lower_.v = s.s0_[0:XLEN_M1]
+      s.s1_lower_.v = s.s1_[0:XLEN_M1]
+      # Now we can concat and compare
+      s.cmp_u_.v = concat(s.s0_up_, s.s0_lower_) < concat(s.s1_up_, s.s1_lower_)
+
+
+    @s.combinational
     def set_shamt():
-      s.shamt_.v = s.s0_[:CLOG2_XLEN]
-      s.cmp_u_.v = s.s0_ < s.s1_ if s.usign_ else concat(
-          not s.s0_[xlen - 1], s.s0_[:XLEN_M1]) < concat(
-              not s.s1_[xlen - 1], s.s1_[0:XLEN_M1])
+      s.shamt_.v = s.s1_[0:CLOG2_XLEN]
       s.sra_.v = sext(s.s0_, TWO_XLEN) >> s.shamt_
 
     @s.combinational
-    def cycle():
+    def eval_comb():
       s.res_.v = 0
       if s.exec_call:
         if s.func_ == ALUFunc.ALU_ADD:
