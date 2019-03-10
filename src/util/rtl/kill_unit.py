@@ -12,13 +12,13 @@ class KillUnitInterface(object):
         MethodSpec(
             'update',
             args={
-              'branch_mask' : Bits(s.NumBits),
-              'kill_mask' : Bits(s.NumBits),
-              'clear_mask' : Bits(s.NumBits),
+                'branch_mask': Bits(s.NumBits),
+                'kill_mask': Bits(s.NumBits),
+                'clear_mask': Bits(s.NumBits),
             },
             rets={
-              'killed': Bits(1),
-              'out_mask' : Bits(s.NumBits)
+                'killed': Bits(1),
+                'out_mask': Bits(s.NumBits)
             },
             call=False,
             rdy=False,
