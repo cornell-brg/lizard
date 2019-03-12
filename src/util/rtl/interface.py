@@ -148,7 +148,6 @@ def _connect_ports(model, source_port, target_port):
 def _wrap(model, wrapped):
   model.require(*wrapped._requirements.values())
   for method in wrapped._requirements.values():
-    print('wrapping: {}'.format(method))
     model.connect_m(getattr(wrapped, method.name), getattr(model, method.name))
 
 
