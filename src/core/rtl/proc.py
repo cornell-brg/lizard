@@ -1,7 +1,6 @@
 from pymtl import *
 from util.rtl.interface import Interface, UseInterface
 from util.rtl.method import MethodSpec
-from util.rtl.pipeline_stage import StageInterface, PipelineStageInterface
 from core.rtl.controlflow import ControlFlowManager, ControlFlowManagerInterface
 from core.rtl.dataflow import DataFlowManager, DataFlowManagerInterface
 from core.rtl.csr_manager import CSRManager, CSRManagerInterface
@@ -13,11 +12,11 @@ from core.rtl.backend.dispatch import Dispatch, DispatchInterface
 from core.rtl.backend.pipe_selector import PipeSelector
 from core.rtl.backend.alu import ALU, ALUInterface
 from core.rtl.backend.csr import CSR, CSRInterface
-from core.rtl.pipeline_arbiter import PipelineArbiter
-from core.rtl.backend.writeback import Writeback
-from core.rtl.backend.commit import Commit
+from core.rtl.pipeline_arbiter import PipelineArbiterInterface, PipelineArbiter
+from core.rtl.backend.writeback import Writeback, WritebackInterface
+from core.rtl.backend.commit import Commit, CommitInterface
 from core.rtl.proc_debug_bus import ProcDebugBusInterface
-from core.rtl.messages import *
+from core.rtl.messages import ExecuteMsg
 from mem.rtl.memory_bus import MemoryBusInterface
 from mem.rtl.memory_bus import MemMsg, MemMsgType
 from config.general import *
@@ -154,26 +153,21 @@ class Proc(Model):
     s.connect_m(s.csr_pipe.dispatch_get, s.pipe_selector.csr_get)
 
     # Writeback Arbiter
-    s.writeback_arbiter_interface = PipelineStageInterface(ExecuteMsg())
-    s.writeback_arbiter = PipelineArbiter(s.writeback_arbiter_interface,
-                                          ['alu', 'csr'])
-    s.connect_m(s.writeback_arbiter.alu_peek, s.alu.peek)
-    s.connect_m(s.writeback_arbiter.alu_take, s.alu.take)
-    s.connect_m(s.writeback_arbiter.csr_peek, s.csr_pipe.peek)
-    s.connect_m(s.writeback_arbiter.csr_take, s.csr_pipe.take)
+    s.writeback_arbiter_interface = PipelineArbiterInterface(ExecuteMsg())
+    s.writeback_arbiter = PipelineArbiter(s.writeback_arbiter_interface, 2)
+    s.connect_m(s.writeback_arbiter.in_get[0], s.alu.get)
+    s.connect_m(s.writeback_arbiter.in_get[1], s.csr_pipe.get)
 
     # Writeback
-    s.writeback_interface = StageInterface(ExecuteMsg(), WritebackMsg())
+    s.writeback_interface = WritebackInterface()
     s.writeback = Writeback(s.writeback_interface)
-    s.connect_m(s.writeback_arbiter.peek, s.writeback.in_peek)
-    s.connect_m(s.writeback_arbiter.take, s.writeback.in_take)
+    s.connect_m(s.writeback_arbiter.get, s.writeback.execute_get)
     s.connect_m(s.writeback.dataflow_write, s.dflow.write[0])
 
     # Commit
-    s.commit_interface = StageInterface(WritebackMsg(), None)
+    s.commit_interface = CommitInterface()
     s.commit = Commit(s.commit_interface, ROB_SIZE)
-    s.connect_m(s.writeback.peek, s.commit.in_peek)
-    s.connect_m(s.writeback.take, s.commit.in_take)
+    s.connect_m(s.writeback.get, s.commit.writeback_get)
     s.connect_m(s.commit.dataflow_commit, s.dflow.commit[0])
     s.connect_m(s.cflow.commit, s.commit.cflow_commit)
     s.connect_m(s.cflow.get_head, s.commit.cflow_get_head)
