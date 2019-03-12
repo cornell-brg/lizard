@@ -3,6 +3,7 @@ from util.rtl.interface import UseInterface
 from util.rtl.pipeline_stage import StageInterface, DropControllerInterface, DropControllerInterface, PipelineStageInterface, gen_stage
 from util.rtl.register import Register, RegisterInterface
 from model.wrapper import wrap_to_cl
+from model.translate import translate
 from model.hardware_model import NotReady, Result
 
 
@@ -39,6 +40,7 @@ class NullDropController(Model):
     UseInterface(s, DropControllerInterface(Bits(8)))
 
     s.connect(s.check_keep, 1)
+    s.connect(s.check_out, s.check_in_)
 
 
 CounterStage = gen_stage(Counter, NullDropController)
@@ -62,7 +64,7 @@ class PipelinedCounter(Model):
 def test_basic():
   rtl_dut = PipelinedCounter()
   rtl_dut.vcd_file = 'bob.vcd'
-  dut = wrap_to_cl(rtl_dut)
+  dut = wrap_to_cl(translate(rtl_dut))
 
   dut.reset()
   assert isinstance(dut.peek(), NotReady)
