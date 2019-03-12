@@ -18,6 +18,7 @@ class Commit(Model):
   def __init__(s, interface, rob_size):
     UseInterface(s, interface)
     s.SeqIdxNbits = WritebackMsg().hdr_seq.nbits
+    s.SpecIdxNbits = WritebackMsg().hdr_spec.nbits
     s.require(
         MethodSpec(
             'writeback_get',
@@ -47,7 +48,10 @@ class Commit(Model):
         # Call this to commit the head
         MethodSpec(
             'cflow_commit',
-            args={},
+            args={
+              'speculative' : Bits(1),
+              'spec_idx' : Bits(s.SpecIdxNbits),
+            },
             rets={},
             call=True,
             rdy=False,
@@ -79,6 +83,8 @@ class Commit(Model):
 
     # Connect up cflow commit
     s.connect(s.cflow_commit_call, s.rob_remove)
+    s.connect(s.cflow_commit_speculative, s.rob.free_value.hdr_spec_val)
+    s.connect(s.cflow_commit_spec_idx, s.rob.free_value.hdr_spec)
 
     @s.combinational
     def set_rob_remove():

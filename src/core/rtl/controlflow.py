@@ -76,7 +76,10 @@ class ControlFlowManagerInterface(Interface):
             ),
             MethodSpec(
                 'commit',
-                args={},
+                args={
+                  'speculative' : Bits(1),
+                  'spec_idx' : Bits(speculative_idx_nbits),
+                },
                 rets={},
                 call=True,
                 rdy=False,
@@ -109,6 +112,31 @@ class ControlFlowManager(Model):
             call=True,
             rdy=True,
           ),
+          MethodSpec(
+              'dflow_restore',
+              args={
+                  'source_id': specidx_nbits,
+              },
+              rets=None,
+              call=True,
+              rdy=False,
+          ),
+          MethodSpec(
+              'dflow_free_snapshot',
+              args={
+                  'id_': specidx_nbits,
+              },
+              rets=None,
+              call=True,
+              rdy=False,
+          ),
+          MethodSpec(
+              'dflow_rollback',
+              args=None,
+              rets=None,
+              call=True,
+              rdy=False,
+          ),
       )
 
     # The speculative predicted PC table
@@ -122,8 +150,8 @@ class ControlFlowManager(Model):
     s.redirect_target_ = Wire(xlen)
 
     # flags
-    s.empty = Wire(1)
-    s.full = Wire(1)
+    s.empty_ = Wire(1)
+    s.full_ = Wire(1)
     s.register_success_ = Wire(1)
     s.spec_register_success_ = Wire(1)
 
@@ -145,6 +173,12 @@ class ControlFlowManager(Model):
     s.connect(s.redirect_mask.encode_number, s.redirect_spec_idx)
     # Things that need to be called on a successful speculative register
     s.connect(s.dflow_snapshot_call, s.spec_register_success_)
+    # Connect up the dflow restore signals
+    s.connect(s.dflow_restore_source_id, s.redirect_spec_idx)
+    s.connect(s.dflow_restore_call, s.redirect_)
+    # Connect up free snapshot val
+    s.connect(s.dflow_free_snapshot_id_, s.commit_spec_idx)
+
     # Save the speculative PC
     s.connect(s.pc_pred.write_call[0], s.spec_register_success_)
     s.connect(s.pc_pred.write_addr[0], s.dflow_snapshot_id_)
@@ -177,7 +211,7 @@ class ControlFlowManager(Model):
     # Connect get head method
     s.connect(s.get_head_seq, s.head.read_data)
 
-    # This prioritizes reset redirection over a reidrect call
+    # This prioritizes reset redirection, then a reidrect call
     @s.combinational
     def prioritry_redirect():
       s.check_redirect_redirect.v = s.reset_redirect_valid_ or s.redirect_
@@ -197,7 +231,6 @@ class ControlFlowManager(Model):
         if s.redirect_:
           s.kill_mask_.v = s.redirect_mask.encode_onehot
           s.redirect_target_.v = s.redirect_target
-          # TODO restore rename table and free in dataflow
         else:
           s.clear_mask_.v = s.redirect_mask.encode_onehot
 
@@ -217,20 +250,31 @@ class ControlFlowManager(Model):
       s.register_success_.v = 0
       s.spec_register_success_.v = 0
       if s.register_call:
-        s.register_success_.v = not s.full and (not s.register_speculative or s.dflow_snapshot_rdy)
+        s.register_success_.v = not s.full_ and (not s.register_speculative or s.dflow_snapshot_rdy)
         s.spec_register_success_.v = s.register_success_.v and s.register_speculative
+
+
+    @s.combinational
+    def handle_commit():
+      s.dflow_rollback_call.v = 0
+      s.dflow_free_snapshot_call.v = 0
+      # If we are committing there are a couple cases
+      if s.commit_call:
+        # If it was speculative we need to free the snapshot
+        s.dflow_free_snapshot_call.v = s.commit_speculative
+        # TODO exception handling
 
 
 
     # All the following comb blocks are for ROB stuff:
     @s.combinational
     def set_get_head_rdy():
-      s.get_head_rdy.v = not s.empty
+      s.get_head_rdy.v = not s.empty_
 
     @s.combinational
     def set_flags():
-      s.full.v = s.num.read_data == max_entries
-      s.empty.v = s.num.read_data == 0
+      s.full_.v = s.num.read_data == max_entries
+      s.empty_.v = s.num.read_data == 0
 
     @s.combinational
     def update_tail():

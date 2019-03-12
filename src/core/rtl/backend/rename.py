@@ -127,6 +127,7 @@ class Rename(Model):
       s.out_.hdr_frontend_hdr.v = s.decoded_.hdr
       s.out_.hdr_seq.v = s.register_seq
       s.out_.hdr_branch_mask.v = s.register_branch_mask
+      s.out_.hdr_spec_val.v = s.decoded_.speculative
       s.out_.hdr_spec.v = s.register_spec_idx
       s.out_.hdr_branch_mask.v = 0  # TODO set this properly with cflow
       # We need to propogate exception info

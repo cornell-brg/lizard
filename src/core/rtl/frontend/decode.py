@@ -108,6 +108,7 @@ class Decode(Model):
             s.decode_msg.write_data.imm.v = s.imm_decoder.decode_imm
             s.decode_msg.write_data.op_class.v = s.decoder.decode_op_class
             s.decode_msg.write_data.pipe_msg.v = s.decoder.decode_result
+            s.decode_msg.write_data.speculative.v = 0
           else:
             s.decode_msg.write_data.hdr_status.v = PipelineMsgStatus.PIPELINE_MSG_STATUS_EXCEPTION_RAISED
             s.decode_msg.write_data.exception_info_mcause.v = ExceptionCode.ILLEGAL_INSTRUCTION
