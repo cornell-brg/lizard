@@ -11,13 +11,20 @@ class CSRInterface(Interface):
   def __init__(s):
     super(CSRInterface, s).__init__([
         MethodSpec(
-            'get',
-            args={},
+            'peek',
+            args=None,
             rets={
                 'msg': ExecuteMsg(),
             },
-            call=True,
+            call=False,
             rdy=True,
+        ),
+        MethodSpec(
+            'take',
+            args=None,
+            rets=None,
+            call=True,
+            rdy=False,
         ),
     ])
 
@@ -64,10 +71,10 @@ class CSR(Model):
     @s.combinational
     def handle_advance():
       s.advance.v = (not s.execute_val.read_data or
-                     s.get_call) and s.dispatch_get_rdy
+                     s.take_call) and s.dispatch_get_rdy
 
-    s.connect(s.get_rdy, s.execute_val.read_data)
-    s.connect(s.get_msg, s.execute_msg.read_data)
+    s.connect(s.peek_rdy, s.execute_val.read_data)
+    s.connect(s.peek_msg, s.execute_msg.read_data)
 
     s.connect(s.dispatch_get_call, s.advance)
     s.connect(s.execute_msg.write_call, s.advance)
@@ -101,7 +108,7 @@ class CSR(Model):
         else:
           s.execute_msg.write_data.exception_info.v = s.dispatch_get_msg.exception_info
       else:
-        s.execute_val.write_call.v = s.get_call
+        s.execute_val.write_call.v = s.take_call
 
   def line_trace(s):
     return str(s.execute_msg.read_data)

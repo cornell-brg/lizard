@@ -14,13 +14,20 @@ class ALUInterface(Interface):
     s.DataLen = data_len
     super(ALUInterface, s).__init__([
         MethodSpec(
-            'get',
+            'peek',
             args=None,
             rets={
                 'msg': ExecuteMsg(),
             },
-            call=True,
+            call=False,
             rdy=True,
+        ),
+        MethodSpec(
+            'take',
+            args=None,
+            rets=None,
+            call=True,
+            rdy=False,
         ),
     ])
 
@@ -71,17 +78,17 @@ class ALU(Model):
     s.connect(s.alu_.exec_call, s.accepted_)
 
     # Connect get call
-    s.connect(s.get_msg, s.out_.read_data)
-    s.connect(s.get_rdy, s.out_val_.read_data)
+    s.connect(s.peek_msg, s.out_.read_data)
+    s.connect(s.peek_rdy, s.out_val_.read_data)
 
     @s.combinational
     def set_valid():
       s.out_val_.write_data.v = s.accepted_ or (s.out_val_.read_data and
-                                                not s.get_call)
+                                                not s.take_call)
 
     @s.combinational
     def set_accepted():
-      s.accepted_.v = (s.get_call or not s.out_val_.read_data
+      s.accepted_.v = (s.take_call or not s.out_val_.read_data
                       ) and s.alu_.exec_rdy and s.dispatch_get_rdy
 
     # PYMTL_BROKEN
