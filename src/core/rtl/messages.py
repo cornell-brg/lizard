@@ -69,7 +69,7 @@ def BackendHeader():
   return [
       Inline('frontend_hdr', FrontendHeader()),
       Field('seq', INST_IDX_NBITS),
-      Field('spec', SPEC_IDX_NBITS),
+      ValidValuePair('spec', SPEC_IDX_NBITS),
       Field('branch_mask', SPEC_MASK_NBITS),
   ]
 

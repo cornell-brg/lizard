@@ -80,14 +80,18 @@ class Proc(Model):
         ),
     )
 
-    # Control flow
-    s.cflow_interface = ControlFlowManagerInterface(XLEN, INST_IDX_NBITS, SPEC_IDX_NBITS, SPEC_MASK_NBITS)
-    s.cflow = ControlFlowManager(s.cflow_interface, RESET_VECTOR)
-
     # Dataflow
     s.dflow_interface = DataFlowManagerInterface(XLEN, AREG_COUNT, PREG_COUNT,
                                                  MAX_SPEC_DEPTH, 2, 1)
     s.dflow = DataFlowManager(s.dflow_interface)
+
+    # Control flow
+    s.cflow_interface = ControlFlowManagerInterface(XLEN, INST_IDX_NBITS, SPEC_IDX_NBITS, SPEC_MASK_NBITS)
+    s.cflow = ControlFlowManager(s.cflow_interface, RESET_VECTOR)
+    s.connect_m(s.cflow.dflow_snapshot, s.dflow.snapshot)
+    s.connect_m(s.cflow.dflow_restore, s.dflow.restore)
+    s.connect_m(s.cflow.dflow_free_snapshot, s.dflow.free_snapshot)
+    s.connect_m(s.cflow.dflow_rollback, s.dflow.rollback)
 
     # CSR
     s.csr_interface = CSRManagerInterface()
