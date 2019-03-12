@@ -4,6 +4,7 @@ from util.rtl.method import MethodSpec
 from bitutil import clog2, clog2nz
 from util.rtl.register import Register, RegisterInterface
 
+
 class KillUnitInterface(object):
 
   def __init__(s, bmask_nbits):
@@ -13,7 +14,7 @@ class KillUnitInterface(object):
             'update',
             args={
                 'branch_mask': Bits(s.NumBits),
-                'force_kill' : Bits(1),
+                'force_kill': Bits(1),
                 'kill_mask': Bits(s.NumBits),
                 'clear_mask': Bits(s.NumBits),
             },
@@ -56,33 +57,35 @@ class KillUnit(Model):
 # The wraps a KillUnit in a register
 # Effectively this is used as the valid register in a pipeline stage
 class RegisteredValKillUnitInterface(object):
+
   def __init__(s, bmask_nbits):
     s.NumBits = bmask_nbits
-    super(DropUnitInterface, s).__init__([
-        MethodSpec(
-            'add',
-            args={
-                'branch_mask': Bits(s.NumBits),
-            },
-            call=True,
-            rdy=True,
-        ),
-        MethodSpec(
-            'update',
-            args={
-                'force_kill' : Bits(1),
-                'kill_mask': Bits(s.NumBits),
-                'clear_mask': Bits(s.NumBits),
-            },
-            call=True,
-            rdy=False,
-        ),
-        MethodSpec(
-            'remove',
-            call=True,
-            rdy=True, # If something is killed this cycle rdy is low
-        ),
-    ],)
+    super(DropUnitInterface, s).__init__(
+        [
+            MethodSpec(
+                'add',
+                args={
+                    'branch_mask': Bits(s.NumBits),
+                },
+                call=True,
+                rdy=True,
+            ),
+            MethodSpec(
+                'update',
+                args={
+                    'force_kill': Bits(1),
+                    'kill_mask': Bits(s.NumBits),
+                    'clear_mask': Bits(s.NumBits),
+                },
+                call=True,
+                rdy=False,
+            ),
+            MethodSpec(
+                'remove',
+                call=True,
+                rdy=True,  # If something is killed this cycle rdy is low
+            ),
+        ],)
 
 
 class RegisteredValKillUnit(Model):
@@ -93,7 +96,8 @@ class RegisteredValKillUnit(Model):
     s.kill_unit = KillUnit(KillUnitInterface(s.interface.NumBits))
 
     s.val_ = Register(RegisterInterface(Bits(1)), reset_value=0)
-    s.bmask_ = Register(RegisterInterface(Bits(s.interface.NumBits), enable=True))
+    s.bmask_ = Register(
+        RegisterInterface(Bits(s.interface.NumBits), enable=True))
 
     # Forward update method
     s.connect(s.kill_unit.update_call, s.update_call)
@@ -101,7 +105,6 @@ class RegisteredValKillUnit(Model):
     s.connect(s.kill_unit.update_clear_mask, s.update_clear_mask)
     s.connect(s.kill_unit.update_force_kill, s.update_force_kill)
     s.connect(s.kill_unit.update_branch_mask, s.bmask_.read_data)
-
 
     @s.combinational
     def set_remove_rdy():

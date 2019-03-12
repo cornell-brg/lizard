@@ -61,8 +61,8 @@ class Rename(Model):
             },
             rets={
                 'seq': Bits(seq_idx_nbits),
-                'spec_idx' : Bits(speculative_idx_nbits),
-                'branch_mask' : Bits(speculative_mask_nbits),
+                'spec_idx': Bits(speculative_idx_nbits),
+                'branch_mask': Bits(speculative_mask_nbits),
                 'success': Bits(1),
             },
             call=True,

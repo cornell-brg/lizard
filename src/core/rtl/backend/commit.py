@@ -49,7 +49,7 @@ class Commit(Model):
         MethodSpec(
             'cflow_commit',
             args={
-              'status' : PipelineMsgStatus.bits,
+                'status': PipelineMsgStatus.bits,
             },
             rets={},
             call=True,

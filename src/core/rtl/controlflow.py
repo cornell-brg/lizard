@@ -11,7 +11,8 @@ from util.rtl.async_ram import AsynchronousRAM, AsynchronousRAMInterface
 
 class ControlFlowManagerInterface(Interface):
 
-  def __init__(s, dlen, seq_idx_nbits, speculative_idx_nbits, speculative_mask_nbits):
+  def __init__(s, dlen, seq_idx_nbits, speculative_idx_nbits,
+               speculative_mask_nbits):
     s.DataLen = dlen
     s.SeqIdxNbits = seq_idx_nbits
     s.SpecIdxNbits = speculative_idx_nbits
@@ -33,8 +34,8 @@ class ControlFlowManagerInterface(Interface):
                 'check_kill',
                 args={},
                 rets={
-                    'valid' : Bits(1),
-                    'force' : Bits(1),
+                    'valid': Bits(1),
+                    'force': Bits(1),
                     'kill_mask': Bits(speculative_mask_nbits),
                     'clear_mask': Bits(speculative_mask_nbits),
                 },
@@ -44,9 +45,9 @@ class ControlFlowManagerInterface(Interface):
             MethodSpec(
                 'redirect',
                 args={
-                  'spec_idx' : Bits(speculative_idx_nbits),
-                  'target': Bits(dlen),
-                  'force' : Bits(1),
+                    'spec_idx': Bits(speculative_idx_nbits),
+                    'target': Bits(dlen),
+                    'force': Bits(1),
                 },
                 rets={},
                 call=True,
@@ -61,8 +62,8 @@ class ControlFlowManagerInterface(Interface):
                 },
                 rets={
                     'seq': Bits(seq_idx_nbits),
-                    'spec_idx' : Bits(speculative_idx_nbits),
-                    'branch_mask' : Bits(speculative_mask_nbits),
+                    'spec_idx': Bits(speculative_idx_nbits),
+                    'branch_mask': Bits(speculative_mask_nbits),
                     'success': Bits(1),
                 },
                 call=True,
@@ -78,7 +79,7 @@ class ControlFlowManagerInterface(Interface):
             MethodSpec(
                 'commit',
                 args={
-                  'status' : PipelineMsgStatus.bits,
+                    'status': PipelineMsgStatus.bits,
                 },
                 rets={},
                 call=True,
@@ -111,36 +112,37 @@ class ControlFlowManager(Model):
             },
             call=True,
             rdy=True,
-          ),
-          MethodSpec(
-              'dflow_restore',
-              args={
-                  'source_id': specidx_nbits,
-              },
-              rets=None,
-              call=True,
-              rdy=False,
-          ),
-          MethodSpec(
-              'dflow_free_snapshot',
-              args={
-                  'id_': specidx_nbits,
-              },
-              rets=None,
-              call=True,
-              rdy=False,
-          ),
-          MethodSpec(
-              'dflow_rollback',
-              args=None,
-              rets=None,
-              call=True,
-              rdy=False,
-          ),
-      )
+        ),
+        MethodSpec(
+            'dflow_restore',
+            args={
+                'source_id': specidx_nbits,
+            },
+            rets=None,
+            call=True,
+            rdy=False,
+        ),
+        MethodSpec(
+            'dflow_free_snapshot',
+            args={
+                'id_': specidx_nbits,
+            },
+            rets=None,
+            call=True,
+            rdy=False,
+        ),
+        MethodSpec(
+            'dflow_rollback',
+            args=None,
+            rets=None,
+            call=True,
+            rdy=False,
+        ),
+    )
 
     # The speculative predicted PC table
-    s.pc_pred = AsynchronousRAM(AsynchronousRAMInterface(xlen, specmask_nbits, 1, 1, False))
+    s.pc_pred = AsynchronousRAM(
+        AsynchronousRAMInterface(xlen, specmask_nbits, 1, 1, False))
 
     # The redirect registers (needed for sync reset)
     s.reset_redirect_valid_ = Wire(1)
@@ -165,7 +167,8 @@ class ControlFlowManager(Model):
     s.bmask_curr_ = Wire(specmask_nbits)
     s.bmask_next_ = Wire(specmask_nbits)
     # Every instruction is registered under a branch mask
-    s.bmask = Register(RegisterInterface(Bits(specmask_nbits), enable=True), reset_value=0)
+    s.bmask = Register(
+        RegisterInterface(Bits(specmask_nbits), enable=True), reset_value=0)
     s.bmask_alloc = OneHotEncoder(specmask_nbits)
     s.redirect_mask = OneHotEncoder(specmask_nbits)
 
@@ -240,7 +243,8 @@ class ControlFlowManager(Model):
         # Free the snapshot
         s.dflow_free_snapshot_call.v = 0
         # Look up if the predicted PC saved during register is correct
-        s.redirect_.v = s.redirect_target != s.pc_pred.read_data[0] or s.redirect_force
+        s.redirect_.v = s.redirect_target != s.pc_pred.read_data[
+            0] or s.redirect_force
         if s.redirect_:
           s.kill_mask_.v = s.redirect_mask.encode_onehot
           s.redirect_target_.v = s.redirect_target
@@ -258,16 +262,15 @@ class ControlFlowManager(Model):
       elif s.register_speculative:
         s.bmask_next_.v = s.bmask_curr_ | s.bmask_alloc.encode_onehot
 
-
     @s.combinational
     def handle_register():
       # TODO handle speculative
       s.register_success_.v = 0
       s.spec_register_success_.v = 0
       if s.register_call:
-        s.register_success_.v = not s.full_ and (not s.register_speculative or s.dflow_snapshot_rdy)
+        s.register_success_.v = not s.full_ and (not s.register_speculative or
+                                                 s.dflow_snapshot_rdy)
         s.spec_register_success_.v = s.register_success_.v and s.register_speculative
-
 
     @s.combinational
     def handle_commit():
@@ -285,8 +288,6 @@ class ControlFlowManager(Model):
           s.dflow_rollback_call.v = 1
 
       #s.dflow_free_snapshot_call.v = s.commit_speculative
-
-
 
     # All the following comb blocks are for ROB stuff:
     @s.combinational
