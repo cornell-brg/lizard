@@ -8,9 +8,10 @@ from util.rtl.register import Register, RegisterInterface
 
 class ControlFlowManagerInterface(Interface):
 
-  def __init__(s, dlen, seq_idx_nbits):
+  def __init__(s, dlen, seq_idx_nbits, speculative_idx_nbits):
     s.DataLen = dlen
     s.SeqIdxNbits = seq_idx_nbits
+    s.SpecIdxNbits = speculative_idx_nbits
 
     super(ControlFlowManagerInterface, s).__init__(
         [
@@ -40,6 +41,7 @@ class ControlFlowManagerInterface(Interface):
                 },
                 rets={
                     'seq': Bits(seq_idx_nbits),
+                    'spec_idx' : Bits(speculative_idx_nbits),
                     'success': Bits(1),
                 },
                 call=True,
@@ -72,8 +74,22 @@ class ControlFlowManager(Model):
     UseInterface(s, cflow_interface)
     xlen = s.interface.DataLen
     seqidx_nbits = s.interface.SeqIdxNbits
+    specidx_nbits = s.interface.SpecIdxNbits
 
     max_entries = 1 << seqidx_nbits
+
+    s.require(
+        # Snapshot call on dataflow
+        MethodSpec(
+            'dflow_snapshot',
+            args=None,
+            rets={
+                'id_': specidx_nbits,
+            },
+            call=True,
+            rdy=True,
+          ),
+      )
 
     # The redirect registers
     s.redirect_ = Wire(xlen)
@@ -98,6 +114,7 @@ class ControlFlowManager(Model):
     # Connect up register method rets
     s.connect(s.register_seq, s.tail.read_data)
     s.connect(s.register_success, s.register_success_)
+    s.connect(s.register_spec_idx, s.dflow_snapshot_id_)
 
     # Connect up enable
     s.connect(s.tail.write_call, s.register_success_)
@@ -107,6 +124,15 @@ class ControlFlowManager(Model):
     s.connect(s.get_head_seq, s.head.read_data)
 
     @s.combinational
+    def handle_register():
+      # TODO handle speculative
+      s.register_success_.v = 0
+      if s.register_call:
+        s.register_success_.v = not s.full and (not s.register_speculative or s.dflow_snapshot_rdy)
+        s.dflow_snapshot_call.v = s.register_success_ and s.register_speculative
+
+    # All the following comb blocks are for ROB stuff:
+    @s.combinational
     def set_get_head_rdy():
       s.get_head_rdy.v = not s.empty
 
@@ -114,8 +140,6 @@ class ControlFlowManager(Model):
     def set_flags():
       s.full.v = s.num.read_data == max_entries
       s.empty.v = s.num.read_data == 0
-      # TODO handle speculative
-      s.register_success_.v = s.register_call and not s.full
 
     @s.combinational
     def update_tail():

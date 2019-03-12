@@ -33,6 +33,7 @@ class Rename(Model):
     UseInterface(s, rename_interface)
     preg_nbits = s.get_msg.rs1.nbits
     seq_idx_nbits = s.get_msg.hdr_seq.nbits
+    speculative_idx_nbits = s.get_msg.hdr_spec.nbits
     pc_nbits = DecodeMsg().hdr_pc.nbits
     areg_nbits = DecodeMsg().rs1.nbits
     s.require(
@@ -58,6 +59,7 @@ class Rename(Model):
             },
             rets={
                 'seq': Bits(seq_idx_nbits),
+                'spec_idx' : Bits(speculative_idx_nbits),
                 'success': Bits(1),
             },
             call=True,
@@ -121,6 +123,7 @@ class Rename(Model):
       s.out_.v = 0  # No inferred latches
       s.out_.hdr_frontend_hdr.v = s.decoded_.hdr
       s.out_.hdr_seq.v = s.register_seq
+      s.out_.hdr_spec.v = s.register_spec_idx
       s.out_.hdr_branch_mask.v = 0  # TODO set this properly with cflow
       # We need to propogate exception info
       if s.decoded_.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID:
