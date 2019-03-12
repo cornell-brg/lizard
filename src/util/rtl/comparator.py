@@ -12,7 +12,7 @@ class ComparatorInterface(Interface):
 
   def __init__(s, xlen):
     s.Xlen = xlen
-    super(CompareInterfacee, s).__init__([
+    super(ComparatorInterface, s).__init__([
         MethodSpec(
             'exec',
             args={
@@ -42,7 +42,7 @@ class Comparator(Model):
     # Input
     s.s0_ = Wire(xlen)
     s.s1_ = Wire(xlen)
-    s.func_ = Wire(ALUFunc.bits)
+    s.func_ = Wire(CMPFunc.bits)
 
     # Flags
     s.eq_ = Wire(1)
@@ -70,7 +70,7 @@ class Comparator(Model):
     @s.combinational
     def set_signed():
       # We flip the upper most bit if signed
-      s.s0_up_.v = s.exec_src0[XLEN_M1] if s.usign_ else not s.exec_src0[XLEN_M1]
+      s.s0_up_.v = s.exec_src0[XLEN_M1] if s.exec_unsigned else not s.exec_src0[XLEN_M1]
       s.s1_up_.v = s.exec_src1[XLEN_M1] if s.exec_unsigned else not s.exec_src1[XLEN_M1]
       s.s0_lower_.v = s.exec_src0[0:XLEN_M1]
       s.s1_lower_.v = s.exec_src1[0:XLEN_M1]
