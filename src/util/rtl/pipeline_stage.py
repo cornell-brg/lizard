@@ -64,8 +64,10 @@ class StageInterface(Interface):
 
 class DropControllerInterface(Interface):
 
-  def __init__(s, In):
+  def __init__(s, In, Out=None):
+    Out = Out or In
     s.In = In
+    s.Out = Out
     super(DropControllerInterface, s).__init__([
         MethodSpec(
             'check',
@@ -73,6 +75,7 @@ class DropControllerInterface(Interface):
                 'in_': In,
             },
             rets={
+                'out': Out,
                 'keep': Bits(1),
             },
             call=False,
@@ -83,8 +86,10 @@ class DropControllerInterface(Interface):
 
 class PipelineStage(Model):
 
-  def __init__(s, interface, In):
+  def __init__(s, interface, In, Intermediate=None):
     UseInterface(s, interface)
+    # Assume intermediate type is same as output unless specified
+    Intermediate = Intermediate or s.interface.MsgType
     # Require the methods of an incoming pipeline stage
     # Note that if In is None, the incoming stage will have no methods
     # Name the methods in_peek, in_take
@@ -95,8 +100,9 @@ class PipelineStage(Model):
     s.require(StageInterface(In, interface.MsgType)['process'])
     # If this pipeline stage outputs, require a drop controller
     if interface.MsgType is not None:
-      s.require(DropControllerInterface(interface.MsgType)['check'])
-      s.out_reg = Register(RegisterInterface(interface.MsgType, enable=True))
+      s.require(
+          DropControllerInterface(interface.MsgType, Intermediate)['check'])
+      s.out_reg = Register(RegisterInterface(Intermediate, enable=True))
       s.val_mux = Mux(1, 2)
       s.val_reg = Register(RegisterInterface(Bits(1)), reset_value=0)
       s.rdy_mux = Mux(1, 2)
@@ -131,7 +137,7 @@ class PipelineStage(Model):
       s.connect(s.val_reg.write_data, s.val_mux.mux_out)
 
       s.connect(s.check_in_, s.out_reg.read_data)
-      s.connect(s.peek_msg, s.out_reg.read_data)
+      s.connect(s.peek_msg, s.check_out)
       s.connect(s.rdy_mux.mux_in_[0], 0)
       s.connect(s.rdy_mux.mux_in_[1], s.check_keep)
       s.connect(s.rdy_mux.mux_select, s.val_reg.read_data)
