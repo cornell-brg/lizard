@@ -3,13 +3,14 @@ from util.rtl.interface import Interface, UseInterface
 from util.rtl.method import MethodSpec
 from bitutil import clog2, clog2nz
 from util.rtl.register import Register, RegisterInterface
+from util.rtl.pipeline_stage import DropControllerInterface, gen_valid_value_manager
 
 
-class KillUnitInterface(object):
+class KillCheckerInterface(object):
 
   def __init__(s, bmask_nbits):
-    s.NumBits = bmask_nbits
-    super(DropUnitInterface, s).__init__([
+    s.nbits = bmask_nbits
+    super(KillCheckerInterface, s).__init__([
         MethodSpec(
             'update',
             args={
@@ -22,112 +23,94 @@ class KillUnitInterface(object):
                 'killed': Bits(1),
                 'out_mask': Bits(s.NumBits)
             },
-            call=True,
+            call=False,
             rdy=False,
         ),
-    ],)
+    ])
+
+
+class KillChecker(Model):
+
+  def __init__(s, interface):
+    UseInterface(s, interface)
+    s.kill_match = Wire(s.interface.nbits)
+
+    @s.combinational
+    def handle_update():
+      s.kill_match.v = s.update_branch_mask & s.update_kill_mask
+      s.update_killed.v = reduce_or(s.kill_match) or s.update_force_kill
+      s.update_out_mask.v = s.update_branch_mask & (~s.update_clear_mask)
+
+  def line_trace(s):
+    return "{}:{}".format(s.update_killed, s.update_out_mask)
+
+
+class KillUnitInterface(Interface):
+
+  def __init__(s, bmask_nbits):
+    s.nbits = bmask_nbits
+    super(KillUnitInterface, s).__init__([
+        MethodSpec(
+            'update',
+            args={
+                'branch_mask': Bits(s.NumBits),
+            },
+            rets={
+                'killed': Bits(1),
+                'out_mask': Bits(s.NumBits)
+            },
+            call=False,
+            rdy=False,
+        ),
+    ])
 
 
 class KillUnit(Model):
 
   def __init__(s, interface):
     UseInterface(s, interface)
-    s.interface = BitMaskInterface(nbits)
+    # Require from control flow
+    s.require(
+        MethodSpec(
+            'check_kill',
+            args={},
+            rets={
+                'force': Bits(1),
+                'kill_mask': Bits(s.interface.nbits),
+                'clear_mask': Bits(s.interface.nbits),
+            },
+            call=False,
+            rdy=False,
+        ))
 
-    s.kill_match = Wire(s.interface.NumBits)
-
-    @s.combinational
-    def set_kill_match():
-      # Update killed
-      s.kill_match.v = s.update_branch_mask & s.update_kill_mask
-
-    @s.combinational
-    def update_out():
-      s.update_killed.v = 0
-      s.update_out_mask.v = s.update_branch_mask
-      if s.update_call:
-        s.update_killed.v = reduce_or(s.kill_match) or s.update_force_kill
-        # Updated out
-        s.update_out_mask.v = s.update_branch_mask & (~s.update_clear_mask)
-
-  def line_trace(s):
-    return "{},{}".format(s.update_killed, s.update_out_mask)
-
-
-# The wraps a KillUnit in a register
-# Effectively this is used as the valid register in a pipeline stage
-class RegisteredValKillUnitInterface(object):
-
-  def __init__(s, bmask_nbits):
-    s.NumBits = bmask_nbits
-    super(DropUnitInterface, s).__init__(
-        [
-            MethodSpec(
-                'add',
-                args={
-                    'branch_mask': Bits(s.NumBits),
-                },
-                call=True,
-                rdy=True,
-            ),
-            MethodSpec(
-                'update',
-                args={
-                    'force_kill': Bits(1),
-                    'kill_mask': Bits(s.NumBits),
-                    'clear_mask': Bits(s.NumBits),
-                },
-                call=True,
-                rdy=False,
-            ),
-            MethodSpec(
-                'remove',
-                call=True,
-                rdy=True,  # If something is killed this cycle rdy is low
-            ),
-        ],)
+    s.kill_checker = KillChecker(KillCheckerInterface(s.interface.nbits))
+    s.connect(s.kill_checker.update_branch_mask, s.update_branch_mask)
+    s.connect(s.kill_checker.update_force_kill, s.check_kill_force)
+    s.connect(s.kill_checker.update_kill_mask, s.check_kill_mask)
+    s.connect(s.kill_checker.update_clear_mask, s.check_clear_mask)
+    s.connect(s.update_killed, s.kill_checker.update_killed)
+    s.connect(s.update_out_mask, s.kill_checker.update_out_mask)
 
 
-class RegisteredValKillUnit(Model):
+class KillDropController(Model):
 
   def __init__(s, interface):
+    # The input/output types are some sort of pipeline message
+    # So the branch mask is hdr_branch_mask
     UseInterface(s, interface)
+    nbits = s.interface.In.hdr_branch_mask.nbits
+    s.kill_unit = KillUnit(KillUnitInterface(nbits))
+    # Wrap the kill unit, lifting its requirements to us
+    s.wrap(kill_unit)
 
-    s.kill_unit = KillUnit(KillUnitInterface(s.interface.NumBits))
-
-    s.val_ = Register(RegisterInterface(Bits(1)), reset_value=0)
-    s.bmask_ = Register(
-        RegisterInterface(Bits(s.interface.NumBits), enable=True))
-
-    # Forward update method
-    s.connect(s.kill_unit.update_call, s.update_call)
-    s.connect(s.kill_unit.update_kill_mask, s.update_kill_mask)
-    s.connect(s.kill_unit.update_clear_mask, s.update_clear_mask)
-    s.connect(s.kill_unit.update_force_kill, s.update_force_kill)
-    s.connect(s.kill_unit.update_branch_mask, s.bmask_.read_data)
+    # Feed just the branch masks through the kill unit
+    s.connect(s.kill_unit.update_branch_mask, s.check_in_.hdr_branch_mask)
 
     @s.combinational
-    def set_remove_rdy():
-      # Valid if currently valid and not currently killed
-      s.remove_rdy.v = s.val_.read_data and not s.kill_unit.update_killed
+    def handle_out():
+      # Set the out equal to the input and then override the branch mask
+      s.check_out.v = s.check_in_
+      s.check_out.hdr_branch_mask.v = s.kill_unit.update_out_mask
 
-    @s.combinational
-    def set_add_rdy():
-      # Can add if current thing is invalid or just killed, or being removed
-      s.add_rdy.v = not s.remove_rdy or s.remove_call
-
-    @s.combinational
-    def update_bmask():
-      # We update whenever add is called or current thing is valid
-      s.bmask_.write_call.v = s.add_call or s.val_.read_data
-      if s.add_call:
-        s.bmask_.write_data.v = s.add_branch_mask
-      else:
-        s.bmask_.write_data.v = s.kill_unit.update_out_mask
-
-    @s.combinational
-    def update_val():
-      s.val_.write_data.v = s.add_call or (s.remove_rdy and not s.remove_call)
-
-  def line_trace(s):
-    return "val:{},bmask:{}".format(s.val_.read_data, s.bmask_.read_data)
+      # Keep if not killed
+      s.check_keep.v = not s.kill_unit.update_killed

@@ -34,7 +34,6 @@ class ControlFlowManagerInterface(Interface):
                 'check_kill',
                 args={},
                 rets={
-                    'valid': Bits(1),
                     'force': Bits(1),
                     'kill_mask': Bits(speculative_mask_nbits),
                     'clear_mask': Bits(speculative_mask_nbits),
@@ -201,7 +200,6 @@ class ControlFlowManager(Model):
         RegisterInterface(Bits(seqidx_nbits + 1), enable=True), reset_value=0)
 
     # Connect up check_kill method
-    s.connect(s.check_kill_valid, s.check_redirect_redirect)
     s.connect(s.check_kill_force, s.redirect_force)
     s.connect(s.check_kill_kill_mask, s.kill_mask_)
     s.connect(s.check_kill_clear_mask, s.clear_mask_)
