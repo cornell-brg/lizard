@@ -84,6 +84,98 @@ class DropControllerInterface(Interface):
     ])
 
 
+class ValidValueManagerInterface(Interface):
+
+  def __init__(s, DataIn, DataOut):
+    s.DataIn = DataIn
+    s.DataOut = DataOut
+    super(ValidValueManagerInterface, s).__init__([
+        MethodSpec(
+            'peek',
+            args=None,
+            rets={
+                'msg': DataOut,
+            },
+            call=False,
+            rdy=True,
+        ),
+        MethodSpec(
+            'take',
+            args=None,
+            rets=None,
+            call=True,
+            rdy=False,
+        ),
+        MethodSpec(
+            'add',
+            args={
+                'msg': DataIn,
+            },
+            rets=None,
+            call=True,
+            rdy=True,
+        ),
+    ])
+
+
+class ValidValueManager(Model):
+
+  def __init__(s, interface):
+    UseInterface(s, interface)
+    s.require(
+        DropControllerInterface(s.interface.DataIn,
+                                s.interface.DataOut)['check'])
+
+    s.out_reg = Register(RegisterInterface(s.interface.DataIn, enable=True))
+    s.val_mux = Mux(1, 2)
+    s.val_reg = Register(RegisterInterface(Bits(1)), reset_value=0)
+    s.rdy_mux = Mux(1, 2)
+    s.val_after_drop_mux = Mux(1, 2)
+
+    s.connect(s.check_in_, s.out_reg.read_data)
+    s.connect(s.peek_msg, s.check_out)
+    s.connect(s.val_after_drop_mux.mux_in_[0], 0)
+    s.connect(s.val_after_drop_mux.mux_in_[1], s.check_keep)
+    s.connect(s.val_after_drop_mux.mux_select, s.val_reg.read_data)
+    s.connect(s.peek_rdy, s.val_after_drop_mux.mux_out)
+
+    s.connect(s.val_mux.mux_in_[0], s.val_after_drop_mux.mux_out)
+    s.connect(s.val_mux.mux_in_[1], 1)
+    s.connect(s.val_mux.mux_select, s.add_call)
+    s.connect(s.val_reg.write_data, s.val_mux.mux_out)
+
+    s.connect(s.out_reg.write_data, s.add_msg)
+    s.connect(s.out_reg.write_call, s.add_call)
+
+    @s.combinational
+    def handle_add_rdy():
+      s.add_rdy.v = not s.val_after_drop_mux.mux_out or s.take_call
+
+
+def gen_valid_value_manager(drop_controller_class):
+  name = ''.join([
+      '{}L{}'.format(len(class_.__name__), class_.__name__)
+      for class_ in [drop_controller_class]
+  ])
+  name = 'GenValidValueManager{}'.format(name)
+
+  class Gen(Model):
+
+    def __init__(s):
+      s.drop_controller = drop_controller_class()
+      UseInterface(
+          s,
+          ValidValueManagerInterface(s.drop_controller.interface.In,
+                                     s.drop_controller.interface.Out))
+
+      s.manager = ValidValueManager(s.interface)
+      s.connect_m(s.manager.check, s.drop_controller.check)
+      s.wrap(s.drop_controller)
+
+  Gen.__name__ = name
+  return Gen
+
+
 class PipelineStage(Model):
 
   def __init__(s, interface, In, Intermediate=None):
@@ -102,11 +194,8 @@ class PipelineStage(Model):
     if interface.MsgType is not None:
       s.require(
           DropControllerInterface(interface.MsgType, Intermediate)['check'])
-      s.out_reg = Register(RegisterInterface(Intermediate, enable=True))
-      s.val_mux = Mux(1, 2)
-      s.val_reg = Register(RegisterInterface(Bits(1)), reset_value=0)
-      s.rdy_mux = Mux(1, 2)
-      s.val_after_drop_mux = Mux(1, 2)
+      s.vvm = ValidValueManager(
+          ValidValueManagerInterface(interface.MsgType, Intermediate))
 
     s.input_available = Wire(1)
     s.output_clear = Wire(1)
@@ -125,29 +214,14 @@ class PipelineStage(Model):
     else:
       s.connect(s.input_available, 1)
     if interface.MsgType is not None:
-      s.connect(s.out_reg.write_data, s.process_out)
-      s.connect(s.out_reg.write_call, s.taking)
+      s.connect(s.vvm.add_msg, s.process_out)
+      s.connect(s.vvm.add_call, s.taking)
 
-      s.connect(s.val_after_drop_mux.mux_in_[0], 0)
-      s.connect(s.val_after_drop_mux.mux_in_[1], s.check_keep)
-      s.connect(s.val_after_drop_mux.mux_select, s.val_reg.read_data)
-      s.connect(s.val_mux.mux_in_[0], s.val_after_drop_mux.mux_out)
-      s.connect(s.val_mux.mux_in_[1], 1)
-      s.connect(s.val_mux.mux_select, s.taking)
-      s.connect(s.val_reg.write_data, s.val_mux.mux_out)
+      s.connect_m(s.vvm.check, s.check)
+      s.connect_m(s.vvm.peek, s.peek)
+      s.connect_m(s.vvm.take, s.take)
 
-      s.connect(s.check_in_, s.out_reg.read_data)
-      s.connect(s.peek_msg, s.check_out)
-      s.connect(s.rdy_mux.mux_in_[0], 0)
-      s.connect(s.rdy_mux.mux_in_[1], s.check_keep)
-      s.connect(s.rdy_mux.mux_select, s.val_reg.read_data)
-      s.connect(s.peek_rdy, s.rdy_mux.mux_out)
-
-    if interface.MsgType is not None:
-
-      @s.combinational
-      def handle_output_clear():
-        s.output_clear.v = s.take_call or not s.val_after_drop_mux.mux_out
+      s.connect(s.output_clear, s.vvm.add_rdy)
     else:
       s.connect(s.output_clear, 1)
 
@@ -173,14 +247,6 @@ def gen_stage(stage_class, drop_controller_class=None):
       if drop_controller_class is not None:
         s.drop_controller = drop_controller_class()
         s.connect_m(s.pipeline_stage.check, s.drop_controller.check)
-      s.connect_m(s.pipeline_stage.process, s.stage.process)
-      s.connect_m(s.pipeline_stage.peek, s.peek)
-      s.connect_m(s.pipeline_stage.take, s.take)
-
-      if s.stage.interface.In is not None:
-        # Require the methods of an incoming pipeline stage
-        # Note that if In is None, the incoming stage will have no methods
-        # Name the methods in_peek, in_take
         ins = [
             m.variant(name='in_{}'.format(m.name)) for m in
             PipelineStageInterface(s.stage.interface.In).methods.values()
@@ -189,6 +255,11 @@ def gen_stage(stage_class, drop_controller_class=None):
         for method in ins:
           s.connect_m(
               getattr(s.pipeline_stage, method.name), getattr(s, method.name))
+      s.connect_m(s.pipeline_stage.process, s.stage.process)
+      s.connect_m(s.pipeline_stage.peek, s.peek)
+      s.connect_m(s.pipeline_stage.take, s.take)
+
+      s.wrap(s.stage)
 
   Pipelined.__name__ = name
   return Pipelined
