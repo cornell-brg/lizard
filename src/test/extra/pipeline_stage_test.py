@@ -65,6 +65,7 @@ def test_basic():
   rtl_dut = PipelinedCounter()
   rtl_dut.vcd_file = 'bob.vcd'
   dut = wrap_to_cl(translate(rtl_dut))
+  # dut = wrap_to_cl(rtl_dut)
 
   dut.reset()
   assert isinstance(dut.peek(), NotReady)

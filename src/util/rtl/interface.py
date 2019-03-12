@@ -145,6 +145,13 @@ def _connect_ports(model, source_port, target_port):
     model.connect(source_port, target_port)
 
 
+def _wrap(model, wrapped):
+  model.require(*wrapped._requirements.values())
+  for method in wrapped._requirements.values():
+    print('wrapping: {}'.format(method))
+    model.connect_m(getattr(wrapped, method.name), getattr(model, method.name))
+
+
 class Interface(object):
   """An interface for a hardware module.
 
@@ -333,6 +340,11 @@ class Interface(object):
 
     _safe_setattr(target, 'require', require)
     _safe_setattr(target, '_requirements', {})
+
+    def wrap(wrapped):
+      _wrap(target, wrapped)
+
+    _safe_setattr(target, 'wrap', wrap)
 
     # bind to the target a counter for anonymous modules
     _safe_setattr(target, '_anonymous_counter', 0)
