@@ -79,8 +79,6 @@ class ControlFlowManagerInterface(Interface):
                 'commit',
                 args={
                   'status' : PipelineMsgStatus.bits,
-                  'speculative' : Bits(1),
-                  'spec_idx' : Bits(speculative_idx_nbits),
                 },
                 rets={},
                 call=True,
@@ -183,7 +181,7 @@ class ControlFlowManager(Model):
     s.connect(s.dflow_restore_source_id, s.redirect_spec_idx)
     s.connect(s.dflow_restore_call, s.redirect_)
     # Connect up free snapshot val
-    s.connect(s.dflow_free_snapshot_id_, s.commit_spec_idx)
+    s.connect(s.dflow_free_snapshot_id_, s.redirect_spec_idx)
 
     # Save the speculative PC
     s.connect(s.pc_pred.write_call[0], s.spec_register_success_)
@@ -237,7 +235,10 @@ class ControlFlowManager(Model):
       s.clear_mask_.v = 0
       s.redirect_.v = 0
       s.redirect_target_.v = 0
+      s.dflow_free_snapshot_call.v = 0
       if s.redirect_call:
+        # Free the snapshot
+        s.dflow_free_snapshot_call.v = 0
         # Look up if the predicted PC saved during register is correct
         s.redirect_.v = s.redirect_target != s.pc_pred.read_data[0] or s.redirect_force
         if s.redirect_:
@@ -271,7 +272,7 @@ class ControlFlowManager(Model):
     @s.combinational
     def handle_commit():
       s.dflow_rollback_call.v = 0
-      s.dflow_free_snapshot_call.v = 0
+      #s.dflow_free_snapshot_call.v = 0
       s.commit_redirect_.v = 0
       s.commit_redirect_target_.v = 0
       # If we are committing there are a couple cases
@@ -282,9 +283,8 @@ class ControlFlowManager(Model):
           s.commit_redirect_target_.v = trap_vector
           s.commit_redirect_.v = 1
           s.dflow_rollback_call.v = 1
-        else:
-          # If it was speculative we need to free the snapshot
-          s.dflow_free_snapshot_call.v = s.commit_speculative
+
+      #s.dflow_free_snapshot_call.v = s.commit_speculative
 
 
 
