@@ -13,6 +13,7 @@ class KillUnitInterface(object):
             'update',
             args={
                 'branch_mask': Bits(s.NumBits),
+                'force_kill' : Bits(1),
                 'kill_mask': Bits(s.NumBits),
                 'clear_mask': Bits(s.NumBits),
             },
@@ -44,7 +45,7 @@ class KillUnit(Model):
       s.update_killed.v = 0
       s.update_out_mask.v = s.update_branch_mask
       if s.update_call:
-        s.update_killed.v = reduce_or(s.kill_match)
+        s.update_killed.v = reduce_or(s.kill_match) or s.update_force_kill
         # Updated out
         s.update_out_mask.v = s.update_branch_mask & (~s.update_clear_mask)
 
@@ -62,16 +63,17 @@ class RegisteredValKillUnitInterface(object):
             'add',
             args={
                 'branch_mask': Bits(s.NumBits),
-            }
+            },
             call=True,
             rdy=True,
         ),
         MethodSpec(
             'update',
             args={
+                'force_kill' : Bits(1),
                 'kill_mask': Bits(s.NumBits),
                 'clear_mask': Bits(s.NumBits),
-            }
+            },
             call=True,
             rdy=False,
         ),
@@ -97,6 +99,7 @@ class RegisteredValKillUnit(Model):
     s.connect(s.kill_unit.update_call, s.update_call)
     s.connect(s.kill_unit.update_kill_mask, s.update_kill_mask)
     s.connect(s.kill_unit.update_clear_mask, s.update_clear_mask)
+    s.connect(s.kill_unit.update_force_kill, s.update_force_kill)
     s.connect(s.kill_unit.update_branch_mask, s.bmask_.read_data)
 
 
