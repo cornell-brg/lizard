@@ -49,6 +49,7 @@ class Commit(Model):
         MethodSpec(
             'cflow_commit',
             args={
+              'status' : PipelineMsgStatus.bits,
               'speculative' : Bits(1),
               'spec_idx' : Bits(s.SpecIdxNbits),
             },
@@ -83,6 +84,7 @@ class Commit(Model):
 
     # Connect up cflow commit
     s.connect(s.cflow_commit_call, s.rob_remove)
+    s.connect(s.cflow_commit_status, s.rob.free_value.hdr_status)
     s.connect(s.cflow_commit_speculative, s.rob.free_value.hdr_spec_val)
     s.connect(s.cflow_commit_spec_idx, s.rob.free_value.hdr_spec)
 

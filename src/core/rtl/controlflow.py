@@ -1,4 +1,5 @@
 from pymtl import *
+from core.rtl.messages import PipelineMsgStatus
 
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 from util.rtl.interface import Interface, IncludeSome, UseInterface
@@ -77,6 +78,7 @@ class ControlFlowManagerInterface(Interface):
             MethodSpec(
                 'commit',
                 args={
+                  'status' : PipelineMsgStatus.bits,
                   'speculative' : Bits(1),
                   'spec_idx' : Bits(speculative_idx_nbits),
                 },
@@ -92,8 +94,8 @@ class ControlFlowManagerInterface(Interface):
 
 
 class ControlFlowManager(Model):
-
-  def __init__(s, cflow_interface, reset_vector):
+  # TODO trap_vector should not be hard coded, but instead come from mtvec
+  def __init__(s, cflow_interface, reset_vector, trap_vector=0x00):
     UseInterface(s, cflow_interface)
     xlen = s.interface.DataLen
     seqidx_nbits = s.interface.SeqIdxNbits
@@ -149,6 +151,10 @@ class ControlFlowManager(Model):
     s.redirect_ = Wire(1)
     s.redirect_target_ = Wire(xlen)
 
+    # Redirects caused by exceptions, traps, etc...
+    s.commit_redirect_ = Wire(1)
+    s.commit_redirect_target_ = Wire(xlen)
+
     # flags
     s.empty_ = Wire(1)
     s.full_ = Wire(1)
@@ -194,7 +200,7 @@ class ControlFlowManager(Model):
         RegisterInterface(Bits(seqidx_nbits + 1), enable=True), reset_value=0)
 
     # Connect up check_kill method
-    s.connect(s.check_kill_valid, s.redirect_)
+    s.connect(s.check_kill_valid, s.check_redirect_redirect)
     s.connect(s.check_kill_force, s.redirect_force)
     s.connect(s.check_kill_kill_mask, s.kill_mask_)
     s.connect(s.check_kill_clear_mask, s.clear_mask_)
@@ -211,11 +217,17 @@ class ControlFlowManager(Model):
     # Connect get head method
     s.connect(s.get_head_seq, s.head.read_data)
 
-    # This prioritizes reset redirection, then a reidrect call
+    # This prioritizes reset redirection, then exceptions, then a branch reidrect call
     @s.combinational
     def prioritry_redirect():
-      s.check_redirect_redirect.v = s.reset_redirect_valid_ or s.redirect_
-      s.check_redirect_target.v = reset_vector if s.reset_redirect_valid_ else s.redirect_target_
+      s.check_redirect_redirect.v = s.reset_redirect_valid_ or s.commit_redirect_ or s.redirect_
+      s.check_redirect_target.v = 0
+      if s.reset_redirect_valid_:
+        s.check_redirect_target.v = reset_vector
+      elif s.commit_redirect_:
+        s.check_redirect_target.v = s.commit_redirect_target_
+      else:
+        s.check_redirect_target.v = s.redirect_target_
 
     # This is only for a redirect call
     @s.combinational
@@ -258,11 +270,19 @@ class ControlFlowManager(Model):
     def handle_commit():
       s.dflow_rollback_call.v = 0
       s.dflow_free_snapshot_call.v = 0
+      s.commit_redirect_.v = 0
+      s.commit_redirect_target_.v = 0
       # If we are committing there are a couple cases
       if s.commit_call:
-        # If it was speculative we need to free the snapshot
-        s.dflow_free_snapshot_call.v = s.commit_speculative
-        # TODO exception handling
+        # Jump to exception handler
+        if s.commit_status != PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID:
+          # TODO jump to proper handler
+          s.commit_redirect_target_.v = trap_vector
+          s.commit_redirect_.v = 1
+          s.dflow_rollback_call.v = 1
+        else:
+          # If it was speculative we need to free the snapshot
+          s.dflow_free_snapshot_call.v = s.commit_speculative
 
 
 
