@@ -2,7 +2,6 @@ from pymtl import *
 from util.rtl.interface import Interface, IncludeSome, UseInterface
 from util.rtl.method import MethodSpec
 from util.rtl.types import Array, canonicalize_type
-from util.rtl.kill_unit import RegisteredValKillUnitInterface, RegisteredValKillUnit
 from core.rtl.controlflow import ControlFlowManagerInterface
 from core.rtl.dataflow import DataFlowManagerInterface
 from bitutil import clog2, clog2nz
