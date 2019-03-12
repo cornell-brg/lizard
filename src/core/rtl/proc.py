@@ -81,7 +81,7 @@ class Proc(Model):
     )
 
     # Control flow
-    s.cflow_interface = ControlFlowManagerInterface(XLEN, INST_IDX_NBITS, MAX_SPEC_DEPTH_NBITS)
+    s.cflow_interface = ControlFlowManagerInterface(XLEN, INST_IDX_NBITS, SPEC_IDX_NBITS, SPEC_MASK_NBITS)
     s.cflow = ControlFlowManager(s.cflow_interface, RESET_VECTOR)
 
     # Dataflow
