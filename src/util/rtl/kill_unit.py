@@ -124,4 +124,4 @@ class RegisteredValKillUnit(Model):
       s.val_.write_data.v = s.add_call or (s.remove_rdy and not s.remove_call)
 
   def line_trace(s):
-    return "{},{}".format(s.val_.read_data, s.bmask_.read_data)
+    return "val:{},bmask:{}".format(s.val_.read_data, s.bmask_.read_data)
