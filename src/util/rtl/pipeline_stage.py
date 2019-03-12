@@ -84,15 +84,6 @@ class DropControllerInterface(Interface):
     ])
 
 
-class NullDropController(Model):
-
-  def __init__(s, interface):
-    UseInterface(s, interface)
-
-    s.connect(s.check_keep, 1)
-    s.connect(s.check_out, s.check_in_)
-
-
 class ValidValueManagerInterface(Interface):
 
   def __init__(s, DataIn, DataOut):
@@ -241,35 +232,21 @@ class PipelineStage(Model):
 
 def gen_stage(stage_class, drop_controller_class=None):
   name = ''.join([
-      '{}L{}'.format(len(class_.__name__), class_.__name__) for class_ in [
-          stage_class, drop_controller_class
-          if drop_controller_class is not None else NullDropController
-      ]
+      '{}L{}'.format(len(class_.__name__), class_.__name__)
+      for class_ in [stage_class, drop_controller_class]
   ])
   name = 'GS{}'.format(name)
 
   class Pipelined(Model):
 
-    def __init__(s, *args, **kwargs):
-      s.stage = stage_class(*args, **kwargs)
+    def __init__(s):
+      s.stage = stage_class()
       UseInterface(s, PipelineStageInterface(s.stage.interface.Out))
       s.pipeline_stage = PipelineStage(s.interface, s.stage.interface.In)
-      actual_dc = drop_controller_class
-      if s.stage.interface.Out is not None and drop_controller_class is None:
-
-        def gen_drop_controller():
-          return NullDropController(
-              DropControllerInterface(s.stage.interface.Out))
-
-        actual_dc = gen_drop_controller
-      assert not (s.stage.interface.Out is None and actual_dc is not None)
-      if actual_dc is not None:
-        s.drop_controller = actual_dc()
+      assert (s.stage.interface.Out is None) == (drop_controller_class is None)
+      if drop_controller_class is not None:
+        s.drop_controller = drop_controller_class()
         s.connect_m(s.pipeline_stage.check, s.drop_controller.check)
-        s.connect_m(s.pipeline_stage.process, s.stage.process)
-        s.connect_m(s.pipeline_stage.peek, s.peek)
-        s.connect_m(s.pipeline_stage.take, s.take)
-      if s.stage.interface.In is not None:
         ins = [
             m.variant(name='in_{}'.format(m.name)) for m in
             PipelineStageInterface(s.stage.interface.In).methods.values()
@@ -278,6 +255,9 @@ def gen_stage(stage_class, drop_controller_class=None):
         for method in ins:
           s.connect_m(
               getattr(s.pipeline_stage, method.name), getattr(s, method.name))
+      s.connect_m(s.pipeline_stage.process, s.stage.process)
+      s.connect_m(s.pipeline_stage.peek, s.peek)
+      s.connect_m(s.pipeline_stage.take, s.take)
 
       s.wrap(s.stage)
 

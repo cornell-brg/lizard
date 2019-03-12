@@ -34,8 +34,17 @@ class Add2(Model):
       s.process_out.v = s.process_in_ + 2
 
 
-CounterStage = gen_stage(Counter)
-Add2Stage = gen_stage(Add2)
+class NullDropController(Model):
+
+  def __init__(s):
+    UseInterface(s, DropControllerInterface(Bits(8)))
+
+    s.connect(s.check_keep, 1)
+    s.connect(s.check_out, s.check_in_)
+
+
+CounterStage = gen_stage(Counter, NullDropController)
+Add2Stage = gen_stage(Add2, NullDropController)
 
 
 class PipelinedCounter(Model):

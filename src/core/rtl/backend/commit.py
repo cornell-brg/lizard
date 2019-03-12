@@ -7,6 +7,12 @@ from util.rtl.reorder_buffer import ReorderBuffer, ReorderBufferInterface
 from config.general import *
 
 
+class CommitInterface(Interface):
+
+  def __init__(s):
+    super(CommitInterface, s).__init__([])
+
+
 class Commit(Model):
 
   def __init__(s, interface, rob_size):
@@ -15,20 +21,13 @@ class Commit(Model):
     s.SpecIdxNbits = WritebackMsg().hdr_spec.nbits
     s.require(
         MethodSpec(
-            'in_peek',
+            'writeback_get',
             args=None,
             rets={
                 'msg': WritebackMsg(),
             },
-            call=False,
-            rdy=True,
-        ),
-        MethodSpec(
-            'in_take',
-            args=None,
-            rets=None,
             call=True,
-            rdy=False,
+            rdy=True,
         ),
         MethodSpec(
             'dataflow_commit',
@@ -68,12 +67,12 @@ class Commit(Model):
     s.connect(s.rob.check_done_idx, s.cflow_get_head_seq)
 
     # if writeback is ready, take the data and commit
-    s.connect(s.advance, s.in_peek_rdy)
-    s.connect(s.in_take_call, s.advance)
-    s.connect(s.seq_num, s.in_peek_msg.hdr_seq)
+    s.connect(s.advance, s.writeback_get_rdy)
+    s.connect(s.writeback_get_call, s.advance)
+    s.connect(s.seq_num, s.writeback_get_msg.hdr_seq)
 
     # Add incoming message into ROB
-    s.connect(s.rob.add_value, s.in_peek_msg)
+    s.connect(s.rob.add_value, s.writeback_get_msg)
     s.connect_wire(s.rob.add_idx, s.seq_num)
     s.connect(s.rob.add_call, s.advance)
 
