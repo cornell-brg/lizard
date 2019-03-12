@@ -248,11 +248,13 @@ class ControlFlowManager(Model):
 
     @s.combinational
     def handle_bmask():
-      s.bmask.write_call.v = s.spec_register_success_ or s.redirect_call
+      s.bmask.write_call.v = s.spec_register_success_ or s.redirect_call or s.commit_redirect_
       # Update the current branch mask
       s.bmask_curr_.v = s.bmask.read_data.v & (~(s.kill_mask_ | s.clear_mask_))
       s.bmask_next_.v = s.bmask_curr_
-      if s.register_speculative:
+      if s.commit_redirect_:
+        s.bmask_next_.v = 0
+      elif s.register_speculative:
         s.bmask_next_.v = s.bmask_curr_ | s.bmask_alloc.encode_onehot
 
 
