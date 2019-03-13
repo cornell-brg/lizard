@@ -33,7 +33,9 @@ class LookupTable(Model):
     UseInterface(s, interface)
 
     size = len(mapping)
-    svalues, souts = zip(*list(mapping.iteritems()))
+    # Sort by key to ensure it is deterministic
+    svalues, souts = zip(*[(key, mapping[key])
+                           for key in sorted(mapping.keys())])
     s.mux = CaseMux(
         CaseMuxInterface(s.interface.Out, s.interface.In, size), svalues)
     s.connect(s.mux.mux_default, 0)
