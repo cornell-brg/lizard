@@ -12,6 +12,7 @@ from core.rtl.backend.issue import Issue, IssueInterface
 from core.rtl.backend.dispatch import Dispatch, DispatchInterface
 from core.rtl.backend.pipe_selector import PipeSelector
 from core.rtl.backend.alu import ALU, ALUInterface
+from core.rtl.backend.branch import Branch, BranchInterface
 from core.rtl.backend.csr import CSR, CSRInterface
 from core.rtl.pipeline_arbiter import PipelineArbiter
 from core.rtl.backend.writeback import Writeback
@@ -146,6 +147,11 @@ class Proc(Model):
     s.alu_interface = ALUInterface(XLEN)
     s.alu = ALU(s.alu_interface)
     s.connect_m(s.alu.dispatch_get, s.pipe_selector.alu_get)
+
+    ## Branch
+    s.branch_interface = BranchInterface(XLEN)
+    s.branch = Branch(s.branch_interface)
+    s.connect_m(s.cflow.redirect, s.branch.cflow_redirect)
 
     ## CSR
     s.csr_pipe_interface = CSRInterface()

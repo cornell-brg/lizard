@@ -2,28 +2,21 @@ from pymtl import *
 from bitutil import clog2, clog2nz
 from pclib.rtl import RegEn, RegEnRst, RegRst
 from util.rtl.method import MethodSpec
-from util.rtl.interface import Interface
+from util.rtl.interface import Interface, UseInterface
 from bitutil import bit_enum
 
-CompareFunc = bit_enum(
-    'CompareFunc',
-    None,
-    'EQ',
-    'NE',
-    # Can be used unsigned
-    'LT',
-    'GE',
-)
+CMPFunc = bit_enum('ALUFunc', None, 'CMP_EQ', 'CMP_NEQ', 'CMP_LT', 'CMP_GE',)
 
 
 class ComparatorInterface(Interface):
 
   def __init__(s, xlen):
+    s.Xlen = xlen
     super(ComparatorInterface, s).__init__([
         MethodSpec(
-            'cmp',
+            'exec',
             args={
-                'func': CompareFunc.bits,
+                'func': CMPFunc.bits,
                 'src0': Bits(xlen),
                 'src1': Bits(xlen),
                 'unsigned': Bits(1),
@@ -31,57 +24,70 @@ class ComparatorInterface(Interface):
             rets={
                 'res': Bits(1),
             },
-            call=False,
-            rdy=False,
+            call=True,
+            rdy=True,
         ),
     ])
 
 
 class Comparator(Model):
 
-  def __init__(s, xlen):
-    s.inter = ComparatorInterface(xlen)
-    s.inter.apply(s)
+  def __init__(s, alu_interface):
+    UseInterface(s, alu_interface)
+    xlen = s.interface.Xlen
 
+    # PYMTL BROKEN:
     XLEN_M1 = xlen - 1
 
     # Input
     s.s0_ = Wire(xlen)
     s.s1_ = Wire(xlen)
-    s.func_ = Wire(CompareFunc.bits)
-    s.usign_ = Wire(1)
+    s.func_ = Wire(CMPFunc.bits)
+
+    # Flags
+    s.eq_ = Wire(1)
+    s.lt_ = Wire(1)
 
     # Output
     s.res_ = Wire(1)
 
-    s.connect(s.cmp_res, s.res_)
+    # Since single cycle, always ready
+    s.connect(s.exec_rdy, 1)
+    s.connect(s.exec_res, s.res_)
+    s.connect(s.func_, s.exec_func)
 
-    s.connect(s.func_, s.cmp_func)
-    s.connect(s.usign_, s.cmp_unsigned)
-
-    s.eq_ = Wire(1)
-
-    @s.combinational
-    def cmp_eq():
-      s.eq_.v = (s.s0_ == s.s1_)
-
-    @s.combinational
-    def invert_signed():
-      s.s0_.v = s.cmp_src0
-      s.s1_.v = s.cmp_src1
-      # If unsigned we invert the MSB and swap
-      if s.usign_:
-        s.s0_.v = concat(not s.s1_[-1], s.s1_[:XLEN_M1])
-        s.s1_.v = concat(not s.s0_[-1], s.s0_[:XLEN_M1])
+    # All workarorunds due to slicing in concat() issues:
+    s.s0_lower_ = Wire(XLEN_M1)
+    s.s0_up_ = Wire(1)
+    s.s1_lower_ = Wire(XLEN_M1)
+    s.s1_up_ = Wire(1)
 
     @s.combinational
-    def cycle():
+    def set_flags():
+      s.eq_.v = s.s0_ == s.s1_
+      s.lt_.v = s.s0_ < s.s1_
+
+    @s.combinational
+    def set_signed():
+      # We flip the upper most bit if signed
+      s.s0_up_.v = s.exec_src0[XLEN_M1] if s.exec_unsigned else not s.exec_src0[XLEN_M1]
+      s.s1_up_.v = s.exec_src1[XLEN_M1] if s.exec_unsigned else not s.exec_src1[XLEN_M1]
+      s.s0_lower_.v = s.exec_src0[0:XLEN_M1]
+      s.s1_lower_.v = s.exec_src1[0:XLEN_M1]
+      # Now we can concat and compare
+      s.s0_.v = concat(s.s0_up_, s.s0_lower_)
+      s.s1_.v = concat(s.s1_up_, s.s1_lower_)
+
+
+    @s.combinational
+    def eval_comb():
       s.res_.v = 0
-      if s.func_ == CompareFunc.EQ:
-        s.res_.v = s.eq_
-      elif s.func_ == CompareFunc.NE:
-        s.res_.v = not s.eq_
-      elif s.func_ == CompareFunc.LT:
-        s.res_.v = s.s0_ < s.s1_
-      elif s.func_ == CompareFunc.GE:
-        s.res_.v = s.s0_ >= s.s1_
+      if s.exec_call:
+        if s.func_ == CMPFunc.CMP_EQ:
+          s.res_.v = s.eq_
+        elif s.func_ == CMPFunc.CMP_NEQ:
+          s.res_.v = not s.eq_
+        elif s.func_ == CMPFunc.CMP_LT:
+          s.res_.v = s.lt_
+        elif s.func_ == CMPFunc.CMP_GE:
+          s.res_.v = not s.lt_ or s.eq_
