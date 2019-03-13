@@ -12,7 +12,7 @@ def idfn(val):
 
 @pytest.mark.parametrize(
     'name_and_func', extract_tests(inst_modules()), ids=idfn)
-@pytest.mark.parametrize('translate', ['verilate'])
+@pytest.mark.parametrize('translate', ['verilate', 'sim'])
 def test(name_and_func, translate):
   name, func = name_and_func
   asm = func()

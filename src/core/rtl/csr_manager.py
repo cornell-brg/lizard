@@ -51,27 +51,40 @@ class CSRManager(Model):
         ),
     )
 
+    # PYMTL_BROKEN
+    s.temp_debug_recv_call = Wire(1)
+    s.temp_debug_send_call = Wire(1)
+    s.temp_debug_send_msg = Wire(Bits(XLEN))
+    s.temp_op_success = Wire(1)
+    s.temp_op_old = Wire(Bits(XLEN))
+
     @s.combinational
     def handle_op():
-      s.debug_recv_call.v = 0
+      s.temp_debug_recv_call.v = 0
 
-      s.debug_send_call.v = 0
-      s.debug_send_msg.v = 0
+      s.temp_debug_send_call.v = 0
+      s.temp_debug_send_msg.v = 0
 
-      s.op_success.v = 0
-      s.op_old.v = 0
+      s.temp_op_success.v = 0
+      s.temp_op_old.v = 0
 
       if s.op_call:
         if s.op_csr == CsrRegisters.proc2mngr:
           if s.op_op == CsrFunc.CSR_FUNC_READ_WRITE and s.debug_send_rdy:
-            s.debug_send_call.v = 1
-            s.debug_send_msg.v = s.op_value
+            s.temp_debug_send_call.v = 1
+            s.temp_debug_send_msg.v = s.op_value
 
-            s.op_success.v = 1
-            s.op_old.v = 0
+            s.temp_op_success.v = 1
+            s.temp_op_old.v = 0
         elif s.op_csr == CsrRegisters.mngr2proc:
           if s.op_op != CsrFunc.CSR_FUNC_READ_WRITE and s.debug_recv_rdy and s.op_rs1_is_x0:
-            s.debug_recv_call.v = 1
+            s.temp_debug_recv_call.v = 1
 
-            s.op_success.v = 1
-            s.op_old.v = s.debug_recv_msg
+            s.temp_op_success.v = 1
+            s.temp_op_old.v = s.debug_recv_msg
+
+      s.debug_recv_call.v = s.temp_debug_recv_call
+      s.debug_send_call.v = s.temp_debug_send_call
+      s.debug_send_msg.v = s.temp_debug_send_msg
+      s.op_success.v = s.temp_op_success
+      s.op_old.v = s.temp_op_old
