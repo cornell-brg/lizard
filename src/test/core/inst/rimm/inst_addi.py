@@ -105,6 +105,7 @@ def gen_value_test():
 
 
 def gen_random_test():
+  random.seed(0)
   asm_code = []
   for i in xrange(20):
     src = Bits(32, random.randint(0, 0xffffffff))
