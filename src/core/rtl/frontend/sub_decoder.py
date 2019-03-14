@@ -57,6 +57,7 @@ class GenDecoder(Model):
   def __init__(s,
                op_class,
                result_field,
+               ResultKind,
                fixed_map,
                field_list,
                field_map,
@@ -68,7 +69,6 @@ class GenDecoder(Model):
                imm_val=0):
     UseInterface(s, SubDecoderInterface())
     result_field_slice = PipeMsg()._bitfields[result_field]
-    Kind = Bits(slice_len(result_field_slice))
 
     s.require(
         MethodSpec(
@@ -78,7 +78,7 @@ class GenDecoder(Model):
                 'data': In,
             },
             rets={
-                'payload': Kind,
+                'payload': ResultKind,
                 'valid': Bits(1),
             },
             call=False,
@@ -121,7 +121,7 @@ class GenDecoder(Model):
     @s.combinational
     def connect_result(rs=result_field_slice.start, re=result_field_slice.stop):
       s.decode_result.v = 0
-      s.decode_result[rs:re] = s.gen_payload
+      s.decode_result[rs:re].v = s.gen_payload
 
     fixed_keys = fixed_map.keys()
     s.fixed_equals = [Wire(1) for _ in range(len(fixed_map))]
@@ -156,6 +156,7 @@ class GenDecoderFixed(Model):
   def __init__(s,
                op_class,
                result_field,
+               ResultKind,
                fixed_map,
                field_list,
                field_map,
@@ -165,18 +166,17 @@ class GenDecoderFixed(Model):
                imm_type=0,
                imm_val=0):
     UseInterface(s, SubDecoderInterface())
-    result_field_slice = PipeMsg()._bitfields[result_field]
-    Kind = Bits(slice_len(result_field_slice))
 
     s.identity_generator = IdentityPayloadGenerator(
-        PayloadGeneratorInterface(Kind, Kind))
+        PayloadGeneratorInterface(ResultKind, ResultKind))
     s.decoder = GenDecoder(
         op_class,
         result_field,
+        ResultKind,
         fixed_map,
         field_list,
         field_map,
-        Kind,
+        ResultKind,
         rs1_val=rs1_val,
         rs2_val=rs2_val,
         rd_val=rd_val,

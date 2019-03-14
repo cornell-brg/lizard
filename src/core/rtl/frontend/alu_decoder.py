@@ -23,6 +23,7 @@ def OpDecoder():
   return GenDecoderFixed(
       OpClass.OP_CLASS_ALU,
       'alu_msg',
+      AluMsg(),
       {'opcode': Opcode.OP},
       ['funct7', 'funct3'],
       {
@@ -47,6 +48,7 @@ def Op32Decoder():
   return GenDecoderFixed(
       OpClass.OP_CLASS_ALU,
       'alu_msg',
+      AluMsg(),
       {'opcode': Opcode.OP_32},
       ['funct7', 'funct3'],
       {
@@ -66,6 +68,7 @@ def OpImmDecoder():
   return GenDecoderFixed(
       OpClass.OP_CLASS_ALU,
       'alu_msg',
+      AluMsg(),
       {'opcode': Opcode.OP_IMM},
       ['funct3'],
       {
@@ -87,6 +90,7 @@ def OpImmShiftDecoder():
   return GenDecoderFixed(
       OpClass.OP_CLASS_ALU,
       'alu_msg',
+      AluMsg(),
       {'opcode': Opcode.OP_IMM},
       ['funct7_shft64', 'funct3'],
       {
@@ -105,6 +109,7 @@ def OpImm32Decoder():
   return GenDecoderFixed(
       OpClass.OP_CLASS_ALU,
       'alu_msg',
+      AluMsg(),
       {'opcode': Opcode.OP_IMM_32},
       ['funct3'],
       {
@@ -121,6 +126,7 @@ def OpImm32ShiftDecoder():
   return GenDecoderFixed(
       OpClass.OP_CLASS_ALU,
       'alu_msg',
+      AluMsg(),
       {'opcode': Opcode.OP_IMM_32},
       ['funct7', 'funct3'],
       {
