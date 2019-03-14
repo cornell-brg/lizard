@@ -7,7 +7,7 @@ from core.rtl.dataflow import DataFlowManager, DataFlowManagerInterface
 from core.rtl.csr_manager import CSRManager, CSRManagerInterface
 from core.rtl.frontend.fetch import Fetch
 from core.rtl.frontend.decode import Decode
-from core.rtl.backend.rename import Rename, RenameInterface
+from core.rtl.backend.rename import Rename
 from core.rtl.backend.issue import Issue, IssueInterface
 from core.rtl.backend.dispatch import Dispatch, DispatchInterface
 from core.rtl.backend.pipe_selector import PipeSelector
@@ -117,7 +117,7 @@ class Proc(Model):
     s.connect_m(s.cflow.check_redirect, s.decode.check_redirect)
 
     # Rename
-    s.rename_interface = RenameInterface()
+    s.rename_interface = StageInterface(DecodeMsg(), RenameMsg())
     s.rename = Rename(s.rename_interface)
     s.connect_m(s.decode.peek, s.rename.in_peek)
     s.connect_m(s.decode.take, s.rename.in_take)
@@ -129,7 +129,8 @@ class Proc(Model):
     # Issue
     s.issue_interface = IssueInterface()
     s.issue = Issue(s.issue_interface, PREG_COUNT, num_slots=1)
-    s.connect_m(s.rename.get, s.issue.rename_get)
+    s.connect_m(s.rename.peek, s.issue.in_peek)
+    s.connect_m(s.rename.take, s.issue.in_take)
     s.connect_m(s.dflow.is_ready, s.issue.is_ready)
     s.connect_m(s.dflow.get_updated, s.issue.get_updated)
 
