@@ -137,18 +137,21 @@ class Proc(Model):
     # Dispatch
     s.dispatch_interface = DispatchInterface()
     s.dispatch = Dispatch(s.dispatch_interface)
-    s.connect_m(s.issue.get, s.dispatch.issue_get)
+    s.connect_m(s.issue.peek, s.dispatch.in_peek)
+    s.connect_m(s.issue.take, s.dispatch.in_take)
     s.connect_m(s.dflow.read, s.dispatch.read)
 
     # Split
     s.pipe_selector = PipeSelector()
-    s.connect_m(s.pipe_selector.dispatch_get, s.dispatch.get)
+    s.connect_m(s.pipe_selector.in_peek, s.dispatch.peek)
+    s.connect_m(s.pipe_selector.in_take, s.dispatch.take)
 
     # Execute
     ## ALU
-    s.alu_interface = ALUInterface(XLEN)
+    s.alu_interface = ALUInterface()
     s.alu = ALU(s.alu_interface)
-    s.connect_m(s.alu.dispatch_get, s.pipe_selector.alu_get)
+    s.connect_m(s.alu.in_peek, s.pipe_selector.alu_peek)
+    s.connect_m(s.alu.in_take, s.pipe_selector.alu_take)
 
     ## Branch
     s.branch_interface = BranchInterface(XLEN)
@@ -159,7 +162,8 @@ class Proc(Model):
     s.csr_pipe_interface = CSRInterface()
     s.csr_pipe = CSR(s.csr_pipe_interface)
     s.connect_m(s.csr_pipe.csr_op, s.csr.op)
-    s.connect_m(s.csr_pipe.dispatch_get, s.pipe_selector.csr_get)
+    s.connect_m(s.csr_pipe.in_peek, s.pipe_selector.csr_peek)
+    s.connect_m(s.csr_pipe.in_take, s.pipe_selector.csr_take)
 
     # Writeback Arbiter
     s.writeback_arbiter_interface = PipelineArbiterInterface(ExecuteMsg())

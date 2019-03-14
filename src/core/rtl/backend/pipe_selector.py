@@ -29,18 +29,32 @@ class PipeSelector(Model):
     UseInterface(s, PipelineSplitterInterface(DispatchMsg(), ['csr', 'alu']))
     s.require(
         MethodSpec(
-            'dispatch_get',
+            'in_peek',
             args=None,
-            rets={'msg': DispatchMsg()},
-            call=True,
+            rets={
+                'msg': DispatchMsg(),
+            },
+            call=False,
             rdy=True,
-        ))
+        ),
+        MethodSpec(
+            'in_take',
+            args=None,
+            rets=None,
+            call=True,
+            rdy=False,
+        ),
+    )
 
     s.splitter = PipelineSplitter(s.interface)
     s.controller = PipeSelectorController()
     s.connect_m(s.splitter.sort, s.controller.sort)
-    s.connect_m(s.splitter.in_get, s.dispatch_get)
+    s.connect_m(s.splitter.in_peek, s.in_peek)
+    s.connect_m(s.splitter.in_take, s.in_take)
     for client in s.interface.clients:
       s.connect_m(
-          getattr(s.splitter, '{}_get'.format(client)),
-          getattr(s, '{}_get'.format(client)))
+          getattr(s.splitter, '{}_peek'.format(client)),
+          getattr(s, '{}_peek'.format(client)))
+      s.connect_m(
+          getattr(s.splitter, '{}_take'.format(client)),
+          getattr(s, '{}_take'.format(client)))

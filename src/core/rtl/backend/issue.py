@@ -9,22 +9,11 @@ from core.rtl.messages import RenameMsg, IssueMsg, PipelineMsgStatus
 from msg.codes import RVInstMask, Opcode, ExceptionCode
 from util.rtl.issue_queue import CompactingIssueQueue, IssueQueueInterface, AbstractIssueType
 from util.rtl.coders import PriorityDecoder
+from util.rtl.pipeline_stage import PipelineStageInterface
 
 
-class IssueInterface(Interface):
-
-  def __init__(s):
-    super(IssueInterface, s).__init__([
-        MethodSpec(
-            'get',
-            args=None,
-            rets={
-                'msg': IssueMsg(),
-            },
-            call=True,
-            rdy=True,
-        )
-    ])
+def IssueInterface():
+  return PipelineStageInterface(IssueMsg())
 
 
 class Issue(Model):
@@ -131,14 +120,14 @@ class Issue(Model):
       s.iq.add_value.opaque.v = s.iq_msg_in
 
     # Connect the output
-    s.connect(s.get_rdy, s.iq.remove_rdy)
-    s.connect(s.iq.remove_call, s.get_call)
+    s.connect(s.peek_rdy, s.iq.remove_rdy)
+    s.connect(s.iq.remove_call, s.take_call)
 
     @s.combinational
     def handle_output():
       # Copy over the source info again
-      s.get_msg.v = s.iq.remove_value.opaque
-      s.get_msg.rs1.v = s.iq.remove_value.src0
-      s.get_msg.rs1_val.v = s.iq.remove_value.src0_val
-      s.get_msg.rs2.v = s.iq.remove_value.src1
-      s.get_msg.rs2_val.v = s.iq.remove_value.src1_val
+      s.peek_msg.v = s.iq.remove_value.opaque
+      s.peek_msg.rs1.v = s.iq.remove_value.src0
+      s.peek_msg.rs1_val.v = s.iq.remove_value.src0_val
+      s.peek_msg.rs2.v = s.iq.remove_value.src1
+      s.peek_msg.rs2_val.v = s.iq.remove_value.src1_val
