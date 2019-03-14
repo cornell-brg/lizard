@@ -5,18 +5,18 @@ from util.rtl.pipeline_stage import StageInterface, PipelineStageInterface
 from core.rtl.controlflow import ControlFlowManager, ControlFlowManagerInterface
 from core.rtl.dataflow import DataFlowManager, DataFlowManagerInterface
 from core.rtl.csr_manager import CSRManager, CSRManagerInterface
-from core.rtl.frontend.fetch import Fetch
-from core.rtl.frontend.decode import Decode
-from core.rtl.backend.rename import Rename
+from core.rtl.frontend.fetch import Fetch, FetchInterface
+from core.rtl.frontend.decode import Decode, DecodeInterface
+from core.rtl.backend.rename import Rename, RenameInterface
 from core.rtl.backend.issue import Issue, IssueInterface
 from core.rtl.backend.dispatch import Dispatch, DispatchInterface
 from core.rtl.backend.pipe_selector import PipeSelector
 from core.rtl.backend.alu import ALU, ALUInterface
 from core.rtl.backend.branch import Branch, BranchInterface
 from core.rtl.backend.csr import CSR, CSRInterface
-from core.rtl.pipeline_arbiter import PipelineArbiter
-from core.rtl.backend.writeback import Writeback
-from core.rtl.backend.commit import Commit
+from core.rtl.pipeline_arbiter import PipelineArbiter, PipelineArbiterInterface
+from core.rtl.backend.writeback import Writeback, WritebackInterface
+from core.rtl.backend.commit import Commit, CommitInterface
 from core.rtl.proc_debug_bus import ProcDebugBusInterface
 from core.rtl.messages import *
 from mem.rtl.memory_bus import MemoryBusInterface
@@ -103,21 +103,21 @@ class Proc(Model):
     s.connect_m(s.db_send, s.csr.debug_send)
 
     # Fetch
-    s.fetch_interface = PipelineStageInterface(FetchMsg())
+    s.fetch_interface = FetchInterface()
     s.fetch = Fetch(s.fetch_interface, MemMsg)
     s.connect_m(s.mb_recv_0, s.fetch.mem_recv)
     s.connect_m(s.mb_send_0, s.fetch.mem_send)
     s.connect_m(s.cflow.check_redirect, s.fetch.check_redirect)
 
     # Decode
-    s.decode_interface = StageInterface(FetchMsg(), DecodeMsg())
+    s.decode_interface = DecodeInterface()
     s.decode = Decode(s.decode_interface)
     s.connect_m(s.fetch.peek, s.decode.in_peek)
     s.connect_m(s.fetch.take, s.decode.in_take)
     s.connect_m(s.cflow.check_redirect, s.decode.check_redirect)
 
     # Rename
-    s.rename_interface = StageInterface(DecodeMsg(), RenameMsg())
+    s.rename_interface = RenameInterface()
     s.rename = Rename(s.rename_interface)
     s.connect_m(s.decode.peek, s.rename.in_peek)
     s.connect_m(s.decode.take, s.rename.in_take)
@@ -162,7 +162,7 @@ class Proc(Model):
     s.connect_m(s.csr_pipe.dispatch_get, s.pipe_selector.csr_get)
 
     # Writeback Arbiter
-    s.writeback_arbiter_interface = PipelineStageInterface(ExecuteMsg())
+    s.writeback_arbiter_interface = PipelineArbiterInterface(ExecuteMsg())
     s.writeback_arbiter = PipelineArbiter(s.writeback_arbiter_interface,
                                           ['alu', 'csr'])
     s.connect_m(s.writeback_arbiter.alu_peek, s.alu.peek)
@@ -171,14 +171,14 @@ class Proc(Model):
     s.connect_m(s.writeback_arbiter.csr_take, s.csr_pipe.take)
 
     # Writeback
-    s.writeback_interface = StageInterface(ExecuteMsg(), WritebackMsg())
+    s.writeback_interface = WritebackInterface()
     s.writeback = Writeback(s.writeback_interface)
     s.connect_m(s.writeback_arbiter.peek, s.writeback.in_peek)
     s.connect_m(s.writeback_arbiter.take, s.writeback.in_take)
     s.connect_m(s.writeback.dataflow_write, s.dflow.write[0])
 
     # Commit
-    s.commit_interface = PipelineStageInterface(None)
+    s.commit_interface = CommitInterface()
     s.commit = Commit(s.commit_interface, ROB_SIZE)
     s.connect_m(s.writeback.peek, s.commit.in_peek)
     s.connect_m(s.writeback.take, s.commit.in_take)
