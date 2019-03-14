@@ -37,6 +37,8 @@ AluFunc = bit_enum(
     ('ALU_FUNC_SRA', 'sa'),
     ('ALU_FUNC_OR', 'or'),
     ('ALU_FUNC_AND', 'an'),
+    ('ALU_FUNC_LUI', 'li'),
+    ('ALU_FUNC_AUIPC', 'pc'),
 )
 
 CsrFunc = bit_enum(
