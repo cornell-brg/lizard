@@ -7,47 +7,21 @@ from util.rtl.register import Register, RegisterInterface
 from util.rtl.lookup_table import LookupTable, LookupTableInterface
 from bitutil import clog2, clog2nz
 from core.rtl.messages import DispatchMsg, ExecuteMsg, AluMsg, AluFunc
+from util.rtl.pipeline_stage import gen_stage, StageInterface
+from config.general import *
 
 
-class ALUInterface(Interface):
-
-  def __init__(s, data_len):
-    s.DataLen = data_len
-    super(ALUInterface, s).__init__([
-        MethodSpec(
-            'peek',
-            args=None,
-            rets={
-                'msg': ExecuteMsg(),
-            },
-            call=False,
-            rdy=True,
-        ),
-        MethodSpec(
-            'take',
-            args=None,
-            rets=None,
-            call=True,
-            rdy=False,
-        ),
-    ])
+def ALUInterface():
+  return StageInterface(DispatchMsg(), ExecuteMsg())
 
 
-class ALU(Model):
+class ALUStage(Model):
 
   def __init__(s, alu_interface):
     UseInterface(s, alu_interface)
-    s.require(
-        MethodSpec(
-            'dispatch_get',
-            args=None,
-            rets={'msg': DispatchMsg()},
-            call=True,
-            rdy=True,
-        ),)
 
     imm_len = DispatchMsg().imm.nbits
-    data_len = s.interface.DataLen
+    data_len = XLEN
 
     OP_LUT_MAP = {
         AluFunc.ALU_FUNC_ADD: alu.ALUFunc.ALU_ADD,
@@ -64,14 +38,11 @@ class ALU(Model):
         AluFunc.ALU_FUNC_LUI: alu.ALUFunc.ALU_OR,
     }
 
-    s.out_val_ = Register(RegisterInterface(Bits(1)), reset_value=0)
-    s.out_ = Register(RegisterInterface(ExecuteMsg(), enable=True))
     s.op_lut_ = LookupTable(
         LookupTableInterface(DispatchMsg().alu_msg_func.nbits,
                              alu.ALUFunc.bits), OP_LUT_MAP)
 
     s.alu_ = alu.ALU(alu.ALUInterface(data_len))
-    s.accepted_ = Wire(1)
     s.msg_ = Wire(DispatchMsg())
     s.msg_imm_ = Wire(imm_len)
 
@@ -91,29 +62,12 @@ class ALU(Model):
     s.connect(s.alu_.exec_func, s.op_lut_.lookup_out)
 
     # Connect to disptach get method
-    s.connect(s.msg_, s.dispatch_get_msg)
-    s.connect(s.dispatch_get_call, s.accepted_)
-
-    # Connect to registers
-    s.connect(s.out_.write_call, s.accepted_)
+    s.connect(s.msg_, s.process_in_)
+    s.connect(s.process_accepted, 1)
 
     # Connect up alu call
     s.connect(s.alu_.exec_unsigned, s.msg_.alu_msg_unsigned)
-    s.connect(s.alu_.exec_call, s.accepted_)
-
-    # Connect get call
-    s.connect(s.peek_msg, s.out_.read_data)
-    s.connect(s.peek_rdy, s.out_val_.read_data)
-
-    @s.combinational
-    def set_valid():
-      s.out_val_.write_data.v = s.accepted_ or (s.out_val_.read_data and
-                                                not s.take_call)
-
-    @s.combinational
-    def set_accepted():
-      s.accepted_.v = (s.take_call or not s.out_val_.read_data
-                      ) and s.alu_.exec_rdy and s.dispatch_get_rdy
+    s.connect(s.alu_.exec_call, s.process_call)
 
     # PYMTL_BROKEN
     s.rs1_ = Wire(data_len)
@@ -162,9 +116,12 @@ class ALU(Model):
       s.alu_.exec_src1.v = s.src2_ if s.msg_.rs2_val else s.imm_
 
     @s.combinational
-    def set_value_reg_input():
-      s.out_.write_data.v = 0
-      s.out_.write_data.hdr.v = s.msg_.hdr
-      s.out_.write_data.result.v = s.res_trunc_
-      s.out_.write_data.rd.v = s.msg_.rd
-      s.out_.write_data.rd_val.v = s.msg_.rd_val
+    def set_process_out():
+      s.process_out.v = 0
+      s.process_out.hdr.v = s.msg_.hdr
+      s.process_out.result.v = s.res_trunc_
+      s.process_out.rd.v = s.msg_.rd
+      s.process_out.rd_val.v = s.msg_.rd_val
+
+
+ALU = gen_stage(ALUStage)
