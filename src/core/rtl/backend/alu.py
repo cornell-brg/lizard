@@ -50,25 +50,25 @@ class ALU(Model):
     data_len = s.interface.DataLen
 
     OP_LUT_MAP = {
-      AluFunc.ALU_FUNC_ADD : alu.ALUFunc.ALU_ADD,
-      AluFunc.ALU_FUNC_SUB : alu.ALUFunc.ALU_SUB,
-      AluFunc.ALU_FUNC_AND : alu.ALUFunc.ALU_AND,
-      AluFunc.ALU_FUNC_OR : alu.ALUFunc.ALU_OR,
-      AluFunc.ALU_FUNC_XOR : alu.ALUFunc.ALU_XOR,
-      AluFunc.ALU_FUNC_SLL : alu.ALUFunc.ALU_SLL,
-      AluFunc.ALU_FUNC_SRL : alu.ALUFunc.ALU_SRL,
-      AluFunc.ALU_FUNC_SRA : alu.ALUFunc.ALU_SRA,
-      AluFunc.ALU_FUNC_SLT : alu.ALUFunc.ALU_SLT,
-      AluFunc.ALU_FUNC_AUIPC : alu.ALUFunc.ALU_ADD, # We are just adding to the PC
-      AluFunc.ALU_FUNC_LUI : alu.ALUFunc.ALU_OR,
+        AluFunc.ALU_FUNC_ADD: alu.ALUFunc.ALU_ADD,
+        AluFunc.ALU_FUNC_SUB: alu.ALUFunc.ALU_SUB,
+        AluFunc.ALU_FUNC_AND: alu.ALUFunc.ALU_AND,
+        AluFunc.ALU_FUNC_OR: alu.ALUFunc.ALU_OR,
+        AluFunc.ALU_FUNC_XOR: alu.ALUFunc.ALU_XOR,
+        AluFunc.ALU_FUNC_SLL: alu.ALUFunc.ALU_SLL,
+        AluFunc.ALU_FUNC_SRL: alu.ALUFunc.ALU_SRL,
+        AluFunc.ALU_FUNC_SRA: alu.ALUFunc.ALU_SRA,
+        AluFunc.ALU_FUNC_SLT: alu.ALUFunc.ALU_SLT,
+        AluFunc.ALU_FUNC_AUIPC:
+            alu.ALUFunc.ALU_ADD,  # We are just adding to the PC
+        AluFunc.ALU_FUNC_LUI: alu.ALUFunc.ALU_OR,
     }
 
     s.out_val_ = Register(RegisterInterface(Bits(1)), reset_value=0)
     s.out_ = Register(RegisterInterface(ExecuteMsg(), enable=True))
     s.op_lut_ = LookupTable(
-                          LookupTableInterface(DispatchMsg().alu_msg_func.nbits,
-                          alu.ALUFunc.bits),
-                          OP_LUT_MAP)
+        LookupTableInterface(DispatchMsg().alu_msg_func.nbits,
+                             alu.ALUFunc.bits), OP_LUT_MAP)
 
     s.alu_ = alu.ALU(alu.ALUInterface(data_len))
     s.accepted_ = Wire(1)
@@ -148,9 +148,8 @@ class ALU(Model):
         s.res_trunc_.v = s.res_
         if s.msg_.alu_msg_func == AluFunc.ALU_FUNC_AUIPC:
           s.src1_.v = s.msg_.hdr_pc
-        elif s.msg_.alu_msg_func == AluFunc.ALU_FUNC_LUI: # LUI is a special case
+        elif s.msg_.alu_msg_func == AluFunc.ALU_FUNC_LUI:  # LUI is a special case
           s.src1_.v = 0
-
 
     @s.combinational
     def set_inputs():
@@ -161,7 +160,6 @@ class ALU(Model):
         s.imm_.v = s.imm_ << 12
       s.alu_.exec_src0.v = s.src1_
       s.alu_.exec_src1.v = s.src2_ if s.msg_.rs2_val else s.imm_
-
 
     @s.combinational
     def set_value_reg_input():
