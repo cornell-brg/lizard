@@ -60,7 +60,7 @@ class ALU(Model):
       AluFunc.ALU_FUNC_SRA : alu.ALUFunc.ALU_SRA,
       AluFunc.ALU_FUNC_SLT : alu.ALUFunc.ALU_SLT,
       AluFunc.ALU_FUNC_AUIPC : alu.ALUFunc.ALU_ADD, # We are just adding to the PC
-      AluFunc.ALU_FUNC_LUI : alu.ALUFunc.ALU_ADD, # Dont care, we bypass the ALU
+      AluFunc.ALU_FUNC_LUI : alu.ALUFunc.ALU_OR,
     }
 
     s.out_val_ = Register(RegisterInterface(Bits(1)), reset_value=0)
@@ -81,7 +81,7 @@ class ALU(Model):
     s.src2_ = Wire(data_len)
     s.src2_32_ = Wire(32)
     s.imm_ = Wire(data_len)
-    s.imm_l20_ = Wire(32)
+    s.imm_l20_ = Wire(data_len)
 
     s.res_ = Wire(data_len)
     s.res_32_ = Wire(32)
@@ -146,19 +146,19 @@ class ALU(Model):
         s.src1_.v = s.rs1_
         s.src2_.v = s.rs2_
         s.res_trunc_.v = s.res_
-        if s.msg_.alu_msg_func == AluFunc.ALU_FUNC_LUI:
-          s.src1_.v = s.imm_l20_
+        if s.msg_.alu_msg_func == AluFunc.ALU_FUNC_AUIPC:
+          s.src1_.v = s.msg_.hdr_pc
         elif s.msg_.alu_msg_func == AluFunc.ALU_FUNC_LUI: # LUI is a special case
-          s.res_trunc_.v = s.imm_l20_
+          s.src1_.v = 0
 
 
     @s.combinational
     def set_inputs():
+      # PYMTL_BROKEN: sext, concat, and zext only work with wires and constants
       s.msg_imm_.v = s.msg_.imm
-      s.imm_l20_.v = s.msg_imm_.v[0:20] << 12
-      # PYMTL_BROKEN: sext(s.msg_.imm) does not create valid verilog
-      # Vivado errors: "range is not allowed in prefix"
       s.imm_.v = sext(s.msg_imm_, data_len)
+      if s.msg_.alu_msg_func == AluFunc.ALU_FUNC_AUIPC or s.msg_.alu_msg_func == AluFunc.ALU_FUNC_LUI:
+        s.imm_.v = s.imm_ << 12
       s.alu_.exec_src0.v = s.src1_
       s.alu_.exec_src1.v = s.src2_ if s.msg_.rs2_val else s.imm_
 
