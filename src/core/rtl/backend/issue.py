@@ -35,11 +35,18 @@ class Issue(Model):
     s.require(
         # Called on rename stage
         MethodSpec(
-            'rename_get',
+            'in_peek',
             args=None,
             rets={'msg': RenameMsg()},
-            call=True,
+            call=False,
             rdy=True,
+        ),
+        MethodSpec(
+            'in_take',
+            args=None,
+            rets=None,
+            call=True,
+            rdy=False,
         ),
         # Called on dataflow
         MethodSpec(
@@ -78,7 +85,7 @@ class Issue(Model):
     s.connect(s.iq.notify_call, s.updated_.decode_valid)
 
     s.renamed_ = Wire(RenameMsg())
-    s.connect(s.renamed_, s.rename_get_msg)
+    s.connect(s.renamed_, s.in_peek_msg)
 
     s.iq_msg_in = Wire(IssueMsg())
     s.iq_slot_in = Wire(SlotType)
@@ -90,9 +97,9 @@ class Issue(Model):
 
     @s.combinational
     def set_accepted():
-      s.accepted_.v = s.rename_get_rdy and s.iq.add_rdy
+      s.accepted_.v = s.in_peek_rdy and s.iq.add_rdy
 
-    s.connect(s.rename_get_call, s.accepted_)
+    s.connect(s.in_take_call, s.accepted_)
     s.connect(s.iq.add_call, s.accepted_)
 
     # Connect the Input value into the iq

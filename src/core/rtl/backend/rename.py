@@ -8,47 +8,20 @@ from bitutil import clog2, clog2nz
 from util.rtl.register import Register, RegisterInterface
 from core.rtl.messages import RenameMsg, DecodeMsg, PipelineMsgStatus
 from msg.codes import RVInstMask, Opcode, ExceptionCode
+from util.rtl.pipeline_stage import gen_stage
 
 
-class RenameInterface(Interface):
-
-  def __init__(s):
-    super(RenameInterface, s).__init__([
-        MethodSpec(
-            'get',
-            args=None,
-            rets={
-                'msg': RenameMsg(),
-            },
-            call=True,
-            rdy=True,
-        )
-    ])
-
-
-class Rename(Model):
+class RenameStage(Model):
 
   def __init__(s, rename_interface):
     UseInterface(s, rename_interface)
-    preg_nbits = s.get_msg.rs1.nbits
-    seq_idx_nbits = s.get_msg.hdr_seq.nbits
-    speculative_idx_nbits = s.get_msg.hdr_spec.nbits
-    speculative_mask_nbits = s.get_msg.hdr_branch_mask.nbits
+    preg_nbits = s.process_out.rs1.nbits
+    seq_idx_nbits = s.process_out.hdr_seq.nbits
+    speculative_idx_nbits = s.process_out.hdr_spec.nbits
+    speculative_mask_nbits = s.process_out.hdr_branch_mask.nbits
     pc_nbits = DecodeMsg().hdr_pc.nbits
     areg_nbits = DecodeMsg().rs1.nbits
     s.require(
-        MethodSpec(
-            'in_peek',
-            args=None,
-            rets={'msg': DecodeMsg()},
-            call=False,
-            rdy=True,
-        ),
-        MethodSpec(
-            'in_take',
-            call=True,
-            rdy=False,
-        ),
         # Methods needed from cflow:
         MethodSpec(
             'register',
@@ -83,22 +56,15 @@ class Rename(Model):
             rdy=True,
         ),
     )
-    s.rdy_ = Wire(1)
     s.accepted_ = Wire(1)
+    s.connect(s.process_accepted, s.accepted_)
 
     s.decoded_ = Wire(DecodeMsg())
 
-    # Outgoing pipeline reigster
-    s.msg_val_ = Register(RegisterInterface(Bits(1)), reset_value=0)
-    s.msg_ = Register(RegisterInterface(RenameMsg(), enable=True))
     s.out_ = Wire(RenameMsg())
 
-    # Connect up get call
-    s.connect(s.get_rdy, s.msg_val_.read_data)
-    s.connect(s.get_msg, s.msg_.read_data)
-
-    s.connect(s.decoded_, s.in_peek_msg)
-    s.connect(s.msg_.write_data, s.out_)
+    s.connect(s.decoded_, s.process_in_)
+    s.connect(s.process_out, s.out_)
 
     # Outgoing call's arguments
     s.connect(s.register_speculative, s.decoded_.speculative)
@@ -109,9 +75,7 @@ class Rename(Model):
     s.connect(s.get_dst_areg, s.decoded_.rd)
 
     # Outgoing call's call signal:
-    s.connect(s.in_take_call, s.accepted_)
-    s.connect(s.register_call, s.rdy_)
-    s.connect(s.msg_.write_call, s.accepted_)
+    s.connect(s.register_call, s.process_call)
     # Handle the conditional calls
     @s.combinational
     def handle_calls():
@@ -142,14 +106,7 @@ class Rename(Model):
       else:
         s.out_.exception_info.v = s.decoded_.exception_info
 
-    # Set the valid register
-    @s.combinational
-    def set_val():
-      s.msg_val_.write_data.v = s.accepted_ or (s.msg_val_.read_data and
-                                                not s.get_call)
+    s.connect(s.accepted_, s.register_success)
 
-    @s.combinational
-    def set_rdy():
-      s.rdy_.v = s.get_dst_rdy and s.in_peek_rdy and (not s.msg_val_.read_data
-                                                      or s.get_call)
-      s.accepted_.v = s.rdy_ and s.register_success
+
+Rename = gen_stage(RenameStage)
