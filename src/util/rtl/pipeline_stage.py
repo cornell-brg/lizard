@@ -135,30 +135,38 @@ class ValidValueManager(Model):
         DropControllerInterface(s.interface.DataIn,
                                 s.interface.DataOut)['check'])
 
-    s.out_reg = Register(RegisterInterface(s.interface.DataIn, enable=True))
-    s.val_mux = Mux(1, 2)
     s.val_reg = Register(RegisterInterface(Bits(1)), reset_value=0)
-    s.rdy_mux = Mux(1, 2)
-    s.val_after_drop_mux = Mux(1, 2)
+    s.out_reg = Register(RegisterInterface(s.interface.DataIn, enable=True))
+    s.output_rdy = Wire(1)
+    s.output_clear = Wire(1)
 
     s.connect(s.check_in_, s.out_reg.read_data)
     s.connect(s.peek_msg, s.check_out)
-    s.connect(s.val_after_drop_mux.mux_in_[0], 0)
-    s.connect(s.val_after_drop_mux.mux_in_[1], s.check_keep)
-    s.connect(s.val_after_drop_mux.mux_select, s.val_reg.read_data)
-    s.connect(s.peek_rdy, s.val_after_drop_mux.mux_out)
 
-    s.connect(s.val_mux.mux_in_[0], s.val_after_drop_mux.mux_out)
-    s.connect(s.val_mux.mux_in_[1], 1)
-    s.connect(s.val_mux.mux_select, s.add_call)
-    s.connect(s.val_reg.write_data, s.val_mux.mux_out)
+    @s.combinational
+    def handle_rdy():
+      if s.val_reg.read_data:
+        s.output_rdy.v = s.check_keep
+      else:
+        s.output_rdy.v = 0
+
+    s.connect(s.peek_rdy, s.output_rdy)
+
+    @s.combinational
+    def handle_clear():
+      s.output_clear.v = not s.output_rdy or s.take_call
+
+    s.connect(s.add_rdy, s.output_clear)
+
+    @s.combinational
+    def handle_val_reg_in():
+      if s.add_call:
+        s.val_reg.write_data.v = 1
+      else:
+        s.val_reg.write_data.v = not s.output_clear
 
     s.connect(s.out_reg.write_data, s.add_msg)
     s.connect(s.out_reg.write_call, s.add_call)
-
-    @s.combinational
-    def handle_add_rdy():
-      s.add_rdy.v = not s.val_after_drop_mux.mux_out or s.take_call
 
 
 def gen_valid_value_manager(drop_controller_class):
