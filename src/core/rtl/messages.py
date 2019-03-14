@@ -47,6 +47,15 @@ CsrFunc = bit_enum(
     ('CSR_FUNC_READ_CLEAR', 'rc'),
 )
 
+BranchType = bit_enum(
+    'BranchType',
+    None,
+    ('BRANCH_TYPE_EQ', 'eq'),
+    ('BRANCH_TYPE_NE', 'ne'),
+    ('BRANCH_TYPE_LT', 'lt'),
+    ('BRANCH_TYPE_GE', 'ge'),
+)
+
 
 def ValidValuePair(name, width):
   return Group(
@@ -122,12 +131,21 @@ def CsrMsg():
 
 
 @bit_struct_generator
+def BranchMsg():
+  return [
+      Field('type_', BranchType.bits),
+      Field('unsigned', 1),
+  ]
+
+
+@bit_struct_generator
 def PipeMsg():
   return [
       Union(
           'pipe_msg',
           Field('alu_msg', AluMsg()),
           Field('csr_msg', CsrMsg()),
+          Field('branch_msg', BranchMsg()),
       ),
   ]
 
