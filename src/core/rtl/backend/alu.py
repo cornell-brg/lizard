@@ -4,6 +4,7 @@ from util.rtl.method import MethodSpec
 from util.rtl.types import Array, canonicalize_type
 from util.rtl import alu
 from util.rtl.register import Register, RegisterInterface
+from util.rtl.lookup_table import LookupTable, LookupTableInterface
 from bitutil import clog2, clog2nz
 from core.rtl.messages import DispatchMsg, ExecuteMsg, AluMsg, AluFunc
 
@@ -48,8 +49,24 @@ class ALU(Model):
     imm_len = DispatchMsg().imm.nbits
     data_len = s.interface.DataLen
 
+    OP_LUT_MAP = {
+      AluFunc.ALU_FUNC_ADD : alu.ALUFunc.ALU_ADD,
+      AluFunc.ALU_FUNC_SUB : alu.ALUFunc.ALU_SUB,
+      AluFunc.ALU_FUNC_AND : alu.ALUFunc.ALU_AND,
+      AluFunc.ALU_FUNC_OR : alu.ALUFunc.ALU_OR,
+      AluFunc.ALU_FUNC_XOR : alu.ALUFunc.ALU_XOR,
+      AluFunc.ALU_FUNC_SLL : alu.ALUFunc.ALU_SLL,
+      AluFunc.ALU_FUNC_SRL : alu.ALUFunc.ALU_SRL,
+      AluFunc.ALU_FUNC_SRA : alu.ALUFunc.ALU_SRA,
+      AluFunc.ALU_FUNC_SLT : alu.ALUFunc.ALU_SLT,
+    }
+
     s.out_val_ = Register(RegisterInterface(Bits(1)), reset_value=0)
     s.out_ = Register(RegisterInterface(ExecuteMsg(), enable=True))
+    s.op_lut_ = LookupTable(
+                          LookupTableInterface(DispatchMsg().alu_msg_func.nbits,
+                          alu.ALUFunc.bits),
+                          OP_LUT_MAP)
 
     s.alu_ = alu.ALU(alu.ALUInterface(data_len))
     s.accepted_ = Wire(1)
@@ -65,6 +82,10 @@ class ALU(Model):
 
     s.res_ = Wire(data_len)
     s.res_32_ = Wire(32)
+
+    # Connect up lookup table
+    s.connect(s.op_lut_.lookup_in_, s.msg_.alu_msg_func)
+    s.connect(s.alu_.exec_func, s.op_lut_.lookup_out)
 
     # Connect to disptach get method
     s.connect(s.msg_, s.dispatch_get_msg)
@@ -132,26 +153,7 @@ class ALU(Model):
       # TODO handle LUI and AUIPC
       s.alu_.exec_src0.v = s.src1_
       s.alu_.exec_src1.v = s.src2_ if s.msg_.rs2_val else s.imm_
-      # Set the function
-      s.alu_.exec_func.v = 0
-      if s.msg_.alu_msg_func == AluFunc.ALU_FUNC_ADD:
-        s.alu_.exec_func.v = alu.ALUFunc.ALU_ADD
-      elif s.msg_.alu_msg_func == AluFunc.ALU_FUNC_SUB:
-        s.alu_.exec_func.v = alu.ALUFunc.ALU_SUB
-      elif s.msg_.alu_msg_func == AluFunc.ALU_FUNC_AND:
-        s.alu_.exec_func.v = alu.ALUFunc.ALU_AND
-      elif s.msg_.alu_msg_func == AluFunc.ALU_FUNC_OR:
-        s.alu_.exec_func.v = alu.ALUFunc.ALU_OR
-      elif s.msg_.alu_msg_func == AluFunc.ALU_FUNC_XOR:
-        s.alu_.exec_func.v = alu.ALUFunc.ALU_XOR
-      elif s.msg_.alu_msg_func == AluFunc.ALU_FUNC_SLL:
-        s.alu_.exec_func.v = alu.ALUFunc.ALU_SLL
-      elif s.msg_.alu_msg_func == AluFunc.ALU_FUNC_SRL:
-        s.alu_.exec_func.v = alu.ALUFunc.ALU_SRL
-      elif s.msg_.alu_msg_func == AluFunc.ALU_FUNC_SRA:
-        s.alu_.exec_func.v = alu.ALUFunc.ALU_SRA
-      elif s.msg_.alu_msg_func == AluFunc.ALU_FUNC_SLT:
-        s.alu_.exec_func.v = alu.ALUFunc.ALU_SLT
+
 
     @s.combinational
     def set_value_reg_input():
