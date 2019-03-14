@@ -5,8 +5,8 @@ from util.rtl.pipeline_stage import StageInterface, PipelineStageInterface
 from core.rtl.controlflow import ControlFlowManager, ControlFlowManagerInterface
 from core.rtl.dataflow import DataFlowManager, DataFlowManagerInterface
 from core.rtl.csr_manager import CSRManager, CSRManagerInterface
-from core.rtl.frontend.fetch import Fetch, FetchInterface
-from core.rtl.frontend.decode import Decode, DecodeInterface
+from core.rtl.frontend.fetch import Fetch
+from core.rtl.frontend.decode import Decode
 from core.rtl.backend.rename import Rename, RenameInterface
 from core.rtl.backend.issue import Issue, IssueInterface
 from core.rtl.backend.dispatch import Dispatch, DispatchInterface
@@ -103,23 +103,24 @@ class Proc(Model):
     s.connect_m(s.db_send, s.csr.debug_send)
 
     # Fetch
-    s.fetch_interface = FetchInterface(XLEN, ILEN)
+    s.fetch_interface = PipelineStageInterface(FetchMsg())
     s.fetch = Fetch(s.fetch_interface, MemMsg)
     s.connect_m(s.mb_recv_0, s.fetch.mem_recv)
     s.connect_m(s.mb_send_0, s.fetch.mem_send)
     s.connect_m(s.cflow.check_redirect, s.fetch.check_redirect)
 
     # Decode
-    s.decode_interface = DecodeInterface()
+    s.decode_interface = StageInterface(FetchMsg(), DecodeMsg())
     s.decode = Decode(s.decode_interface)
-    s.connect_m(s.fetch.get, s.decode.fetch_get)
+    s.connect_m(s.fetch.peek, s.decode.in_peek)
+    s.connect_m(s.fetch.take, s.decode.in_take)
     s.connect_m(s.cflow.check_redirect, s.decode.check_redirect)
 
     # Rename
     s.rename_interface = RenameInterface()
     s.rename = Rename(s.rename_interface)
-    s.connect_m(s.decode.peek, s.rename.decode_peek)
-    s.connect_m(s.decode.take, s.rename.decode_take)
+    s.connect_m(s.decode.peek, s.rename.in_peek)
+    s.connect_m(s.decode.take, s.rename.in_take)
     s.connect_m(s.cflow.register, s.rename.register)
     s.connect_m(s.dflow.get_src[0], s.rename.get_src[0])
     s.connect_m(s.dflow.get_src[1], s.rename.get_src[1])
@@ -176,7 +177,7 @@ class Proc(Model):
     s.connect_m(s.writeback.dataflow_write, s.dflow.write[0])
 
     # Commit
-    s.commit_interface = StageInterface(WritebackMsg(), None)
+    s.commit_interface = PipelineStageInterface(None)
     s.commit = Commit(s.commit_interface, ROB_SIZE)
     s.connect_m(s.writeback.peek, s.commit.in_peek)
     s.connect_m(s.writeback.take, s.commit.in_take)
