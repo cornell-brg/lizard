@@ -5,7 +5,14 @@ from util.rtl.method import MethodSpec
 from util.rtl.interface import Interface, UseInterface
 from bitutil import bit_enum
 
-CMPFunc = bit_enum('ALUFunc', None, 'CMP_EQ', 'CMP_NEQ', 'CMP_LT', 'CMP_GE',)
+CMPFunc = bit_enum(
+    'ALUFunc',
+    None,
+    'CMP_EQ',
+    'CMP_NEQ',
+    'CMP_LT',
+    'CMP_GE',
+)
 
 
 class ComparatorInterface(Interface):
@@ -70,14 +77,15 @@ class Comparator(Model):
     @s.combinational
     def set_signed():
       # We flip the upper most bit if signed
-      s.s0_up_.v = s.exec_src0[XLEN_M1] if s.exec_unsigned else not s.exec_src0[XLEN_M1]
-      s.s1_up_.v = s.exec_src1[XLEN_M1] if s.exec_unsigned else not s.exec_src1[XLEN_M1]
+      s.s0_up_.v = s.exec_src0[
+          XLEN_M1] if s.exec_unsigned else not s.exec_src0[XLEN_M1]
+      s.s1_up_.v = s.exec_src1[
+          XLEN_M1] if s.exec_unsigned else not s.exec_src1[XLEN_M1]
       s.s0_lower_.v = s.exec_src0[0:XLEN_M1]
       s.s1_lower_.v = s.exec_src1[0:XLEN_M1]
       # Now we can concat and compare
       s.s0_.v = concat(s.s0_up_, s.s0_lower_)
       s.s1_.v = concat(s.s1_up_, s.s1_lower_)
-
 
     @s.combinational
     def eval_comb():

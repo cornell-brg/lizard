@@ -128,7 +128,6 @@ class Branch(Model):
       else:
         s.branch_target_.v = s.msg_.hdr_pc + 4
 
-
     @s.combinational
     def set_value_reg_input():
       s.out_.write_data.v = 0
