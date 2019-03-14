@@ -3,8 +3,12 @@ from util.rtl.interface import Interface, UseInterface
 from util.rtl.method import MethodSpec
 from util.rtl.register import Register, RegisterInterface
 from core.rtl.messages import ExecuteMsg, WritebackMsg, PipelineMsgStatus
-from util.rtl.pipeline_stage import gen_stage
+from util.rtl.pipeline_stage import gen_stage, StageInterface
 from config.general import *
+
+
+def WritebackInterface():
+  return StageInterface(ExecuteMsg(), WritebackMsg())
 
 
 class WritebackStage(Model):

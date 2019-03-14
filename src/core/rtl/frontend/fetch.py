@@ -7,6 +7,11 @@ from mem.rtl.memory_bus import MemMsgType, MemMsgStatus
 from core.rtl.messages import *
 from msg.codes import ExceptionCode
 from config.general import *
+from util.rtl.pipeline_stage import PipelineStageInterface
+
+
+def FetchInterface():
+  return PipelineStageInterface(FetchMsg())
 
 
 class Fetch(Model):

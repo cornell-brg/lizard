@@ -10,9 +10,13 @@ from core.rtl.frontend.sub_decoder import compose_decoders
 from core.rtl.frontend.alu_decoder import AluDecoder
 from core.rtl.frontend.csr_decoder import CsrDecoder
 from config.general import DECODED_IMM_LEN, XLEN
-from util.rtl.pipeline_stage import gen_stage
+from util.rtl.pipeline_stage import gen_stage, StageInterface
 
 ComposedDecoder = compose_decoders(AluDecoder, CsrDecoder)
+
+
+def DecodeInterface():
+  return StageInterface(FetchMsg(), DecodeMsg())
 
 
 class DecodeStage(Model):

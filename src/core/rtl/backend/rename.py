@@ -8,7 +8,11 @@ from bitutil import clog2, clog2nz
 from util.rtl.register import Register, RegisterInterface
 from core.rtl.messages import RenameMsg, DecodeMsg, PipelineMsgStatus
 from msg.codes import RVInstMask, Opcode, ExceptionCode
-from util.rtl.pipeline_stage import gen_stage
+from util.rtl.pipeline_stage import gen_stage, StageInterface
+
+
+def RenameInterface():
+  return StageInterface(DecodeMsg(), RenameMsg())
 
 
 class RenameStage(Model):
