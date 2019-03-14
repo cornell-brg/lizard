@@ -141,6 +141,23 @@ def OpImm32ShiftDecoder():
   )
 
 
+def MiscDecoder():
+  return GenDecoderFixed(
+      OpClass.OP_CLASS_ALU,
+      'alu_msg',
+      AluMsg(),
+      {},
+      ['opcode'],
+      {
+          Opcode.LUI: alu_msg(AluFunc.ALU_FUNC_LUI, 0, 0),
+          Opcode.AUIPC: alu_msg(AluFunc.ALU_FUNC_AUIPC, 0, 0),
+      },
+      rd_val=1,
+      imm_type=ImmType.IMM_TYPE_U,
+      imm_val=1,
+  )
+
+
 AluDecoder = compose_decoders(OpDecoder, Op32Decoder, OpImmDecoder,
                               OpImm32Decoder, OpImmShiftDecoder,
-                              OpImm32ShiftDecoder)
+                              OpImm32ShiftDecoder, MiscDecoder)

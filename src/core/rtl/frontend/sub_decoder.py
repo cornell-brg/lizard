@@ -87,26 +87,33 @@ class GenDecoder(Model):
     msg = InstMsg()
     width = sum(
         [slice_len(msg._bitfields[field_name]) for field_name in field_list])
-    merged_field_map = {}
-    for values, output in field_map.iteritems():
-      if not isinstance(values, tuple):
-        values = (values,)
-      merged_value = Bits(width)
+    s.lookup_out = Wire(In)
+    if width != 0:
+      merged_field_map = {}
+      for values, output in field_map.iteritems():
+        if not isinstance(values, tuple):
+          values = (values,)
+        merged_value = Bits(width)
+        base = 0
+        for field_name, value in zip(field_list, values):
+          end = base + slice_len(msg._bitfields[field_name])
+          merged_value[base:end] = value
+          base = end
+        merged_field_map[merged_value] = output
+
+      s.lut = LookupTable(LookupTableInterface(width, In), merged_field_map)
+
       base = 0
-      for field_name, value in zip(field_list, values):
+      for field_name in field_list:
         end = base + slice_len(msg._bitfields[field_name])
-        merged_value[base:end] = value
+        s.connect(s.lut.lookup_in_[base:end],
+                  s.decode_inst[msg._bitfields[field_name]])
         base = end
-      merged_field_map[merged_value] = output
-
-    s.lut = LookupTable(LookupTableInterface(width, In), merged_field_map)
-
-    base = 0
-    for field_name in field_list:
-      end = base + slice_len(msg._bitfields[field_name])
-      s.connect(s.lut.lookup_in_[base:end],
-                s.decode_inst[msg._bitfields[field_name]])
-      base = end
+      s.connect(s.lookup_out, s.lut.lookup_out)
+    else:
+      # If there is only one thing and nothing to select on, bypass the lookup table
+      assert len(field_map) == 1
+      s.connect(s.lookup_out, int(field_map.values()[0]))
 
     s.connect(s.decode_rs1_val, rs1_val)
     s.connect(s.decode_rs2_val, rs2_val)
@@ -116,7 +123,7 @@ class GenDecoder(Model):
     s.connect(s.decode_op_class, int(op_class))
 
     s.connect(s.gen_inst, s.decode_inst)
-    s.connect(s.gen_data, s.lut.lookup_out)
+    s.connect(s.gen_data, s.lookup_out)
 
     @s.combinational
     def connect_result(rs=result_field_slice.start, re=result_field_slice.stop):
@@ -136,7 +143,10 @@ class GenDecoder(Model):
                 s.decode_inst[msg._bitfields[key]])
       s.connect(s.equals_units[i].compare_in_b, int(fixed_map[key]))
       s.connect(s.and_unit.op_in_[i], s.equals_units[i].compare_out)
-    s.connect(s.and_unit.op_in_[-1], s.lut.lookup_valid)
+    if width != 0:
+      s.connect(s.and_unit.op_in_[-1], s.lut.lookup_valid)
+    else:
+      s.connect(s.and_unit.op_in_[-1], 1)
 
     @s.combinational
     def compute_success():
