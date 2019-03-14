@@ -10,43 +10,16 @@ from core.rtl.frontend.sub_decoder import compose_decoders
 from core.rtl.frontend.alu_decoder import AluDecoder
 from core.rtl.frontend.csr_decoder import CsrDecoder
 from config.general import DECODED_IMM_LEN, XLEN
+from util.rtl.pipeline_stage import gen_stage
+
+ComposedDecoder = compose_decoders(AluDecoder, CsrDecoder)
 
 
-class DecodeInterface(Interface):
-
-  def __init__(s):
-    super(DecodeInterface, s).__init__([
-        MethodSpec(
-            'peek',
-            args={},
-            rets={
-                'msg': DecodeMsg(),
-            },
-            call=False,
-            rdy=True,
-        ),
-        MethodSpec(
-            'take',
-            call=True,
-            rdy=False,
-        ),
-    ])
-
-
-class Decode(Model):
+class DecodeStage(Model):
 
   def __init__(s, decode_interface):
     UseInterface(s, decode_interface)
     s.require(
-        MethodSpec(
-            'fetch_get',
-            args=None,
-            rets={
-                'msg': FetchMsg(),
-            },
-            call=True,
-            rdy=True,
-        ),
         MethodSpec(
             'check_redirect',
             args={},
@@ -56,68 +29,44 @@ class Decode(Model):
             },
             call=False,
             rdy=False,
-        ),
-    )
+        ))
 
     s.imm_decoder = ImmDecoder(ImmDecoderInterface(DECODED_IMM_LEN))
 
-    s.decode_val = Register(
-        RegisterInterface(Bits(1), True, False), reset_value=0)
-    s.decode_msg = Register(RegisterInterface(DecodeMsg(), True, False))
+    s.decoder = ComposedDecoder()
+    s.connect(s.process_accepted, 1)
 
-    s.decoder = compose_decoders(AluDecoder, CsrDecoder)()
-
-    s.advance = Wire(1)
-
-    @s.combinational
-    def handle_advance():
-      s.advance.v = (not s.decode_val.read_data or
-                     s.take_call) and s.fetch_get_rdy
-
-    s.connect(s.peek_rdy, s.decode_val.read_data)
-    s.connect(s.peek_msg, s.decode_msg.read_data)
-
-    s.connect(s.fetch_get_call, s.advance)
-    s.connect(s.fetch_get_msg.inst, s.decoder.decode_inst)
-    s.connect(s.imm_decoder.decode_inst, s.fetch_get_msg.inst)
+    s.connect(s.decoder.decode_inst, s.process_in_.inst)
+    s.connect(s.imm_decoder.decode_inst, s.process_in_.inst)
     s.connect(s.imm_decoder.decode_type_, s.decoder.decode_imm_type)
-    s.connect(s.decode_msg.write_call, s.advance)
 
     @s.combinational
     def handle_decode():
-      s.decode_val.write_call.v = 0
-      s.decode_val.write_data.v = 0
-      s.decode_msg.write_data.v = 0
-      s.decode_msg.write_data.hdr.v = s.fetch_get_msg.hdr
+      s.process_out.v = 0
+      s.process_out.hdr.v = s.process_in_.hdr
 
-      if s.advance:
-        s.decode_val.write_data.v = 1
-        s.decode_val.write_call.v = 1
-        if s.fetch_get_msg.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID:
-          if s.decoder.decode_success:
-            s.decode_msg.write_data.speculative.v = 0
-            s.decode_msg.write_data.pc_succ.v = s.fetch_get_msg.pc_succ
+      if s.process_in_.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID:
+        if s.decoder.decode_success:
+          s.process_out.speculative.v = 0
+          s.process_out.pc_succ.v = s.process_in_.pc_succ
 
-            s.decode_msg.write_data.rs1_val.v = s.decoder.decode_rs1_val
-            s.decode_msg.write_data.rs1.v = s.fetch_get_msg.inst_rs1
-            s.decode_msg.write_data.rs2_val.v = s.decoder.decode_rs2_val
-            s.decode_msg.write_data.rs2.v = s.fetch_get_msg.inst_rs2
-            s.decode_msg.write_data.rd_val.v = s.decoder.decode_rd_val
-            s.decode_msg.write_data.rd.v = s.fetch_get_msg.inst_rd
-            s.decode_msg.write_data.imm_val.v = s.decoder.decode_imm_val
-            s.decode_msg.write_data.imm.v = s.imm_decoder.decode_imm
-            s.decode_msg.write_data.op_class.v = s.decoder.decode_op_class
-            s.decode_msg.write_data.pipe_msg.v = s.decoder.decode_result
-            s.decode_msg.write_data.speculative.v = 0
-          else:
-            s.decode_msg.write_data.hdr_status.v = PipelineMsgStatus.PIPELINE_MSG_STATUS_EXCEPTION_RAISED
-            s.decode_msg.write_data.exception_info_mcause.v = ExceptionCode.ILLEGAL_INSTRUCTION
-            s.decode_msg.write_data.exception_info_mtval.v = zext(
-                s.fetch_get_msg.inst, XLEN)
+          s.process_out.rs1_val.v = s.decoder.decode_rs1_val
+          s.process_out.rs1.v = s.process_in_.inst_rs1
+          s.process_out.rs2_val.v = s.decoder.decode_rs2_val
+          s.process_out.rs2.v = s.process_in_.inst_rs2
+          s.process_out.rd_val.v = s.decoder.decode_rd_val
+          s.process_out.rd.v = s.process_in_.inst_rd
+          s.process_out.imm_val.v = s.decoder.decode_imm_val
+          s.process_out.imm.v = s.imm_decoder.decode_imm
+          s.process_out.op_class.v = s.decoder.decode_op_class
+          s.process_out.pipe_msg.v = s.decoder.decode_result
+          s.process_out.speculative.v = 0
         else:
-          s.decode_msg.write_data.exception_info.v = s.fetch_get_msg.exception_info
+          s.process_out.hdr_status.v = PipelineMsgStatus.PIPELINE_MSG_STATUS_EXCEPTION_RAISED
+          s.process_out.exception_info_mcause.v = ExceptionCode.ILLEGAL_INSTRUCTION
+          s.process_out.exception_info_mtval.v = zext(s.process_in_.inst, XLEN)
       else:
-        s.decode_val.write_call.v = s.take_call
+        s.process_out.exception_info.v = s.process_in_.exception_info
 
-  def line_trace(s):
-    return str(s.decode_msg.read_data)
+
+Decode = gen_stage(DecodeStage)

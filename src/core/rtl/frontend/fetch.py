@@ -6,25 +6,7 @@ from util.rtl.register import Register, RegisterInterface
 from mem.rtl.memory_bus import MemMsgType, MemMsgStatus
 from core.rtl.messages import *
 from msg.codes import ExceptionCode
-
-
-class FetchInterface(Interface):
-
-  def __init__(s, dlen, ilen):
-    s.dlen = dlen
-    s.ilen = ilen
-
-    super(FetchInterface, s).__init__([
-        MethodSpec(
-            'get',
-            args=None,
-            rets={
-                'msg': FetchMsg(),
-            },
-            call=True,
-            rdy=True,
-        )
-    ],)
+from config.general import *
 
 
 class Fetch(Model):
@@ -32,8 +14,8 @@ class Fetch(Model):
   def __init__(s, fetch_interface, MemMsg):
     UseInterface(s, fetch_interface)
     s.MemMsg = MemMsg
-    xlen = s.interface.dlen
-    ilen = s.interface.ilen
+    xlen = XLEN
+    ilen = ILEN
     ilen_bytes = ilen / 8
     s.require(
         MethodSpec(
@@ -81,7 +63,7 @@ class Fetch(Model):
     @s.combinational
     def handle_advance():
       s.advance_f1.v = s.drop_unit.output_rdy and (not s.fetch_val.read_data or
-                                                   s.get_call)
+                                                   s.take_call)
       s.advance_f0.v = not s.in_flight.read_data or s.drop_unit.drop_status_occurred or s.advance_f1
 
     @s.combinational
@@ -102,7 +84,7 @@ class Fetch(Model):
 
     s.connect(s.in_flight.write_data, 1)
     s.connect(s.in_flight.write_call, s.advance_f0)
-    s.connect(s.get_msg, s.fetch_msg.read_data)
+    s.connect(s.peek_msg, s.fetch_msg.read_data)
 
     @s.combinational
     def handle_f1():
@@ -114,13 +96,14 @@ class Fetch(Model):
 
       if s.check_redirect_redirect:
         # invalidate the output
-        s.get_rdy.v = 0
+        s.peek_rdy.v = 0
         # write a 0 into the valid register
         s.fetch_val.write_call.v = 1
       else:
-        s.get_rdy.v = s.fetch_val.read_data
+        s.peek_rdy.v = s.fetch_val.read_data
 
-        if s.drop_unit.output_rdy and (not s.fetch_val.read_data or s.get_call):
+        if s.drop_unit.output_rdy and (not s.fetch_val.read_data or
+                                       s.take_call):
           s.fetch_val.write_call.v = 1
           s.fetch_val.write_data.v = 1
           s.fetch_msg.write_call.v = 1
@@ -139,7 +122,7 @@ class Fetch(Model):
             s.fetch_msg.write_data.hdr_status.v = PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID
             s.fetch_msg.write_data.inst.v = s.drop_unit.output_data.data[:ilen]
             s.fetch_msg.write_data.pc_succ.v = s.pc.write_data
-        elif s.get_call:
+        elif s.take_call:
           # someone is calling, but we are stalled, so give them output but
           # unset valid
           s.fetch_val.write_call.v = 1

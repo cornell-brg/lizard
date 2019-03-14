@@ -8,7 +8,6 @@ from bitutil import clog2, clog2nz
 from util.rtl.register import Register, RegisterInterface
 from core.rtl.messages import RenameMsg, DecodeMsg, PipelineMsgStatus
 from msg.codes import RVInstMask, Opcode, ExceptionCode
-from core.rtl.frontend.decode import DecodeInterface
 
 
 class RenameInterface(Interface):
@@ -39,14 +38,14 @@ class Rename(Model):
     areg_nbits = DecodeMsg().rs1.nbits
     s.require(
         MethodSpec(
-            'decode_peek',
+            'in_peek',
             args=None,
             rets={'msg': DecodeMsg()},
             call=False,
             rdy=True,
         ),
         MethodSpec(
-            'decode_take',
+            'in_take',
             call=True,
             rdy=False,
         ),
@@ -98,7 +97,7 @@ class Rename(Model):
     s.connect(s.get_rdy, s.msg_val_.read_data)
     s.connect(s.get_msg, s.msg_.read_data)
 
-    s.connect(s.decoded_, s.decode_peek_msg)
+    s.connect(s.decoded_, s.in_peek_msg)
     s.connect(s.msg_.write_data, s.out_)
 
     # Outgoing call's arguments
@@ -110,7 +109,7 @@ class Rename(Model):
     s.connect(s.get_dst_areg, s.decoded_.rd)
 
     # Outgoing call's call signal:
-    s.connect(s.decode_take_call, s.accepted_)
+    s.connect(s.in_take_call, s.accepted_)
     s.connect(s.register_call, s.rdy_)
     s.connect(s.msg_.write_call, s.accepted_)
     # Handle the conditional calls
@@ -151,6 +150,6 @@ class Rename(Model):
 
     @s.combinational
     def set_rdy():
-      s.rdy_.v = s.get_dst_rdy and s.decode_peek_rdy and (
-          not s.msg_val_.read_data or s.get_call)
+      s.rdy_.v = s.get_dst_rdy and s.in_peek_rdy and (not s.msg_val_.read_data
+                                                      or s.get_call)
       s.accepted_.v = s.rdy_ and s.register_success
