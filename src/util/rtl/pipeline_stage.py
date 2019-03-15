@@ -273,6 +273,7 @@ def gen_stage(stage_class, drop_controller_class=None):
       assert not (s.stage.interface.Out is None and actual_dc is not None)
       if actual_dc is not None:
         s.drop_controller = actual_dc()
+        s.wrap(s.drop_controller)
         s.connect_m(s.pipeline_stage.check, s.drop_controller.check)
         s.connect_m(s.pipeline_stage.process, s.stage.process)
         s.connect_m(s.pipeline_stage.peek, s.peek)
