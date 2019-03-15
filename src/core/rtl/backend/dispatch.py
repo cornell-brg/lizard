@@ -8,7 +8,8 @@ from bitutil import clog2, clog2nz
 from util.rtl.register import Register, RegisterInterface
 from core.rtl.messages import IssueMsg, DispatchMsg, PipelineMsgStatus
 from msg.codes import RVInstMask, Opcode, ExceptionCode
-from util.rtl.pipeline_stage import gen_stage, StageInterface
+from util.rtl.pipeline_stage import gen_stage, StageInterface, DropControllerInterface
+from core.rtl.kill_unit import KillDropController
 
 
 def DispatchInterface():
@@ -61,4 +62,8 @@ class DispatchStage(Model):
         s.dispatched_.execution_data.v = s.process_in_.execution_data
 
 
-Dispatch = gen_stage(DispatchStage)
+def DispatchDropController():
+  return KillDropController(DropControllerInterface(DispatchMsg()))
+
+
+Dispatch = gen_stage(DispatchStage, DispatchDropController)

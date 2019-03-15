@@ -7,7 +7,8 @@ from util.rtl.register import Register, RegisterInterface
 from util.rtl.lookup_table import LookupTable, LookupTableInterface
 from bitutil import clog2, clog2nz
 from core.rtl.messages import DispatchMsg, ExecuteMsg, AluMsg, AluFunc
-from util.rtl.pipeline_stage import gen_stage, StageInterface
+from util.rtl.pipeline_stage import gen_stage, StageInterface, DropControllerInterface
+from core.rtl.kill_unit import KillDropController
 from config.general import *
 
 
@@ -124,4 +125,8 @@ class ALUStage(Model):
       s.process_out.rd_val.v = s.msg_.rd_val
 
 
-ALU = gen_stage(ALUStage)
+def ALUDropController():
+  return KillDropController(DropControllerInterface(ExecuteMsg()))
+
+
+ALU = gen_stage(ALUStage, ALUDropController)

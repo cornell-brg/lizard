@@ -3,7 +3,8 @@ from util.rtl.interface import Interface, UseInterface
 from util.rtl.method import MethodSpec
 from util.rtl.register import Register, RegisterInterface
 from core.rtl.messages import ExecuteMsg, WritebackMsg, PipelineMsgStatus
-from util.rtl.pipeline_stage import gen_stage, StageInterface
+from util.rtl.pipeline_stage import gen_stage, StageInterface, DropControllerInterface
+from core.rtl.kill_unit import KillDropController
 from config.general import *
 
 
@@ -50,4 +51,8 @@ class WritebackStage(Model):
           s.process_out.exception_info.v = s.process_in_.exception_info
 
 
-Writeback = gen_stage(WritebackStage)
+def WritebackDropController():
+  return KillDropController(DropControllerInterface(WritebackMsg()))
+
+
+Writeback = gen_stage(WritebackStage, WritebackDropController)
