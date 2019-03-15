@@ -138,6 +138,7 @@ class Proc(Model):
     # Dispatch
     s.dispatch_interface = DispatchInterface()
     s.dispatch = Dispatch(s.dispatch_interface)
+    s.connect_m(s.cflow.check_kill, s.dispatch.check_kill)
     s.connect_m(s.issue.peek, s.dispatch.in_peek)
     s.connect_m(s.issue.take, s.dispatch.in_take)
     s.connect_m(s.dflow.read, s.dispatch.read)
@@ -151,6 +152,7 @@ class Proc(Model):
     ## ALU
     s.alu_interface = ALUInterface()
     s.alu = ALU(s.alu_interface)
+    s.connect_m(s.cflow.check_kill, s.alu.check_kill)
     s.connect_m(s.alu.in_peek, s.pipe_selector.alu_peek)
     s.connect_m(s.alu.in_take, s.pipe_selector.alu_take)
 
@@ -162,6 +164,7 @@ class Proc(Model):
     ## CSR
     s.csr_pipe_interface = CSRInterface()
     s.csr_pipe = CSR(s.csr_pipe_interface)
+    s.connect_m(s.cflow.check_kill, s.csr_pipe.check_kill)
     s.connect_m(s.csr_pipe.csr_op, s.csr.op)
     s.connect_m(s.csr_pipe.in_peek, s.pipe_selector.csr_peek)
     s.connect_m(s.csr_pipe.in_take, s.pipe_selector.csr_take)
@@ -178,6 +181,7 @@ class Proc(Model):
     # Writeback
     s.writeback_interface = WritebackInterface()
     s.writeback = Writeback(s.writeback_interface)
+    s.connect_m(s.cflow.check_kill, s.writeback.check_kill)
     s.connect_m(s.writeback_arbiter.peek, s.writeback.in_peek)
     s.connect_m(s.writeback_arbiter.take, s.writeback.in_take)
     s.connect_m(s.writeback.dataflow_write, s.dflow.write[0])
