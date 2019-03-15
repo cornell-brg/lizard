@@ -8,7 +8,8 @@ from bitutil import clog2, clog2nz
 from util.rtl.register import Register, RegisterInterface
 from core.rtl.messages import RenameMsg, DecodeMsg, PipelineMsgStatus
 from msg.codes import RVInstMask, Opcode, ExceptionCode
-from util.rtl.pipeline_stage import gen_stage, StageInterface
+from util.rtl.pipeline_stage import gen_stage, StageInterface, DropControllerInterface
+from core.rtl.kill_unit import KillDropController
 
 
 def RenameInterface():
@@ -113,4 +114,8 @@ class RenameStage(Model):
     s.connect(s.accepted_, s.register_success)
 
 
-Rename = gen_stage(RenameStage)
+def RenameDropController():
+  return KillDropController(DropControllerInterface(RenameMsg()))
+
+
+Rename = gen_stage(RenameStage, RenameDropController)
