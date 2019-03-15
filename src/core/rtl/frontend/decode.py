@@ -10,8 +10,8 @@ from core.rtl.frontend.sub_decoder import compose_decoders
 from core.rtl.frontend.alu_decoder import AluDecoder
 from core.rtl.frontend.csr_decoder import CsrDecoder
 from core.rtl.frontend.branch_decoder import BranchDecoder
-from config.general import DECODED_IMM_LEN, XLEN
-from util.rtl.pipeline_stage import gen_stage, StageInterface
+from config.general import *
+from util.rtl.pipeline_stage import gen_stage, StageInterface, DropControllerInterface
 
 ComposedDecoder = compose_decoders(AluDecoder, CsrDecoder, BranchDecoder)
 
@@ -24,17 +24,6 @@ class DecodeStage(Model):
 
   def __init__(s, decode_interface):
     UseInterface(s, decode_interface)
-    s.require(
-        MethodSpec(
-            'check_redirect',
-            args={},
-            rets={
-                'redirect': Bits(1),
-                'target': Bits(XLEN),
-            },
-            call=False,
-            rdy=False,
-        ))
 
     s.imm_decoder = ImmDecoder(ImmDecoderInterface(DECODED_IMM_LEN))
 
@@ -74,4 +63,34 @@ class DecodeStage(Model):
         s.process_out.exception_info.v = s.process_in_.exception_info
 
 
-Decode = gen_stage(DecodeStage)
+RedirectDropControllerInterface = DropControllerInterface
+
+
+class RedirectDropController(Model):
+
+  def __init__(s, interface):
+    UseInterface(s, interface)
+    s.require(
+        MethodSpec(
+            'check_redirect',
+            args={},
+            rets={
+                'redirect': Bits(1),
+                'target': Bits(XLEN),
+            },
+            call=False,
+            rdy=False,
+        ))
+
+    s.connect(s.check_out, s.check_in_)
+
+    @s.combinational
+    def handle_check_keep():
+      s.check_keep.v = not s.check_redirect_redirect
+
+
+def DecodeRedirectDropController():
+  return RedirectDropController(RedirectDropControllerInterface(DecodeMsg()))
+
+
+Decode = gen_stage(DecodeStage, DecodeRedirectDropController)
