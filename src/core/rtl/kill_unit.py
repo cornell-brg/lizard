@@ -6,7 +6,7 @@ from util.rtl.register import Register, RegisterInterface
 from util.rtl.pipeline_stage import DropControllerInterface, gen_valid_value_manager
 
 
-class KillCheckerInterface(object):
+class KillCheckerInterface(Interface):
 
   def __init__(s, bmask_nbits):
     s.nbits = bmask_nbits
@@ -14,14 +14,14 @@ class KillCheckerInterface(object):
         MethodSpec(
             'update',
             args={
-                'branch_mask': Bits(s.NumBits),
+                'branch_mask': Bits(s.nbits),
                 'force_kill': Bits(1),
-                'kill_mask': Bits(s.NumBits),
-                'clear_mask': Bits(s.NumBits),
+                'kill_mask': Bits(s.nbits),
+                'clear_mask': Bits(s.nbits),
             },
             rets={
                 'killed': Bits(1),
-                'out_mask': Bits(s.NumBits)
+                'out_mask': Bits(s.nbits)
             },
             call=False,
             rdy=False,
@@ -53,11 +53,11 @@ class KillUnitInterface(Interface):
         MethodSpec(
             'update',
             args={
-                'branch_mask': Bits(s.NumBits),
+                'branch_mask': Bits(s.nbits),
             },
             rets={
                 'killed': Bits(1),
-                'out_mask': Bits(s.NumBits)
+                'out_mask': Bits(s.nbits)
             },
             call=False,
             rdy=False,
@@ -86,8 +86,8 @@ class KillUnit(Model):
     s.kill_checker = KillChecker(KillCheckerInterface(s.interface.nbits))
     s.connect(s.kill_checker.update_branch_mask, s.update_branch_mask)
     s.connect(s.kill_checker.update_force_kill, s.check_kill_force)
-    s.connect(s.kill_checker.update_kill_mask, s.check_kill_mask)
-    s.connect(s.kill_checker.update_clear_mask, s.check_clear_mask)
+    s.connect(s.kill_checker.update_kill_mask, s.check_kill_kill_mask)
+    s.connect(s.kill_checker.update_clear_mask, s.check_kill_clear_mask)
     s.connect(s.update_killed, s.kill_checker.update_killed)
     s.connect(s.update_out_mask, s.kill_checker.update_out_mask)
 
@@ -101,7 +101,7 @@ class KillDropController(Model):
     nbits = s.interface.In.hdr_branch_mask.nbits
     s.kill_unit = KillUnit(KillUnitInterface(nbits))
     # Wrap the kill unit, lifting its requirements to us
-    s.wrap(kill_unit)
+    s.wrap(s.kill_unit)
 
     # Feed just the branch masks through the kill unit
     s.connect(s.kill_unit.update_branch_mask, s.check_in_.hdr_branch_mask)
