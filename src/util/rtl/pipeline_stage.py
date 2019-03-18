@@ -12,25 +12,20 @@ class PipelineStageInterface(Interface):
   def __init__(s, MsgType, KillArgType):
     s.MsgType = MsgType
     s.KillArgType = KillArgType
+    methods = []
+    if KillArgType is not None:
+      methods.append(
+          MethodSpec(
+              'kill_notify',
+              args={
+                  'msg': KillArgType,
+              },
+              rets=None,
+              call=False,
+              rdy=False,
+          ),)
     # If there is no MsgType, this is the last pipeline stage and has no outputs
-    if MsgType is None:
-      methods = []
-    else:
-      if KillArgType is not None:
-        methods = [
-            MethodSpec(
-                'kill_notify',
-                args={
-                    'msg': KillArgType,
-                },
-                rets=None,
-                call=False,
-                rdy=False,
-            ),
-        ]
-      else:
-        methods = []
-
+    if MsgType is not None:
       methods.extend([
           MethodSpec(
               'peek',
