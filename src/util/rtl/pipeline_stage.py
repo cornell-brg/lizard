@@ -95,10 +95,19 @@ class NullDropController(Model):
 
 class ValidValueManagerInterface(Interface):
 
-  def __init__(s, DataIn, DataOut):
+  def __init__(s, DataIn, DataOut, KillArgType):
     s.DataIn = DataIn
     s.DataOut = DataOut
     super(ValidValueManagerInterface, s).__init__([
+        MethodSpec(
+            'notify',
+            args={
+                'msg': KillerArgType,
+            },
+            rets=None,
+            call=False,
+            rdy=False,
+        ),
         MethodSpec(
             'peek',
             args=None,
