@@ -10,10 +10,11 @@ from msg.codes import RVInstMask, Opcode, ExceptionCode
 from util.rtl.issue_queue import CompactingIssueQueue, IssueQueueInterface, AbstractIssueType
 from util.rtl.coders import PriorityDecoder
 from util.rtl.pipeline_stage import PipelineStageInterface
+from core.rtl.kill_unit import KillDropController, KillDropControllerInterface
 
 
 def IssueInterface():
-  return PipelineStageInterface(IssueMsg(), None)
+  return PipelineStageInterface(IssueMsg(), Bits(5))
 
 
 class Issue(Model):
@@ -64,9 +65,10 @@ class Issue(Model):
     branch_mask_nbits = RenameMsg().hdr_branch_mask.nbits
 
     # TODO, Instead of opaque being OutMsg, remove rs1 and rs2 from message
-    SlotType = AbstractIssueType(preg_nbits, branch_mask_nbits, IssueMsg())
+    SlotType = AbstractIssueType(preg_nbits, IssueMsg(), s.interface.KillArgType)
 
-    s.iq = CompactingIssueQueue(IssueQueueInterface(SlotType), num_slots)
+    make_kill = lambda : KillDropController(KillDropControllerInterface(branch_mask_nbits))
+    s.iq = CompactingIssueQueue(IssueQueueInterface(SlotType(), s.interface.KillArgType), make_kill, num_slots)
     # Connect the notify signal
     s.updated_ = PriorityDecoder(s.NumPregs)
     s.connect(s.updated_.decode_signal, s.get_updated_mask)
