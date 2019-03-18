@@ -69,6 +69,7 @@ class Issue(Model):
 
     def make_kill():
       return KillDropController(KillDropControllerInterface(branch_mask_nbits))
+
     s.iq = CompactingIssueQueue(
         IssueQueueInterface(SlotType(), s.interface.KillArgType), make_kill,
         num_slots)
