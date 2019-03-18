@@ -6,48 +6,25 @@ from util.rtl.comparator import Comparator, ComparatorInterface
 from util.rtl.register import Register, RegisterInterface
 from bitutil import clog2, clog2nz
 from core.rtl.messages import DispatchMsg, ExecuteMsg, AluMsg, AluFunc
+from util.rtl.pipeline_stage import gen_stage, StageInterface, DropControllerInterface
+from core.rtl.kill_unit import PipelineKillDropController
+from core.rtl.controlflow import KillType
+from config.general import *
 
 
-class BranchInterface(Interface):
-
-  def __init__(s, data_len):
-    s.DataLen = data_len
-    super(BranchInterface, s).__init__([
-        MethodSpec(
-            'peek',
-            args=None,
-            rets={
-                'msg': ExecuteMsg(),
-            },
-            call=False,
-            rdy=True,
-        ),
-        MethodSpec(
-            'take',
-            args=None,
-            rets=None,
-            call=True,
-            rdy=False,
-        ),
-    ])
+def BranchInterface():
+  return StageInterface(DispatchMsg(), ExecuteMsg())
 
 
-class Branch(Model):
+class BranchStage(Model):
 
   def __init__(s, branch_interface):
     UseInterface(s, branch_interface)
     imm_len = DispatchMsg().imm.nbits
-    data_len = s.interface.DataLen
+    data_len = XLEN
     spec_idx_len = DispatchMsg().hdr_spec.nbits
 
     s.require(
-        MethodSpec(
-            'dispatch_get',
-            args=None,
-            rets={'msg': DispatchMsg()},
-            call=True,
-            rdy=True,
-        ),
         MethodSpec(
             'cflow_redirect',
             args={
@@ -58,14 +35,11 @@ class Branch(Model):
             rets={},
             call=True,
             rdy=False,
-        ),
-    )
+        ),)
 
-    s.out_val_ = Register(RegisterInterface(Bits(1)), reset_value=0)
-    s.out_ = Register(RegisterInterface(ExecuteMsg(), enable=True))
+    s.connect(s.process_accepted, 1)
 
     s.cmp_ = Comparator(ComparatorInterface(data_len))
-    s.accepted_ = Wire(1)
     s.msg_ = Wire(DispatchMsg())
     s.msg_imm_ = Wire(imm_len)
     s.imm_ = Wire(data_len)
@@ -74,43 +48,25 @@ class Branch(Model):
     s.branch_target_ = Wire(data_len)
 
     # Connect to disptach get method
-    s.connect(s.msg_, s.dispatch_get_msg)
-    s.connect(s.dispatch_get_call, s.accepted_)
-
-    # Connect to registers
-    s.connect(s.out_.write_call, s.accepted_)
+    s.connect(s.msg_, s.process_in_)
 
     # Connect up cmp call
     # s.connect(s.cmp_.exec_src0, TODO)
     # s.connect(s.cmp_.exec_src1, TODO)
     # s.connect(s.cmp_.exec_unsigned, TODO)
-    s.connect(s.cmp_.exec_call, s.accepted_)
-
-    # Connect get call
-    s.connect(s.peek_msg, s.out_.read_data)
-    s.connect(s.peek_rdy, s.out_val_.read_data)
+    s.connect(s.cmp_.exec_call, s.process_call)
 
     # Connect up to controlflow redirect method
     s.connect(s.cflow_redirect_spec_idx, s.msg_.hdr_spec)
     s.connect(s.cflow_redirect_target, s.branch_target_)
     s.connect(s.cflow_redirect_force, 0)
-    s.connect(s.cflow_redirect_call, s.accepted_)
+    s.connect(s.cflow_redirect_call, s.process_call)
 
     @s.combinational
     def set_take_branch():
       s.take_branch_.v = 0
       # TODO handle branches that are not conditional
       s.take_branch_.v = s.cmp_.exec_res
-
-    @s.combinational
-    def set_valid():
-      s.out_val_.write_data.v = s.accepted_ or (s.out_val_.read_data and
-                                                not s.take_call)
-
-    @s.combinational
-    def set_accepted():
-      s.accepted_.v = (s.take_call or not s.out_val_.read_data
-                      ) and s.cmp_.exec_rdy and s.dispatch_get_rdy
 
     @s.combinational
     def set_inputs():
@@ -130,5 +86,14 @@ class Branch(Model):
 
     @s.combinational
     def set_value_reg_input():
-      s.out_.write_data.v = 0
-      s.out_.write_data.hdr.v = s.msg_.hdr
+      s.process_out.v = 0
+      s.process_out.hdr.v = s.msg_.hdr
+
+
+def BranchDropController():
+  return PipelineKillDropController(
+      DropControllerInterface(ExecuteMsg(), ExecuteMsg(),
+                              KillType(MAX_SPEC_DEPTH)))
+
+
+Branch = gen_stage(BranchStage, BranchDropController)

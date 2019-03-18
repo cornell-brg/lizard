@@ -165,9 +165,11 @@ class Proc(Model):
     s.connect_m(s.alu.in_take, s.pipe_selector.alu_take)
 
     ## Branch
-    s.branch_interface = BranchInterface(XLEN)
+    s.branch_interface = BranchInterface()
     s.branch = Branch(s.branch_interface)
     s.connect_m(s.cflow.redirect, s.branch.cflow_redirect)
+    s.connect_m(s.branch.in_peek, s.pipe_selector.branch_peek)
+    s.connect_m(s.branch.in_take, s.pipe_selector.branch_take)
 
     ## CSR
     s.csr_pipe_interface = CSRInterface()
@@ -180,11 +182,13 @@ class Proc(Model):
     # Writeback Arbiter
     s.writeback_arbiter_interface = PipelineArbiterInterface(ExecuteMsg())
     s.writeback_arbiter = PipelineArbiter(s.writeback_arbiter_interface,
-                                          ['alu', 'csr'])
+                                          ['alu', 'csr', 'branch'])
     s.connect_m(s.writeback_arbiter.alu_peek, s.alu.peek)
     s.connect_m(s.writeback_arbiter.alu_take, s.alu.take)
     s.connect_m(s.writeback_arbiter.csr_peek, s.csr_pipe.peek)
     s.connect_m(s.writeback_arbiter.csr_take, s.csr_pipe.take)
+    s.connect_m(s.writeback_arbiter.branch_peek, s.branch.peek)
+    s.connect_m(s.writeback_arbiter.branch_take, s.branch.take)
 
     # Writeback
     s.writeback_interface = WritebackInterface()

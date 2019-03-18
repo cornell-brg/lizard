@@ -9,7 +9,7 @@ from core.rtl.messages import IssueMsg, DispatchMsg, PipelineMsgStatus, OpClass
 class PipeSelectorController(Model):
 
   def __init__(s):
-    UseInterface(s, PipelineSplitterControllerInterface(DispatchMsg(), 2))
+    UseInterface(s, PipelineSplitterControllerInterface(DispatchMsg(), 3))
 
     @s.combinational
     def handle_sort():
@@ -17,8 +17,12 @@ class PipeSelectorController(Model):
         s.sort_pipe.v = 0  # CSR pipe
       elif s.sort_msg.op_class == OpClass.OP_CLASS_CSR:
         s.sort_pipe.v = 0  # CSR pipe
-      else:
+      elif s.sort_msg.op_class == OpClass.OP_CLASS_ALU:
         s.sort_pipe.v = 1  # ALU pipe
+      elif s.sort_msg.op_class == OpClass.OP_CLASS_BRANCH:
+        s.sort_pipe.v = 2  # Branch pipe
+      else:
+        s.sort_pipe.v = 0  # Error CSR pipe
 
 
 class PipeSelector(Model):
@@ -26,7 +30,8 @@ class PipeSelector(Model):
   def __init__(s):
     # TODO: the order above (0 for CSR 1 for ALU comes from this array
     # This is bad
-    UseInterface(s, PipelineSplitterInterface(DispatchMsg(), ['csr', 'alu']))
+    UseInterface(
+        s, PipelineSplitterInterface(DispatchMsg(), ['csr', 'alu', 'branch']))
     s.require(
         MethodSpec(
             'in_peek',
