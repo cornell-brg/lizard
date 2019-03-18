@@ -1,6 +1,6 @@
 from pymtl import *
 from bitutil import clog2, clog2nz
-from util.rtil.pipeline_stage import gen_valid_value_manager
+from util.rtl.pipeline_stage import gen_valid_value_manager
 from util.rtl.register import Register, RegisterInterface
 from util.rtl.method import MethodSpec
 from util.rtl.coders import PriorityDecoder
@@ -101,7 +101,7 @@ class GenericIssueSlot(Model):
     #s.valid_ = Register(RegisterInterface(Bits(1)), reset_value=0)
 
     # Make the valid manager from the DropControllerInterface passed in
-    s.val_manager_ = gen_valid_value_manager(make_kill)
+    s.val_manager_ = gen_valid_value_manager(make_kill)()
 
     s.opaque_ = Register(RegisterInterface(s.interface.Opaque, enable=True))
     s.src0_ = Register(RegisterInterface(s.interface.SrcTag, enable=True))
@@ -188,12 +188,11 @@ class GenericIssueSlot(Model):
 
 class IssueQueueInterface(Interface):
 
-  def __init__(s, slot_type, KillArgType, make_kill):
+  def __init__(s, slot_type, KillArgType):
     s.SlotType = slot_type
     s.SrcTag = Bits(slot_type.src0.nbits)
-    s.BranchMask = Bits(slot_type.branch_mask.nbits)
     s.Opaque = Bits(slot_type.opaque.nbits)
-    s.KillArgType = Bits(slot_type.KillArgType)
+    s.KillArgType = KillArgType
 
     super(IssueQueueInterface, s).__init__([
         MethodSpec(
@@ -233,7 +232,7 @@ class IssueQueueInterface(Interface):
 
 class CompactingIssueQueue(Model):
 
-  def __init__(s, interface, num_slots=4):
+  def __init__(s, interface, make_kill, num_slots=4):
     """ This model implements a generic issue queue
 
       create_slot: A function that instatiates a model that conforms
