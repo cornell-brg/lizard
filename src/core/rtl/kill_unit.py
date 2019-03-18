@@ -35,6 +35,35 @@ class KillNotifier(Model):
     s.connect(s.kill_notify_msg, s.check_kill_kill)
 
 
+class RedirectNotifier(Model):
+
+  def __init__(s, xlen):
+    UseInterface(s, Interface([]))
+    s.require(
+        MethodSpec(
+            'check_redirect',
+            args={},
+            rets={
+                'redirect': Bits(1),
+                'target': Bits(xlen),
+            },
+            call=False,
+            rdy=False,
+        ),
+        MethodSpec(
+            'kill_notify',
+            args={
+                'msg': Bits(1),
+            },
+            rets=None,
+            call=False,
+            rdy=False,
+        ),
+    )
+
+    s.connect(s.kill_notify_msg, s.check_redirect_redirect)
+
+
 def KillDropControllerInterface(bmask_nbits):
   return DropControllerInterface(
       Bits(bmask_nbits), Bits(bmask_nbits), KillType(bmask_nbits))

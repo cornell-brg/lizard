@@ -70,28 +70,17 @@ class RedirectDropController(Model):
 
   def __init__(s, interface):
     UseInterface(s, interface)
-    s.require(
-        MethodSpec(
-            'check_redirect',
-            args={},
-            rets={
-                'redirect': Bits(1),
-                'target': Bits(XLEN),
-            },
-            call=False,
-            rdy=False,
-        ))
 
     s.connect(s.check_out, s.check_in_)
 
     @s.combinational
     def handle_check_keep():
-      s.check_keep.v = not s.check_redirect_redirect
+      s.check_keep.v = not s.check_msg
 
 
 def DecodeRedirectDropController():
-  return RedirectDropController(RedirectDropControllerInterface(DecodeMsg()))
+  return RedirectDropController(
+      RedirectDropControllerInterface(DecodeMsg(), DecodeMsg(), 1))
 
 
-#Decode = gen_stage(DecodeStage, DecodeRedirectDropController)
-Decode = gen_stage(DecodeStage)
+Decode = gen_stage(DecodeStage, DecodeRedirectDropController)
