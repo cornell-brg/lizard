@@ -6,6 +6,7 @@ from util.rtl.register import Register, RegisterInterface
 from util.rtl.reorder_buffer import ReorderBuffer, ReorderBufferInterface
 from config.general import *
 from util.rtl.pipeline_stage import PipelineStageInterface
+from core.rtl.controlflow import KillType
 
 
 def CommitInterface():
