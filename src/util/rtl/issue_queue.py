@@ -143,7 +143,7 @@ class GenericIssueSlot(Model):
     s.connect(s.output_value.kill_opaque, s.val_manager_.peek_msg)
     s.connect(s.val_manager_.add_call, s.input_call)
     s.connect(s.valid_ret, s.val_manager_.peek_rdy)
-    s.connect(s.take_call, s.output_call)
+    s.connect(s.val_manager_.take_call, s.output_call)
     # Lift the global kill notify signal
     s.connect_m(s.val_manager_.kill_notify, s.kill_notify)
 
