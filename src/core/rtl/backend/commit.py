@@ -9,7 +9,7 @@ from util.rtl.pipeline_stage import PipelineStageInterface
 
 
 def CommitInterface():
-  return PipelineStageInterface(None, None)
+  return PipelineStageInterface(None, KillType(MAX_SPEC_DEPTH))
 
 
 class Commit(Model):

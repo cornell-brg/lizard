@@ -19,6 +19,7 @@ from core.rtl.backend.writeback import Writeback, WritebackInterface
 from core.rtl.backend.commit import Commit, CommitInterface
 from core.rtl.proc_debug_bus import ProcDebugBusInterface
 from core.rtl.messages import *
+from core.rtl.kill_unit import KillNotifier
 from mem.rtl.memory_bus import MemoryBusInterface
 from mem.rtl.memory_bus import MemMsg, MemMsgType
 from config.general import *
@@ -96,6 +97,10 @@ class Proc(Model):
     s.connect_m(s.cflow.dflow_free_snapshot, s.dflow.free_snapshot)
     s.connect_m(s.cflow.dflow_rollback, s.dflow.rollback)
 
+    # Kill notifier
+    s.kill_notifier = KillNotifier(s.cflow_interface.KillArgType)
+    s.connect_m(s.kill_notifier.check_kill, s.cflow.check_kill)
+
     # CSR
     s.csr_interface = CSRManagerInterface()
     s.csr = CSRManager(s.csr_interface)
@@ -118,6 +123,7 @@ class Proc(Model):
     # Rename
     s.rename_interface = RenameInterface()
     s.rename = Rename(s.rename_interface)
+    s.connect_m(s.rename.kill_notify, kill_notifier.kill_notify)
     s.connect_m(s.decode.peek, s.rename.in_peek)
     s.connect_m(s.decode.take, s.rename.in_take)
     s.connect_m(s.cflow.register, s.rename.register)
@@ -128,6 +134,7 @@ class Proc(Model):
     # Issue
     s.issue_interface = IssueInterface()
     s.issue = Issue(s.issue_interface, PREG_COUNT, num_slots=1)
+    s.connect_m(s.issue.kill_notify, kill_notifier.kill_notify)
     s.connect_m(s.rename.peek, s.issue.in_peek)
     s.connect_m(s.rename.take, s.issue.in_take)
     s.connect_m(s.dflow.is_ready, s.issue.is_ready)
@@ -136,6 +143,7 @@ class Proc(Model):
     # Dispatch
     s.dispatch_interface = DispatchInterface()
     s.dispatch = Dispatch(s.dispatch_interface)
+    s.connect_m(s.dispatch.kill_notify, kill_notifier.kill_notify)
     s.connect_m(s.issue.peek, s.dispatch.in_peek)
     s.connect_m(s.issue.take, s.dispatch.in_take)
     s.connect_m(s.dflow.read, s.dispatch.read)
@@ -149,6 +157,7 @@ class Proc(Model):
     ## ALU
     s.alu_interface = ALUInterface()
     s.alu = ALU(s.alu_interface)
+    s.connect_m(s.alu.kill_notify, kill_notifier.kill_notify)
     s.connect_m(s.alu.in_peek, s.pipe_selector.alu_peek)
     s.connect_m(s.alu.in_take, s.pipe_selector.alu_take)
 
@@ -160,6 +169,7 @@ class Proc(Model):
     ## CSR
     s.csr_pipe_interface = CSRInterface()
     s.csr_pipe = CSR(s.csr_pipe_interface)
+    s.connect_m(s.csr_pipe.kill_notify, kill_notifier.kill_notify)
     s.connect_m(s.csr_pipe.csr_op, s.csr.op)
     s.connect_m(s.csr_pipe.in_peek, s.pipe_selector.csr_peek)
     s.connect_m(s.csr_pipe.in_take, s.pipe_selector.csr_take)
@@ -176,6 +186,7 @@ class Proc(Model):
     # Writeback
     s.writeback_interface = WritebackInterface()
     s.writeback = Writeback(s.writeback_interface)
+    s.connect_m(s.writeback.kill_notify, kill_notifier.kill_notify)
     s.connect_m(s.writeback_arbiter.peek, s.writeback.in_peek)
     s.connect_m(s.writeback_arbiter.take, s.writeback.in_take)
     s.connect_m(s.writeback.dataflow_write, s.dflow.write[0])
@@ -183,6 +194,7 @@ class Proc(Model):
     # Commit
     s.commit_interface = CommitInterface()
     s.commit = Commit(s.commit_interface, ROB_SIZE)
+    s.connect_m(s.commit.kill_notify, kill_notifier.kill_notify)
     s.connect_m(s.writeback.peek, s.commit.in_peek)
     s.connect_m(s.writeback.take, s.commit.in_take)
     s.connect_m(s.commit.dataflow_commit, s.dflow.commit[0])

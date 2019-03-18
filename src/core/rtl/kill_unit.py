@@ -7,6 +7,34 @@ from util.rtl.pipeline_stage import DropControllerInterface, gen_valid_value_man
 from core.rtl.controlflow import KillType
 
 
+class KillNotifier(Model):
+
+  def __init__(KillArgType):
+    UseInterface(s, Interface([]))
+    s.require(
+        MethodSpec(
+            'check_kill',
+            args={},
+            rets={
+                'kill': KillArgType,
+            },
+            call=False,
+            rdy=False,
+        ),
+        MethodSpec(
+            'kill_notify',
+            args={
+                'msg': KillArgType,
+            },
+            rets=None,
+            call=False,
+            rdy=False,
+        ),
+    )
+
+    s.connect(s.kill_notify_msg, s.check_kill_kill)
+
+
 def KillDropControllerInterface(bmask_nbits):
   return DropControllerInterface(
       Bits(bmask_nbits), Bits(bmask_nbits), KillType(bmask_nbits))
