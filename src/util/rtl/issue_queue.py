@@ -78,9 +78,7 @@ class IssueQueueSlotInterface(Interface):
                 call=False,
                 rdy=False),
         ],
-        ordering_chains=[[
-            'notify', 'valid', 'ready', 'output', 'input'
-        ]],
+        ordering_chains=[['notify', 'valid', 'ready', 'output', 'input']],
     )
 
 
@@ -89,6 +87,7 @@ class GenericIssueSlot(Model):
   make_kill is a lambda that generates a something that has DropControllerInterface
 
   """
+
   def __init__(s, interface, make_kill):
     """ This model implements a generic issue slot, an issue queue has an instance
       of this for each slot in the queue
@@ -148,7 +147,6 @@ class GenericIssueSlot(Model):
     # Lift the global kill notify signal
     s.connect_m(s.val_manager_.kill_notify, s.kill_notify)
 
-
     @s.combinational
     def set_valid():
       s.valid_.write_data.v = s.input_call or (s.valid_.read_data and
@@ -181,7 +179,6 @@ class GenericIssueSlot(Model):
         s.src0_rdy_.write_data.v = s.src0_match_
         s.src1_rdy_.write_data.v = s.src1_match_
 
-
   def line_trace(s):
     return str(s.val_manager.peek_rdy)
 
@@ -196,13 +193,9 @@ class IssueQueueInterface(Interface):
 
     super(IssueQueueInterface, s).__init__([
         MethodSpec(
-            'add',
-            args={
+            'add', args={
                 'value': s.SlotType,
-            },
-            rets=None,
-            call=True,
-            rdy=True),
+            }, rets=None, call=True, rdy=True),
         MethodSpec(
             'remove',
             args=None,
@@ -212,12 +205,7 @@ class IssueQueueInterface(Interface):
             call=True,
             rdy=True),
         MethodSpec(
-            'notify',
-            args={
-              'value': s.SrcTag
-            },
-            rets=None,
-            call=True,
+            'notify', args={'value': s.SrcTag}, rets=None, call=True,
             rdy=False),
         MethodSpec(
             'kill_notify',
@@ -254,8 +242,9 @@ class CompactingIssueQueue(Model):
 
     # Create all the slots in our issue queue
     s.slots_ = [
-        GenericIssueSlot(IssueQueueSlotInterface(s.interface.SlotType,
-                                                 s.interface.KillArgType), make_kill)
+        GenericIssueSlot(
+            IssueQueueSlotInterface(s.interface.SlotType,
+                                    s.interface.KillArgType), make_kill)
         for _ in range(num_slots)
     ]
 

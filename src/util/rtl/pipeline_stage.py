@@ -6,6 +6,7 @@ from util.rtl.register import Register, RegisterInterface
 from util.rtl.mux import Mux
 from util.rtl.types import Array, canonicalize_type
 
+
 class PipelineStageInterface(Interface):
 
   def __init__(s, MsgType, KillArgType):

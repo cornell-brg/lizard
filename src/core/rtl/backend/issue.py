@@ -65,10 +65,13 @@ class Issue(Model):
     branch_mask_nbits = RenameMsg().hdr_branch_mask.nbits
 
     # TODO, Instead of opaque being OutMsg, remove rs1 and rs2 from message
-    SlotType = AbstractIssueType(preg_nbits, IssueMsg(), s.interface.KillArgType)
+    SlotType = AbstractIssueType(preg_nbits, IssueMsg(),
+                                 s.interface.KillArgType)
 
     make_kill = lambda : KillDropController(KillDropControllerInterface(branch_mask_nbits))
-    s.iq = CompactingIssueQueue(IssueQueueInterface(SlotType(), s.interface.KillArgType), make_kill, num_slots)
+    s.iq = CompactingIssueQueue(
+        IssueQueueInterface(SlotType(), s.interface.KillArgType), make_kill,
+        num_slots)
     # Connect the notify signal
     s.updated_ = PriorityDecoder(s.NumPregs)
     s.connect(s.updated_.decode_signal, s.get_updated_mask)
