@@ -17,13 +17,13 @@ class AbstractIssueType(BitStructDefinition):
   def __init__(s, src_tag, opaque, KillOpaqueType):
     s.src0_val = BitField(1)
     s.src0_rdy = BitField(1)
-    s.src0 = BitField(src_tag)
+    s.src0 = BitField(canonicalize_type(src_tag).nbits)
     s.src1_val = BitField(1)
     s.src1_rdy = BitField(1)
-    s.src1 = BitField(src_tag)
+    s.src1 = BitField(canonicalize_type(src_tag).nbits)
     # A custom opaque field for passing private info
-    s.opaque = BitField(opaque.nbits)
-    s.kill_opaque = BitField(KillOpaqueType)
+    s.opaque = BitField(canonicalize_type(opaque).nbits)
+    s.kill_opaque = BitField(canonicalize_type(KillOpaqueType).nbits)
 
 
 class IssueQueueSlotInterface(Interface):
