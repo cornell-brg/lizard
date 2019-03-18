@@ -4,7 +4,7 @@ from util.rtl.method import MethodSpec
 from util.rtl.types import Array
 from util.rtl.register import Register, RegisterInterface
 from util.rtl.mux import Mux
-
+from util.rtl.types import Array, canonicalize_type
 
 class PipelineStageInterface(Interface):
 
@@ -81,9 +81,9 @@ class StageInterface(Interface):
 class DropControllerInterface(Interface):
 
   def __init__(s, In, Out, KillArgType):
-    s.In = In
-    s.Out = Out
-    s.KillArgType = KillArgType
+    s.In = canonicalize_type(In)
+    s.Out = canonicalize_type(Out)
+    s.KillArgType = canonicalize_type(KillArgType)
     check_args = {'in_': In}
     if KillArgType is not None:
       check_args['msg'] = KillArgType
@@ -227,9 +227,9 @@ def gen_valid_value_manager(drop_controller_class):
       s.connect_m(s.manager.check, s.drop_controller.check)
       if s.interface.KillArgType is not None:
         s.connect_m(s.manager.kill_notify, s.kill_notify)
-      s.connect_m(s.manager.peek, s.manager.peek)
-      s.connect_m(s.manager.take, s.manager.take)
-      s.connect_m(s.manager.add, s.manager.add)
+      s.connect_m(s.manager.peek, s.peek)
+      s.connect_m(s.manager.take, s.take)
+      s.connect_m(s.manager.add, s.add)
 
   Gen.__name__ = name
   return Gen
