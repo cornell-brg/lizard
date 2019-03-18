@@ -148,12 +148,6 @@ class GenericIssueSlot(Model):
     s.connect_m(s.val_manager_.kill_notify, s.kill_notify)
 
     @s.combinational
-    def set_valid():
-      s.valid_.write_data.v = s.input_call or (s.valid_.read_data and
-                                               not s.output_call and
-                                               not s.kill_)
-
-    @s.combinational
     def match_src():
       s.src0_match_.v = s.src0_val_.read_data and s.notify_call and (
           s.src0_.read_data == s.notify_value)
