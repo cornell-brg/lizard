@@ -8,7 +8,8 @@ from util.rtl.lookup_table import LookupTable, LookupTableInterface
 from bitutil import clog2, clog2nz
 from core.rtl.messages import DispatchMsg, ExecuteMsg, AluMsg, AluFunc
 from util.rtl.pipeline_stage import gen_stage, StageInterface, DropControllerInterface
-from core.rtl.kill_unit import KillDropController
+from core.rtl.kill_unit import PipelineKillDropController
+from core.rtl.controlflow import KillType
 from config.general import *
 
 
@@ -126,7 +127,9 @@ class ALUStage(Model):
 
 
 def ALUDropController():
-  return KillDropController(DropControllerInterface(ExecuteMsg(), ExecuteMsg(), KillType(MAX_SPEC_DEPTH)))
+  return PipelineKillDropController(
+      DropControllerInterface(ExecuteMsg(), ExecuteMsg(),
+                              KillType(MAX_SPEC_DEPTH)))
 
 
 ALU = gen_stage(ALUStage, ALUDropController)

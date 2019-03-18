@@ -9,7 +9,7 @@ from core.rtl.controlflow import KillType
 
 class KillNotifier(Model):
 
-  def __init__(KillArgType):
+  def __init__(s, KillArgType):
     UseInterface(s, Interface([]))
     s.require(
         MethodSpec(

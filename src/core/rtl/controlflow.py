@@ -45,7 +45,7 @@ class ControlFlowManagerInterface(Interface):
                 'check_kill',
                 args={},
                 rets={
-                    'kill': KillArgType, 
+                    'kill': s.KillArgType,
                 },
                 call=False,
                 rdy=False,

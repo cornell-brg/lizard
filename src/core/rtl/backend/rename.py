@@ -9,7 +9,8 @@ from util.rtl.register import Register, RegisterInterface
 from core.rtl.messages import RenameMsg, DecodeMsg, PipelineMsgStatus
 from msg.codes import RVInstMask, Opcode, ExceptionCode
 from util.rtl.pipeline_stage import gen_stage, StageInterface, DropControllerInterface
-from core.rtl.kill_unit import KillDropController
+from core.rtl.kill_unit import PipelineKillDropController
+from core.rtl.controlflow import KillType
 from config.general import *
 
 
@@ -116,7 +117,9 @@ class RenameStage(Model):
 
 
 def RenameDropController():
-  return PipelineKillDropController(DropControllerInterface(RenameMsg(), RenameMsg(), KillType(MAX_SPEC_DEPTH)))
+  return PipelineKillDropController(
+      DropControllerInterface(RenameMsg(), RenameMsg(),
+                              KillType(MAX_SPEC_DEPTH)))
 
 
 Rename = gen_stage(RenameStage, RenameDropController)
