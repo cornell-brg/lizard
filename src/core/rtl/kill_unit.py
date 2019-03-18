@@ -16,7 +16,7 @@ class KillDropController(Model):
 
   def __init__(s, interface):
     UseInterface(s, interface)
-    s.kill_match = Wire(s.interface.nbits)
+    s.kill_match = Wire(s.interface.Out.nbits)
 
     @s.combinational
     def handle_check():
