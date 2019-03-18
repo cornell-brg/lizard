@@ -100,7 +100,7 @@ class ValidValueManagerInterface(Interface):
     s.DataOut = DataOut
     super(ValidValueManagerInterface, s).__init__([
         MethodSpec(
-            'notify',
+            'kill_notify',
             args={
                 'msg': KillerArgType,
             },
@@ -108,6 +108,7 @@ class ValidValueManagerInterface(Interface):
             call=False,
             rdy=False,
         ),
+        # Note: valid if peak is rdy
         MethodSpec(
             'peek',
             args=None,

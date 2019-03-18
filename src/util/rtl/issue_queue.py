@@ -1,5 +1,6 @@
 from pymtl import *
 from bitutil import clog2, clog2nz
+from util.rtil.pipeline_stage import gen_valid_value_manager
 from util.rtl.register import Register, RegisterInterface
 from util.rtl.method import MethodSpec
 from util.rtl.coders import PriorityDecoder
@@ -13,25 +14,25 @@ from util.pretty_print import bitstruct_values
 
 class AbstractIssueType(BitStructDefinition):
 
-  def __init__(s, src_tag, branch_mask, opaque):
+  def __init__(s, src_tag, opaque, KillOpaqueType):
     s.src0_val = BitField(1)
     s.src0_rdy = BitField(1)
     s.src0 = BitField(src_tag)
     s.src1_val = BitField(1)
     s.src1_rdy = BitField(1)
     s.src1 = BitField(src_tag)
-    s.branch_mask = BitField(branch_mask)
     # A custom opaque field for passing private info
     s.opaque = BitField(opaque.nbits)
+    s.kill_opaque = BitField(KillOpaqueType)
 
 
 class IssueQueueSlotInterface(Interface):
 
-  def __init__(s, slot_type):
+  def __init__(s, slot_type, KillArgType):
     s.SlotType = slot_type
     s.SrcTag = Bits(slot_type.src0.nbits)
-    s.BranchMask = Bits(slot_type.branch_mask.nbits)
     s.Opaque = Bits(slot_type.opaque.nbits)
+    s.KillArgType = KillArgType
     super(IssueQueueSlotInterface, s).__init__(
         [
             MethodSpec(
@@ -69,24 +70,26 @@ class IssueQueueSlotInterface(Interface):
                 call=True,
                 rdy=False),
             MethodSpec(
-                'kill',
+                'kill_notify',
                 args={
-                    'value': s.BranchMask,
-                    'force': Bits(1)
+                    'msg': s.KillArgType,
                 },
                 rets=None,
-                call=True,
+                call=False,
                 rdy=False),
         ],
         ordering_chains=[[
-            'kill', 'notify', 'valid', 'ready', 'output', 'input'
+            'notify', 'valid', 'ready', 'output', 'input'
         ]],
     )
 
 
 class GenericIssueSlot(Model):
+  """
+  make_kill is a lambda that generates a something that has DropControllerInterface
 
-  def __init__(s, interface):
+  """
+  def __init__(s, interface, make_kill):
     """ This model implements a generic issue slot, an issue queue has an instance
       of this for each slot in the queue
 
@@ -95,7 +98,11 @@ class GenericIssueSlot(Model):
     UseInterface(s, interface)
 
     # The storage for everything
-    s.valid_ = Register(RegisterInterface(Bits(1)), reset_value=0)
+    #s.valid_ = Register(RegisterInterface(Bits(1)), reset_value=0)
+
+    # Make the valid manager from the DropControllerInterface passed in
+    s.val_manager_ = gen_valid_value_manager(make_kill)
+
     s.opaque_ = Register(RegisterInterface(s.interface.Opaque, enable=True))
     s.src0_ = Register(RegisterInterface(s.interface.SrcTag, enable=True))
     s.src0_val_ = Register(RegisterInterface(Bits(1), enable=True))
@@ -103,7 +110,6 @@ class GenericIssueSlot(Model):
     s.src1_ = Register(RegisterInterface(s.interface.SrcTag, enable=True))
     s.src1_val_ = Register(RegisterInterface(Bits(1), enable=True))
     s.src1_rdy_ = Register(RegisterInterface(Bits(1), enable=True))
-    s.bmask_ = Register(RegisterInterface(s.interface.BranchMask, enable=True))
 
     s.srcs_ready_ = Wire(1)
     s.kill_ = Wire(1)
@@ -118,7 +124,6 @@ class GenericIssueSlot(Model):
     s.connect(s.output_value.src0_val, s.src0_val_.read_data)
     s.connect(s.output_value.src1, s.src1_.read_data)
     s.connect(s.output_value.src1_val, s.src1_val_.read_data)
-    s.connect(s.output_value.branch_mask, s.bmask_.read_data)
 
     # Connect inputs into registers
     s.connect(s.opaque_.write_data, s.input_value.opaque)
@@ -126,7 +131,6 @@ class GenericIssueSlot(Model):
     s.connect(s.src0_val_.write_data, s.input_value.src0_val)
     s.connect(s.src1_.write_data, s.input_value.src1)
     s.connect(s.src1_val_.write_data, s.input_value.src1_val)
-    s.connect(s.bmask_.write_data, s.input_value.branch_mask)
 
     # Connect all the enables
     s.connect(s.opaque_.write_call, s.input_call)
@@ -134,8 +138,16 @@ class GenericIssueSlot(Model):
     s.connect(s.src0_val_.write_call, s.input_call)
     s.connect(s.src1_.write_call, s.input_call)
     s.connect(s.src1_val_.write_call, s.input_call)
-    # TODO update branch mask on kills
-    s.connect(s.bmask_.write_call, s.input_call)
+
+    # Connect up val manager
+    s.connect(s.val_manager_.add_msg, s.input_value.kill_opaque)
+    s.connect(s.output_value.kill_opaque, s.val_manager_.peek_msg)
+    s.connect(s.val_manager_.add_call, s.input_call)
+    s.connect(s.valid_ret, s.val_manager_.peek_rdy)
+    s.connect(s.take_call, s.output_call)
+    # Lift the global kill notify signal
+    s.connect_m(s.val_manager_.kill_notify, s.kill_notify)
+
 
     @s.combinational
     def set_valid():
@@ -155,15 +167,13 @@ class GenericIssueSlot(Model):
       s.output_value.src0_rdy.v = s.src0_rdy_.read_data or s.src0_match_
       s.output_value.src1_rdy.v = s.src1_rdy_.read_data or s.src1_match_
       s.srcs_ready_.v = s.output_value.src0_rdy and s.output_value.src1_rdy
-      s.valid_ret.v = s.valid_.read_data and not s.kill_
       s.ready_ret.v = s.valid_ret and s.srcs_ready_
 
     @s.combinational
     def set_rdy():
-      s.src0_rdy_.write_call.v = s.input_call or (s.src0_match_ and
-                                                  s.valid_.read_data)
-      s.src1_rdy_.write_call.v = s.input_call or (s.src1_match_ and
-                                                  s.valid_.read_data)
+      s.src0_rdy_.write_call.v = s.input_call or (s.src0_match_ and s.valid_ret)
+      s.src1_rdy_.write_call.v = s.input_call or (s.src1_match_ and s.valid_ret)
+
       if s.input_call:
         s.src0_rdy_.write_data.v = s.input_value.src0_rdy or not s.input_value.src0_val
         s.src1_rdy_.write_data.v = s.input_value.src1_rdy or not s.input_value.src1_val
@@ -171,28 +181,29 @@ class GenericIssueSlot(Model):
         s.src0_rdy_.write_data.v = s.src0_match_
         s.src1_rdy_.write_data.v = s.src1_match_
 
-    @s.combinational
-    def handle_kill():
-      s.kill_.v = (s.kill_force or
-                   reduce_or(s.kill_value & s.bmask_.read_data)) and s.kill_call
 
   def line_trace(s):
-    return str(s.valid_.read_data)
+    return str(s.val_manager.peek_rdy)
 
 
 class IssueQueueInterface(Interface):
 
-  def __init__(s, slot_type):
+  def __init__(s, slot_type, KillArgType, make_kill):
     s.SlotType = slot_type
     s.SrcTag = Bits(slot_type.src0.nbits)
     s.BranchMask = Bits(slot_type.branch_mask.nbits)
     s.Opaque = Bits(slot_type.opaque.nbits)
+    s.KillArgType = Bits(slot_type.KillArgType)
 
     super(IssueQueueInterface, s).__init__([
         MethodSpec(
-            'add', args={
+            'add',
+            args={
                 'value': s.SlotType,
-            }, rets=None, call=True, rdy=True),
+            },
+            rets=None,
+            call=True,
+            rdy=True),
         MethodSpec(
             'remove',
             args=None,
@@ -202,16 +213,20 @@ class IssueQueueInterface(Interface):
             call=True,
             rdy=True),
         MethodSpec(
-            'notify', args={'value': s.SrcTag}, rets=None, call=True,
-            rdy=False),
-        MethodSpec(
-            'kill',
+            'notify',
             args={
-                'value': s.BranchMask,
-                'force': Bits(1)
+              'value': s.SrcTag
             },
             rets=None,
             call=True,
+            rdy=False),
+        MethodSpec(
+            'kill_notify',
+            args={
+                'msg': s.KillArgType,
+            },
+            rets=None,
+            call=False,
             rdy=False),
     ])
 
@@ -240,7 +255,8 @@ class CompactingIssueQueue(Model):
 
     # Create all the slots in our issue queue
     s.slots_ = [
-        GenericIssueSlot(IssueQueueSlotInterface(s.interface.SlotType))
+        GenericIssueSlot(IssueQueueSlotInterface(s.interface.SlotType,
+                                                 s.interface.KillArgType), make_kill)
         for _ in range(num_slots)
     ]
 
@@ -280,12 +296,9 @@ class CompactingIssueQueue(Model):
     # Broadcast kill and notify signal to each slot
     for i in range(num_slots):
       # Kill signal
-      s.connect(s.slots_[i].kill_call, s.kill_call)
-      s.connect(s.slots_[i].kill_value, s.kill_value)
-      s.connect(s.slots_[i].kill_force, s.kill_force)
-      # Notify signal
-      s.connect(s.slots_[i].notify_call, s.notify_call)
-      s.connect(s.slots_[i].notify_value, s.notify_value)
+      s.connect_m(s.slots_[i].kill_notify, s.kill_notify)
+      # preg notify signal
+      s.connect_m(s.slots_[i].notify, s.notify)
       # Connect slot ready signal to packer
       s.connect(s.pdecode_packer_.pack_in_[i], s.slots_[i].ready_ret)
       # Connect output to mux
