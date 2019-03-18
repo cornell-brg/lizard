@@ -7,6 +7,16 @@ from util.rtl.method import MethodSpec
 from util.rtl.register import Register, RegisterInterface
 from util.rtl.onehot import OneHotEncoder
 from util.rtl.async_ram import AsynchronousRAM, AsynchronousRAMInterface
+from bitutil.bit_struct_generator import *
+
+
+@bit_struct_generator
+def KillType(nbits):
+  return [
+      Field('force', 1),
+      Field('kill_mask', nbits),
+      Field('clear_mask', nbits),
+  ]
 
 
 class ControlFlowManagerInterface(Interface):
@@ -34,9 +44,7 @@ class ControlFlowManagerInterface(Interface):
                 'check_kill',
                 args={},
                 rets={
-                    'force': Bits(1),
-                    'kill_mask': Bits(speculative_mask_nbits),
-                    'clear_mask': Bits(speculative_mask_nbits),
+                    'kill': KillType(s.SpecMaskNbits),
                 },
                 call=False,
                 rdy=False,
@@ -200,9 +208,9 @@ class ControlFlowManager(Model):
         RegisterInterface(Bits(seqidx_nbits + 1), enable=True), reset_value=0)
 
     # Connect up check_kill method
-    s.connect(s.check_kill_force, s.redirect_force)
-    s.connect(s.check_kill_kill_mask, s.kill_mask_)
-    s.connect(s.check_kill_clear_mask, s.clear_mask_)
+    s.connect(s.check_kill_kill.force, s.redirect_force)
+    s.connect(s.check_kill_kill.kill_mask, s.kill_mask_)
+    s.connect(s.check_kill_kill.clear_mask, s.clear_mask_)
 
     # Connect up register method rets
     s.connect(s.register_seq, s.tail.read_data)

@@ -66,4 +66,5 @@ def DispatchDropController():
   return KillDropController(DropControllerInterface(DispatchMsg()))
 
 
-Dispatch = gen_stage(DispatchStage, DispatchDropController)
+# Dispatch = gen_stage(DispatchStage, DispatchDropController)
+Dispatch = gen_stage(DispatchStage)

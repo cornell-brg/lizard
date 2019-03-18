@@ -129,4 +129,5 @@ def ALUDropController():
   return KillDropController(DropControllerInterface(ExecuteMsg()))
 
 
-ALU = gen_stage(ALUStage, ALUDropController)
+#ALU = gen_stage(ALUStage, ALUDropController)
+ALU = gen_stage(ALUStage)

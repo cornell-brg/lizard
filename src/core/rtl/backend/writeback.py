@@ -55,4 +55,5 @@ def WritebackDropController():
   return KillDropController(DropControllerInterface(WritebackMsg()))
 
 
-Writeback = gen_stage(WritebackStage, WritebackDropController)
+# Writeback = gen_stage(WritebackStage, WritebackDropController)
+Writeback = gen_stage(WritebackStage)

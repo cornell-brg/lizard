@@ -13,7 +13,7 @@ from util.rtl.pipeline_stage import PipelineStageInterface
 
 
 def IssueInterface():
-  return PipelineStageInterface(IssueMsg())
+  return PipelineStageInterface(IssueMsg(), None)
 
 
 class Issue(Model):

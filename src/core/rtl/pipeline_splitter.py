@@ -13,7 +13,7 @@ class PipelineSplitterInterface(Interface):
     s.Data = canonicalize_type(dtype)
     s.clients = clients
 
-    interface = PipelineStageInterface(dtype)
+    interface = PipelineStageInterface(dtype, None)
     methods = []
     for client in clients:
       for method in interface.methods.values():

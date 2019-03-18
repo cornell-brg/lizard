@@ -5,7 +5,9 @@ from util.rtl.case_mux import CaseMux, CaseMuxInterface
 from util.rtl.arbiters import ArbiterInterface, RoundRobinArbiter
 from util.rtl.pipeline_stage import PipelineStageInterface
 
-PipelineArbiterInterface = PipelineStageInterface
+
+def PipelineArbiterInterface(OutType):
+  return PipelineStageInterface(OutType, None)
 
 
 class PipelineArbiter(Model):

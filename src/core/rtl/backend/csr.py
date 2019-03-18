@@ -65,4 +65,5 @@ def CSRDropController():
   return KillDropController(DropControllerInterface(ExecuteMsg()))
 
 
-CSR = gen_stage(CSRStage, CSRDropController)
+# CSR = gen_stage(CSRStage, CSRDropController)
+CSR = gen_stage(CSRStage)
