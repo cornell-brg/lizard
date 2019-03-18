@@ -45,6 +45,7 @@ class ControlFlowManagerInterface(Interface):
                 'redirect',
                 args={
                     'spec_idx': Bits(speculative_idx_nbits),
+                    'branch_mask' : Bits(speculative_mask_nbits),
                     'target': Bits(dlen),
                     'force': Bits(1),
                 },
@@ -244,8 +245,9 @@ class ControlFlowManager(Model):
         s.redirect_.v = s.redirect_target != s.pc_pred.read_data[
             0] or s.redirect_force
         if s.redirect_:
-          s.kill_mask_.v = s.redirect_mask.encode_onehot
           s.redirect_target_.v = s.redirect_target
+          # Kill everything except preceeding branches
+          s.kill_mask_.v = s.redirect_mask.encode_onehot | (~s.redirect_branch_mask)
         else:
           s.clear_mask_.v = s.redirect_mask.encode_onehot
 
@@ -262,7 +264,6 @@ class ControlFlowManager(Model):
 
     @s.combinational
     def handle_register():
-      # TODO handle speculative
       s.register_success_.v = 0
       s.spec_register_success_.v = 0
       if s.register_call:
