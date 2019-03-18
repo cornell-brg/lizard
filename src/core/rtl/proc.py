@@ -19,7 +19,7 @@ from core.rtl.backend.writeback import Writeback, WritebackInterface
 from core.rtl.backend.commit import Commit, CommitInterface
 from core.rtl.proc_debug_bus import ProcDebugBusInterface
 from core.rtl.messages import *
-from core.rtl.kill_unit import KillNotifier
+from core.rtl.kill_unit import KillNotifier, RedirectNotifier
 from mem.rtl.memory_bus import MemoryBusInterface
 from mem.rtl.memory_bus import MemMsg, MemMsgType
 from config.general import *
@@ -100,6 +100,8 @@ class Proc(Model):
     # Kill notifier
     s.kill_notifier = KillNotifier(s.cflow_interface.KillArgType)
     s.connect_m(s.kill_notifier.check_kill, s.cflow.check_kill)
+    s.redirect_notifier = RedirectNotifier(XLEN)
+    s.connect_m(s.redirect_notifier.check_redirect, s.cflow.check_redirect)
 
     # CSR
     s.csr_interface = CSRManagerInterface()
@@ -117,6 +119,7 @@ class Proc(Model):
     # Decode
     s.decode_interface = DecodeInterface()
     s.decode = Decode(s.decode_interface)
+    s.connect_m(s.decode.kill_notify, s.redirect_notifier.kill_notify)
     s.connect_m(s.fetch.peek, s.decode.in_peek)
     s.connect_m(s.fetch.take, s.decode.in_take)
 
