@@ -67,7 +67,8 @@ class Issue(Model):
     # TODO, Instead of opaque being OutMsg, remove rs1 and rs2 from message
     SlotType = AbstractIssueType(preg_nbits, IssueMsg(), branch_mask_nbits)
 
-    make_kill = lambda : KillDropController(KillDropControllerInterface(branch_mask_nbits))
+    def make_kill():
+      return KillDropController(KillDropControllerInterface(branch_mask_nbits))
     s.iq = CompactingIssueQueue(
         IssueQueueInterface(SlotType(), s.interface.KillArgType), make_kill,
         num_slots)
