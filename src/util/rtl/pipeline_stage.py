@@ -8,13 +8,29 @@ from util.rtl.mux import Mux
 
 class PipelineStageInterface(Interface):
 
-  def __init__(s, MsgType):
+  def __init__(s, MsgType, KillArgType):
     s.MsgType = MsgType
+    s.KillArgType = KillArgType
     # If there is no MsgType, this is the last pipeline stage and has no outputs
     if MsgType is None:
       methods = []
     else:
-      methods = [
+      if KillArgType is not None:
+        methods = [
+            MethodSpec(
+                'kill_notify',
+                args={
+                    'msg': KillArgType,
+                },
+                rets=None,
+                call=False,
+                rdy=False,
+            ),
+        ]
+      else:
+        methods = []
+
+      methods.extend([
           MethodSpec(
               'peek',
               args=None,
@@ -31,7 +47,7 @@ class PipelineStageInterface(Interface):
               call=True,
               rdy=False,
           ),
-      ]
+      ])
     super(PipelineStageInterface, s).__init__(methods)
 
 
@@ -64,16 +80,17 @@ class StageInterface(Interface):
 
 class DropControllerInterface(Interface):
 
-  def __init__(s, In, Out=None):
-    Out = Out or In
+  def __init__(s, In, Out, KillArgType):
     s.In = In
     s.Out = Out
+    s.KillArgType = KillArgType
+    check_args = {'in_': In}
+    if KillArgType is not None:
+      check_args['msg'] = KillArgType
     super(DropControllerInterface, s).__init__([
         MethodSpec(
             'check',
-            args={
-                'in_': In,
-            },
+            args=check_args,
             rets={
                 'out': Out,
                 'keep': Bits(1),
@@ -98,16 +115,23 @@ class ValidValueManagerInterface(Interface):
   def __init__(s, DataIn, DataOut, KillArgType):
     s.DataIn = DataIn
     s.DataOut = DataOut
-    super(ValidValueManagerInterface, s).__init__([
-        MethodSpec(
-            'notify',
-            args={
-                'msg': KillerArgType,
-            },
-            rets=None,
-            call=False,
-            rdy=False,
-        ),
+    s.KillArgType = KillArgType
+    if KillArgType is not None:
+      first = [
+          MethodSpec(
+              'kill_notify',
+              args={
+                  'msg': KillArgType,
+              },
+              rets=None,
+              call=False,
+              rdy=False,
+          ),
+      ]
+    else:
+      first = []
+
+    methods = first + [
         MethodSpec(
             'peek',
             args=None,
@@ -133,7 +157,9 @@ class ValidValueManagerInterface(Interface):
             call=True,
             rdy=True,
         ),
-    ])
+    ]
+
+    super(ValidValueManagerInterface, s).__init__(methods)
 
 
 class ValidValueManager(Model):
@@ -141,14 +167,16 @@ class ValidValueManager(Model):
   def __init__(s, interface):
     UseInterface(s, interface)
     s.require(
-        DropControllerInterface(s.interface.DataIn,
-                                s.interface.DataOut)['check'])
+        DropControllerInterface(s.interface.DataIn, s.interface.DataOut,
+                                s.interface.KillArgType)['check'])
 
     s.val_reg = Register(RegisterInterface(Bits(1)), reset_value=0)
     s.out_reg = Register(RegisterInterface(s.interface.DataIn, enable=True))
     s.output_rdy = Wire(1)
     s.output_clear = Wire(1)
 
+    if s.interface.KillArgType is not None:
+      s.connect(s.check_msg, s.kill_notify_msg)
     s.connect(s.check_in_, s.out_reg.read_data)
     s.connect(s.peek_msg, s.check_out)
 
@@ -192,11 +220,16 @@ def gen_valid_value_manager(drop_controller_class):
       UseInterface(
           s,
           ValidValueManagerInterface(s.drop_controller.interface.In,
-                                     s.drop_controller.interface.Out))
+                                     s.drop_controller.interface.Out,
+                                     s.drop_controller.interface.KillArgType))
 
       s.manager = ValidValueManager(s.interface)
       s.connect_m(s.manager.check, s.drop_controller.check)
-      s.wrap(s.drop_controller)
+      if s.interface.KillArgType is not None:
+        s.connect_m(s.manager.kill_notify, s.kill_notify)
+      s.connect_m(s.manager.peek, s.manager.peek)
+      s.connect_m(s.manager.take, s.manager.take)
+      s.connect_m(s.manager.add, s.manager.add)
 
   Gen.__name__ = name
   return Gen
@@ -213,15 +246,17 @@ class PipelineStage(Model):
     # Name the methods in_peek, in_take
     s.require(*[
         m.variant(name='in_{}'.format(m.name))
-        for m in PipelineStageInterface(In).methods.values()
+        for m in PipelineStageInterface(In, None).methods.values()
     ])
     s.require(StageInterface(In, interface.MsgType)['process'])
     # If this pipeline stage outputs, require a drop controller
     if interface.MsgType is not None:
       s.require(
-          DropControllerInterface(interface.MsgType, Intermediate)['check'])
+          DropControllerInterface(interface.MsgType, Intermediate,
+                                  interface.KillArgType)['check'])
       s.vvm = ValidValueManager(
-          ValidValueManagerInterface(interface.MsgType, Intermediate))
+          ValidValueManagerInterface(interface.MsgType, Intermediate,
+                                     interface.KillArgType))
 
     s.input_available = Wire(1)
     s.output_clear = Wire(1)
@@ -242,7 +277,8 @@ class PipelineStage(Model):
     if interface.MsgType is not None:
       s.connect(s.vvm.add_msg, s.process_out)
       s.connect(s.vvm.add_call, s.taking)
-
+      if s.interface.KillArgType is not None:
+        s.connect_m(s.vvm.kill_notify, s.kill_notify)
       s.connect_m(s.vvm.check, s.check)
       s.connect_m(s.vvm.peek, s.peek)
       s.connect_m(s.vvm.take, s.take)
@@ -269,28 +305,37 @@ def gen_stage(stage_class, drop_controller_class=None):
 
     def __init__(s, *args, **kwargs):
       s.stage = stage_class(*args, **kwargs)
-      UseInterface(s, PipelineStageInterface(s.stage.interface.Out))
-      s.pipeline_stage = PipelineStage(s.interface, s.stage.interface.In)
       actual_dc = drop_controller_class
       if s.stage.interface.Out is not None and drop_controller_class is None:
 
         def gen_drop_controller():
           return NullDropController(
-              DropControllerInterface(s.stage.interface.Out))
+              DropControllerInterface(s.stage.interface.Out,
+                                      s.stage.interface.Out, None))
 
         actual_dc = gen_drop_controller
       assert not (s.stage.interface.Out is None and actual_dc is not None)
       if actual_dc is not None:
         s.drop_controller = actual_dc()
-        s.wrap(s.drop_controller)
+        KillArgType = s.drop_controller.interface.KillArgType
+      else:
+        KillArgType = None
+      UseInterface(s, PipelineStageInterface(s.stage.interface.Out,
+                                             KillArgType))
+      s.pipeline_stage = PipelineStage(s.interface, s.stage.interface.In)
+
+      if actual_dc is not None:
+        s.drop_controller = actual_dc()
         s.connect_m(s.pipeline_stage.check, s.drop_controller.check)
         s.connect_m(s.pipeline_stage.process, s.stage.process)
+        if s.interface.KillArgType is not None:
+          s.connect_m(s.pipeline_stage.kill_notify, s.kill_notify)
         s.connect_m(s.pipeline_stage.peek, s.peek)
         s.connect_m(s.pipeline_stage.take, s.take)
       if s.stage.interface.In is not None:
         ins = [
             m.variant(name='in_{}'.format(m.name)) for m in
-            PipelineStageInterface(s.stage.interface.In).methods.values()
+            PipelineStageInterface(s.stage.interface.In, None).methods.values()
         ]
         s.require(*ins)
         for method in ins:

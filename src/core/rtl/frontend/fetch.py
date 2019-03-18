@@ -11,7 +11,7 @@ from util.rtl.pipeline_stage import PipelineStageInterface
 
 
 def FetchInterface():
-  return PipelineStageInterface(FetchMsg())
+  return PipelineStageInterface(FetchMsg(), None)
 
 
 class Fetch(Model):

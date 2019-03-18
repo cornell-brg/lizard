@@ -118,4 +118,5 @@ def RenameDropController():
   return KillDropController(DropControllerInterface(RenameMsg()))
 
 
-Rename = gen_stage(RenameStage, RenameDropController)
+#Rename = gen_stage(RenameStage, RenameDropController)
+Rename = gen_stage(RenameStage)

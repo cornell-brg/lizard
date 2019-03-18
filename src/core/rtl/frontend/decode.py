@@ -93,4 +93,5 @@ def DecodeRedirectDropController():
   return RedirectDropController(RedirectDropControllerInterface(DecodeMsg()))
 
 
-Decode = gen_stage(DecodeStage, DecodeRedirectDropController)
+#Decode = gen_stage(DecodeStage, DecodeRedirectDropController)
+Decode = gen_stage(DecodeStage)
