@@ -27,6 +27,7 @@ class ControlFlowManagerInterface(Interface):
     s.SeqIdxNbits = seq_idx_nbits
     s.SpecIdxNbits = speculative_idx_nbits
     s.SpecMaskNbits = speculative_mask_nbits
+    s.KillArgType = KillType(s.SpecMaskNbits)
 
     super(ControlFlowManagerInterface, s).__init__(
         [
@@ -44,7 +45,7 @@ class ControlFlowManagerInterface(Interface):
                 'check_kill',
                 args={},
                 rets={
-                    'kill': KillType(s.SpecMaskNbits),
+                    'kill': KillArgType, 
                 },
                 call=False,
                 rdy=False,

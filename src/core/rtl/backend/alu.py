@@ -126,8 +126,7 @@ class ALUStage(Model):
 
 
 def ALUDropController():
-  return KillDropController(DropControllerInterface(ExecuteMsg()))
+  return KillDropController(DropControllerInterface(ExecuteMsg(), ExecuteMsg(), KillType(MAX_SPEC_DEPTH)))
 
 
-#ALU = gen_stage(ALUStage, ALUDropController)
-ALU = gen_stage(ALUStage)
+ALU = gen_stage(ALUStage, ALUDropController)

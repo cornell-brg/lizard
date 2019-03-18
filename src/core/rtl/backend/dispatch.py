@@ -10,6 +10,7 @@ from core.rtl.messages import IssueMsg, DispatchMsg, PipelineMsgStatus
 from msg.codes import RVInstMask, Opcode, ExceptionCode
 from util.rtl.pipeline_stage import gen_stage, StageInterface, DropControllerInterface
 from core.rtl.kill_unit import KillDropController
+from config.general import *
 
 
 def DispatchInterface():
@@ -63,8 +64,7 @@ class DispatchStage(Model):
 
 
 def DispatchDropController():
-  return KillDropController(DropControllerInterface(DispatchMsg()))
+  return KillDropController(DropControllerInterface(DispatchMsg(), DispatchMsg(), KillType(MAX_SPEC_DEPTH)))
 
 
-# Dispatch = gen_stage(DispatchStage, DispatchDropController)
-Dispatch = gen_stage(DispatchStage)
+Dispatch = gen_stage(DispatchStage, DispatchDropController)

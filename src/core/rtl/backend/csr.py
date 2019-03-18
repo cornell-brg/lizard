@@ -6,6 +6,7 @@ from core.rtl.messages import DispatchMsg, ExecuteMsg, PipelineMsgStatus, CsrFun
 from config.general import *
 from util.rtl.pipeline_stage import gen_stage, StageInterface, DropControllerInterface
 from core.rtl.kill_unit import KillDropController
+from config.general import *
 
 
 def CSRInterface():
@@ -62,8 +63,7 @@ class CSRStage(Model):
 
 
 def CSRDropController():
-  return KillDropController(DropControllerInterface(ExecuteMsg()))
+  return KillDropController(DropControllerInterface(ExecuteMsg(), ExecuteMsg(), KillType(MAX_SPEC_DEPTH)))
 
 
-# CSR = gen_stage(CSRStage, CSRDropController)
-CSR = gen_stage(CSRStage)
+CSR = gen_stage(CSRStage, CSRDropController)

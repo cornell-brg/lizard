@@ -52,8 +52,7 @@ class WritebackStage(Model):
 
 
 def WritebackDropController():
-  return KillDropController(DropControllerInterface(WritebackMsg()))
+  return KillDropController(DropControllerInterface(WritebackMsg(), WritebackMsg(), KillType(MAX_SPEC_DEPTH)))
 
 
-# Writeback = gen_stage(WritebackStage, WritebackDropController)
-Writeback = gen_stage(WritebackStage)
+Writeback = gen_stage(WritebackStage, WritebackDropController)
