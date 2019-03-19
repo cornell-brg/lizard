@@ -100,7 +100,7 @@ class RenameStage(Model):
       s.out_.hdr_branch_mask.v = s.register_branch_mask
       s.out_.hdr_spec_val.v = s.decoded_.speculative
       s.out_.hdr_spec.v = s.register_spec_idx
-      s.out_.hdr_branch_mask.v = 0  # TODO set this properly with cflow
+      s.out_.hdr_branch_mask.v = s.register_branch_mask
       # We need to propogate exception info
       if s.decoded_.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID:
         s.out_.rs1_val.v = s.decoded_.rs1_val
