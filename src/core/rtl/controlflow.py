@@ -323,12 +323,18 @@ class ControlFlowManager(Model):
 
     @s.combinational
     def update_num():
-      s.num.write_call.v = s.register_success_ ^ s.commit_call
-      s.num.write_data.v = 0
-      if s.register_success_:
-        s.num.write_data.v = s.num.read_data + 1
-      if s.commit_call:
-        s.num.write_data.v = s.num.read_data - 1
+      s.num.write_call.v = s.tail.write_call or s.head.write_call
+      s.num.write_data.v = s.num.read_data
+      if s.commit_redirect_:
+        s.num.write_data.v = 0 # An exception clears everything
+      elif s.redirect_:
+        s.num.write_data.v = s.tail.write_data - s.head.write_data
+      else:
+        if s.register_success:
+          s.num.write_data.v = s.num.read_data + 1
+        if s.commit_call:
+          s.num.write_data.v = s.num.read_data - 1
+
 
     @s.tick_rtl
     def handle_reset():
