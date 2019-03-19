@@ -11,10 +11,12 @@ from util.rtl.issue_queue import CompactingIssueQueue, IssueQueueInterface, Abst
 from util.rtl.coders import PriorityDecoder
 from util.rtl.pipeline_stage import PipelineStageInterface
 from core.rtl.kill_unit import KillDropController, KillDropControllerInterface
+from core.rtl.controlflow import KillType
+from config.general import *
 
 
 def IssueInterface():
-  return PipelineStageInterface(IssueMsg(), Bits(5))
+  return PipelineStageInterface(IssueMsg(), KillType(MAX_SPEC_DEPTH))
 
 
 class Issue(Model):
