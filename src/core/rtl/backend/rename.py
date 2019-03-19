@@ -34,6 +34,7 @@ class RenameStage(Model):
             'register',
             args={
                 'speculative': Bits(1),
+                'serialize': Bits(1),
                 'pc': Bits(pc_nbits),
                 'pc_succ': Bits(pc_nbits),
             },
@@ -75,6 +76,7 @@ class RenameStage(Model):
 
     # Outgoing call's arguments
     s.connect(s.register_speculative, s.decoded_.speculative)
+    s.connect(s.register_serialize, s.decoded_.serialize)
     s.connect(s.register_pc, s.decoded_.hdr_pc)
     s.connect(s.register_pc_succ, s.decoded_.pc_succ)
     s.connect(s.get_src_areg[0], s.decoded_.rs1)
