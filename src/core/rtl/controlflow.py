@@ -53,6 +53,7 @@ class ControlFlowManagerInterface(Interface):
             MethodSpec(
                 'redirect',
                 args={
+                    'seq' : Bits(seq_idx_nbits),
                     'spec_idx': Bits(speculative_idx_nbits),
                     'target': Bits(dlen),
                     'force': Bits(1),
@@ -177,13 +178,14 @@ class ControlFlowManager(Model):
     # Every instruction is registered under a branch mask
     s.bmask = Register(
         RegisterInterface(Bits(specmask_nbits), enable=True), reset_value=0)
-    s.bmask_alloc = OneHotEncoder(specmask_nbits)
+    s.bmask_alloc = OneHotEncoder(specmask_nbits, enable=True)
     s.redirect_mask = OneHotEncoder(specmask_nbits)
 
     # connect bmask related signals
     s.connect(s.bmask.write_data, s.bmask_next_)
     # This will create the alloc mask
     s.connect(s.bmask_alloc.encode_number, s.dflow_snapshot_id_)
+    s.connect(s.bmask_alloc.encode_call, s.spec_register_success_)
     # This will create the reidrection mask
     s.connect(s.redirect_mask.encode_number, s.redirect_spec_idx)
     # Things that need to be called on a successful speculative register
@@ -217,10 +219,7 @@ class ControlFlowManager(Model):
     s.connect(s.register_seq, s.tail.read_data)
     s.connect(s.register_success, s.register_success_)
     s.connect(s.register_spec_idx, s.dflow_snapshot_id_)
-
-    # Connect up enable
-    s.connect(s.tail.write_call, s.register_success_)
-    s.connect(s.head.write_call, s.commit_call)
+    s.connect(s.register_branch_mask, s.bmask_curr_)
 
     # Connect get head method
     s.connect(s.get_head_seq, s.head.read_data)
@@ -234,7 +233,7 @@ class ControlFlowManager(Model):
         s.check_redirect_target.v = reset_vector
       elif s.commit_redirect_:
         s.check_redirect_target.v = s.commit_redirect_target_
-      else:
+      else: # s.redirect_
         s.check_redirect_target.v = s.redirect_target_
 
     # This is only for a redirect call
@@ -308,10 +307,18 @@ class ControlFlowManager(Model):
 
     @s.combinational
     def update_tail():
-      s.tail.write_data.v = s.tail.read_data + 1
+      s.tail.write_call.v = s.register_success or s.commit_redirect_ or s.redirect_
+      if s.commit_redirect_:
+        # On an exception, the tail = head + 1, since head will be incremented
+        s.tail.write_data.v = s.head.read_data + 1
+      elif s.redirect_:
+        s.tail.write_data.v = s.redirect_seq
+      else:
+        s.tail.write_data.v = s.tail.read_data + 1
 
     @s.combinational
     def update_head():
+      s.head.write_call.v = s.commit_call
       s.head.write_data.v = s.head.read_data + 1
 
     @s.combinational

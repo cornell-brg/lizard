@@ -24,11 +24,13 @@ class BranchStage(Model):
     imm_len = DispatchMsg().imm.nbits
     data_len = XLEN
     spec_idx_len = DispatchMsg().hdr_spec.nbits
+    seq_idx_nbits = DispatchMsg().hdr_seq.nbits
 
     s.require(
         MethodSpec(
             'cflow_redirect',
             args={
+                'seq' : Bits(seq_idx_nbits),
                 'spec_idx': Bits(spec_idx_len),
                 'target': Bits(data_len),
                 'force': Bits(1),
@@ -72,6 +74,7 @@ class BranchStage(Model):
 
     # Connect up to controlflow redirect method
     s.connect(s.cflow_redirect_spec_idx, s.msg_.hdr_spec)
+    s.connect(s.cflow_redirect_seq, s.msg_.hdr_seq)
     s.connect(s.cflow_redirect_target, s.branch_target_)
     s.connect(s.cflow_redirect_force, 0)
     s.connect(s.cflow_redirect_call, s.process_call)
