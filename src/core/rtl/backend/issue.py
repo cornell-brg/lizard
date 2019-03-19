@@ -106,6 +106,8 @@ class Issue(Model):
       s.iq_slot_in.v = 0
       # Copy header
       s.iq_msg_in.hdr.v = s.renamed_.hdr
+      # Set the kill_opaque
+      s.iq_slot_in.kill_opaque.v = s.renamed_.hdr_branch_mask
       # If there is an exception, make sure sources are invalid
       if s.renamed_.hdr_status != PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID:
         s.iq_slot_in.src0_val.v = 0
@@ -135,8 +137,10 @@ class Issue(Model):
     @s.combinational
     def handle_output():
       # Copy over the source info again
+      s.peek_msg.v = 0
       s.peek_msg.v = s.iq.remove_value.opaque
       s.peek_msg.rs1.v = s.iq.remove_value.src0
       s.peek_msg.rs1_val.v = s.iq.remove_value.src0_val
       s.peek_msg.rs2.v = s.iq.remove_value.src1
       s.peek_msg.rs2_val.v = s.iq.remove_value.src1_val
+      s.peek_msg.hdr_branch_mask.v = s.iq.remove_value.kill_opaque
