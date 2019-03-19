@@ -47,6 +47,7 @@ class CsrDecoder(Model):
             0b011: CsrFunc.CSR_FUNC_READ_CLEAR,
         },
         Bits(CsrFunc.bits),
+        serialize=1,
         rs1_val=1,
         rd_val=1,
     )

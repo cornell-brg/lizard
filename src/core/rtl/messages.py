@@ -205,8 +205,8 @@ FetchMsg = FrontendMsg(FetchPayload())
 @bit_struct_generator
 def DecodePayload():
   return [
-      Field('speculative', 1),
       Field('serialize', 1),
+      Field('speculative', 1),
       Field('pc_succ', XLEN),
       ValidValuePair('rs1', AREG_IDX_NBITS),
       ValidValuePair('rs2', AREG_IDX_NBITS),
