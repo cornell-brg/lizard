@@ -9,7 +9,7 @@ CMPFunc = bit_enum(
     'ALUFunc',
     None,
     'CMP_EQ',
-    'CMP_NEQ',
+    'CMP_NE',
     'CMP_LT',
     'CMP_GE',
 )
@@ -93,7 +93,7 @@ class Comparator(Model):
       if s.exec_call:
         if s.func_ == CMPFunc.CMP_EQ:
           s.res_.v = s.eq_
-        elif s.func_ == CMPFunc.CMP_NEQ:
+        elif s.func_ == CMPFunc.CMP_NE:
           s.res_.v = not s.eq_
         elif s.func_ == CMPFunc.CMP_LT:
           s.res_.v = s.lt_

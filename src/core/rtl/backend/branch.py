@@ -2,10 +2,11 @@ from pymtl import *
 from util.rtl.interface import Interface, IncludeSome, UseInterface
 from util.rtl.method import MethodSpec
 from util.rtl.types import Array, canonicalize_type
-from util.rtl.comparator import Comparator, ComparatorInterface
+from util.rtl.comparator import Comparator, ComparatorInterface, CMPFunc
 from util.rtl.register import Register, RegisterInterface
+from util.rtl.lookup_table import LookupTable, LookupTableInterface
 from bitutil import clog2, clog2nz
-from core.rtl.messages import DispatchMsg, ExecuteMsg, AluMsg, AluFunc
+from core.rtl.messages import DispatchMsg, ExecuteMsg, BranchType
 from util.rtl.pipeline_stage import gen_stage, StageInterface, DropControllerInterface
 from core.rtl.kill_unit import PipelineKillDropController
 from core.rtl.controlflow import KillType
@@ -47,13 +48,26 @@ class BranchStage(Model):
     s.take_branch_ = Wire(1)
     s.branch_target_ = Wire(data_len)
 
+    OP_LUT_MAP = {
+      BranchType.BRANCH_TYPE_EQ : CMPFunc.CMP_EQ,
+      BranchType.BRANCH_TYPE_NE : CMPFunc.CMP_NE,
+      BranchType.BRANCH_TYPE_LT : CMPFunc.CMP_LT,
+      BranchType.BRANCH_TYPE_GE : CMPFunc.CMP_GE,
+    }
+    s.op_lut_ = LookupTable(
+        LookupTableInterface(DispatchMsg().branch_msg_type_.nbits,
+                             CMPFunc.bits), OP_LUT_MAP)
+
     # Connect to disptach get method
     s.connect(s.msg_, s.process_in_)
 
+    # Connect lookup opmap
+    s.connect(s.op_lut_.lookup_in_, s.msg_.branch_msg_type_)
+    s.connect(s.cmp_.exec_func, s.op_lut_.lookup_out)
     # Connect up cmp call
-    # s.connect(s.cmp_.exec_src0, TODO)
-    # s.connect(s.cmp_.exec_src1, TODO)
-    # s.connect(s.cmp_.exec_unsigned, TODO)
+    s.connect(s.cmp_.exec_src0, s.msg_.rs1)
+    s.connect(s.cmp_.exec_src1, s.msg_.rs2)
+    s.connect(s.cmp_.exec_unsigned, s.msg_.branch_msg_unsigned)
     s.connect(s.cmp_.exec_call, s.process_call)
 
     # Connect up to controlflow redirect method
