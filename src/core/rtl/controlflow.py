@@ -248,7 +248,7 @@ class ControlFlowManager(Model):
       s.dflow_free_snapshot_call.v = 0
       if s.redirect_call:
         # Free the snapshot
-        s.dflow_free_snapshot_call.v = 0
+        s.dflow_free_snapshot_call.v = 1
         # Look up if the predicted PC saved during register is correct
         s.redirect_.v = s.redirect_target != s.pc_pred.read_data[
             0] or s.redirect_force
