@@ -7,6 +7,7 @@ from util.rtl.reorder_buffer import ReorderBuffer, ReorderBufferInterface
 from config.general import *
 from util.rtl.pipeline_stage import PipelineStageInterface
 from core.rtl.controlflow import KillType
+from core.rtl.kill_unit import KillDropController, KillDropControllerInterface
 
 
 def CommitInterface():
@@ -19,6 +20,7 @@ class Commit(Model):
     UseInterface(s, interface)
     s.SeqIdxNbits = WritebackMsg().hdr_seq.nbits
     s.SpecIdxNbits = WritebackMsg().hdr_spec.nbits
+    s.SpecMaskNbits = WritebackMsg().hdr_branch_mask.nbits
     s.require(
         MethodSpec(
             'in_peek',
@@ -68,7 +70,9 @@ class Commit(Model):
     s.rob_remove = Wire(1)
     s.seq_num = Wire(s.SeqIdxNbits)
 
-    s.rob = ReorderBuffer(ReorderBufferInterface(WritebackMsg(), rob_size))
+    def make_kill():
+      return KillDropController(KillDropControllerInterface(s.SpecMaskNbits))
+    s.rob = ReorderBuffer(ReorderBufferInterface(WritebackMsg(), rob_size, s.SpecMaskNbits, s.interface.KillArgType), make_kill)
 
     # Connect head status check
     s.connect(s.rob.check_done_idx, s.cflow_get_head_seq)
