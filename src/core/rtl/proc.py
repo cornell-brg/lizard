@@ -136,7 +136,7 @@ class Proc(Model):
 
     # Issue
     s.issue_interface = IssueInterface()
-    s.issue = Issue(s.issue_interface, PREG_COUNT, num_slots=1)
+    s.issue = Issue(s.issue_interface, PREG_COUNT, num_slots=NUM_ISSUE_SLOTS)
     s.connect_m(s.issue.kill_notify, s.kill_notifier.kill_notify)
     s.connect_m(s.rename.peek, s.issue.in_peek)
     s.connect_m(s.rename.take, s.issue.in_take)

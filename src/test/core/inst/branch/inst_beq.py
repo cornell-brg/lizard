@@ -97,106 +97,37 @@ def gen_basic_not_taken_test():
 #-------------------------------------------------------------------------
 def gen_basic_2_test():
   return """
+      # x3 will track the control flow pattern
+    addi   x3, x0, 0
 
-    # Use x3 to track the control flow pattern
-    addi  x3, x0, 0
+    # Move src0 value into register
+    csrr   x1, mngr2proc < 240
 
-    csrr  x1, mngr2proc < 2
-    csrr  x2, mngr2proc < 2
 
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
+    # Move src1 value into register
+    csrr   x2, mngr2proc < 240
 
-    # This branch should be taken
-    beq   x1, x2, label_a
-    addi  x3, x3, 0b01
 
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
+    beq x1, x2, label_1  # br -.
+    addi   x3, x3, 0b000001                #     |
+                                           #     |
+label_2:                                    # <---+-.
+    addi   x3, x3, 0b000010                #     | |
+                                           #     | |
+    beq x1, x2, label_3  # br -+-+-.
+    addi   x3, x3, 0b000100                #     | | |
+                                           #     | | |
+label_1:                                    # <---' | |
+    addi   x3, x3, 0b001000                #       | |
+                                           #       | |
+    beq x1, x2, label_2  # br ---' |
+    addi   x3, x3, 0b010000                #         |
+                                           #         |
+label_3:                                    # <-------'
+    addi   x3, x3, 0b100000                #
 
-  label_a:
-    addi  x3, x3, 0b10
-
-    # Only the second bit should be set if branch was taken
-    csrw proc2mngr, x3 > 0b10
-    
-    addi  x3, x0, 0
-
-    csrr  x1, mngr2proc < 2
-    csrr  x2, mngr2proc < 2
-
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-
-    # This branch should be taken
-    beq   x1, x2, label_b
-    addi  x3, x3, 0b01
-
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-
-  label_b:
-    addi  x3, x3, 0b10
-
-    # Only the second bit should be set if branch was taken
-    csrw proc2mngr, x3 > 0b10
-
-    addi  x3, x0, 0
-
-    csrr  x1, mngr2proc < 2
-    csrr  x2, mngr2proc < 2
-
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-
-    # This branch should be taken
-    beq   x1, x2, label_c
-    addi  x3, x3, 0b01
-
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-
-  label_c:
-    addi  x3, x3, 0b10
-
-    # Only the second bit should be set if branch was taken
-    csrw proc2mngr, x3 > 0b10
+    # Check the control flow pattern
+    csrw   proc2mngr, x3 > 42
   """
 
 # ''' LAB TASK ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
