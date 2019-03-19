@@ -41,9 +41,9 @@ class DecodeStage(Model):
 
       if s.process_in_.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID:
         if s.decoder.decode_success:
-          s.process_out.speculative.v = 0
           s.process_out.pc_succ.v = s.process_in_.pc_succ
 
+          s.process_out.speculative.v = s.decoder.decode_speculative
           s.process_out.rs1_val.v = s.decoder.decode_rs1_val
           s.process_out.rs1.v = s.process_in_.inst_rs1
           s.process_out.rs2_val.v = s.decoder.decode_rs2_val
@@ -54,7 +54,6 @@ class DecodeStage(Model):
           s.process_out.imm.v = s.imm_decoder.decode_imm
           s.process_out.op_class.v = s.decoder.decode_op_class
           s.process_out.pipe_msg.v = s.decoder.decode_result
-          s.process_out.speculative.v = 0
         else:
           s.process_out.hdr_status.v = PipelineMsgStatus.PIPELINE_MSG_STATUS_EXCEPTION_RAISED
           s.process_out.exception_info_mcause.v = ExceptionCode.ILLEGAL_INSTRUCTION
