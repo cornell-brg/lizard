@@ -97,15 +97,16 @@ def gen_basic_not_taken_test():
 #-------------------------------------------------------------------------
 def gen_basic_2_test():
   return """
-      # x3 will track the control flow pattern
+
+    # x3 will track the control flow pattern
     addi   x3, x0, 0
 
     # Move src0 value into register
-    csrr   x1, mngr2proc < 240
+    csrr   x1, mngr2proc < -1
 
 
     # Move src1 value into register
-    csrr   x2, mngr2proc < 240
+    csrr   x2, mngr2proc < -1
 
 
     beq x1, x2, label_1  # br -.
@@ -128,6 +129,43 @@ label_3:                                    # <-------'
 
     # Check the control flow pattern
     csrw   proc2mngr, x3 > 42
+
+
+
+
+    # x3 will track the control flow pattern
+    addi   x3, x0, 0
+
+    # Move src0 value into register
+    csrr   x1, mngr2proc < -1
+
+
+    # Move src1 value into register
+    csrr   x2, mngr2proc < 0
+
+
+    beq x1, x2, label_4  # br -.
+    addi   x3, x3, 0b000001                #     |
+                                           #     |
+label_5:                                    # <---+-.
+    addi   x3, x3, 0b000010                #     | |
+                                           #     | |
+    beq x1, x2, label_6  # br -+-+-.
+    addi   x3, x3, 0b000100                #     | | |
+                                           #     | | |
+label_4:                                    # <---' | |
+    addi   x3, x3, 0b001000                #       | |
+                                           #       | |
+    beq x1, x2, label_5  # br ---' |
+    addi   x3, x3, 0b010000                #         |
+                                           #         |
+label_6:                                    # <-------'
+    addi   x3, x3, 0b100000                #
+
+    # Check the control flow pattern
+    csrw   proc2mngr, x3 > 63
+
+
   """
 
 # ''' LAB TASK ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
