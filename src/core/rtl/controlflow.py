@@ -325,7 +325,7 @@ class ControlFlowManager(Model):
         # On an exception, the tail = head + 1, since head will be incremented
         s.tail.write_data.v = s.head.read_data + 1
       elif s.redirect_:
-        s.tail.write_data.v = s.redirect_seq
+        s.tail.write_data.v = s.redirect_seq + 1 # Note: Tail is exclusive
       else:
         s.tail.write_data.v = s.tail.read_data + 1
 
