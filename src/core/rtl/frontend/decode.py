@@ -43,6 +43,7 @@ class DecodeStage(Model):
         if s.decoder.decode_success:
           s.process_out.pc_succ.v = s.process_in_.pc_succ
 
+          s.process_out.serialize.v = s.decoder.decode_serialize
           s.process_out.speculative.v = s.decoder.decode_speculative
           s.process_out.rs1_val.v = s.decoder.decode_rs1_val
           s.process_out.rs1.v = s.process_in_.inst_rs1
