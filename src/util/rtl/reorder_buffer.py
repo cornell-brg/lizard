@@ -7,16 +7,19 @@ from util.rtl.interface import Interface, UseInterface
 from util.rtl.registerfile import RegisterFile, RegisterFileInterface
 from util.rtl.async_ram import AsynchronousRAM, AsynchronousRAMInterface
 from util.rtl.types import Array, canonicalize_type
+from util.rtl.pipeline_stage import gen_valid_value_manager
 from util.rtl.onehot import OneHotEncoder
 from util.pretty_print import bitstruct_values
 
 
 class ReorderBufferInterface(Interface):
 
-  def __init__(s, entry_type, num_entries):
+  def __init__(s, entry_type, num_entries, KillOpaqueType, KillArgType):
     s.EntryType = entry_type
     s.EntryIdx = clog2(num_entries)
     s.NumEntries = num_entries
+    s.KillOpaqueType = KillOpaqueType
+    s.KillArgType = KillArgType
 
     super(ReorderBufferInterface, s).__init__([
         MethodSpec(
@@ -24,6 +27,7 @@ class ReorderBufferInterface(Interface):
             args={
                 'idx': s.EntryIdx,
                 'value': s.EntryType,
+                'kill_opaque': s.KillOpaqueType,
             },
             rets=None,
             call=True,
@@ -51,12 +55,20 @@ class ReorderBufferInterface(Interface):
             call=True,
             rdy=False,
         ),
+        MethodSpec(
+            'kill_notify',
+            args={
+                'msg': s.KillArgType,
+            },
+            rets=None,
+            call=False,
+            rdy=False),
     ])
 
 
 class ReorderBuffer(Model):
 
-  def __init__(s, interface):
+  def __init__(s, interface, make_kill):
     UseInterface(s, interface)
 
     num_entries = s.interface.NumEntries
@@ -65,20 +77,30 @@ class ReorderBuffer(Model):
     #s.entries_ = RegisterFile(entry_type, num_entries, 1, 1, False, False)
     s.entries_ = AsynchronousRAM(
         AsynchronousRAMInterface(entry_type, num_entries, 1, 1))
-    s.valids_ = Register(RegisterInterface(Bits(num_entries)), reset_value=0)
+    s.valids_ = [gen_valid_value_manager(make_kill)() for _ in range(num_entries)]
     s.mux_done_ = Mux(Bits(1), num_entries)
 
-    s.add_encoder_ = OneHotEncoder(num_entries)
-    s.free_encoder_ = OneHotEncoder(num_entries)
+    s.add_encoder_ = OneHotEncoder(num_entries, enable=True)
+    s.free_encoder_ = OneHotEncoder(num_entries, enable=True)
 
-    s.valids_update_ = Wire(num_entries)
+    # Connect enable to add encode
+    s.connect(s.add_encoder_.encode_call, s.add_call)
+    s.connect(s.add_encoder_.encode_number, s.add_idx)
+    s.connect(s.free_encoder_.encode_call, s.free_call)
+    s.connect(s.free_encoder_.encode_number, s.free_idx)
 
     # Check done
     # Connect up the mux for check done method
-    @s.combinational
-    def mux_in():
-      for i in range(num_entries):
-        s.mux_done_.mux_in_[i].v = s.valids_.read_data[i]
+    for i in range(num_entries):
+      # Connect peek
+      s.connect(s.mux_done_.mux_in_[i], s.valids_[i].peek_rdy)
+      # Connect up add method
+      s.connect(s.valids_[i].add_msg, s.add_kill_opaque)
+      s.connect(s.valids_[i].add_call, s.add_encoder_.encode_onehot[i])
+      # Connect up take method
+      s.connect(s.valids_[i].take_call, s.free_encoder_.encode_onehot[i])
+      # Connect kill_notify
+      s.connect_m(s.valids_[i].kill_notify, s.kill_notify)
 
     s.connect(s.mux_done_.mux_select, s.check_done_idx)
     s.connect(s.check_done_is_rdy, s.mux_done_.mux_out)
@@ -87,25 +109,11 @@ class ReorderBuffer(Model):
     s.connect(s.entries_.write_call[0], s.add_call)
     s.connect(s.entries_.write_addr[0], s.add_idx)
     s.connect(s.entries_.write_data[0], s.add_value)
-    s.connect(s.add_encoder_.encode_number, s.add_idx)
 
     # free
     s.connect(s.entries_.read_addr[0], s.free_idx)
     s.connect(s.free_value, s.entries_.read_data[0])
-    s.connect(s.free_encoder_.encode_number, s.free_idx)
 
-    # Valid update
-    s.connect(s.valids_.write_data, s.valids_update_)
-
-    @s.combinational
-    def set_valids():
-      s.valids_update_.v = s.valids_.read_data
-      # Clear anything being freed
-      if s.free_call:
-        s.valids_update_.v = s.valids_update_ & ~s.free_encoder_.encode_onehot
-      # Set anything being added
-      if s.add_call:
-        s.valids_update_.v = s.valids_update_ | s.add_encoder_.encode_onehot
 
   def line_trace(s):
     return str(s.valids_.read_data)

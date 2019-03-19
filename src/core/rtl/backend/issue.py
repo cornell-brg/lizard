@@ -78,6 +78,7 @@ class Issue(Model):
     s.connect(s.updated_.decode_signal, s.get_updated_mask)
     s.connect(s.iq.notify_value, s.updated_.decode_decoded)
     s.connect(s.iq.notify_call, s.updated_.decode_valid)
+    s.connect_m(s.iq.kill_notify, s.kill_notify)
 
     s.renamed_ = Wire(RenameMsg())
     s.connect(s.renamed_, s.in_peek_msg)
