@@ -27,6 +27,7 @@ def BranchDecoder():
           0b110: branch_msg(BranchType.BRANCH_TYPE_LT, 1),
           0b111: branch_msg(BranchType.BRANCH_TYPE_GE, 1),
       },
+      speculative=1,
       rs1_val=1,
       rs2_val=1,
       imm_type=ImmType.IMM_TYPE_B,

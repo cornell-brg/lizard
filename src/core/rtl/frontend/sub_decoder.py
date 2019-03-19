@@ -19,6 +19,7 @@ class SubDecoderInterface(Interface):
             },
             rets={
                 'success': Bits(1),
+                'speculative': Bits(1),
                 'rs1_val': Bits(1),
                 'rs2_val': Bits(1),
                 'rd_val': Bits(1),
@@ -62,6 +63,7 @@ class GenDecoder(Model):
                field_list,
                field_map,
                In,
+               speculative=0,
                rs1_val=0,
                rs2_val=0,
                rd_val=0,
@@ -115,6 +117,7 @@ class GenDecoder(Model):
       assert len(field_map) == 1
       s.connect(s.lookup_out, int(field_map.values()[0]))
 
+    s.connect(s.decode_speculative, speculative)
     s.connect(s.decode_rs1_val, rs1_val)
     s.connect(s.decode_rs2_val, rs2_val)
     s.connect(s.decode_rd_val, rd_val)
@@ -170,6 +173,7 @@ class GenDecoderFixed(Model):
                fixed_map,
                field_list,
                field_map,
+               speculative=0,
                rs1_val=0,
                rs2_val=0,
                rd_val=0,
@@ -187,6 +191,7 @@ class GenDecoderFixed(Model):
         field_list,
         field_map,
         ResultKind,
+        speculative=speculative,
         rs1_val=rs1_val,
         rs2_val=rs2_val,
         rd_val=rd_val,
@@ -212,6 +217,7 @@ class BinaryCompositeDecoder(Model):
     def pick():
       if s.decode_a_success:
         s.decode_success.v = s.decode_a_success
+        s.decode_speculative.v = s.decode_a_speculative
         s.decode_rs1_val.v = s.decode_a_rs1_val
         s.decode_rs2_val.v = s.decode_a_rs2_val
         s.decode_rd_val.v = s.decode_a_rd_val
@@ -221,6 +227,7 @@ class BinaryCompositeDecoder(Model):
         s.decode_result.v = s.decode_a_result
       else:
         s.decode_success.v = s.decode_b_success
+        s.decode_speculative.v = s.decode_b_speculative
         s.decode_rs1_val.v = s.decode_b_rs1_val
         s.decode_rs2_val.v = s.decode_b_rs2_val
         s.decode_rd_val.v = s.decode_b_rd_val
