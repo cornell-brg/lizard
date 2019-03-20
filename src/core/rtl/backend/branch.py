@@ -30,7 +30,7 @@ class BranchStage(Model):
         MethodSpec(
             'cflow_redirect',
             args={
-                'seq' : Bits(seq_idx_nbits),
+                'seq': Bits(seq_idx_nbits),
                 'spec_idx': Bits(spec_idx_len),
                 'target': Bits(data_len),
                 'force': Bits(1),
@@ -51,10 +51,10 @@ class BranchStage(Model):
     s.branch_target_ = Wire(data_len)
 
     OP_LUT_MAP = {
-      BranchType.BRANCH_TYPE_EQ : CMPFunc.CMP_EQ,
-      BranchType.BRANCH_TYPE_NE : CMPFunc.CMP_NE,
-      BranchType.BRANCH_TYPE_LT : CMPFunc.CMP_LT,
-      BranchType.BRANCH_TYPE_GE : CMPFunc.CMP_GE,
+        BranchType.BRANCH_TYPE_EQ: CMPFunc.CMP_EQ,
+        BranchType.BRANCH_TYPE_NE: CMPFunc.CMP_NE,
+        BranchType.BRANCH_TYPE_LT: CMPFunc.CMP_LT,
+        BranchType.BRANCH_TYPE_GE: CMPFunc.CMP_GE,
     }
     s.op_lut_ = LookupTable(
         LookupTableInterface(DispatchMsg().branch_msg_type_.nbits,
