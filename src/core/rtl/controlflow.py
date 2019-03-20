@@ -213,6 +213,8 @@ class ControlFlowManager(Model):
     s.num = Register(
         RegisterInterface(Bits(seqidx_nbits + 1), enable=True), reset_value=0)
 
+    s.head_next = Wire(seqidx_nbits)
+
     # Connect up check_kill method
     s.connect(s.check_kill_kill.force, s.redirect_force)
     s.connect(s.check_kill_kill.kill_mask, s.kill_mask_)
@@ -331,21 +333,25 @@ class ControlFlowManager(Model):
 
     @s.combinational
     def update_head():
+      s.head_next.v = s.head.read_data + 1 if s.commit_call else s.head.read_data
       s.head.write_call.v = s.commit_call
-      s.head.write_data.v = s.head.read_data + 1
+      s.head.write_data.v = s.head_next
 
+
+    s.head_tail_delta = Wire(seqidx_nbits)
     @s.combinational
-    def update_num():
+    def update_num(seqp1=seqidx_nbits+1):
+      s.head_tail_delta.v = s.tail.write_data - s.head_next
       s.num.write_call.v = s.tail.write_call or s.head.write_call
       s.num.write_data.v = s.num.read_data
       if s.commit_redirect_:
         s.num.write_data.v = 0 # An exception clears everything
       elif s.redirect_:
-        s.num.write_data.v = s.tail.write_data - s.head.write_data
-      else:
+        s.num.write_data.v = max_entries if s.head_tail_delta == 0 else zext(s.head_tail_delta, seqp1)
+      elif s.register_success ^ s.commit_call:
         if s.register_success:
           s.num.write_data.v = s.num.read_data + 1
-        if s.commit_call:
+        elif s.commit_call:
           s.num.write_data.v = s.num.read_data - 1
 
 
