@@ -53,6 +53,14 @@ class Fetch(Model):
     s.connect_m(s.drop_unit.input, s.mem_recv, {
         'msg': 'data',
     })
+    # PYMTL_BROKEN
+    s.drop_unit_output_data_data = Wire(s.drop_unit.output_data.data.nbits)
+    s.connect(s.drop_unit_output_data_data, s.drop_unit.output_data.data)
+    s.inst_from_mem = Wire(ILEN)
+    # PYMTL_BROKEN
+    @s.combinational
+    def pymtl_is_broken_connect_does_not_work():
+      s.inst_from_mem.v = s.drop_unit_output_data_data[0:ilen]
 
     s.fetch_val = Register(
         RegisterInterface(Bits(1), True, False), reset_value=0)
@@ -125,7 +133,7 @@ class Fetch(Model):
             s.fetch_msg.write_data.exception_info_mtval.v = s.pc.read_data
           else:
             s.fetch_msg.write_data.hdr_status.v = PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID
-            s.fetch_msg.write_data.inst.v = s.drop_unit.output_data.data[:ilen]
+            s.fetch_msg.write_data.inst.v = s.inst_from_mem
             s.fetch_msg.write_data.pc_succ.v = s.pc.write_data
         elif s.take_call:
           # someone is calling, but we are stalled, so give them output but
