@@ -76,7 +76,7 @@ class Commit(Model):
     s.rob = ReorderBuffer(
         ReorderBufferInterface(WritebackMsg(), rob_size, s.SpecMaskNbits,
                                s.interface.KillArgType), make_kill)
-
+    s.connect_m(s.rob.kill_notify, s.kill_notify)
     # Connect head status check
     s.connect(s.rob.check_done_idx, s.cflow_get_head_seq)
 
