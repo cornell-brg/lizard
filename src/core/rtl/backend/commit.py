@@ -72,7 +72,10 @@ class Commit(Model):
 
     def make_kill():
       return KillDropController(KillDropControllerInterface(s.SpecMaskNbits))
-    s.rob = ReorderBuffer(ReorderBufferInterface(WritebackMsg(), rob_size, s.SpecMaskNbits, s.interface.KillArgType), make_kill)
+
+    s.rob = ReorderBuffer(
+        ReorderBufferInterface(WritebackMsg(), rob_size, s.SpecMaskNbits,
+                               s.interface.KillArgType), make_kill)
 
     # Connect head status check
     s.connect(s.rob.check_done_idx, s.cflow_get_head_seq)

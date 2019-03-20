@@ -53,7 +53,7 @@ class ControlFlowManagerInterface(Interface):
             MethodSpec(
                 'redirect',
                 args={
-                    'seq' : Bits(seq_idx_nbits),
+                    'seq': Bits(seq_idx_nbits),
                     'spec_idx': Bits(speculative_idx_nbits),
                     'target': Bits(dlen),
                     'force': Bits(1),
@@ -66,7 +66,7 @@ class ControlFlowManagerInterface(Interface):
                 'register',
                 args={
                     'speculative': Bits(1),
-                    'serialize' : Bits(1), # Serialize the instruction
+                    'serialize': Bits(1),  # Serialize the instruction
                     'pc': Bits(dlen),
                     'pc_succ': Bits(dlen),
                 },
@@ -229,7 +229,6 @@ class ControlFlowManager(Model):
     # Connect get head method
     s.connect(s.get_head_seq, s.head.read_data)
 
-
     # This prioritizes reset redirection, then exceptions, then a branch reidrect call
     @s.combinational
     def prioritry_redirect():
@@ -239,14 +238,14 @@ class ControlFlowManager(Model):
         s.check_redirect_target.v = reset_vector
       elif s.commit_redirect_:
         s.check_redirect_target.v = s.commit_redirect_target_
-      else: # s.redirect_
+      else:  # s.redirect_
         s.check_redirect_target.v = s.redirect_target_
 
     @s.combinational
     def set_serial():
       s.serial.write_call.v = ((s.register_success and s.register_serialize) or
-                                    (s.serial.read_data and s.commit_call))
-      s.serial.write_data.v = not s.serial.read_data #  we are always inverting it
+                               (s.serial.read_data and s.commit_call))
+      s.serial.write_data.v = not s.serial.read_data  #  we are always inverting it
 
     # This is only for a redirect call
     @s.combinational
@@ -286,10 +285,10 @@ class ControlFlowManager(Model):
       s.register_success_.v = 0
       s.spec_register_success_.v = 0
       if s.register_call:
-        s.register_success_.v = (not s.full_ and
-                                (not s.register_speculative or s.dflow_snapshot_rdy)
-                                and (not s.register_serialize or s.empty_)
-                                and not s.serial.read_data)
+        s.register_success_.v = (not s.full_ and (not s.register_speculative or
+                                                  s.dflow_snapshot_rdy) and
+                                 (not s.register_serialize or s.empty_) and
+                                 not s.serial.read_data)
 
         s.spec_register_success_.v = s.register_success_.v and s.register_speculative
 
@@ -327,7 +326,7 @@ class ControlFlowManager(Model):
         # On an exception, the tail = head + 1, since head will be incremented
         s.tail.write_data.v = s.head.read_data + 1
       elif s.redirect_:
-        s.tail.write_data.v = s.redirect_seq + 1 # Note: Tail is exclusive
+        s.tail.write_data.v = s.redirect_seq + 1  # Note: Tail is exclusive
       else:
         s.tail.write_data.v = s.tail.read_data + 1
 
@@ -337,23 +336,23 @@ class ControlFlowManager(Model):
       s.head.write_call.v = s.commit_call
       s.head.write_data.v = s.head_next
 
-
     s.head_tail_delta = Wire(seqidx_nbits)
+
     @s.combinational
-    def update_num(seqp1=seqidx_nbits+1):
+    def update_num(seqp1=seqidx_nbits + 1):
       s.head_tail_delta.v = s.tail.write_data - s.head_next
       s.num.write_call.v = s.tail.write_call or s.head.write_call
       s.num.write_data.v = s.num.read_data
       if s.commit_redirect_:
-        s.num.write_data.v = 0 # An exception clears everything
+        s.num.write_data.v = 0  # An exception clears everything
       elif s.redirect_:
-        s.num.write_data.v = max_entries if s.head_tail_delta == 0 else zext(s.head_tail_delta, seqp1)
+        s.num.write_data.v = max_entries if s.head_tail_delta == 0 else zext(
+            s.head_tail_delta, seqp1)
       elif s.register_success ^ s.commit_call:
         if s.register_success:
           s.num.write_data.v = s.num.read_data + 1
         elif s.commit_call:
           s.num.write_data.v = s.num.read_data - 1
-
 
     @s.tick_rtl
     def handle_reset():

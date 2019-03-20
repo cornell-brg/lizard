@@ -77,7 +77,9 @@ class ReorderBuffer(Model):
     #s.entries_ = RegisterFile(entry_type, num_entries, 1, 1, False, False)
     s.entries_ = AsynchronousRAM(
         AsynchronousRAMInterface(entry_type, num_entries, 1, 1))
-    s.valids_ = [gen_valid_value_manager(make_kill)() for _ in range(num_entries)]
+    s.valids_ = [
+        gen_valid_value_manager(make_kill)() for _ in range(num_entries)
+    ]
     s.mux_done_ = Mux(Bits(1), num_entries)
 
     s.add_encoder_ = OneHotEncoder(num_entries, enable=True)
@@ -113,7 +115,6 @@ class ReorderBuffer(Model):
     # free
     s.connect(s.entries_.read_addr[0], s.free_idx)
     s.connect(s.free_value, s.entries_.read_data[0])
-
 
   def line_trace(s):
     return str(s.valids_.read_data)

@@ -33,10 +33,12 @@ class OneHotEncoder(Model):
     for i in range(noutbits):
 
       if s.interface.En:
+
         @s.combinational
         def handle_encode(i=i):
           s.encode_onehot[i].v = s.encode_call and (s.encode_number == i)
       else:
+
         @s.combinational
         def handle_encode(i=i):
           s.encode_onehot[i].v = (s.encode_number == i)
