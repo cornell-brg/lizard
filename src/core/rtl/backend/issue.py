@@ -105,6 +105,7 @@ class Issue(Model):
     def handle_input():
       s.iq_slot_in.v = 0
       # Copy header
+      s.iq_msg_in.v = 0
       s.iq_msg_in.hdr.v = s.renamed_.hdr
       # Set the kill_opaque
       s.iq_slot_in.kill_opaque.v = s.renamed_.hdr_branch_mask
