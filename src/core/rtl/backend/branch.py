@@ -85,10 +85,6 @@ class BranchStage(Model):
       # TODO handle branches that are not conditional
       s.take_branch_.v = s.cmp_.exec_res
 
-    @s.combinational
-    def set_inputs():
-      # TODO set the proper compare function
-      s.cmp_.exec_func.v = 0
 
     @s.combinational
     def compute_target():
