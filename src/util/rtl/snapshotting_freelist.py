@@ -94,7 +94,6 @@ class SnapshottingFreeList(Model):
     s.snapshot_packers = [Packer(Bits(1), nslots) for _ in range(nsnapshots)]
 
     s.dump_mux = Mux(Bits(nslots), nsnapshots)
-    s.clean_mux = Mux(Bits(nslots), 2)
 
     for i in range(nsnapshots):
       for j in range(num_alloc_ports):

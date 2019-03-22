@@ -35,8 +35,11 @@ class PriorityDecoder(Model):
     s.valid = [Wire(1) for _ in range(inwidth + 1)]
     s.outs = [Wire(s.interface.Out) for _ in range(inwidth + 1)]
 
-    s.connect(s.valid[0], 0)
-    s.connect(s.outs[0], 0)
+    # PYMTL_BROKEN
+    @s.combinational
+    def connect_is_broken():
+      s.valid[0].v = 0
+      s.outs[0].v = 0
 
     for i in range(inwidth):
 

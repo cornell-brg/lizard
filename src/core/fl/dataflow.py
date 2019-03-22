@@ -27,7 +27,7 @@ class DataFlowManagerFL(FLModel):
         free_regs=SnapshottingFreeListFL(
             npregs - 1,
             num_dst_ports,
-            num_src_ports,
+            num_dst_ports,
             nsnapshots,
             used_slots_initial=naregs - 1),
     )

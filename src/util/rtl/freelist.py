@@ -148,7 +148,10 @@ class FreeList(Model):
     s.alloc_encoders = [OneHotEncoder(nslots) for _ in range(num_alloc_ports)]
     s.alloc_decoders = [PriorityDecoder(nslots) for _ in range(num_alloc_ports)]
 
-    s.connect(s.free_masks[0], 0)
+    # PYMTL_BROKEN
+    @s.combinational
+    def connect_is_broken():
+      s.free_masks[0].v = 0
 
     for i in range(num_free_ports):
       s.connect(s.free_encoders[i].encode_number, s.free_index[i])
