@@ -36,7 +36,7 @@ class ProcTestHarness(Model):
     return s.dut.line_trace()
 
 
-def asm_test(asm, translate, vcd_file, max_cycles=2000):
+def asm_test(asm, translate, vcd_file, max_cycles=200000):
   mem_image = assembler.assemble(asm)
   initial_mem = {}
   mngr2proc_data = deque()
