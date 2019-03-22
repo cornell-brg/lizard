@@ -44,8 +44,7 @@ class CaseMux(Model):
     @s.combinational
     def connect_is_broken():
       s.out_chain[0].v = s.mux_default
-
-    s.connect(s.valid_chain[0], 0)
+      s.valid_chain[0].v = 0
 
     for i, svalue in enumerate(svalues):
 

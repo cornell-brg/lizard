@@ -169,6 +169,7 @@ class Proc(Model):
     ## Branch
     s.branch_interface = BranchInterface()
     s.branch = Branch(s.branch_interface)
+    s.connect_m(s.branch.kill_notify, s.kill_notifier.kill_notify)
     s.connect_m(s.cflow.redirect, s.branch.cflow_redirect)
     s.connect_m(s.branch.in_peek, s.pipe_selector.branch_peek)
     s.connect_m(s.branch.in_take, s.pipe_selector.branch_take)

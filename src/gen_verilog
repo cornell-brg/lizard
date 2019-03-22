@@ -8,16 +8,17 @@ import subprocess
 
 
 def main():
-    mbi = MemoryBusInterface(2, 1, 2, 64, 8)
-    proc = Proc(ProcInterface(), mbi.MemMsg)
-    proc.explicit_modulename = 'proc'
-    translate(proc)
-    fname = '{}.v'.format(proc.class_name)
-    svfname = '{}.sv'.format(proc.class_name)
-    subprocess.check_call(['sed', '-i', 's/\\bwire\\b/logic/g', fname])
-    subprocess.check_call(['sed', '-i', 's/\\breg\\b/logic/g', fname])
-    subprocess.check_call(['sed', '-i', '/^`default_nettype/ d', fname])
-    subprocess.check_call(['mv', fname, svfname])
-    
+  mbi = MemoryBusInterface(2, 1, 2, 64, 8)
+  proc = Proc(ProcInterface(), mbi.MemMsg)
+  proc.explicit_modulename = 'proc'
+  translate(proc)
+  fname = '{}.v'.format(proc.class_name)
+  svfname = '{}.sv'.format(proc.class_name)
+  subprocess.check_call(['sed', '-i', 's/\\bwire\\b/logic/g', fname])
+  subprocess.check_call(['sed', '-i', 's/\\breg\\b/logic/g', fname])
+  subprocess.check_call(['sed', '-i', '/^`default_nettype/ d', fname])
+  subprocess.check_call(['mv', fname, svfname])
+
+
 if __name__ == '__main__':
   main()

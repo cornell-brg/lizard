@@ -165,12 +165,12 @@ class DataFlowManager(Model):
     s.snapshot_allocator = SnapshottingFreeList(nsnapshots, 1, 1, nsnapshots)
 
     # Reserve the highest tag for x0
-    # Free list with 2 alloc ports, 1 free port, and AREG_COUNT - 1 used slots
+    # Free list with 1 alloc ports, 1 free port, and AREG_COUNT - 1 used slots
     # initially
     s.free_regs = SnapshottingFreeList(
         npregs - 1,
         num_dst_ports,
-        num_src_ports,
+        num_dst_ports,
         nsnapshots,
         used_slots_initial=naregs - 1)
     # arch_used_pregs tracks the physical registers used by the current architectural state
@@ -189,6 +189,10 @@ class DataFlowManager(Model):
         False,  # no read ports, so we don't need a write-read bypass
         True,  # use a write-dump bypass to reset after commit
         reset_values=arch_used_pregs_reset)
+    # Zero out the set
+    s.connect(s.arch_used_pregs.set_call, 0)
+    for i in range(npregs - 1):
+      s.connect(s.arch_used_pregs.set_in_[i], 0)
 
     # Build the initial rename table.
     # x0 -> don't care (will use 0)
@@ -268,6 +272,10 @@ class DataFlowManager(Model):
         True,
         reset_values=initial_map,
     )
+    # Zero out the set
+    s.connect(s.areg_file.set_call, 0)
+    for i in range(naregs):
+      s.connect(s.areg_file.set_in_[i], 0)
 
     # commit
     s.is_commit_not_zero_tag = [Wire(1) for _ in range(num_dst_ports)]
@@ -330,7 +338,12 @@ class DataFlowManager(Model):
     s.get_updated_incremental_masks = [
         Wire(npregs) for _ in range(num_dst_ports + 1)
     ]
-    s.connect(s.get_updated_incremental_masks[0], 0)
+
+    # PYMTL_BROKEN
+    @s.combinational
+    def connect_is_broken():
+      s.get_updated_incremental_masks[0].v = 0
+
     for i in range(num_dst_ports):
 
       @s.combinational
