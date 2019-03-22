@@ -10,6 +10,8 @@ from core.rtl.proc import ProcInterface, Proc
 from util.arch.rv64g import isa, assembler, DATA_PACK_DIRECTIVE
 from config.general import *
 from collections import deque
+from util import line_block
+from util.line_block import Divider, LineBlock
 
 
 class ProcTestHarness(Model):
@@ -29,6 +31,9 @@ class ProcTestHarness(Model):
     s.connect_m(s.mb.send_0, s.dut.mb_send_0)
     s.connect_m(s.db.recv, s.dut.db_recv)
     s.connect_m(s.db.send, s.dut.db_send)
+
+  def line_trace(s):
+    return s.dut.line_trace()
 
 
 def asm_test(asm, translate, vcd_file, max_cycles=2000):
@@ -62,7 +67,12 @@ def asm_test(asm, translate, vcd_file, max_cycles=2000):
   while curr < len(proc2mngr_data):
     assert i < max_cycles
     i += 1
-    print("{:>3}: {}".format(i, dut.line_trace()))
+    print(line_block.join([
+        '{:>5}'.format(i),
+        Divider(': '),
+        dut.line_trace(),
+    ]))
+    print('')
     while len(pth.tdb.received_messages) > curr:
       if pth.tdb.received_messages[curr] != proc2mngr_data[curr]:
         msg = "Expected: {}, got {}".format(

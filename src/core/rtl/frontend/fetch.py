@@ -153,4 +153,7 @@ class Fetch(Model):
     s.connect(s.mem_send_call, s.advance_f0)
 
   def line_trace(s):
-    return str(s.fetch_msg.hdr_pc)
+    if s.advance_f1:
+      return '*'
+    else:
+      return ' '
