@@ -145,3 +145,9 @@ class Issue(Model):
       s.peek_msg.rs2.v = s.iq.remove_value.src1
       s.peek_msg.rs2_val.v = s.iq.remove_value.src1_val
       s.peek_msg.hdr_branch_mask.v = s.iq.remove_value.kill_opaque
+
+  def line_trace(s):
+    if s.in_take_call:
+      return '*'
+    else:
+      return ' '

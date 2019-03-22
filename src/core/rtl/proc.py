@@ -22,6 +22,8 @@ from core.rtl.messages import *
 from core.rtl.kill_unit import KillNotifier, RedirectNotifier
 from mem.rtl.memory_bus import MemoryBusInterface
 from mem.rtl.memory_bus import MemMsg, MemMsgType
+from util import line_block
+from util.line_block import Divider, LineBlock
 from config.general import *
 
 
@@ -207,3 +209,28 @@ class Proc(Model):
     s.connect_m(s.commit.dataflow_commit, s.dflow.commit[0])
     s.connect_m(s.cflow.commit, s.commit.cflow_commit)
     s.connect_m(s.cflow.get_head, s.commit.cflow_get_head)
+
+  def line_trace(s):
+    return line_block.join([
+        s.fetch.line_trace(),
+        Divider(' | '),
+        s.decode.line_trace(),
+        Divider(' | '),
+        s.rename.line_trace(),
+        Divider(' | '),
+        s.issue.line_trace(),
+        Divider(' | '),
+        s.dispatch.line_trace(),
+        Divider(' | '),
+        LineBlock(
+            line_block.join(['A', Divider(': '),
+                             s.alu.line_trace()]).normalized().blocks +
+            line_block.join(['B', Divider(': '),
+                             s.branch.line_trace()]).normalized().blocks +
+            line_block.join(['C', Divider(': '),
+                             s.csr_pipe.line_trace()]).normalized().blocks),
+        Divider(' | '),
+        s.writeback.line_trace(),
+        Divider(' | '),
+        s.commit.line_trace()
+    ])

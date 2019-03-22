@@ -120,4 +120,7 @@ class Commit(Model):
           s.dataflow_commit_tag.v = 0
 
   def line_trace(s):
-    return "{} {}".format(s.dataflow_commit_tag, s.dataflow_commit_call)
+    if s.in_take_call:
+      return '*'
+    else:
+      return ' '

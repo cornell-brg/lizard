@@ -340,5 +340,11 @@ def gen_stage(stage_class, drop_controller_class=None):
 
       s.wrap(s.stage)
 
+    def line_trace(s):
+      if s.pipeline_stage.advance:
+        return '*'
+      else:
+        return ' '
+
   Pipelined.__name__ = name
   return Pipelined

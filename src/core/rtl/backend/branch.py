@@ -85,7 +85,6 @@ class BranchStage(Model):
       # TODO handle branches that are not conditional
       s.take_branch_.v = s.cmp_.exec_res
 
-
     @s.combinational
     def compute_target():
       s.msg_imm_.v = s.msg_.imm
