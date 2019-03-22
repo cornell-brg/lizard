@@ -3,3 +3,5 @@ synth: proc.sv
 proc.sv:
 	cd ../build; ../src/gen_verilog
 	cp ../build/$@ .
+clean:
+	rm -rf proc.sv

@@ -1,3 +1,4 @@
 fpga-rv64gc
 *.log
 *.jou
+proc.sv
