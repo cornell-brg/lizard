@@ -21,6 +21,7 @@ OpClass = bit_enum(
     ('OP_CLASS_ALU', 'in'),
     ('OP_CLASS_MUL', 'md'),
     ('OP_CLASS_BRANCH', 'br'),
+    ('OP_CLASS_JUMP', 'jp'),
     ('OP_CLASS_CSR', 'cs'),
     ('OP_CLASS_MEM', 'me'),
 )
@@ -141,6 +142,13 @@ def BranchMsg():
 
 
 @bit_struct_generator
+def JumpMsg():
+  return [
+      Field('bogus', 1),
+  ]
+
+
+@bit_struct_generator
 def PipeMsg():
   return [
       Union(
@@ -148,6 +156,7 @@ def PipeMsg():
           Field('alu_msg', AluMsg()),
           Field('csr_msg', CsrMsg()),
           Field('branch_msg', BranchMsg()),
+          Field('jump_msg', JumpMsg()),
       ),
   ]
 

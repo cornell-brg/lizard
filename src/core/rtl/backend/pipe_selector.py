@@ -19,7 +19,7 @@ class PipeSelectorController(Model):
         s.sort_pipe.v = 0  # CSR pipe
       elif s.sort_msg.op_class == OpClass.OP_CLASS_ALU:
         s.sort_pipe.v = 1  # ALU pipe
-      elif s.sort_msg.op_class == OpClass.OP_CLASS_BRANCH:
+      elif s.sort_msg.op_class == OpClass.OP_CLASS_BRANCH or s.sort_msg.op_class == OpClass.OP_CLASS_JUMP:
         s.sort_pipe.v = 2  # Branch pipe
       else:
         s.sort_pipe.v = 0  # Error CSR pipe
