@@ -116,8 +116,7 @@ class GenDecoder(Model):
       s.connect(s.lookup_out, s.lut.lookup_out)
     else:
       # If there is only one thing and nothing to select on, bypass the lookup table
-      assert len(field_map) == 1
-      s.connect(s.lookup_out, int(field_map.values()[0]))
+      s.connect(s.lookup_out, int(field_map))
 
     s.connect(s.decode_serialize, serialize)
     s.connect(s.decode_speculative, speculative)

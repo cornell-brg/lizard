@@ -6,7 +6,7 @@ from util.rtl.comparator import Comparator, ComparatorInterface, CMPFunc
 from util.rtl.register import Register, RegisterInterface
 from util.rtl.lookup_table import LookupTable, LookupTableInterface
 from bitutil import clog2, clog2nz
-from core.rtl.messages import DispatchMsg, ExecuteMsg, BranchType
+from core.rtl.messages import DispatchMsg, ExecuteMsg, BranchType, OpClass
 from util.rtl.pipeline_stage import gen_stage, StageInterface, DropControllerInterface
 from core.rtl.kill_unit import PipelineKillDropController
 from core.rtl.controlflow import KillType
@@ -84,9 +84,7 @@ class BranchStage(Model):
 
     @s.combinational
     def set_take_branch():
-      s.take_branch_.v = 0
-      # TODO handle branches that are not conditional
-      s.take_branch_.v = s.cmp_.exec_res
+      s.take_branch_.v = s.cmp_.exec_res or s.msg_.op_class == OpClass.OP_CLASS_JUMP
 
     @s.combinational
     def compute_target():
@@ -95,7 +93,10 @@ class BranchStage(Model):
       # Vivado errors: "range is not allowed in prefix"
       s.imm_.v = sext(s.msg_imm_, data_len)
       if s.take_branch_:
-        s.branch_target_.v = s.msg_.hdr_pc + s.imm_
+        if s.msg_.op_class == OpClass.OP_CLASS_BRANCH or not s.msg_.rs1_val:
+          s.branch_target_.v = s.msg_.hdr_pc + s.imm_
+        elif s.msg_.rs1_val:
+          s.branch_target_.v = s.msg_.rs1 + s.imm_
       else:
         s.branch_target_.v = s.msg_.hdr_pc + 4
 
@@ -103,6 +104,7 @@ class BranchStage(Model):
     def set_value_reg_input():
       s.process_out.v = 0
       s.process_out.hdr.v = s.msg_.hdr
+      s.process_out.result.v = s.msg_.hdr_pc
 
 
 def BranchDropController():

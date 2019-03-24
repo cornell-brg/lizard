@@ -55,7 +55,7 @@ class ControlFlowManagerInterface(Interface):
                 args={
                     'seq': Bits(seq_idx_nbits),
                     'spec_idx': Bits(speculative_idx_nbits),
-                    'branch_mask' : Bits(speculative_mask_nbits),
+                    'branch_mask': Bits(speculative_mask_nbits),
                     'target': Bits(dlen),
                     'force': Bits(1),
                 },
@@ -266,7 +266,8 @@ class ControlFlowManager(Model):
         if s.redirect_:
           s.redirect_target_.v = s.redirect_target
           # Kill everything except preceeding branches
-          s.kill_mask_.v = s.redirect_mask.encode_onehot | (~s.redirect_branch_mask)
+          s.kill_mask_.v = s.redirect_mask.encode_onehot | (
+              ~s.redirect_branch_mask)
         else:
           s.clear_mask_.v = s.redirect_mask.encode_onehot
 
