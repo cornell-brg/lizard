@@ -68,15 +68,13 @@ class RenameStage(Model):
     s.connect(s.process_accepted, s.accepted_)
 
     s.decoded_ = Wire(DecodeMsg())
-
     s.out_ = Wire(RenameMsg())
+    s.no_except_ = Wire(1)
 
     s.connect(s.decoded_, s.process_in_)
     s.connect(s.process_out, s.out_)
 
     # Outgoing call's arguments
-    s.connect(s.register_speculative, s.decoded_.speculative)
-    s.connect(s.register_serialize, s.decoded_.serialize)
     s.connect(s.register_pc, s.decoded_.hdr_pc)
     s.connect(s.register_pc_succ, s.decoded_.pc_succ)
     s.connect(s.get_src_areg[0], s.decoded_.rs1)
@@ -85,6 +83,13 @@ class RenameStage(Model):
 
     # Outgoing call's call signal:
     s.connect(s.register_call, s.process_call)
+
+    @s.combinational
+    def handle_register():
+      s.no_except_.v = s.decoded_.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID
+      s.register_speculative.v = s.no_except_ and s.decoded_.speculative
+      s.register_serialize.v = s.no_except_ and s.decoded_.serialize
+
     # Handle the conditional calls
     @s.combinational
     def handle_calls():
@@ -98,11 +103,9 @@ class RenameStage(Model):
       s.out_.hdr_frontend_hdr.v = s.decoded_.hdr
       s.out_.hdr_seq.v = s.register_seq
       s.out_.hdr_branch_mask.v = s.register_branch_mask
-      s.out_.hdr_spec_val.v = s.decoded_.speculative
-      s.out_.hdr_spec.v = s.register_spec_idx
-      s.out_.hdr_branch_mask.v = s.register_branch_mask
-      # We need to propogate exception info
-      if s.decoded_.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID:
+      if s.no_except_:
+        s.out_.hdr_spec_val.v = s.decoded_.speculative
+        s.out_.hdr_spec.v = s.register_spec_idx
         s.out_.rs1_val.v = s.decoded_.rs1_val
         s.out_.rs2_val.v = s.decoded_.rs2_val
         s.out_.rd_val.v = s.decoded_.rd_val
