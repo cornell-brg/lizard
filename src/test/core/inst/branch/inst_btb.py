@@ -131,7 +131,7 @@ def gen_branch_diff_controls_test():
     addi x3, x0, 0x200        # 0x208
     jalr x2, x3, 0x025         # 0x20c
 
-  loop_a: 
+  loop_a:
     addi x4, x4, -1          # 0x210
     beq x1, x4, loop_c        # 0x214
     addi x4, x4, 2        # 0x218
@@ -192,7 +192,8 @@ def gen_deep_loop_with_jalr_test():
               jal x9, 0x00004
             adder:
               andi x10, x8, 0x001
-              mul x10, x10, x29     # 0 or 1 * 4
+              #mul x10, x10, x29     # 0 or 1 * 4
+              slli x10, x10, 0x002  # Currently cant do multiplies...
               add x9, x9, x10
               jalr x0, x9, 0x010
               addi x30, x30, -1
@@ -242,7 +243,7 @@ def gen_branch_collision_test():
     jal x0, loop_check
   loop:
     addi x2, x0, 10
-    
+
   cont1:
     addi x2, x2, -1
     bne x2, x0, cont2
