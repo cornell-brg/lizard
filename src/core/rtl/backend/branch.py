@@ -105,6 +105,8 @@ class BranchStage(Model):
       s.process_out.v = 0
       s.process_out.hdr.v = s.msg_.hdr
       s.process_out.result.v = s.msg_.hdr_pc
+      s.process_out.rd.v = s.msg_.rd
+      s.process_out.rd_val.v = s.msg_.rd_val
 
 
 def BranchDropController():
