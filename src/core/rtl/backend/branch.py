@@ -98,13 +98,13 @@ class BranchStage(Model):
         elif s.msg_.rs1_val:
           s.branch_target_.v = s.msg_.rs1 + s.imm_
       else:
-        s.branch_target_.v = s.msg_.hdr_pc + 4
+        s.branch_target_.v = s.msg_.hdr_pc + ILEN_BYTES
 
     @s.combinational
     def set_value_reg_input():
       s.process_out.v = 0
       s.process_out.hdr.v = s.msg_.hdr
-      s.process_out.result.v = s.msg_.hdr_pc
+      s.process_out.result.v = s.msg_.hdr_pc + ILEN_BYTES
       s.process_out.rd.v = s.msg_.rd
       s.process_out.rd_val.v = s.msg_.rd_val
 
