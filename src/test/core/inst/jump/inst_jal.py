@@ -10,6 +10,19 @@ from test.core.inst_utils import *
 #-------------------------------------------------------------------------
 # gen_basic_test
 #-------------------------------------------------------------------------
+def gen_trivial_test():
+  return """
+
+    # Use r3 to track the control flow pattern
+    addi  x3, x0, 0     # 0x0200
+    jal   x1, label_a # 204
+    addi  x3, x3, 0b01
+  label_a:
+    addi  x3, x3, 0b10
+    # Only the second bit should be set if jump was taken
+    csrw  proc2mngr, x1 > 0x0208
+    csrw  proc2mngr, x3 > 0b10
+  """
 
 
 def gen_basic_test():
@@ -68,7 +81,7 @@ def gen_dest_dep_test():
   label_a:
     # Check the link address
     csrw  proc2mngr, x1 > 0x0208
-    
+
     addi  x3, x3, 0b10
 
     # Only the second bit should be set if jump was taken
