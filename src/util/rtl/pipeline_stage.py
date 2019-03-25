@@ -343,6 +343,8 @@ def gen_stage(stage_class, drop_controller_class=None):
     def line_trace(s):
       if s.pipeline_stage.advance:
         return '*'
+      elif not s.pipeline_stage.output_clear:
+        return '#'
       else:
         return ' '
 
