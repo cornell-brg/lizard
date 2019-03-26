@@ -160,14 +160,15 @@ class ControlFlowManager(Model):
     # The redirect registers (needed for sync reset)
     s.reset_redirect_valid_ = Wire(1)
 
-    # Redirects caused by branches
-    s.redirect_ = Wire(1)
-    s.redirect_target_ = Wire(xlen)
+    # The OR of all the redirect signals
+    s.is_redirect_ = Wire(1)
 
+    # Redirects caused by branches
+    s.branch_redirect_ = Wire(1)
+    s.redirect_target_ = Wire(xlen)
     # Redirects caused by exceptions, traps, etc...
     s.commit_redirect_ = Wire(1)
     s.commit_redirect_target_ = Wire(xlen)
-
 
     s.register_success_ = Wire(1)
     s.spec_register_success_ = Wire(1)
@@ -177,6 +178,18 @@ class ControlFlowManager(Model):
     s.clear_mask_ = Wire(specmask_nbits)
     s.bmask_curr_ = Wire(specmask_nbits)
     s.bmask_next_ = Wire(specmask_nbits)
+
+    # The kill and clear signals are registered
+    s.update_kills_ = Wire(1)
+    s.kill_pend = Register(RegisterInterface(Bits(1), enable=True), reset_value=0)
+    s.reg_force = Register(RegisterInterface(Bits(1), enable=True), reset_value=0)
+    s.reg_kill = Register(RegisterInterface(Bits(specmask_nbits), enable=True), reset_value=0)
+    s.reg_clear = Register(RegisterInterface(Bits(specmask_nbits), enable=True), reset_value=0)
+    s.connect(s.kill_pend.write_call, s.update_kills_)
+    s.connect(s.reg_force.write_call, s.update_kills_)
+    s.connect(s.reg_kill.write_call, s.update_kills_)
+    s.connect(s.reg_clear.write_call, s.update_kills_)
+
     # Every instruction is registered under a branch mask
     s.bmask = Register(
         RegisterInterface(Bits(specmask_nbits), enable=True), reset_value=0)
@@ -196,7 +209,7 @@ class ControlFlowManager(Model):
     s.connect(s.dflow_snapshot_call, s.spec_register_success_)
     # Connect up the dflow restore signals
     s.connect(s.dflow_restore_source_id, s.redirect_spec_idx)
-    s.connect(s.dflow_restore_call, s.redirect_)
+    s.connect(s.dflow_restore_call, s.branch_redirect_)
     # Connect up free snapshot val
     s.connect(s.dflow_free_snapshot_id_, s.redirect_spec_idx)
 
@@ -207,9 +220,9 @@ class ControlFlowManager(Model):
     s.connect(s.pc_pred.read_addr[0], s.redirect_spec_idx)
 
     # Connect up check_kill method
-    s.connect(s.check_kill_kill.force, s.redirect_force)
-    s.connect(s.check_kill_kill.kill_mask, s.kill_mask_)
-    s.connect(s.check_kill_kill.clear_mask, s.clear_mask_)
+    s.connect(s.check_kill_kill.force, s.reg_force.read_data)
+    s.connect(s.check_kill_kill.kill_mask, s.reg_kill.read_data)
+    s.connect(s.check_kill_kill.clear_mask, s.reg_clear.read_data)
 
     # Connect up register method rets
     s.connect(s.register_seq, s.seq.allocate_idx)
@@ -225,16 +238,30 @@ class ControlFlowManager(Model):
     # Connect commit
     s.connect(s.seq.free_call, s.commit_call)
 
+    # All the backend kill signals are registered to avoid comb. loops
+    @s.combinational
+    def set_kill_pend():
+      s.update_kills_.v = s.kill_pend.read_data or s.is_redirect_
+      s.kill_pend.write_data.v = s.is_redirect_
+      s.reg_force.write_data.v = 0
+      s.reg_kill.write_data.v = 0
+      s.reg_clear.write_data = 0
+      if s.is_redirect_:
+        s.reg_force.write_data.v = s.branch_redirect_ and s.redirect_force
+        s.reg_kill.write_data.v = s.kill_mask_
+        s.reg_clear.write_data = s.clear_mask_
+
     # This prioritizes reset redirection, then exceptions, then a branch reidrect call
     @s.combinational
-    def prioritry_redirect():
-      s.check_redirect_redirect.v = s.reset_redirect_valid_ or s.commit_redirect_ or s.redirect_
+    def handle_check_redirect():
+      s.is_redirect_.v = s.reset_redirect_valid_ or s.commit_redirect_ or s.branch_redirect_
+      s.check_redirect_redirect.v = s.is_redirect_
       s.check_redirect_target.v = 0
       if s.reset_redirect_valid_:
         s.check_redirect_target.v = reset_vector
       elif s.commit_redirect_:
         s.check_redirect_target.v = s.commit_redirect_target_
-      else:  # s.redirect_
+      else:  # s.branch_redirect_
         s.check_redirect_target.v = s.redirect_target_
 
     @s.combinational
@@ -245,20 +272,20 @@ class ControlFlowManager(Model):
 
     # This is only for a redirect call
     @s.combinational
-    def handle_redirection():
+    def handle_branch_redirection():
       # These are set after a redirect call
       s.kill_mask_.v = 0
       s.clear_mask_.v = 0
-      s.redirect_.v = 0
+      s.branch_redirect_.v = 0
       s.redirect_target_.v = 0
       s.dflow_free_snapshot_call.v = 0
       if s.redirect_call:
         # Free the snapshot
         s.dflow_free_snapshot_call.v = 1
         # Look up if the predicted PC saved during register is correct
-        s.redirect_.v = s.redirect_target != s.pc_pred.read_data[
+        s.branch_redirect_.v = s.redirect_target != s.pc_pred.read_data[
             0] or s.redirect_force
-        if s.redirect_:
+        if s.branch_redirect_:
           s.redirect_target_.v = s.redirect_target
           # Kill everything except preceeding branches
           s.kill_mask_.v = s.redirect_mask.encode_onehot | (
@@ -307,11 +334,11 @@ class ControlFlowManager(Model):
 
     @s.combinational
     def update_seq():
-      s.seq.rollback_call.v = s.commit_redirect_ or s.redirect_
+      s.seq.rollback_call.v = s.commit_redirect_ or s.branch_redirect_
       s.seq.rollback_idx.v = s.redirect_seq
       if s.commit_redirect_:
         # On an exception, the tail = head + 1, since head will be incremented
-        s.seq.rollback_idx.v = s.seq.get_head_idx + 1
+        s.seq.rollback_idx.v = s.seq.get_head_idx
 
     @s.tick_rtl
     def handle_reset():
