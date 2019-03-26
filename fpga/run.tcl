@@ -17,6 +17,10 @@ update_compile_order -fileset sources_1
 synth_design -top ${top}
 report_utilization -file ${prj}/${prj}.runs/synth/${top}_utilization_synth.rpt
 
+# fix up ports
+place_ports
+set_property IOSTANDARD LVCMOS18 [get_ports -of_objects [get_iobanks -filter { BANK_TYPE !~  "BT_MGT" }]]
+
 # Optimize
 opt_design
 
@@ -32,5 +36,7 @@ report_power -file ${prj}/${prj}.runs/post_route_power.rpt
 report_drc -file ${prj}/${prj}.runs/post_imp_drc.rpt
 
 # Bitstream
-
+# Ignore the missing pin mappings (which map ports on the top level to actual pins on the chip)
+set_property SEVERITY {Warning} [get_drc_checks NSTD-1]
+set_property SEVERITY {Warning} [get_drc_checks UCIO-1]
 write_bitstream -force ${prj}/${prj}.runs/${top}.bit
