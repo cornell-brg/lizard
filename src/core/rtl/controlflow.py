@@ -7,6 +7,7 @@ from util.rtl.method import MethodSpec
 from util.rtl.register import Register, RegisterInterface
 from util.rtl.onehot import OneHotEncoder
 from util.rtl.async_ram import AsynchronousRAM, AsynchronousRAMInterface
+from util.rtl.sequence_allocator import SequenceAllocator, SequenceAllocatorInterface
 from bitutil.bit_struct_generator import *
 
 
@@ -155,6 +156,7 @@ class ControlFlowManager(Model):
     s.pc_pred = AsynchronousRAM(
         AsynchronousRAMInterface(xlen, specmask_nbits, 1, 1, False))
 
+    s.seq = SequenceAllocator(SequenceAllocatorInterface(seqidx_nbits))
     # The redirect registers (needed for sync reset)
     s.reset_redirect_valid_ = Wire(1)
 
@@ -166,9 +168,7 @@ class ControlFlowManager(Model):
     s.commit_redirect_ = Wire(1)
     s.commit_redirect_target_ = Wire(xlen)
 
-    # flags
-    s.empty_ = Wire(1)
-    s.full_ = Wire(1)
+
     s.register_success_ = Wire(1)
     s.spec_register_success_ = Wire(1)
 
@@ -206,29 +206,24 @@ class ControlFlowManager(Model):
     s.connect(s.pc_pred.write_data[0], s.register_pc_succ)
     s.connect(s.pc_pred.read_addr[0], s.redirect_spec_idx)
 
-    # ROB stuff: Dealloc from head, alloc at tail
-    s.tail = Register(
-        RegisterInterface(Bits(seqidx_nbits), enable=True), reset_value=0)
-    s.head = Register(
-        RegisterInterface(Bits(seqidx_nbits), enable=True), reset_value=0)
-    s.num = Register(
-        RegisterInterface(Bits(seqidx_nbits + 1), enable=True), reset_value=0)
-
-    s.head_next = Wire(seqidx_nbits)
-
     # Connect up check_kill method
     s.connect(s.check_kill_kill.force, s.redirect_force)
     s.connect(s.check_kill_kill.kill_mask, s.kill_mask_)
     s.connect(s.check_kill_kill.clear_mask, s.clear_mask_)
 
     # Connect up register method rets
-    s.connect(s.register_seq, s.tail.read_data)
+    s.connect(s.register_seq, s.seq.allocate_idx)
     s.connect(s.register_success, s.register_success_)
     s.connect(s.register_spec_idx, s.dflow_snapshot_id_)
     s.connect(s.register_branch_mask, s.bmask_curr_)
+    s.connect(s.seq.allocate_call, s.register_success_)
 
     # Connect get head method
-    s.connect(s.get_head_seq, s.head.read_data)
+    s.connect(s.get_head_seq, s.seq.get_head_idx)
+    s.connect(s.get_head_rdy, s.seq.get_head_rdy)
+
+    # Connect commit
+    s.connect(s.seq.free_call, s.commit_call)
 
     # This prioritizes reset redirection, then exceptions, then a branch reidrect call
     @s.combinational
@@ -287,17 +282,17 @@ class ControlFlowManager(Model):
       s.register_success_.v = 0
       s.spec_register_success_.v = 0
       if s.register_call:
-        s.register_success_.v = (not s.full_ and (not s.register_speculative or
-                                                  s.dflow_snapshot_rdy) and
-                                 (not s.register_serialize or s.empty_) and
-                                 not s.serial.read_data)
+        s.register_success_.v = (
+          s.seq.allocate_rdy and   # ROB slot availible
+          (not s.register_speculative or s.dflow_snapshot_rdy) and # RT snapshot
+          (not s.register_serialize or not s.seq.free_rdy) and # Serialized inst
+          not s.serial.read_data)
 
         s.spec_register_success_.v = s.register_success_.v and s.register_speculative
 
     @s.combinational
     def handle_commit():
       s.dflow_rollback_call.v = 0
-      #s.dflow_free_snapshot_call.v = 0
       s.commit_redirect_.v = 0
       s.commit_redirect_target_.v = 0
       # If we are committing there are a couple cases
@@ -309,52 +304,14 @@ class ControlFlowManager(Model):
           s.commit_redirect_.v = 1
           s.dflow_rollback_call.v = 1
 
-      #s.dflow_free_snapshot_call.v = s.commit_speculative
-
-    # All the following comb blocks are for ROB stuff:
-    @s.combinational
-    def set_get_head_rdy():
-      s.get_head_rdy.v = not s.empty_
 
     @s.combinational
-    def set_flags():
-      s.full_.v = s.num.read_data == max_entries
-      s.empty_.v = s.num.read_data == 0
-
-    @s.combinational
-    def update_tail():
-      s.tail.write_call.v = s.register_success or s.commit_redirect_ or s.redirect_
+    def update_seq():
+      s.seq.rollback_call.v = s.commit_redirect_ or s.redirect_
+      s.seq.rollback_idx.v = s.redirect_seq
       if s.commit_redirect_:
         # On an exception, the tail = head + 1, since head will be incremented
-        s.tail.write_data.v = s.head.read_data + 1
-      elif s.redirect_:
-        s.tail.write_data.v = s.redirect_seq + 1  # Note: Tail is exclusive
-      else:
-        s.tail.write_data.v = s.tail.read_data + 1
-
-    @s.combinational
-    def update_head():
-      s.head_next.v = s.head.read_data + 1 if s.commit_call else s.head.read_data
-      s.head.write_call.v = s.commit_call
-      s.head.write_data.v = s.head_next
-
-    s.head_tail_delta = Wire(seqidx_nbits)
-
-    @s.combinational
-    def update_num(seqp1=seqidx_nbits + 1):
-      s.head_tail_delta.v = s.tail.write_data - s.head_next
-      s.num.write_call.v = s.tail.write_call or s.head.write_call
-      s.num.write_data.v = s.num.read_data
-      if s.commit_redirect_:
-        s.num.write_data.v = 0  # An exception clears everything
-      elif s.redirect_:
-        s.num.write_data.v = max_entries if s.head_tail_delta == 0 else zext(
-            s.head_tail_delta, seqp1)
-      elif s.register_success ^ s.commit_call:
-        if s.register_success:
-          s.num.write_data.v = s.num.read_data + 1
-        elif s.commit_call:
-          s.num.write_data.v = s.num.read_data - 1
+        s.seq.rollback_idx.v = s.seq.get_head_idx + 1
 
     @s.tick_rtl
     def handle_reset():
