@@ -214,6 +214,18 @@ class DataFlowManager(Model):
     # The physical register file, which stores the values
     # and ready states
     # Number of read ports is the same as number of source ports
+    # Number of write ports is the same as number of dest ports
+    # Writes are bypassed before reads, and the dump/set is not used
+    s.preg_file = AsynchronousRAM(
+        AsynchronousRAMInterface(
+            Bits(dlen),
+            npregs,
+            num_src_ports,
+            num_dst_ports,
+            True,
+        ),
+        reset_values=0,
+    )
     # 2 write ports are needed for every dst port:
     # The second set to update all the destination states during issue,
     # (get_dst), and the first set to write the computed value
@@ -223,17 +235,6 @@ class DataFlowManager(Model):
     # something dumb). But, we must adhere to the interface even if the
     # user does something dumb and tries to write to a bogus tag which
     # is currently free.
-    # Writes are bypassed before reads, and the dump/set is not used
-    s.preg_file = AsynchronousRAM(
-        AsynchronousRAMInterface(
-            Bits(dlen),
-            npregs,
-            num_src_ports,
-            num_dst_ports * 2,
-            True,
-        ),
-        reset_values=0,
-    )
     # The ready table is not bypassed; is_ready comes before all the the writes
     # (which are in get_dst and write)
     s.ready_table = AsynchronousRAM(
@@ -385,12 +386,6 @@ class DataFlowManager(Model):
       s.connect(s.rename_table.update_areg[i], s.get_dst_areg[i])
       s.connect(s.rename_table.update_preg[i], s.get_dst_preg[i])
       s.connect(s.rename_table.update_call[i], s.get_dst_need_writeback[i])
-      # All operations on the preg file are on the second set of write ports
-      # at the offset +num_dst_ports
-      s.connect(s.preg_file.write_addr[i + num_dst_ports], s.get_dst_preg[i])
-      s.connect(s.preg_file.write_data[i + num_dst_ports], 0)
-      s.connect(s.preg_file.write_call[i + num_dst_ports],
-                s.get_dst_need_writeback[i])
       s.connect(s.ready_table.write_addr[i + num_dst_ports], s.get_dst_preg[i])
       s.connect(s.ready_table.write_data[i + num_dst_ports], 0)
       s.connect(s.ready_table.write_call[i + num_dst_ports],

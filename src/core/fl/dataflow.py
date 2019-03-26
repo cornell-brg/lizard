@@ -62,7 +62,7 @@ class DataFlowManagerFL(FLModel):
             Bits(dlen),
             npregs,
             num_src_ports,
-            num_dst_ports * 2,
+            num_dst_ports,
             True,
             False,
             reset_values=preg_reset,
@@ -139,7 +139,6 @@ class DataFlowManagerFL(FLModel):
       allocation = s.free_regs.alloc()
 
       s.rename_table.update(areg=areg, preg=allocation.index)
-      s.preg_file.write(addr=allocation.index, data=0)
       s.ready_table.write(addr=allocation.index, data=0)
       s.inverse.write(addr=allocation.index, data=areg)
 
