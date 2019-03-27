@@ -245,11 +245,11 @@ class ControlFlowManager(Model):
       s.kill_pend.write_data.v = s.is_redirect_
       s.reg_force.write_data.v = 0
       s.reg_kill.write_data.v = 0
-      s.reg_clear.write_data = 0
+      s.reg_clear.write_data.v = 0
       if s.is_redirect_:
         s.reg_force.write_data.v = s.branch_redirect_ and s.redirect_force
         s.reg_kill.write_data.v = s.kill_mask_
-        s.reg_clear.write_data = s.clear_mask_
+        s.reg_clear.write_data.v = s.clear_mask_
 
     # This prioritizes reset redirection, then exceptions, then a branch reidrect call
     @s.combinational
