@@ -4,50 +4,49 @@ from util.rtl.interface import Interface, IncludeSome, UseInterface
 from util.rtl.method import MethodSpec
 from util.rtl.register import Register, RegisterInterface
 
+
 class SequenceAllocatorInterface(Interface):
+
   def __init__(s, seq_idx_nbits):
     s.SeqIdxNbits = seq_idx_nbits
-    super(SequenceAllocatorInterface, s).__init__(
-        [
-            MethodSpec(
-                'allocate',
-                args={},
-                rets={
-                    'idx': Bits(s.SeqIdxNbits),
-                },
-                call=True,
-                rdy=True,
-            ),
-            MethodSpec(
-                'get_head',
-                args={},
-                rets={
-                    'idx': Bits(s.SeqIdxNbits),
-                },
-                call=False,
-                rdy=True,
-            ),
-            MethodSpec(
-                'free',
-                args={},
-                rets={
-                },
-                call=True,
-                rdy=True,
-            ),
-            MethodSpec(
-                'rollback',
-                args={ 'idx': Bits(s.SeqIdxNbits) },
-                rets={
-                },
-                call=True,
-                rdy=False,
-            ),
-      ]
-    )
+    super(SequenceAllocatorInterface, s).__init__([
+        MethodSpec(
+            'allocate',
+            args={},
+            rets={
+                'idx': Bits(s.SeqIdxNbits),
+            },
+            call=True,
+            rdy=True,
+        ),
+        MethodSpec(
+            'get_head',
+            args={},
+            rets={
+                'idx': Bits(s.SeqIdxNbits),
+            },
+            call=False,
+            rdy=True,
+        ),
+        MethodSpec(
+            'free',
+            args={},
+            rets={},
+            call=True,
+            rdy=True,
+        ),
+        MethodSpec(
+            'rollback',
+            args={'idx': Bits(s.SeqIdxNbits)},
+            rets={},
+            call=True,
+            rdy=False,
+        ),
+    ])
 
 
 class SequenceAllocator(Model):
+
   def __init__(s, interface):
     UseInterface(s, interface)
     seqidx_nbits = s.interface.SeqIdxNbits

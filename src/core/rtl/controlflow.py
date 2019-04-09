@@ -181,10 +181,14 @@ class ControlFlowManager(Model):
 
     # The kill and clear signals are registered
     s.update_kills_ = Wire(1)
-    s.kill_pend = Register(RegisterInterface(Bits(1), enable=True), reset_value=0)
-    s.reg_force = Register(RegisterInterface(Bits(1), enable=True), reset_value=0)
-    s.reg_kill = Register(RegisterInterface(Bits(specmask_nbits), enable=True), reset_value=0)
-    s.reg_clear = Register(RegisterInterface(Bits(specmask_nbits), enable=True), reset_value=0)
+    s.kill_pend = Register(
+        RegisterInterface(Bits(1), enable=True), reset_value=0)
+    s.reg_force = Register(
+        RegisterInterface(Bits(1), enable=True), reset_value=0)
+    s.reg_kill = Register(
+        RegisterInterface(Bits(specmask_nbits), enable=True), reset_value=0)
+    s.reg_clear = Register(
+        RegisterInterface(Bits(specmask_nbits), enable=True), reset_value=0)
     s.connect(s.kill_pend.write_call, s.update_kills_)
     s.connect(s.reg_force.write_call, s.update_kills_)
     s.connect(s.reg_kill.write_call, s.update_kills_)
@@ -310,10 +314,12 @@ class ControlFlowManager(Model):
       s.spec_register_success_.v = 0
       if s.register_call:
         s.register_success_.v = (
-          s.seq.allocate_rdy and   # ROB slot availible
-          (not s.register_speculative or s.dflow_snapshot_rdy) and # RT snapshot
-          (not s.register_serialize or not s.seq.free_rdy) and # Serialized inst
-          not s.serial.read_data)
+            s.seq.allocate_rdy and  # ROB slot availible
+            (not s.register_speculative or s.dflow_snapshot_rdy)
+            and  # RT snapshot
+            (not s.register_serialize or
+             not s.seq.free_rdy) and  # Serialized inst
+            not s.serial.read_data)
 
         s.spec_register_success_.v = s.register_success_.v and s.register_speculative
 
@@ -330,7 +336,6 @@ class ControlFlowManager(Model):
           s.commit_redirect_target_.v = trap_vector
           s.commit_redirect_.v = 1
           s.dflow_rollback_call.v = 1
-
 
     @s.combinational
     def update_seq():
