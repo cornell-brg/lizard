@@ -199,16 +199,16 @@ def gen_stall_add_test():
 
 
 # specific test
-def gen_stall_mul_test():
-  return """
-    csrr x1, mngr2proc < 0x00002000
-    csrr x2, mngr2proc < 0x00002004
-    lwu x6, 0(x1)
-    lwu x7, 0(x2)
-    mul x8, x6, x7
-    csrw proc2mngr, x8 > 0x00000014
-
-    .data
-    .word 0x00000004
-    .word 0x00000005
-  """
+# def gen_stall_mul_test():
+#   return """
+#     csrr x1, mngr2proc < 0x00002000
+#     csrr x2, mngr2proc < 0x00002004
+#     lwu x6, 0(x1)
+#     lwu x7, 0(x2)
+#     mul x8, x6, x7
+#     csrw proc2mngr, x8 > 0x00000014
+#
+#     .data
+#     .word 0x00000004
+#     .word 0x00000005
+#   """
