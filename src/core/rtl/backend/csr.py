@@ -33,7 +33,7 @@ class CSRStage(Model):
             },
             call=True,
             rdy=False,
-        ),)
+        ))
 
     s.connect(s.process_accepted, 1)
 

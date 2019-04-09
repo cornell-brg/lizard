@@ -56,11 +56,12 @@ class MemReqMsg(BitStructDefinition):
     s.opaque_nbits = opaque_nbits
     s.addr_nbits = addr_nbits
     s.data_nbytes = data_nbytes
+    s.len_nbits = clog2(data_nbytes)
 
     s.type_ = BitField(MemMsgType.bits)
     s.opaque = BitField(opaque_nbits)
     s.addr = BitField(addr_nbits)
-    s.len_ = BitField(clog2(data_nbytes))
+    s.len_ = BitField(s.len_nbits)
     s.data = BitField(data_nbytes * 8)
 
   def mk_rd(s, opaque, addr, len_):
