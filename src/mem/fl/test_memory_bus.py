@@ -60,8 +60,6 @@ class TestMemoryBusFL(FLModel):
       nbytes = int(s.data_nbytes)
     addr = int(req.addr)
 
-    assert addr + nbytes <= s.max_addr
-
     if req.type_ == MemMsgType.READ:
       read_data = Bits(s.data_nbits)
       for j in range(nbytes):
