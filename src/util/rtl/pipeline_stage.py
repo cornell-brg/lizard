@@ -167,7 +167,7 @@ class ValidValueManager(Model):
                                 s.interface.KillArgType)['check'])
 
     s.val_reg = Register(RegisterInterface(Bits(1)), reset_value=0)
-    s.out_reg = Register(RegisterInterface(s.interface.DataIn, enable=True))
+    s.out_reg = Register(RegisterInterface(s.interface.DataIn))
     s.output_rdy = Wire(1)
     s.output_clear = Wire(1)
 
@@ -198,9 +198,12 @@ class ValidValueManager(Model):
       else:
         s.val_reg.write_data.v = not s.output_clear
 
-    s.connect(s.out_reg.write_data, s.add_msg)
-    s.connect(s.out_reg.write_call, s.add_call)
-
+    @s.combinational
+    def handle_out_reg():
+      if s.add_call:
+        s.out_reg.write_data.v = s.add_msg
+      else:
+        s.out_reg.write_data.v = s.check_out
 
 def gen_valid_value_manager(drop_controller_class):
   name = ''.join([
