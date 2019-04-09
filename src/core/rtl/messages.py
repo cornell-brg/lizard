@@ -59,6 +59,13 @@ BranchType = bit_enum(
     ('BRANCH_TYPE_GE', 'ge'),
 )
 
+MemFunc = bit_enum(
+    'MemFunc',
+    None,
+    ('MEM_FUNC_LOAD', 'ld'),
+    ('MEM_FUNC_STORE', 'st'),
+)
+
 
 def ValidValuePair(name, width):
   return Group(
@@ -149,6 +156,15 @@ def JumpMsg():
 
 
 @bit_struct_generator
+def MemMsg():
+  return [
+      Field('func', MemFunc.bits),
+      Field('unsigned', 1),
+      Field('width', 2),
+  ]
+
+
+@bit_struct_generator
 def PipeMsg():
   return [
       Union(
@@ -157,6 +173,7 @@ def PipeMsg():
           Field('csr_msg', CsrMsg()),
           Field('branch_msg', BranchMsg()),
           Field('jump_msg', JumpMsg()),
+          Field('mem_msg', MemMsg()),
       ),
   ]
 
