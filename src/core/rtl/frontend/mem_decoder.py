@@ -19,8 +19,12 @@ class MemPayloadGenerator(Model):
     # PYMTL_BROKEN unsigned is a verilog keyword
     s.unsigned_ = Wire(1)
     s.width = Wire(2)
-    s.connect(s.unsigned_, s.funct3[2])
-    s.connect(s.width, s.funct3[0:2])
+    # PYMTL_BROKEN
+    @s.combinational
+    def handle_funct3():
+      s.unsigned_.v = s.funct3[2]
+      s.width.v = s.funct3[0:2]
+
     s.connect(s.gen_payload.unsigned, s.unsigned_)
     s.connect(s.gen_payload.width, s.width)
 
@@ -45,7 +49,10 @@ class LoadDecoder(Model):
   def __init__(s):
     UseInterface(s, SubDecoderInterface())
 
-    s.generator = MemPayloadGenerator(MemFunc.MEM_FUNC_LOAD)
+    # PYMTL_BROKEN
+    # Paramterizing on Bits causes hash collissions because the WIDTH
+    # of the bits, not the VALUE, is used in the hash for some unknown reason
+    s.generator = MemPayloadGenerator(int(MemFunc.MEM_FUNC_LOAD))
     s.decoder = GenDecoder(
         OpClass.OP_CLASS_MEM,
         'mem_msg',
@@ -70,7 +77,10 @@ class StoreDecoder(Model):
   def __init__(s):
     UseInterface(s, SubDecoderInterface())
 
-    s.generator = MemPayloadGenerator(MemFunc.MEM_FUNC_STORE)
+    # PYMTL_BROKEN
+    # Paramterizing on Bits causes hash collissions because the WIDTH
+    # of the bits, not the VALUE, is used in the hash for some unknown reason
+    s.generator = MemPayloadGenerator(int(MemFunc.MEM_FUNC_STORE))
     s.decoder = GenDecoder(
         OpClass.OP_CLASS_MEM,
         'mem_msg',
