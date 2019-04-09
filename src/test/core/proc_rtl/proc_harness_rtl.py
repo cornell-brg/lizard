@@ -29,6 +29,8 @@ class ProcTestHarness(Model):
 
     s.connect_m(s.mb.recv_0, s.dut.mb_recv_0)
     s.connect_m(s.mb.send_0, s.dut.mb_send_0)
+    s.connect_m(s.mb.recv_1, s.dut.mb_recv_1)
+    s.connect_m(s.mb.send_1, s.dut.mb_send_1)
     s.connect_m(s.db.recv, s.dut.db_recv)
     s.connect_m(s.db.send, s.dut.db_send)
 
