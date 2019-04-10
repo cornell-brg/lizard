@@ -44,12 +44,12 @@ class NonRestoringDividerStepInterface(Interface):
         MethodSpec(
             'div',
             args={
-                'acc': Bits(s.DataLen),
+                'acc': Bits(s.DataLen+1),
                 'divisor': Bits(s.DataLen),
                 'dividend': Bits(s.DataLen),
             },
             rets={
-              'acc_next': Bits(s.DataLen), # Eventually becomes the remainder
+              'acc_next': Bits(s.DataLen+1), # Eventually becomes the remainder
               'dividend_next': Bits(s.DataLen), # Eventually becomes the quotient
             },
             call=False,
@@ -60,23 +60,19 @@ class NonRestoringDividerStepInterface(Interface):
 class NonRestoringDividerStep(Model):
   def __init__(s, interface, nsteps=1):
     UseInterface(s, interface)
-    # Tack on an extra sign bit
-    s.acc_next = Wire(s.interface.DataLen + 1)
+    s.acc_shift = Wire(s.interface.DataLen + 1)
 
     @s.combinational
     def eval(end=s.interface.DataLen-1, aend=s.interface.DataLen):
-      s.acc_next.v = s.div_acc
-
+      s.div_acc_next.v = s.div_acc
       s.div_dividend_next.v = s.div_dividend
       for i in range(nsteps):
-        s.acc_next.v = (s.acc_next.v << 1) | s.div_dividend_next[end]
-        s.div_dividend_next.v = s.div_dividend_next << 1
-        if s.acc_next.v[aend]: # Negative
-          s.acc_next.v += s.div_divisor
-        else:
-          s.acc_next.v -= s.div_divisor
-        s.div_dividend_next[0].v = not s.acc_next[aend]
-        s.div_acc_next.v = s.acc_next[:s.interface.DataLen]
+        s.acc_shift.v = (s.div_acc_next.v << 1) | s.div_dividend_next[end]
+        if s.div_acc_next.v[aend]: # Negative, so add
+          s.div_acc_next.v = s.acc_shift.v + s.div_divisor
+        else: # Otherwise subtract
+          s.div_acc_next.v = s.acc_shift.v - s.div_divisor
+        s.div_dividend_next.v = s.div_dividend_next << 1 | (not s.div_acc_next[aend])
 
 
 
@@ -90,7 +86,7 @@ class NonRestoringDivider(Model):
     iface = NonRestoringDividerStepInterface(s.interface.DataLen)
     s.unit = NonRestoringDividerStep(iface, nsteps)
 
-    s.acc = Register(RegisterInterface(s.interface.DataLen, enable=True))
+    s.acc = Register(RegisterInterface(s.interface.DataLen+1, enable=True))
     s.divisor = Register(RegisterInterface(s.interface.DataLen, enable=True))
     s.dividend = Register(RegisterInterface(s.interface.DataLen, enable=True))
 
@@ -113,7 +109,7 @@ class NonRestoringDivider(Model):
       # Results
       s.result_rdy.v = s.busy.read_data and s.counter.read_data == 0
       s.result_quotient.v = s.dividend.read_data
-      s.result_rem.v = s.acc.read_data
+      s.result_rem.v = s.acc.read_data[:s.interface.DataLen]
 
     @s.combinational
     def handle_counter():

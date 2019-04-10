@@ -17,6 +17,9 @@ def test_translation():
     (2**64-1, 0, 2**64-1, 2**64-1),
     (0, 0, 2**64-1, 0),
     (2**64-1, 1, 2**64-1, 0),
+    (2**63, 2**64-1, 0, 2**63),
+    (2**64-2, 2**64-1, 0, 2**64-2),
+    (3, 7, 0, 3),
 ])
 def test_edge_cases(dividend, divisor, quot, remain):
   # Test
@@ -25,6 +28,7 @@ def test_edge_cases(dividend, divisor, quot, remain):
   div.vcd_file = 'divider.vcd'
   dut = wrap_to_cl(div)
   dut.reset()
+  print("{} / {}".format(hex(dividend), hex(divisor)))
   print(dut.div(dividend=dividend, divisor=divisor, signed=False))
   for _ in range(64):
     dut.cycle()
