@@ -5,6 +5,7 @@ from util.rtl.registerfile import RegisterFile
 from util.rtl.async_ram import AsynchronousRAM, AsynchronousRAMInterface
 from util.rtl.overlap_checker import OverlapChecker, OverlapCheckerInterface
 from util.rtl.logic import LogicOperatorInterface, Or
+from util.rtl.sync_ram import SynchronousRAMInterface, SynchronousRAM
 from bitutil import clog2, clog2nz
 from bitutil.bit_struct_generator import *
 
@@ -17,19 +18,37 @@ class MemoryFlowManagerInterface(Interface):
     s.StoreID = canonicalize_type(clog2nz(nslots))
     s.Addr = canonicalize_type(addr_len)
     s.Size = canonicalize_type(clog2nz(max_size + 1))
+    # size is in bytes
+    s.Data = Bits(max_size * 8)
 
     super(MemoryFlowManagerInterface, s).__init__([
         MethodSpec(
-            'lookup',
+            'send_store',
             args={
                 'id_': s.StoreID,
             },
-            rets={
+            rets=None,
+            call=True,
+            rdy=True,
+        ),
+        MethodSpec(
+            'send_load',
+            args={
                 'addr': s.Addr,
                 'size': s.Size,
             },
-            call=False,
-            rdy=False,
+            rets=None,
+            call=True,
+            rdy=True,
+        ),
+        MethodSpec(
+            'recv_load',
+            args=None,
+            rets={
+              'data': s.Data,
+            },
+            call=True,
+            rdy=True,
         ),
         MethodSpec(
             'store_pending',
@@ -59,6 +78,7 @@ class MemoryFlowManagerInterface(Interface):
                 'id_': s.StoreID,
                 'addr': s.Addr,
                 'size': s.Size,
+                'data': s.Data,
             },
             rets=None,
             call=True,
@@ -77,12 +97,31 @@ def StoreSpec(addr_len, size_len):
 
 class MemoryFlowManager(Model):
 
-  def __init__(s, interface):
+  def __init__(s, interface, MemMsg):
     UseInterface(s, interface)
+
+    s.require(
+        MethodSpec(
+            'mb_send',
+            args={'msg': MemMsg.req},
+            rets=None,
+            call=True,
+            rdy=True,
+        ),
+        MethodSpec(
+            'mb_recv',
+            args=None,
+            rets={'msg': MemMsg.resp},
+            call=True,
+            rdy=True,
+        ),
+    )
 
     s.store_table = RegisterFile(
         StoreSpec(s.interface.Addr.nbits, s.interface.Size.nbits),
         s.interface.nslots, 1, 1, False, False)
+    s.store_data = SynchronousRAM(
+        SynchronousRAMInterface(s.interface.Data, s.interface.nslots, 1, 1))
     s.valid_table = RegisterFile(
         Bits(1), s.interface.nslots, 0, 2, False, False,
         [0] * s.interface.nslots)
@@ -93,9 +132,9 @@ class MemoryFlowManager(Model):
         for _ in range(s.interface.nslots)
     ]
 
-    s.connect(s.store_table.read_addr[0], s.lookup_id_)
-    s.connect(s.lookup_addr, s.store_table.read_data[0].addr)
-    s.connect(s.lookup_size, s.store_table.read_data[0].size)
+    # s.connect(s.store_table.read_addr[0], s.lookup_id_)
+    # s.connect(s.lookup_addr, s.store_table.read_data[0].addr)
+    # s.connect(s.lookup_size, s.store_table.read_data[0].size)
 
     s.overlapped_and_live = [Wire(1) for _ in range(s.interface.nslots)]
     # PYMTL_BROKEN for some reason reduce_or verilates, but then the C++ fails to compile
@@ -129,3 +168,6 @@ class MemoryFlowManager(Model):
     s.connect(s.valid_table.write_call[1], s.enter_store_call)
     s.connect(s.valid_table.write_addr[1], s.enter_store_id_)
     s.connect(s.valid_table.write_data[1], 1)
+    s.connect(s.store_data.write_call[0], s.enter_store_call)
+    s.connect(s.store_data.write_addr[0], s.enter_store_id_)
+    s.connect(s.store_data.write_data[0], s.enter_store_data)
