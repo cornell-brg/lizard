@@ -136,10 +136,15 @@ class NonRestoringDivider(Model):
 
       if not s.div_call:
         s.dividend.write_data.v = s.unit.div_dividend_next
-        if s.counter.read_data > 1 or not s.unit.div_acc_next[END]:
-          s.acc.write_data.v = s.unit.div_acc_next
-        else:  # Special case the last iteration if last bit negative
-          s.acc.write_data.v = s.unit.div_acc_next + s.divisor.read_data
+        s.acc.write_data.v = s.unit.div_acc_next
+        # Special case last cycle
+        if s.counter.read_data == 1:
+          if s.unit.div_acc_next[END]:
+            s.acc.write_data.v += s.divisor.read_data
+          if s.negate.read_data: # Last cycle, compliment
+            s.dividend.write_data.v = ~s.dividend.write_data + 1
+            s.acc.write_data.v = ~s.acc.write_data + 1
+
 
     @s.combinational
     def handle_busy():
