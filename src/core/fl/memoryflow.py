@@ -10,7 +10,7 @@ from core.rtl.memoryflow import StoreSpec
 class MemoryFlowManagerFL(FLModel):
 
   @HardwareModel.validate
-  def __init__(s, interface):
+  def __init__(s, interface, MemMsg):
     super(MemoryFlowManagerFL, s).__init__(interface)
     s.state(
         store_table=RegisterFileFL(
@@ -23,11 +23,6 @@ class MemoryFlowManagerFL(FLModel):
             OverlapCheckerInterface(s.interface.Addr.nbits,
                                     s.interface.max_size)),
     )
-
-    @s.model_method
-    def lookup(id_):
-      read_result = s.store_table.read(id_).data
-      return Result(addr=read_result.addr, size=read_result.size)
 
     @s.model_method
     def store_pending(live_mask, addr, size):
@@ -46,7 +41,7 @@ class MemoryFlowManagerFL(FLModel):
       s.valid_table.write(addr=id_, data=0)
 
     @s.model_method
-    def enter_store(id_, addr, size):
+    def enter_store(id_, addr, size, data):
       spec = StoreSpec(s.interface.Addr.nbits, s.interface.Size.nbits)
       spec.addr = addr
       spec.size = size
