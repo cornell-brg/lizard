@@ -57,7 +57,9 @@ class NonRestoringDividerStepInterface(Interface):
         ),
     ])
 
+
 class NonRestoringDividerStep(Model):
+
   def __init__(s, interface, nsteps=1):
     UseInterface(s, interface)
     s.acc_shift = Wire(s.interface.DataLen + 1)
@@ -73,7 +75,6 @@ class NonRestoringDividerStep(Model):
         else: # Otherwise subtract
           s.div_acc_next.v = s.acc_shift.v - s.div_divisor
         s.div_dividend_next.v = s.div_dividend_next << 1 | (not s.div_acc_next[aend])
-
 
 
 class NonRestoringDivider(Model):
@@ -98,9 +99,9 @@ class NonRestoringDivider(Model):
     s.connect(s.unit.div_divisor, s.divisor.read_data)
     s.connect(s.unit.div_dividend, s.dividend.read_data)
 
-
-    s.counter = Register(RegisterInterface(clog2(ncycles+1), enable=True))
-    s.busy = Register(RegisterInterface(s.interface.DataLen, enable=True), reset_value=0)
+    s.counter = Register(RegisterInterface(clog2(ncycles + 1), enable=True))
+    s.busy = Register(
+        RegisterInterface(s.interface.DataLen, enable=True), reset_value=0)
 
     @s.combinational
     def handle_calls():
@@ -120,7 +121,6 @@ class NonRestoringDivider(Model):
       else:
         s.counter.write_data.v = s.counter.read_data - 1
 
-
     @s.combinational
     def set_div_regs():
       s.acc.write_call.v = s.div_call or s.counter.read_data > 0
@@ -131,9 +131,8 @@ class NonRestoringDivider(Model):
         s.acc.write_data.v = 0
       elif s.counter.read_data > 1 or not s.unit.div_acc_next[END]:
         s.acc.write_data.v = s.unit.div_acc_next
-      else: # Special case the last iteration if last bit negative
+      else:  # Special case the last iteration if last bit negative
         s.acc.write_data.v = s.unit.div_acc_next + s.divisor.read_data
-
 
     @s.combinational
     def handle_busy():
