@@ -245,12 +245,12 @@ class ControlFlowManager(Model):
     # All the backend kill signals are registered to avoid comb. loops
     @s.combinational
     def set_kill_pend():
-      s.update_kills_.v = s.kill_pend.read_data or s.is_redirect_
-      s.kill_pend.write_data.v = s.is_redirect_
+      s.update_kills_.v = s.kill_pend.read_data or s.is_redirect_ or s.redirect_call
+      s.kill_pend.write_data.v = s.is_redirect_ or s.redirect_call
       s.reg_force.write_data.v = 0
       s.reg_kill.write_data.v = 0
       s.reg_clear.write_data.v = 0
-      if s.is_redirect_:
+      if s.update_kills_:
         s.reg_force.write_data.v = s.branch_redirect_ and s.redirect_force
         s.reg_kill.write_data.v = s.kill_mask_
         s.reg_clear.write_data.v = s.clear_mask_
