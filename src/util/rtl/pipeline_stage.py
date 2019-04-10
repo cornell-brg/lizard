@@ -205,6 +205,7 @@ class ValidValueManager(Model):
       else:
         s.out_reg.write_data.v = s.check_out
 
+
 def gen_valid_value_manager(drop_controller_class):
   name = ''.join([
       '{}L{}'.format(len(class_.__name__), class_.__name__)

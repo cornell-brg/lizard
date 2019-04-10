@@ -11,8 +11,6 @@ from util.rtl.registerfile import RegisterFile
 from util.rtl.async_ram import AsynchronousRAM, AsynchronousRAMInterface
 from core.rtl.renametable import RenameTableInterface, RenameTable
 
-from pclib.ifcs import InValRdyBundle, OutValRdyBundle
-
 
 class DataFlowManagerInterface(Interface):
 

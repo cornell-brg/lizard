@@ -30,4 +30,4 @@ class OverlapCheckerFL(FLModel):
         base_l = base_a
         end_s = end_b
 
-      return end_s < base_l
+      return end_s <= base_l

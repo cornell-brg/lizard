@@ -9,8 +9,7 @@ class OverlapCheckerInterface(Interface):
 
   def __init__(s, base_width, max_size):
     s.Base = canonicalize_type(base_width)
-    # We only ever store size - 1
-    s.Size = canonicalize_type(clog2nz(max_size))
+    s.Size = canonicalize_type(clog2nz(max_size + 1))
 
     super(OverlapCheckerInterface, s).__init__([
         MethodSpec(
@@ -52,10 +51,9 @@ class OverlapChecker(Model):
 
     @s.combinational
     def compute_ends():
-      # size_a is size - 1 (for if a is 8 long, size should be input as 7)
-      # End is thus inclusive
-      s.end_a = s.check_base_a + s.size_a_zext
-      s.end_b = s.check_base_b + s.size_b_zext
+      # End exclusive
+      s.end_a.v = s.check_base_a + s.size_a_zext
+      s.end_b.v = s.check_base_b + s.size_b_zext
 
     s.base_l = Wire(s.interface.Base)
     s.end_s = Wire(s.interface.Base)
@@ -71,4 +69,5 @@ class OverlapChecker(Model):
 
     @s.combinational
     def compute_disjoint():
-      s.check_disjoint.v = s.end_s < s.base_l
+      # Since end is exclusive, if it equals start we are still OK
+      s.check_disjoint.v = s.end_s <= s.base_l

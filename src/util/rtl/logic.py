@@ -80,3 +80,27 @@ class And(Model):
 
   def line_trace(s):
     return "[{}]: {}".format(', '.join([str(x) for x in s.op_in_]), s.op_out)
+
+
+class Or(Model):
+
+  def __init__(s, interface):
+    UseInterface(s, interface)
+
+    s.partials = [Wire(1) for _ in range(s.interface.nports)]
+    for i in range(s.interface.nports):
+      if i == 0:
+
+        @s.combinational
+        def initial():
+          s.partials[0].v = s.op_in_[0]
+      else:
+
+        @s.combinational
+        def next(i=i, j=i - 1):
+          s.partials[i].v = s.op_in_[i] or s.partials[j]
+
+    s.connect(s.op_out, s.partials[-1])
+
+  def line_trace(s):
+    return "[{}]: {}".format(', '.join([str(x) for x in s.op_in_]), s.op_out)
