@@ -25,3 +25,14 @@ class AndFL(FLModel):
     @s.model_method
     def op(in_):
       return all(in_)
+
+
+class OrFL(FLModel):
+
+  @HardwareModel.validate
+  def __init__(s, interface):
+    super(OrFL, s).__init__(interface)
+
+    @s.model_method
+    def op(in_):
+      return any(in_)
