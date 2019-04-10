@@ -90,9 +90,10 @@ class NonRestoringDivider(Model):
     s.acc = Register(RegisterInterface(s.interface.DataLen+1, enable=True))
     s.divisor = Register(RegisterInterface(s.interface.DataLen, enable=True))
     s.dividend = Register(RegisterInterface(s.interface.DataLen, enable=True))
-
+    # Set if we need to take twos compliment at end
+    s.negate = Register(RegisterInterface(1, enable=True))
+    s.connect(s.negate.write_call, s.div_call)
     s.connect(s.divisor.write_call, s.div_call)
-    s.connect(s.divisor.write_data, s.div_divisor)
 
     # Connect up the unit
     s.connect(s.unit.div_acc, s.acc.read_data)
@@ -111,6 +112,8 @@ class NonRestoringDivider(Model):
       s.result_rdy.v = s.busy.read_data and s.counter.read_data == 0
       s.result_quotient.v = s.dividend.read_data
       s.result_rem.v = s.acc.read_data[:s.interface.DataLen]
+      # Figure out if we need to negative
+      s.negate.write_data.v = s.div_signed and (s.div_divisor[END] ^ s.div_dividend[END])
 
     @s.combinational
     def handle_counter():
@@ -126,13 +129,17 @@ class NonRestoringDivider(Model):
       s.acc.write_call.v = s.div_call or s.counter.read_data > 0
       s.dividend.write_call.v = s.div_call or s.counter.read_data > 0
 
-      s.dividend.write_data.v = s.div_dividend if s.div_call else s.unit.div_dividend_next
-      if s.div_call:
-        s.acc.write_data.v = 0
-      elif s.counter.read_data > 1 or not s.unit.div_acc_next[END]:
-        s.acc.write_data.v = s.unit.div_acc_next
-      else:  # Special case the last iteration if last bit negative
-        s.acc.write_data.v = s.unit.div_acc_next + s.divisor.read_data
+      # Load the values
+      s.divisor.write_data.v = 0
+      s.divisor.write_data.v = ~s.div_divisor + 1 if (s.div_signed and s.div_divisor[END]) else s.div_divisor
+      s.dividend.write_data.v = ~s.div_dividend + 1 if (s.div_signed and s.div_dividend[END]) else s.div_dividend
+
+      if not s.div_call:
+        s.dividend.write_data.v = s.unit.div_dividend_next
+        if s.counter.read_data > 1 or not s.unit.div_acc_next[END]:
+          s.acc.write_data.v = s.unit.div_acc_next
+        else:  # Special case the last iteration if last bit negative
+          s.acc.write_data.v = s.unit.div_acc_next + s.divisor.read_data
 
     @s.combinational
     def handle_busy():
