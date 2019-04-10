@@ -60,18 +60,23 @@ class NonRestoringDividerStepInterface(Interface):
 class NonRestoringDividerStep(Model):
   def __init__(s, interface, nsteps=1):
     UseInterface(s, interface)
+    # Tack on an extra sign bit
+    s.acc_next = Wire(s.interface.DataLen + 1)
+
     @s.combinational
-    def eval(end=s.interface.DataLen-1):
-      s.div_acc_next.v = s.div_acc
+    def eval(end=s.interface.DataLen-1, aend=s.interface.DataLen):
+      s.acc_next.v = s.div_acc
+
       s.div_dividend_next.v = s.div_dividend
       for i in range(nsteps):
-        s.div_acc_next.v = (s.div_acc_next << 1) | s.div_dividend_next[end]
+        s.acc_next.v = (s.acc_next.v << 1) | s.div_dividend_next[end]
         s.div_dividend_next.v = s.div_dividend_next << 1
-        if s.div_acc_next[end]: # Negative
-          s.div_acc_next.v += s.div_divisor
+        if s.acc_next.v[aend]: # Negative
+          s.acc_next.v += s.div_divisor
         else:
-          s.div_acc_next.v -= s.div_divisor
-        s.div_dividend_next[0].v = not s.div_acc_next[end]
+          s.acc_next.v -= s.div_divisor
+        s.div_dividend_next[0].v = not s.acc_next[aend]
+        s.div_acc_next.v = s.acc_next[:s.interface.DataLen]
 
 
 
@@ -130,7 +135,7 @@ class NonRestoringDivider(Model):
         s.acc.write_data.v = 0
       elif s.counter.read_data > 1 or not s.unit.div_acc_next[END]:
         s.acc.write_data.v = s.unit.div_acc_next
-      else: # Special case the last iteration
+      else: # Special case the last iteration if last bit negative
         s.acc.write_data.v = s.unit.div_acc_next + s.divisor.read_data
 
 
