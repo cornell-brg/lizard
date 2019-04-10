@@ -49,35 +49,37 @@ class NonRestoringDividerStepInterface(Interface):
                 'dividend': Bits(s.DataLen),
             },
             rets={
-              'acc_next': Bits(s.DataLen), # Eventually becomes the remainder
-              'dividend_next': Bits(s.DataLen), # Eventually becomes the quotient
+                'acc_next': Bits(s.DataLen),  # Eventually becomes the remainder
+                'dividend_next': Bits(
+                    s.DataLen),  # Eventually becomes the quotient
             },
             call=False,
             rdy=False,
         ),
     ])
 
+
 class NonRestoringDividerStep(Model):
+
   def __init__(s, interface, nsteps=1):
     UseInterface(s, interface)
     # Tack on an extra sign bit
     s.acc_next = Wire(s.interface.DataLen + 1)
 
     @s.combinational
-    def eval(end=s.interface.DataLen-1, aend=s.interface.DataLen):
+    def eval(end=s.interface.DataLen - 1, aend=s.interface.DataLen):
       s.acc_next.v = s.div_acc
 
       s.div_dividend_next.v = s.div_dividend
       for i in range(nsteps):
         s.acc_next.v = (s.acc_next.v << 1) | s.div_dividend_next[end]
         s.div_dividend_next.v = s.div_dividend_next << 1
-        if s.acc_next.v[aend]: # Negative
+        if s.acc_next.v[aend]:  # Negative
           s.acc_next.v += s.div_divisor
         else:
           s.acc_next.v -= s.div_divisor
         s.div_dividend_next[0].v = not s.acc_next[aend]
         s.div_acc_next.v = s.acc_next[:s.interface.DataLen]
-
 
 
 class NonRestoringDivider(Model):
@@ -102,9 +104,9 @@ class NonRestoringDivider(Model):
     s.connect(s.unit.div_divisor, s.divisor.read_data)
     s.connect(s.unit.div_dividend, s.dividend.read_data)
 
-
-    s.counter = Register(RegisterInterface(clog2(ncycles+1), enable=True))
-    s.busy = Register(RegisterInterface(s.interface.DataLen, enable=True), reset_value=0)
+    s.counter = Register(RegisterInterface(clog2(ncycles + 1), enable=True))
+    s.busy = Register(
+        RegisterInterface(s.interface.DataLen, enable=True), reset_value=0)
 
     @s.combinational
     def handle_calls():
@@ -124,7 +126,6 @@ class NonRestoringDivider(Model):
       else:
         s.counter.write_data.v = s.counter.read_data - 1
 
-
     @s.combinational
     def set_div_regs():
       s.acc.write_call.v = s.div_call or s.counter.read_data > 0
@@ -135,9 +136,8 @@ class NonRestoringDivider(Model):
         s.acc.write_data.v = 0
       elif s.counter.read_data > 1 or not s.unit.div_acc_next[END]:
         s.acc.write_data.v = s.unit.div_acc_next
-      else: # Special case the last iteration if last bit negative
+      else:  # Special case the last iteration if last bit negative
         s.acc.write_data.v = s.unit.div_acc_next + s.divisor.read_data
-
 
     @s.combinational
     def handle_busy():
