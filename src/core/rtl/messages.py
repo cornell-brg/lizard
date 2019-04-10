@@ -42,6 +42,24 @@ AluFunc = bit_enum(
     ('ALU_FUNC_AUIPC', 'pc'),
 )
 
+MFunc = bit_enum(
+    'MFunc',
+    None,
+    ('M_FUNC_MUL', 'mu'),
+    ('M_FUNC_DIV', 'dv'),
+    ('M_FUNC_REM', 're'),
+)
+
+MVariant = bit_enum(
+    'MVariant',
+    None,
+    ('M_VARIANT_N', 'n'),
+    ('M_VARIANT_H', 'h'),
+    ('M_VARIANT_HSU', 'hu'),
+    ('M_VARIANT_HU', 'hu'),
+    ('M_VARIANT_U', 'u'),
+)
+
 CsrFunc = bit_enum(
     'CsrFunc',
     None,
@@ -132,6 +150,15 @@ def AluMsg():
 
 
 @bit_struct_generator
+def MMsg():
+  return [
+      Field('func', MFunc.bits),
+      Field('variant', MVariant.bits),
+      Field('op32', 1),
+  ]
+
+
+@bit_struct_generator
 def CsrMsg():
   return [
       Field('func', CsrFunc.bits),
@@ -170,6 +197,7 @@ def PipeMsg():
       Union(
           'pipe_msg',
           Field('alu_msg', AluMsg()),
+          Field('m_msg', MMsg()),
           Field('csr_msg', CsrMsg()),
           Field('branch_msg', BranchMsg()),
           Field('jump_msg', JumpMsg()),
