@@ -7,16 +7,18 @@ from model.wrapper import wrap_to_rtl, wrap_to_cl
 from model.hardware_model import not_ready_instance
 import pytest
 
+
 #Create a single instance of an issue slot
 def test_translation():
   iface = DivideInterface(64)
   run_model_translation(NonRestoringDivider(iface, 64))
   run_model_translation(NonRestoringDivider(iface, 16))
 
+
 @pytest.mark.parametrize("dividend, divisor, quot, remain", [
-    (2**64-1, 0, 2**64-1, 2**64-1),
-    (0, 0, 2**64-1, 0),
-    (2**64-1, 1, 2**64-1, 0),
+    (2**64 - 1, 0, 2**64 - 1, 2**64 - 1),
+    (0, 0, 2**64 - 1, 0),
+    (2**64 - 1, 1, 2**64 - 1, 0),
 ])
 def test_edge_cases(dividend, divisor, quot, remain):
   # Test
