@@ -142,8 +142,10 @@ class NonRestoringDivider(Model):
           if s.unit.div_acc_next[END]:
             s.acc.write_data.v += s.divisor.read_data
           if s.negate.read_data: # Last cycle, compliment
-            s.dividend.write_data.v = ~s.dividend.write_data + 1
             s.acc.write_data.v = ~s.acc.write_data + 1
+            # Only if not divided by zero
+            if s.divisor.read_data != 0:
+              s.dividend.write_data.v = ~s.dividend.write_data + 1
 
 
     @s.combinational
