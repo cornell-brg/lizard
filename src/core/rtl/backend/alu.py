@@ -95,8 +95,8 @@ class ALUStage(Model):
         s.src2_.v = zext(s.src2_32_,
                          data_len) if s.msg_.alu_msg_unsigned else sext(
                              s.src2_32_, data_len)
-        # If op32 shift w, need to ignore bit 6
-        s.src2_[6].v &= not (s.msg_.alu_msg_func == AluFunc.ALU_FUNC_SLL or
+        # If op32 shift w, need to ignore bit 5
+        s.src2_[5].v &= not (s.msg_.alu_msg_func == AluFunc.ALU_FUNC_SLL or
                s.msg_.alu_msg_func == AluFunc.ALU_FUNC_SRL or
                s.msg_.alu_msg_func == AluFunc.ALU_FUNC_SRA)
 
