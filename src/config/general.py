@@ -29,6 +29,11 @@ assert MAX_SPEC_DEPTH > 0
 SPEC_IDX_NBITS = clog2(MAX_SPEC_DEPTH)
 SPEC_MASK_NBITS = MAX_SPEC_DEPTH
 
+STORE_QUEUE_SIZE = 2
+STORE_IDX_NBITS = clog2(STORE_QUEUE_SIZE)
+MEM_MAX_SIZE = 8
+MEM_SIZE_NBITS = 4
+
 BIT32_MASK = Bits(32, 0xFFFFFFFF)
 
 # While mcause it a 64-bit register, it is only defined up to 16

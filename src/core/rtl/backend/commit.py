@@ -64,11 +64,26 @@ class Commit(Model):
             call=True,
             rdy=False,
         ),
+        # Memoryflow to dispatch stores
+        MethodSpec(
+            'send_store',
+            args={
+                'id_': STORE_IDX_NBITS,
+            },
+            rets=None,
+            call=True,
+            rdy=True,
+        ),
     )
 
     s.advance = Wire(1)
     s.rob_remove = Wire(1)
     s.seq_num = Wire(s.SeqIdxNbits)
+
+    s.pending_store_id = Register(
+        RegisterInterface(STORE_IDX_NBITS, enable=True))
+    s.store_pending = Register(RegisterInterface(Bits(1)), reset_value=0)
+    s.store_pending_after_send = Wire(1)
 
     def make_kill():
       return KillDropController(KillDropControllerInterface(s.SpecMaskNbits))
@@ -100,7 +115,7 @@ class Commit(Model):
 
     @s.combinational
     def set_rob_remove():
-      s.rob_remove.v = s.cflow_get_head_rdy and s.rob.check_done_is_rdy
+      s.rob_remove.v = s.cflow_get_head_rdy and s.rob.check_done_is_rdy and not s.store_pending_after_send
 
     @s.combinational
     def handle_commit():
@@ -118,6 +133,28 @@ class Commit(Model):
           # PYMTL_BROKEN pass doesn't work
           # pass
           s.dataflow_commit_tag.v = 0
+
+    @s.combinational
+    def handle_committing_store():
+      if s.rob_remove and s.rob.free_value.hdr_is_store and s.rob.free_value.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID:
+        s.pending_store_id.write_call.v = 1
+        s.pending_store_id.write_data.v = s.rob.free_value.hdr_store_id
+        s.store_pending.write_data.v = 1
+      else:
+        s.pending_store_id.write_call.v = 0
+        s.pending_store_id.write_data.v = 0
+        s.store_pending.write_data.v = s.store_pending_after_send
+
+    s.connect(s.send_store_id_, s.pending_store_id.read_data)
+
+    @s.combinational
+    def handle_pending_store():
+      if s.store_pending.read_data and s.send_store_rdy:
+        s.send_store_call.v = 1
+        s.store_pending_after_send.v = 0
+      else:
+        s.send_store_call.v = 0
+        s.store_pending_after_send.v = s.store_pending.read_data
 
   def line_trace(s):
     if s.in_take_call:

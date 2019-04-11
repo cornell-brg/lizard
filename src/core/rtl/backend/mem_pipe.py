@@ -14,17 +14,46 @@ def MemRequestInterface():
 
 class MemRequestStage(Model):
 
-  def __init__(s, interface, MemMsg):
+  def __init__(s, interface):
     UseInterface(s, interface)
 
     s.require(
         MethodSpec(
-            'mb_send',
-            args={'msg': MemMsg.req},
+            'store_pending',
+            args={
+                'live_mask': Bits(STORE_QUEUE_SIZE),
+                'addr': XLEN,
+                'size': MEM_SIZE_NBITS,
+            },
+            rets={
+                'pending': Bits(1),
+            },
+            call=False,
+            rdy=False,
+        ),
+        MethodSpec(
+            'send_load',
+            args={
+                'addr': XLEN,
+                'size': MEM_SIZE_NBITS,
+            },
             rets=None,
             call=True,
             rdy=True,
-        ))
+        ),
+        MethodSpec(
+            'enter_store',
+            args={
+                'id_': STORE_IDX_NBITS,
+                'addr': XLEN,
+                'size': MEM_SIZE_NBITS,
+                'data': XLEN,
+            },
+            rets=None,
+            call=True,
+            rdy=False,
+        ),
+    )
 
     # Address generation
     s.imm = Wire(DECODED_IMM_LEN)
@@ -36,56 +65,62 @@ class MemRequestStage(Model):
       s.sext_imm.v = sext(s.imm, XLEN)
 
     s.addr = Wire(XLEN)
+    # The memory message is 8 bytes, so this is 3 bits (numbers 1-8)
+    s.len = Wire(MEM_SIZE_NBITS)
+    # PYMTL_BROKEN
+    s.constant_1 = Wire(MEM_SIZE_NBITS)
+    s.connect(s.constant_1, 1)
+    s.width = Wire(s.process_in_.mem_msg_width.nbits)
+    s.connect(s.width, s.process_in_.mem_msg_width)
 
     @s.combinational
     def compute_addr():
       s.addr.v = s.process_in_.rs1 + s.sext_imm
-
-    # Accept a request if the memory bus is ready
-    s.connect(s.process_accepted, s.mb_send_rdy)
-    # Send a request if we accepted it and are being called
-    s.sending_mem_req = Wire(1)
-
-    @s.combinational
-    def compute_sending_mem_req():
-      s.sending_mem_req.v = s.mb_send_rdy & s.process_call
-
-    s.connect(s.mb_send_call, s.sending_mem_req)
-
-    s.msg_type_lut = LookupTable(
-        LookupTableInterface(MemFunc.bits, MemMsgType.bits), {
-            int(MemFunc.MEM_FUNC_LOAD): MemMsgType.READ,
-            int(MemFunc.MEM_FUNC_STORE): MemMsgType.WRITE,
-        })
-    s.connect(s.msg_type_lut.lookup_in_, s.process_in_.mem_msg_func)
-    s.connect(s.mb_send_msg.type_, s.msg_type_lut.lookup_out)
-    # ignore lookup_valid, it should always be valid
-    s.connect(s.mb_send_msg.opaque, 0)
-    s.connect(s.mb_send_msg.addr, s.addr)
-    # The memory message is 8 bytes, so this is 3 bits
-    s.len = Wire(3)
-    # PYMTL_BROKEN
-    s.three_bit_constant_1 = Wire(3)
-    s.connect(s.three_bit_constant_1, 1)
-    s.width = Wire(2)
-    s.connect(s.width, s.process_in_.mem_msg_width)
-
-    @s.combinational
-    def compute_len():
       # The width encoding is:
       # 00: Byte (1)
       # 01: Half word (2)
       # 10: Word (4)
       # 11: Double word (8)
-      # so 1 << width will compute that, with 8 overflowing the 0
-      # and 0 meaning "all 8 bytes" in the memory message
-      s.len.v = s.three_bit_constant_1 << s.width
+      # so 1 << width will compute that
+      s.len.v = s.constant_1 << s.width
 
-    s.connect(s.mb_send_msg.len_, s.len)
-    # Data always is rs2. If a load, will just be random but doesn't matter
-    s.connect(s.mb_send_msg.data, s.process_in_.rs2)
+    s.can_send = Wire(1)
+    s.connect(s.store_pending_addr, s.addr)
+    s.connect(s.store_pending_size, s.len)
+    # TODO
+    s.connect(s.store_pending_live_mask, 0)
 
-    # Preserve the message for the next stage when the response comes back
+    @s.combinational
+    def compute_can_send():
+      if s.process_in_.mem_msg_func == MemFunc.MEM_FUNC_LOAD:
+        s.can_send.v = not s.store_pending_pending and s.send_load_rdy
+      else:
+        s.can_send.v = 1
+
+    # Accept a request if the memory bus is ready
+    s.connect(s.process_accepted, s.can_send)
+    # Send a request if we accepted it and are being called
+    s.sending_load = Wire(1)
+    s.sending_store = Wire(1)
+
+    @s.combinational
+    def compute_sending():
+      if s.process_in_.mem_msg_func == MemFunc.MEM_FUNC_LOAD:
+        s.sending_load.v = s.can_send and s.process_call
+        s.sending_store.v = 0
+      else:
+        s.sending_load.v = 0
+        s.sending_store.v = s.can_send and s.process_call
+
+    s.connect(s.send_load_call, s.sending_load)
+    s.connect(s.enter_store_call, s.sending_store)
+    s.connect(s.send_load_addr, s.addr)
+    s.connect(s.send_load_size, s.len)
+    s.connect(s.enter_store_id_, s.process_in_.hdr_store_id)
+    s.connect(s.enter_store_addr, s.addr)
+    s.connect(s.enter_store_size, s.len)
+    s.connect(s.enter_store_data, s.process_in_.rs2)
+
     s.connect(s.process_out, s.process_in_)
 
 
@@ -95,31 +130,42 @@ def MemResponseInterface():
 
 class MemResponseStage(Model):
 
-  def __init__(s, interface, MemMsg):
+  def __init__(s, interface):
     UseInterface(s, interface)
     s.require(
         MethodSpec(
-            'mb_recv',
+            'recv_load',
             args=None,
-            rets={'msg': MemMsg.resp},
+            rets={
+                'data': XLEN,
+            },
             call=True,
             rdy=True,
-        ))
+        ),)
 
-    # Accept it if we have a memory response
-    s.connect(s.process_accepted, s.mb_recv_rdy)
-    # Take the response if we accepted it and are being called
-    s.taking_mem_resp = Wire(1)
+    s.response_needed = Wire(1)
+    s.can_accept = Wire(1)
 
     @s.combinational
-    def compute_taking_mem_resp():
-      s.taking_mem_resp.v = s.mb_recv_rdy & s.process_call
+    def compute_accept():
+      s.response_needed.v = s.process_in_.mem_msg_func == MemFunc.MEM_FUNC_LOAD
+      if s.response_needed:
+        s.can_accept.v = s.recv_load_rdy
+      else:
+        s.can_accept.v = 1
 
-    s.connect(s.mb_recv_call, s.taking_mem_resp)
+    s.connect(s.process_accepted, s.can_accept)
+    s.receiving_load = Wire(1)
+
+    @s.combinational
+    def compute_receiving_load():
+      s.receiving_load.v = s.can_accept and s.response_needed
+
+    s.connect(s.recv_load_call, s.receiving_load)
 
     s.result = Wire(XLEN)
     s.data = Wire(XLEN)
-    s.connect(s.data, s.mb_recv_msg.data)
+    s.connect(s.data, s.recv_load_data)
     s.data_b = Wire(8)
     s.data_h = Wire(16)
     s.data_w = Wire(32)
@@ -157,6 +203,8 @@ class MemResponseStage(Model):
     def set_process_out():
       s.process_out.v = 0
       s.process_out.hdr.v = s.process_in_.hdr
+      if s.process_in_.mem_msg_func == MemFunc.MEM_FUNC_STORE:
+        s.process_out.hdr_is_store.v = 1
       s.process_out.result.v = s.result
       s.process_out.rd.v = s.process_in_.rd
       s.process_out.rd_val.v = s.process_in_.rd_val
