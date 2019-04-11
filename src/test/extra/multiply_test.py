@@ -55,6 +55,7 @@ def test_fail():
   print(dut.result())
   dut.cycle()
 
+
 def test_fail2():
   iface = MulPipelinedInterface(64)
   #mult = MulPipelined(iface, 1)
@@ -128,11 +129,13 @@ def test_state_machine():
       MulFL, (MulPipelinedInterface(64), 4),
       release_cycle_accuracy=True)
 
+
 def test_state_machine_single_cycle():
   run_test_state_machine(
       MulPipelined,
       MulFL, (MulPipelinedInterface(64), 1),
       release_cycle_accuracy=True)
+
 
 def test_state_machine2():
   run_test_state_machine(

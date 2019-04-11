@@ -43,8 +43,12 @@ class MulRetimedPipelined(Model):
     m = s.interface.DataLen
     n = 2 * m if s.interface.KeepUpper else m
 
-    s.valids_ = [Register(RegisterInterface(1), reset_value=0) for _ in range(nstages)]
-    s.vals_ = [Register(RegisterInterface(n, enable=True)) for _ in range(nstages)]
+    s.valids_ = [
+        Register(RegisterInterface(1), reset_value=0) for _ in range(nstages)
+    ]
+    s.vals_ = [
+        Register(RegisterInterface(n, enable=True)) for _ in range(nstages)
+    ]
 
     s.exec_ = [Wire(Bits(1)) for _ in range(nstages)]
     s.rdy_ = [Wire(Bits(1)) for _ in range(nstages)]
@@ -77,30 +81,32 @@ class MulRetimedPipelined(Model):
       s.src2_usign_.v = 0
       s.sign_in_.v = 0
       if s.mult_call:
-        s.sign_in_.v = (s.mult_src1[m - 1] ^ s.mult_src2[m - 1]) and s.mult_signed
+        s.sign_in_.v = (
+            s.mult_src1[m - 1] ^ s.mult_src2[m - 1]) and s.mult_signed
         s.src1_usign_.v = (~s.mult_src1 + 1) if (s.mult_src1[m - 1] and
                                                  s.mult_signed) else s.mult_src1
         s.src2_usign_.v = (~s.mult_src2 + 1) if (s.mult_src2[m - 1] and
                                                  s.mult_signed) else s.mult_src2
 
-
     @s.combinational
     def set_rdy_last():
       # Incoming call:
-      s.rdy_[nstages - 1].v = s.result_call or not s.valids_[nstages - 1].read_data
+      s.rdy_[nstages -
+             1].v = s.result_call or not s.valids_[nstages - 1].read_data
 
     for i in range(nstages - 1):
+
       @s.combinational
       def set_rdy(i=i):
         # A stage is ready to accept if it is invalid or next stage is ready
         s.rdy_[i].v = not s.valids_[i].read_data or s.rdy_[i + 1]
-
 
     @s.combinational
     def set_exec_first():
       s.exec_[0].v = s.rdy_[0] and s.mult_call
 
     for i in range(1, nstages):
+
       @s.combinational
       def set_exec(i=i):
         # Will execute if stage ready and current work is valid
@@ -108,18 +114,22 @@ class MulRetimedPipelined(Model):
 
     @s.combinational
     def set_valids_last():
-      s.valids_[nstages -1].write_data.v = (not s.result_call and
-                            s.valids_[nstages - 1].read_data) or s.exec_[nstages - 1]
+      s.valids_[nstages - 1].write_data.v = (
+          not s.result_call and
+          s.valids_[nstages - 1].read_data) or s.exec_[nstages - 1]
+
     for i in range(nstages - 1):
+
       @s.combinational
       def set_valids(i=i):
         # Valid if blocked on next stage, or multuted this cycle
         s.valids_[i].write_data.v = (not s.rdy_[i + 1] and
-                              s.valids_[i].read_data) or s.exec_[i]
+                                     s.valids_[i].read_data) or s.exec_[i]
 
     @s.combinational
     def mult():
-      s.vals_[0].write_data.v = ~s.value_[:n] + 1 if s.sign_in_ else s.value_[:n]
+      s.vals_[
+          0].write_data.v = ~s.value_[:n] + 1 if s.sign_in_ else s.value_[:n]
       for i in range(1, nstages):
         s.vals_[i].write_data.v = s.vals_[i - 1].read_data
 
@@ -143,26 +153,43 @@ class MulPipelined(Model):
     s.src2_usign_ = Wire(Bits(m))
 
     # At step i, i = [0, nstages), product needs at most m + k(i+1) bits
-    s.valids_ = [Register(RegisterInterface(1), reset_value=0)  for _ in range(nstages)]
+    s.valids_ = [
+        Register(RegisterInterface(1), reset_value=0) for _ in range(nstages)
+    ]
     if s.interface.KeepUpper:
-      s.vals_ = [Register(RegisterInterface(m + k * (i + 1), enable=True)) for i in range(nstages)]
+      s.vals_ = [
+          Register(RegisterInterface(m + k * (i + 1), enable=True))
+          for i in range(nstages)
+      ]
       s.units_ = [
           MulCombinational(
               MulCombinationalInterface(m + k * i, k, m + k * (i + 1)), use_mul)
           for i in range(nstages)
       ]
-      s.src2_ = [Register(RegisterInterface(m - k * i, enable=True)) for i in range(nstages - 1)]
+      s.src2_ = [
+          Register(RegisterInterface(m - k * i, enable=True))
+          for i in range(nstages - 1)
+      ]
     else:
-      s.vals_ = [Register(RegisterInterface(m, enable=True)) for _ in range(nstages)]
+      s.vals_ = [
+          Register(RegisterInterface(m, enable=True)) for _ in range(nstages)
+      ]
       s.units_ = [
           MulCombinational(MulCombinationalInterface(m, k, m), use_mul)
           for _ in range(nstages)
       ]
-      s.src2_ = [Register(RegisterInterface(m, enable=True)) for _ in range(nstages - 1)]
+      s.src2_ = [
+          Register(RegisterInterface(m, enable=True))
+          for _ in range(nstages - 1)
+      ]
 
-    s.src1_ = [Register(RegisterInterface(m, enable=True)) for _ in range(nstages - 1)]
+    s.src1_ = [
+        Register(RegisterInterface(m, enable=True)) for _ in range(nstages - 1)
+    ]
 
-    s.signs_ = [Register(RegisterInterface(1, enable=True)) for _ in range(nstages - 1)]
+    s.signs_ = [
+        Register(RegisterInterface(1, enable=True)) for _ in range(nstages - 1)
+    ]
     s.exec_ = [Wire(Bits(1)) for _ in range(nstages)]
     s.rdy_ = [Wire(Bits(1)) for _ in range(nstages)]
 
@@ -197,7 +224,8 @@ class MulPipelined(Model):
       s.src2_usign_.v = 0
       s.sign_in_.v = 0
       if s.mult_call:
-        s.sign_in_.v = (s.mult_src1[m - 1] ^ s.mult_src2[m - 1]) and s.mult_signed
+        s.sign_in_.v = (
+            s.mult_src1[m - 1] ^ s.mult_src2[m - 1]) and s.mult_signed
         s.src1_usign_.v = (~s.mult_src1 + 1) if (s.mult_src1[m - 1] and
                                                  s.mult_signed) else s.mult_src1
         s.src2_usign_.v = (~s.mult_src2 + 1) if (s.mult_src2[m - 1] and
@@ -209,25 +237,25 @@ class MulPipelined(Model):
       s.units_[0].mult_src2.v = s.src2_usign_[:k]
       for i in range(1, nstages):
         s.units_[i].mult_src1.v = s.src1_[i - 1].read_data
-        s.units_[i].mult_src2.v = s.src2_[i -1].read_data[:k]
+        s.units_[i].mult_src2.v = s.src2_[i - 1].read_data[:k]
 
     @s.combinational
     def set_rdy_last():
       s.rdy_[last].v = s.result_call or not s.valids_[last].read_data
 
-    for i in range(nstages-1):
+    for i in range(nstages - 1):
+
       @s.combinational
       def set_rdy(i=i):
         # A stage is ready to accept if it is invalid or next stage is ready
         s.rdy_[i].v = not s.valids_[i].read_data or s.rdy_[i + 1]
 
-
-
     @s.combinational
     def set_exec_first():
-      s.exec_[0].v  = s.rdy_[0] and s.mult_call
+      s.exec_[0].v = s.rdy_[0] and s.mult_call
 
     for i in range(1, nstages):
+
       @s.combinational
       def set_exec(i=i):
         # Will execute if stage ready and current work is valid
@@ -235,14 +263,16 @@ class MulPipelined(Model):
 
     @s.combinational
     def set_valids_last():
-        s.valids_[last].write_data.v = (not s.result_call and
-                              s.valids_[last].read_data) or s.exec_[last]
-    for i in range(nstages-1):
+      s.valids_[last].write_data.v = (
+          not s.result_call and s.valids_[last].read_data) or s.exec_[last]
+
+    for i in range(nstages - 1):
+
       @s.combinational
       def set_valids(i=i):
         # Valid if blocked on next stage, or multuted this cycle
         s.valids_[i].write_data.v = (not s.rdy_[i + 1] and
-                              s.valids_[i].read_data) or s.exec_[i]
+                                     s.valids_[i].read_data) or s.exec_[i]
 
     # Hook up the pipeline stages
     if nstages == 1:
@@ -252,6 +282,7 @@ class MulPipelined(Model):
         s.vals_[0].write_data.v = ~s.units_[
             0].mult_res + 1 if s.sign_out_ else s.units_[0].mult_res
     else:
+
       @s.combinational
       def connect_first_stage():
         s.vals_[0].write_data.v = s.units_[0].mult_res
@@ -260,19 +291,21 @@ class MulPipelined(Model):
         s.signs_[0].write_data.v = s.sign_in_
 
       for i in range(1, nstages - 1):
+
         @s.combinational
         def connect_stage(i=i):
-            s.vals_[i].write_data.v = s.vals_[i - 1].read_data + (
-                s.units_[i].mult_res << (k * i))
-            s.src1_[i].write_data.v = s.src1_[i - 1].read_data
-            s.src2_[i].write_data.v = s.src2_[i - 1].read_data >> k
-            s.signs_[i].write_data.v = s.signs_[i - 1].read_data
+          s.vals_[i].write_data.v = s.vals_[i - 1].read_data + (
+              s.units_[i].mult_res << (k * i))
+          s.src1_[i].write_data.v = s.src1_[i - 1].read_data
+          s.src2_[i].write_data.v = s.src2_[i - 1].read_data >> k
+          s.signs_[i].write_data.v = s.signs_[i - 1].read_data
 
         @s.combinational
         def connect_last_stage():
           if s.sign_out_:
             s.vals_[last].write_data.v = ~(s.vals_[last - 1].read_data +
-                                    (s.units_[last].mult_res << (k * last))) + 1
+                                           (s.units_[last].mult_res <<
+                                            (k * last))) + 1
           else:
             s.vals_[last].write_data.v = s.vals_[last - 1].read_data + (
                 s.units_[last].mult_res << (k * last))
