@@ -55,7 +55,10 @@ class CSRStage(Model):
           s.csr_op_csr.v = s.process_in_.csr_msg_csr_num
           s.csr_op_op.v = s.process_in_.csr_msg_func
           s.csr_op_rs1_is_x0.v = s.process_in_.csr_msg_rs1_is_x0
-          s.csr_op_value.v = s.process_in_.rs1
+          if s.process_in_.imm_val:
+            s.csr_op_value.v = zext(s.process_in_.imm, XLEN)
+          else:
+            s.csr_op_value.v = s.process_in_.rs1
           s.csr_op_call.v = 1
 
           # TODO handle failure
