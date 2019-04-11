@@ -53,6 +53,15 @@ class MemRequestStage(Model):
             call=True,
             rdy=False,
         ),
+        MethodSpec(
+            'valid_store_mask',
+            args=None,
+            rets={
+                'mask': STORE_QUEUE_SIZE,
+            },
+            call=False,
+            rdy=False,
+        ),
     )
 
     # Address generation
@@ -87,8 +96,7 @@ class MemRequestStage(Model):
     s.can_send = Wire(1)
     s.connect(s.store_pending_addr, s.addr)
     s.connect(s.store_pending_size, s.len)
-    # TODO
-    s.connect(s.store_pending_live_mask, 0)
+    s.connect(s.store_pending_live_mask, s.valid_store_mask_mask)
 
     @s.combinational
     def compute_can_send():

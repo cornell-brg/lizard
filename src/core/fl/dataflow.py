@@ -137,7 +137,8 @@ class DataFlowManagerFL(FLModel):
 
     @s.model_method
     def valid_store_mask():
-      return int(s.store_ids.get_state().state)
+      state_as_bits = Bits(nstore_queue, s.store_ids.get_state().state)
+      return int(~state_as_bits)
 
     @s.ready_method
     def get_store_id():

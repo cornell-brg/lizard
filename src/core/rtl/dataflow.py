@@ -311,7 +311,10 @@ class DataFlowManager(Model):
       s.connect(s.areg_file.set_in_[i], 0)
 
     # commit
-    s.connect(s.valid_store_mask_mask, s.store_ids.get_state_state)
+    @s.combinational
+    def compute_valid_store_mask():
+      s.valid_store_mask_mask.v = ~s.store_ids.get_state_state
+
     s.is_commit_not_zero_tag = [Wire(1) for _ in range(num_dst_ports)]
     for i in range(num_dst_ports):
       # Determine if the commit is not the zero tag
