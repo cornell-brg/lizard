@@ -16,11 +16,11 @@ class MulFL(FLModel):
     @s.model_method
     def mult(src1, src2, signed):
       if signed:
-        s.results += [
-            s.to_unsigned(s.to_signed(src1, 64) * s.to_signed(src2, 64), 128)
-        ]
+        res = sext(Bits(64, src1), 128) * sext(Bits(64, src2), 128)
       else:
-        s.results += [src1 * src2]
+        res = zext(Bits(64, src1), 128) * zext(Bits(64, src2), 128)
+      s.results += [ res[:128] ]
+
 
     @s.ready_method
     def mult():
@@ -28,13 +28,12 @@ class MulFL(FLModel):
 
     @s.model_method
     def result():
-      if s.keep_uppser:
-        ret = s.results[0]
-        del s.results[0]
-        return ret
-      ret = s.results[0] & ((1 << 64) - 1)
+      ret = s.results[0]
       del s.results[0]
-      return ret
+      if s.keep_uppser:
+        return ret
+      else:
+        return ret[:64]
 
     @s.ready_method
     def result():
@@ -44,7 +43,7 @@ class MulFL(FLModel):
     s.results = []
 
   def to_signed(s, x, nbits):
-    return x - (1 << nbits) if 1 >= (1 << nbits) else x
+    return x - (1 << nbits) if x >= (1 << nbits) else x
 
   def to_unsigned(s, x, nbits):
     return (1 << nbits) - x if x < 0 else x

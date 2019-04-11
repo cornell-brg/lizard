@@ -275,7 +275,7 @@ class TestStateMachine(GenericStateMachine):
     target = cls.__argument_strategies.setdefault(cls, {})
     if target.has_key(method):
       error_msg = """
-      A method cannot have two distince strategies. 
+      A method cannot have two distince strategies.
         method_name : {method_name}
       """.format(method_name=method)
       raise InvalidDefinition(error_msg)
@@ -475,7 +475,7 @@ REFERENCE_PRECONDITION_MARKER = u'pymtl-method-based-precondition'
 
 
 def reference_precondition(precond):
-  """Decorator to apply add precondition to an FL model, usually 
+  """Decorator to apply add precondition to an FL model, usually
     enforces validity of datas
 
     For example::
@@ -545,7 +545,7 @@ class TestModel(TestStateMachine):
       reference = reference_class(*parameters)
     if translate_model:
       model = translate(model)
-
+    model.vcd_file = "machine.vcd"
     sim = wrap_to_cl(model)
 
     Test = type(
@@ -581,7 +581,7 @@ class TestModel(TestStateMachine):
     error_msg = """
     Found argument with no strategy specified!
       - method name : {method_name}
-      - arg         : {arg} 
+      - arg         : {arg}
   """
     for name, spec in Test.interface.methods.iteritems():
       strategies = Test.argument_strategy(name)
@@ -706,7 +706,7 @@ def run_parameterized_test_state_machine(rtl_class,
     init_args, _, _, default = inspect.getargspec(rtl_class.__init__)
     init_args = init_args[1:len(init_args) - len(default)]
     if set(init_args) - set(parameters.keys()):
-      raise ValueError(""" 
+      raise ValueError("""
   Found arg in rtl model __init__ args not int init_strategy!
     - init_strategy: {strategy_func_arg}
     - rtl __init__ : {init_args}
@@ -717,7 +717,7 @@ def run_parameterized_test_state_machine(rtl_class,
     args, _, _, _ = inspect.getargspec(method_strategy_class.__init__)
     args = args[1:]
     if set(init_args) - set(args):
-      raise ValueError(""" 
+      raise ValueError("""
   Found arg in rtl model __init__ args not int method_strategy class __init__!
     - method_strategy: {strategy_func_arg}
     - rtl model      : {init_args}
