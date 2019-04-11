@@ -55,6 +55,72 @@ def test_fail():
   print(dut.result())
   dut.cycle()
 
+def test_fail2():
+  iface = MulPipelinedInterface(64)
+  #mult = MulPipelined(iface, 1)
+  mult = MulPipelined(iface, 4, use_mul=True)
+  #mult = MulRetimedPipelined(iface, 4)
+  mult.vcd_file = 'mult.vcd'
+  dut = wrap_to_cl(mult)
+  dut.reset()
+  dut.cycle()
+  print(dut.mult(signed=0, src1=0, src2=0))
+  dut.cycle()
+  print(dut.mult(signed=0, src1=0, src2=0))
+  dut.cycle()
+  print(dut.mult(signed=0, src1=0, src2=0))
+  dut.cycle()
+  print(dut.mult(signed=0, src1=1, src2=1))
+  dut.cycle()
+  assert dut.result().res == 0
+  dut.cycle()
+  assert dut.result().res == 0
+  dut.cycle()
+  assert dut.result().res == 0
+  dut.cycle()
+  assert dut.result().res == 1
+  dut.cycle()
+
+
+def test_fail3():
+  iface = MulPipelinedInterface(64)
+  #mult = MulPipelined(iface, 1)
+  mult = MulPipelined(iface, 4, use_mul=True)
+  #mult = MulRetimedPipelined(iface, 4)
+  mult.vcd_file = 'mult.vcd'
+  dut = wrap_to_cl(mult)
+  dut.reset()
+  dut.cycle()
+  print(dut.mult(signed=0, src1=0, src2=0))
+  dut.cycle()
+
+  print(dut.mult(signed=0, src1=0, src2=0))
+  dut.cycle()
+
+  print(dut.mult(signed=0, src1=0, src2=0))
+  dut.cycle()
+
+  print(dut.mult(signed=0, src1=0, src2=0))
+  dut.cycle()
+
+  assert dut.result().res == 0
+  print(dut.mult(signed=0, src1=2, src2=1))
+  dut.cycle()
+
+  assert dut.result().res == 0
+  dut.cycle()
+
+  assert dut.result().res == 0
+  dut.cycle()
+
+  dut.cycle()
+
+  assert dut.result().res == 0
+  dut.cycle()
+
+  assert dut.result().res == 2
+  dut.cycle()
+
 
 def test_state_machine():
   run_test_state_machine(
@@ -62,6 +128,11 @@ def test_state_machine():
       MulFL, (MulPipelinedInterface(64), 4),
       release_cycle_accuracy=True)
 
+def test_state_machine_single_cycle():
+  run_test_state_machine(
+      MulPipelined,
+      MulFL, (MulPipelinedInterface(64), 1),
+      release_cycle_accuracy=True)
 
 def test_state_machine2():
   run_test_state_machine(

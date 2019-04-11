@@ -134,6 +134,7 @@ class NonRestoringDivider(Model):
       s.dividend.write_call.v = s.div_call or s.counter.read_data > 0
 
       # Load the values
+      s.acc.write_data.v = 0
       s.divisor.write_data.v = 0
       s.divisor.write_data.v = ~s.div_divisor + 1 if (
           s.div_signed and s.div_divisor[END]) else s.div_divisor
