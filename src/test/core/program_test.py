@@ -23,6 +23,7 @@ dir, tests = collector.collect()
 collector.build_riscv_tests()
 dir_bin, tests_bin = collector.collect_riscv_tests()
 
+
 @pytest.mark.parametrize('opt_level', opt_levels)
 @pytest.mark.parametrize('program', tests)
 @pytest.mark.parametrize('proc_key', proc_dict.keys())
@@ -32,6 +33,7 @@ def test(proc_key, program, opt_level):
   outname = collector.build(program, opt_level)
   # Run it
   run_test_elf(proc_dict[proc_key], outname, 10000)
+
 
 @pytest.mark.parametrize('opt_level', opt_levels)
 @pytest.mark.parametrize('program', tests)
