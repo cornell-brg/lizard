@@ -214,6 +214,7 @@ class Proc(Model):
     s.connect_m(s.mem_request.enter_store, s.mflow.enter_store)
     s.connect_m(s.mem_request.in_peek, s.pipe_selector.mem_peek)
     s.connect_m(s.mem_request.in_take, s.pipe_selector.mem_take)
+    s.connect_m(s.mem_request.valid_store_mask, s.dflow.valid_store_mask)
 
     s.mem_response_interface = MemResponseInterface()
     s.mem_response = MemResponse(s.mem_response_interface)
