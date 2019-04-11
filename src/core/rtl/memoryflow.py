@@ -1,11 +1,11 @@
+from pymtl import *
 from util.rtl.interface import Interface, IncludeSome, UseInterface
 from util.rtl.method import MethodSpec
 from util.rtl.types import canonicalize_type
 from util.rtl.registerfile import RegisterFile
-from util.rtl.async_ram import AsynchronousRAM, AsynchronousRAMInterface
 from util.rtl.overlap_checker import OverlapChecker, OverlapCheckerInterface
 from util.rtl.logic import LogicOperatorInterface, Or
-from util.rtl.sync_ram import SynchronousRAMInterface, SynchronousRAM
+from core.rtl.memory_arbiter import MemoryArbiterInterface, MemoryArbiter
 from bitutil import clog2, clog2nz
 from bitutil.bit_struct_generator import *
 
@@ -23,9 +23,32 @@ class MemoryFlowManagerInterface(Interface):
 
     super(MemoryFlowManagerInterface, s).__init__([
         MethodSpec(
+            'store_pending',
+            args={
+                'live_mask': Bits(nslots),
+                'addr': s.Addr,
+                'size': s.Size,
+            },
+            rets={
+                'pending': Bits(1),
+            },
+            call=False,
+            rdy=False,
+        ),
+        MethodSpec(
+            'recv_load',
+            args=None,
+            rets={
+                'data': s.Data,
+            },
+            call=True,
+            rdy=True,
+        ),
+        MethodSpec(
             'send_store',
             args={
                 'id_': s.StoreID,
+                'data': s.Data,
             },
             rets=None,
             call=True,
@@ -42,28 +65,6 @@ class MemoryFlowManagerInterface(Interface):
             rdy=True,
         ),
         MethodSpec(
-            'recv_load',
-            args=None,
-            rets={
-              'data': s.Data,
-            },
-            call=True,
-            rdy=True,
-        ),
-        MethodSpec(
-            'store_pending',
-            args={
-                'live_mask': Bits(nslots),
-                'addr': s.Addr,
-                'size': s.Size,
-            },
-            rets={
-                'pending': Bits(1),
-            },
-            call=False,
-            rdy=False,
-        ),
-        MethodSpec(
             'register_store',
             args={
                 'id_': s.StoreID,
@@ -78,7 +79,6 @@ class MemoryFlowManagerInterface(Interface):
                 'id_': s.StoreID,
                 'addr': s.Addr,
                 'size': s.Size,
-                'data': s.Data,
             },
             rets=None,
             call=True,
@@ -120,8 +120,6 @@ class MemoryFlowManager(Model):
     s.store_table = RegisterFile(
         StoreSpec(s.interface.Addr.nbits, s.interface.Size.nbits),
         s.interface.nslots, 1, 1, False, False)
-    s.store_data = SynchronousRAM(
-        SynchronousRAMInterface(s.interface.Data, s.interface.nslots, 1, 1))
     s.valid_table = RegisterFile(
         Bits(1), s.interface.nslots, 0, 2, False, False,
         [0] * s.interface.nslots)
@@ -131,10 +129,11 @@ class MemoryFlowManager(Model):
                                     s.interface.max_size))
         for _ in range(s.interface.nslots)
     ]
-
-    # s.connect(s.store_table.read_addr[0], s.lookup_id_)
-    # s.connect(s.lookup_addr, s.store_table.read_data[0].addr)
-    # s.connect(s.lookup_size, s.store_table.read_data[0].size)
+    s.memory_arbiter = MemoryArbiter(
+        MemoryArbiterInterface(s.interface.Addr, s.interface.Size,
+                               s.interface.Data), MemMsg)
+    s.connect_m(s.memory_arbiter.mb_send, s.mb_send)
+    s.connect_m(s.memory_arbiter.mb_recv, s.mb_recv)
 
     s.overlapped_and_live = [Wire(1) for _ in range(s.interface.nslots)]
     # PYMTL_BROKEN for some reason reduce_or verilates, but then the C++ fails to compile
@@ -168,6 +167,12 @@ class MemoryFlowManager(Model):
     s.connect(s.valid_table.write_call[1], s.enter_store_call)
     s.connect(s.valid_table.write_addr[1], s.enter_store_id_)
     s.connect(s.valid_table.write_data[1], 1)
-    s.connect(s.store_data.write_call[0], s.enter_store_call)
-    s.connect(s.store_data.write_addr[0], s.enter_store_id_)
-    s.connect(s.store_data.write_data[0], s.enter_store_data)
+
+    s.connect_m(s.memory_arbiter.recv_load, s.recv_load)
+    s.connect_m(s.memory_arbiter.send_load, s.send_load)
+    s.connect(s.store_table.read_addr[0], s.send_store_id_)
+    s.connect(s.memory_arbiter.send_store_addr, s.store_table.read_data[0].addr)
+    s.connect(s.memory_arbiter.send_store_size, s.store_table.read_data[0].size)
+    s.connect(s.memory_arbiter.send_store_data, s.send_store_data)
+    s.connect(s.memory_arbiter.send_store_call, s.send_store_call)
+    s.connect(s.send_store_rdy, s.memory_arbiter.send_store_rdy)
