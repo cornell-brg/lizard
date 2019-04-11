@@ -20,9 +20,8 @@ proc_dict = dict([(x.__name__, x) for x in procs])
 opt_levels = range(4)
 dir, tests = collector.collect()
 
-# collector.build_riscv_tests()
+collector.build_riscv_tests()
 dir_bin, tests_bin = collector.collect_riscv_tests()
-
 
 @pytest.mark.parametrize('opt_level', opt_levels)
 @pytest.mark.parametrize('program', tests)
@@ -36,7 +35,7 @@ def test(proc_key, program, opt_level):
 
 @pytest.mark.parametrize('opt_level', opt_levels)
 @pytest.mark.parametrize('program', tests)
-def testrtl_proc(program, opt_level):
+def test_rtl_proc(program, opt_level):
   # Build the program
   print("Building: %s" % program)
   outname = collector.build(program, opt_level)
@@ -45,6 +44,16 @@ def testrtl_proc(program, opt_level):
     mem = elf.elf_reader(fd, True)
     name = program + "-out.vcd"
     mem_image_test(mem, True, name, max_cycles=200000)
+
+
+@pytest.mark.parametrize('program', tests_bin)
+def test_riscv_rtl_proc(program):
+  outname = dir_bin + program
+  # Run it
+  with open(outname, "rb") as fd:
+    mem = elf.elf_reader(fd, True)
+    name = program + "-out.vcd"
+    mem_image_test(mem, True, name, max_cycles=50000)
 
 
 @pytest.mark.parametrize('program', tests_bin)
