@@ -36,6 +36,10 @@ class SnapshottingFreeListFL(FLModel):
     def pack(snapshot):
       return res
 
+    @s.model_method
+    def get_state():
+      return s.freelist.get_state()
+
     @s.ready_method
     def alloc():
       return s.freelist.alloc.rdy()

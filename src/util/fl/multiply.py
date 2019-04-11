@@ -47,7 +47,6 @@ class MulFL(FLModel):
       print("Take called")
       del s.results[0]
 
-
   def to_signed(s, x, nbits):
     return x - (1 << nbits) if x >= (1 << nbits) else x
 

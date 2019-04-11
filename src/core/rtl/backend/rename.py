@@ -26,6 +26,7 @@ class RenameStage(Model):
     seq_idx_nbits = s.process_out.hdr_seq.nbits
     speculative_idx_nbits = s.process_out.hdr_spec.nbits
     speculative_mask_nbits = s.process_out.hdr_branch_mask.nbits
+    store_id_nbits = s.process_out.hdr_store_id.nbits
     pc_nbits = DecodeMsg().hdr_pc.nbits
     areg_nbits = DecodeMsg().rs1.nbits
     s.require(
@@ -35,6 +36,7 @@ class RenameStage(Model):
             args={
                 'speculative': Bits(1),
                 'serialize': Bits(1),
+                'store': Bits(1),
                 'pc': Bits(pc_nbits),
                 'pc_succ': Bits(pc_nbits),
             },
@@ -42,6 +44,7 @@ class RenameStage(Model):
                 'seq': Bits(seq_idx_nbits),
                 'spec_idx': Bits(speculative_idx_nbits),
                 'branch_mask': Bits(speculative_mask_nbits),
+                'store_id': Bits(store_id_nbits),
                 'success': Bits(1),
             },
             call=True,
@@ -88,6 +91,7 @@ class RenameStage(Model):
     def handle_register():
       s.no_except_.v = s.decoded_.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID
       s.register_speculative.v = s.no_except_ and s.decoded_.speculative
+      s.register_store.v = s.no_except_ and s.decoded_.store
       s.register_serialize.v = s.no_except_ and s.decoded_.serialize
 
     # Handle the conditional calls
@@ -103,6 +107,8 @@ class RenameStage(Model):
       s.out_.hdr_frontend_hdr.v = s.decoded_.hdr
       s.out_.hdr_seq.v = s.register_seq
       s.out_.hdr_branch_mask.v = s.register_branch_mask
+      s.out_.hdr_store_id.v = s.register_store_id
+      s.out_.hdr_is_store.v = s.decoded_.store
       if s.no_except_:
         s.out_.hdr_spec_val.v = s.decoded_.speculative
         s.out_.hdr_spec.v = s.register_spec_idx

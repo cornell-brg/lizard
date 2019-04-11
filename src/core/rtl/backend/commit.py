@@ -48,6 +48,15 @@ class Commit(Model):
             rdy=False,
         ),
         MethodSpec(
+            'dataflow_free_store_id',
+            args={
+                'id_': STORE_IDX_NBITS,
+            },
+            rets=None,
+            call=True,
+            rdy=False,
+        ),
+        MethodSpec(
             'cflow_get_head',
             args={},
             rets={'seq': s.SeqIdxNbits},
@@ -121,6 +130,8 @@ class Commit(Model):
     def handle_commit():
       s.dataflow_commit_call.v = 0
       s.dataflow_commit_tag.v = 0
+      s.dataflow_free_store_id_call.v = 0
+      s.dataflow_free_store_id_id_.v = 0
 
       # The head is ready to commit
       if s.rob_remove:
@@ -128,6 +139,8 @@ class Commit(Model):
           if s.rob.free_value.rd_val:
             s.dataflow_commit_call.v = 1
             s.dataflow_commit_tag.v = s.rob.free_value.rd
+          s.dataflow_free_store_id_call.v = s.rob.free_value.hdr_is_store
+          s.dataflow_free_store_id_id_.v = s.rob.free_value.hdr_store_id
         else:
           # TODO handle exception
           # PYMTL_BROKEN pass doesn't work

@@ -45,7 +45,7 @@ class SnapshottingFreeListInterface(Interface):
             # with the same target ID in the same cycle is not permitted
         ],
         bases=[
-            IncludeSome(base, {'free', 'alloc', 'set'}),
+            IncludeSome(base, {'free', 'alloc', 'set', 'get_state'}),
         ],
         ordering_chains=[
             ['alloc', 'reset_alloc_tracking', 'revert_allocs', 'set'],
@@ -78,6 +78,7 @@ class SnapshottingFreeList(Model):
     s.connect_m(s.alloc, s.free_list.alloc)
     s.connect_m(s.free, s.free_list.free)
     s.connect_m(s.set, s.free_list.set)
+    s.connect_m(s.get_state, s.free_list.get_state)
 
     s.snapshots = [
         RegisterFile(

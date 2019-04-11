@@ -73,8 +73,10 @@ class Issue(Model):
       return KillDropController(KillDropControllerInterface(branch_mask_nbits))
 
     s.iq = CompactingIssueQueue(
-        IssueQueueInterface(SlotType(), s.interface.KillArgType), make_kill,
-        num_slots, in_order=False)
+        IssueQueueInterface(SlotType(), s.interface.KillArgType),
+        make_kill,
+        num_slots,
+        in_order=False)
     # Connect the notify signal
     s.updated_ = PriorityDecoder(s.NumPregs)
     s.connect(s.updated_.decode_signal, s.get_updated_mask)

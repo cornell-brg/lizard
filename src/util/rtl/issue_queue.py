@@ -343,10 +343,12 @@ class CompactingIssueQueue(Model):
           num_slots - 1].output_call
 
     if in_order:
+
       @s.combinational
       def handle_remove():
         # Must be valid and first entry
-        s.remove_rdy.v = s.slot_select_.decode_valid and (s.slot_select_.decode_decoded == s.first_valid_.decode_decoded)
+        s.remove_rdy.v = s.slot_select_.decode_valid and (
+            s.slot_select_.decode_decoded == s.first_valid_.decode_decoded)
         s.remove_value.v = s.mux_.mux_out
         for i in range(num_slots):
           s.will_issue_[i].v = (
@@ -354,6 +356,7 @@ class CompactingIssueQueue(Model):
               s.slot_issue_.encode_onehot[i] and
               (s.slot_select_.decode_decoded == s.first_valid_.decode_decoded))
     else:
+
       @s.combinational
       def handle_remove():
         s.remove_rdy.v = s.slot_select_.decode_valid

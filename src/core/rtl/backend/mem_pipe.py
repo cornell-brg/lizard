@@ -4,7 +4,8 @@ from util.rtl.method import MethodSpec
 from mem.rtl.memory_bus import MemMsgType
 from core.rtl.messages import MemFunc, DispatchMsg, ExecuteMsg
 from util.rtl.lookup_table import LookupTableInterface, LookupTable
-from util.rtl.pipeline_stage import gen_stage, StageInterface, DropControllerInterface
+from util.rtl.pipeline_stage import gen_stage, StageInterface, DropControllerInterface, PipelineStageInterface
+from util import line_block
 from config.general import *
 
 
@@ -53,6 +54,15 @@ class MemRequestStage(Model):
             call=True,
             rdy=False,
         ),
+        MethodSpec(
+            'valid_store_mask',
+            args=None,
+            rets={
+                'mask': STORE_QUEUE_SIZE,
+            },
+            call=False,
+            rdy=False,
+        ),
     )
 
     # Address generation
@@ -87,8 +97,7 @@ class MemRequestStage(Model):
     s.can_send = Wire(1)
     s.connect(s.store_pending_addr, s.addr)
     s.connect(s.store_pending_size, s.len)
-    # TODO
-    s.connect(s.store_pending_live_mask, 0)
+    s.connect(s.store_pending_live_mask, s.valid_store_mask_mask)
 
     @s.combinational
     def compute_can_send():
@@ -141,7 +150,7 @@ class MemResponseStage(Model):
             },
             call=True,
             rdy=True,
-        ),)
+        ))
 
     s.response_needed = Wire(1)
     s.can_accept = Wire(1)
@@ -203,8 +212,6 @@ class MemResponseStage(Model):
     def set_process_out():
       s.process_out.v = 0
       s.process_out.hdr.v = s.process_in_.hdr
-      if s.process_in_.mem_msg_func == MemFunc.MEM_FUNC_STORE:
-        s.process_out.hdr_is_store.v = 1
       s.process_out.result.v = s.result
       s.process_out.rd.v = s.process_in_.rd
       s.process_out.rd_val.v = s.process_in_.rd_val
@@ -212,3 +219,94 @@ class MemResponseStage(Model):
 
 MemRequest = gen_stage(MemRequestStage)
 MemResponse = gen_stage(MemResponseStage)
+
+
+def MemJointInterface():
+  return PipelineStageInterface(ExecuteMsg(), None)
+
+
+class MemJoint(Model):
+
+  def __init__(s, interface):
+    UseInterface(s, interface)
+    s.mem_request = MemRequest(MemRequestInterface())
+    s.mem_response = MemResponse(MemResponseInterface())
+    s.require(
+        MethodSpec(
+            'recv_load',
+            args=None,
+            rets={
+                'data': XLEN,
+            },
+            call=True,
+            rdy=True,
+        ),
+        MethodSpec(
+            'store_pending',
+            args={
+                'live_mask': Bits(STORE_QUEUE_SIZE),
+                'addr': XLEN,
+                'size': MEM_SIZE_NBITS,
+            },
+            rets={
+                'pending': Bits(1),
+            },
+            call=False,
+            rdy=False,
+        ),
+        MethodSpec(
+            'send_load',
+            args={
+                'addr': XLEN,
+                'size': MEM_SIZE_NBITS,
+            },
+            rets=None,
+            call=True,
+            rdy=True,
+        ),
+        MethodSpec(
+            'enter_store',
+            args={
+                'id_': STORE_IDX_NBITS,
+                'addr': XLEN,
+                'size': MEM_SIZE_NBITS,
+                'data': XLEN,
+            },
+            rets=None,
+            call=True,
+            rdy=False,
+        ),
+        MethodSpec(
+            'valid_store_mask',
+            args=None,
+            rets={
+                'mask': STORE_QUEUE_SIZE,
+            },
+            call=False,
+            rdy=False,
+        ),
+    )
+    s.connect_m(s.mem_request.store_pending, s.store_pending)
+    s.connect_m(s.mem_request.send_load, s.send_load)
+    s.connect_m(s.mem_request.enter_store, s.enter_store)
+    s.connect_m(s.mem_request.valid_store_mask, s.valid_store_mask)
+    s.connect_m(s.mem_response.recv_load, s.recv_load)
+
+    # Require the methods of an incoming pipeline stage
+    # Name the methods in_peek, in_take
+    s.require(*[
+        m.variant(name='in_{}'.format(m.name))
+        for m in PipelineStageInterface(DispatchMsg(), None).methods.values()
+    ])
+
+    s.connect_m(s.mem_request.in_peek, s.in_peek)
+    s.connect_m(s.mem_request.in_take, s.in_take)
+    s.connect_m(s.mem_response.in_peek, s.mem_request.peek)
+    s.connect_m(s.mem_response.in_take, s.mem_request.take)
+    s.connect_m(s.peek, s.mem_response.peek)
+    s.connect_m(s.take, s.mem_response.take)
+
+  def line_trace(s):
+    return line_block.join(
+        [s.mem_request.line_trace(),
+         s.mem_response.line_trace()])
