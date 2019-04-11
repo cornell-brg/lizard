@@ -99,7 +99,7 @@ class MemoryArbiter(Model):
         s.send_load_rdy.v = 0
 
     @s.combinational
-    def handle_send(size=s.interface.Size.nbits):
+    def handle_send(size=s.interface.Size.nbits - 1):
       if s.send_store_call:
         s.mb_send_call.v = 1
         s.mb_send_msg.type_.v = MemMsgType.WRITE
@@ -107,7 +107,6 @@ class MemoryArbiter(Model):
         s.mb_send_msg.addr.v = s.send_store_addr
         # This size will have to be truncated by 1 bit because full for a mem msg
         # is 0. The length field must always be a power of 2 so this works
-        # Since python is exclusive this chops off the high bit
         s.mb_send_msg.len_.v = s.send_store_size[0:size]
         s.mb_send_msg.data.v = s.send_store_data
         s.store_in_flight.write_data.v = 1

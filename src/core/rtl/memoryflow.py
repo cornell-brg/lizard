@@ -48,7 +48,6 @@ class MemoryFlowManagerInterface(Interface):
             'send_store',
             args={
                 'id_': s.StoreID,
-                'data': s.Data,
             },
             rets=None,
             call=True,
@@ -79,6 +78,7 @@ class MemoryFlowManagerInterface(Interface):
                 'id_': s.StoreID,
                 'addr': s.Addr,
                 'size': s.Size,
+                'data': s.Data,
             },
             rets=None,
             call=True,
@@ -88,10 +88,11 @@ class MemoryFlowManagerInterface(Interface):
 
 
 @bit_struct_generator
-def StoreSpec(addr_len, size_len):
+def StoreSpec(addr_len, size_len, data_len):
   return [
       Field('addr', addr_len),
       Field('size', size_len),
+      Field('data', data_len),
   ]
 
 
@@ -118,8 +119,9 @@ class MemoryFlowManager(Model):
     )
 
     s.store_table = RegisterFile(
-        StoreSpec(s.interface.Addr.nbits, s.interface.Size.nbits),
-        s.interface.nslots, 1, 1, False, False)
+        StoreSpec(s.interface.Addr.nbits, s.interface.Size.nbits,
+                  s.interface.Data.nbits), s.interface.nslots, 1, 1, False,
+        False)
     s.valid_table = RegisterFile(
         Bits(1), s.interface.nslots, 0, 2, False, False,
         [0] * s.interface.nslots)
@@ -164,6 +166,7 @@ class MemoryFlowManager(Model):
     s.connect(s.store_table.write_addr[0], s.enter_store_id_)
     s.connect(s.store_table.write_data[0].addr, s.enter_store_addr)
     s.connect(s.store_table.write_data[0].size, s.enter_store_size)
+    s.connect(s.store_table.write_data[0].data, s.enter_store_data)
     s.connect(s.valid_table.write_call[1], s.enter_store_call)
     s.connect(s.valid_table.write_addr[1], s.enter_store_id_)
     s.connect(s.valid_table.write_data[1], 1)
@@ -173,6 +176,6 @@ class MemoryFlowManager(Model):
     s.connect(s.store_table.read_addr[0], s.send_store_id_)
     s.connect(s.memory_arbiter.send_store_addr, s.store_table.read_data[0].addr)
     s.connect(s.memory_arbiter.send_store_size, s.store_table.read_data[0].size)
-    s.connect(s.memory_arbiter.send_store_data, s.send_store_data)
+    s.connect(s.memory_arbiter.send_store_data, s.store_table.read_data[0].data)
     s.connect(s.memory_arbiter.send_store_call, s.send_store_call)
     s.connect(s.send_store_rdy, s.memory_arbiter.send_store_rdy)

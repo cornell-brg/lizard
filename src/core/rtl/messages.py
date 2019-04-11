@@ -106,6 +106,8 @@ def BackendHeader():
   return [
       Inline('frontend_hdr', FrontendHeader()),
       Field('seq', INST_IDX_NBITS),
+      Field('is_store', 1),
+      Field('store_id', STORE_IDX_NBITS),
       ValidValuePair('spec', SPEC_IDX_NBITS),
       Field('branch_mask', SPEC_MASK_NBITS),
   ]

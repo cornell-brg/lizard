@@ -4,6 +4,7 @@ from util.rtl.method import MethodSpec
 from util.rtl.pipeline_stage import StageInterface, PipelineStageInterface
 from core.rtl.controlflow import ControlFlowManager, ControlFlowManagerInterface
 from core.rtl.dataflow import DataFlowManager, DataFlowManagerInterface
+from core.rtl.memoryflow import MemoryFlowManager, MemoryFlowManagerInterface
 from core.rtl.csr_manager import CSRManager, CSRManagerInterface
 from core.rtl.frontend.fetch import Fetch, FetchInterface
 from core.rtl.frontend.decode import Decode, DecodeInterface
@@ -114,6 +115,13 @@ class Proc(Model):
     s.connect_m(s.cflow.dflow_free_snapshot, s.dflow.free_snapshot)
     s.connect_m(s.cflow.dflow_rollback, s.dflow.rollback)
 
+    # Memory flow
+    s.mflow_interface = MemoryFlowManagerInterface(XLEN, MEM_MAX_SIZE,
+                                                   STORE_QUEUE_SIZE)
+    s.mflow = MemoryFlowManager(s.mflow_interface, MemMsg)
+    s.connect_m(s.mb_recv_1, s.mflow.mb_recv)
+    s.connect_m(s.mb_send_1, s.mflow.mb_send)
+
     # Kill notifier
     s.kill_notifier = KillNotifier(s.cflow_interface.KillArgType)
     s.connect_m(s.kill_notifier.check_kill, s.cflow.check_kill)
@@ -199,15 +207,18 @@ class Proc(Model):
 
     ## Mem
     s.mem_request_interface = MemRequestInterface()
-    s.mem_request = MemRequest(s.mem_request_interface, MemMsg)
+    s.mem_request = MemRequest(s.mem_request_interface)
+    s.connect_m(s.mem_request.store_pending, s.mflow.store_pending)
+    s.connect_m(s.mem_request.send_load, s.mflow.send_load)
+    s.connect_m(s.mem_request.enter_store, s.mflow.enter_store)
     s.connect_m(s.mem_request.in_peek, s.pipe_selector.mem_peek)
     s.connect_m(s.mem_request.in_take, s.pipe_selector.mem_take)
-    s.connect_m(s.mem_request.mb_send, s.mb_send_1)
+
     s.mem_response_interface = MemResponseInterface()
-    s.mem_response = MemResponse(s.mem_response_interface, MemMsg)
+    s.mem_response = MemResponse(s.mem_response_interface)
+    s.connect_m(s.mem_response.recv_load, s.mflow.recv_load)
     s.connect_m(s.mem_response.in_peek, s.mem_request.peek)
     s.connect_m(s.mem_response.in_take, s.mem_request.take)
-    s.connect_m(s.mem_response.mb_recv, s.mb_recv_1)
 
     # Writeback Arbiter
     s.writeback_arbiter_interface = PipelineArbiterInterface(ExecuteMsg())
@@ -239,6 +250,7 @@ class Proc(Model):
     s.connect_m(s.commit.dataflow_commit, s.dflow.commit[0])
     s.connect_m(s.cflow.commit, s.commit.cflow_commit)
     s.connect_m(s.cflow.get_head, s.commit.cflow_get_head)
+    s.connect_m(s.commit.send_store, s.mflow.send_store)
 
   def line_trace(s):
     return line_block.join([
