@@ -15,7 +15,7 @@ from core.rtl.backend.pipe_selector import PipeSelector
 from core.rtl.backend.alu import ALU, ALUInterface
 from core.rtl.backend.branch import Branch, BranchInterface
 from core.rtl.backend.csr import CSR, CSRInterface
-from core.rtl.backend.mem_pipe import MemJointInterface, MemJoint
+from core.rtl.backend.mem_pipe import MemInterface, Mem
 from core.rtl.pipeline_arbiter import PipelineArbiter, PipelineArbiterInterface
 from core.rtl.backend.writeback import Writeback, WritebackInterface
 from core.rtl.backend.commit import Commit, CommitInterface
@@ -207,15 +207,16 @@ class Proc(Model):
     s.connect_m(s.csr_pipe.in_take, s.pipe_selector.csr_take)
 
     ## Mem
-    s.mem_joint_interface = MemJointInterface()
-    s.mem_joint = MemJoint(s.mem_joint_interface)
-    s.connect_m(s.mem_joint.in_peek, s.pipe_selector.mem_peek)
-    s.connect_m(s.mem_joint.in_take, s.pipe_selector.mem_take)
-    s.connect_m(s.mem_joint.store_pending, s.mflow.store_pending)
-    s.connect_m(s.mem_joint.send_load, s.mflow.send_load)
-    s.connect_m(s.mem_joint.enter_store, s.mflow.enter_store)
-    s.connect_m(s.mem_joint.valid_store_mask, s.dflow.valid_store_mask)
-    s.connect_m(s.mem_joint.recv_load, s.mflow.recv_load)
+    s.mem_interface = MemInterface()
+    s.mem = Mem(s.mem_interface)
+    s.connect_m(s.mem.in_peek, s.pipe_selector.mem_peek)
+    s.connect_m(s.mem.in_take, s.pipe_selector.mem_take)
+    s.connect_m(s.mem.kill_notify, s.kill_notifier.kill_notify)
+    s.connect_m(s.mem.store_pending, s.mflow.store_pending)
+    s.connect_m(s.mem.send_load, s.mflow.send_load)
+    s.connect_m(s.mem.enter_store, s.mflow.enter_store)
+    s.connect_m(s.mem.valid_store_mask, s.dflow.valid_store_mask)
+    s.connect_m(s.mem.recv_load, s.mflow.recv_load)
 
     # Writeback Arbiter
     s.writeback_arbiter_interface = PipelineArbiterInterface(ExecuteMsg())
@@ -227,8 +228,8 @@ class Proc(Model):
     s.connect_m(s.writeback_arbiter.csr_take, s.csr_pipe.take)
     s.connect_m(s.writeback_arbiter.branch_peek, s.branch.peek)
     s.connect_m(s.writeback_arbiter.branch_take, s.branch.take)
-    s.connect_m(s.writeback_arbiter.mem_peek, s.mem_joint.peek)
-    s.connect_m(s.writeback_arbiter.mem_take, s.mem_joint.take)
+    s.connect_m(s.writeback_arbiter.mem_peek, s.mem.peek)
+    s.connect_m(s.writeback_arbiter.mem_take, s.mem.take)
 
     # Writeback
     s.writeback_interface = WritebackInterface()
@@ -272,7 +273,7 @@ class Proc(Model):
             line_block.join([
                 'M',
                 Divider(': '),
-                s.mem_joint.line_trace(),
+                s.mem.line_trace(),
             ]).normalized().blocks),
         Divider(' | '),
         s.writeback.line_trace(),
