@@ -281,16 +281,14 @@ class MulCombinationalInterface(Interface):
 # Unsigned only!
 class MulCombinational(Model):
 
-  def __init__(s, mul_interface, use_mul=False):
+  def __init__(s, mul_interface, use_mul=True):
     UseInterface(s, mul_interface)
     assert s.interface.MultiplierLen >= s.interface.MultiplicandLen
 
     plen = s.interface.ProductLen
 
     s.src1_ = Wire(s.interface.ProductLen)
-
-    if not use_mul:
-      s.partials_ = [Wire(plen) for _ in range(s.interface.MultiplicandLen + 1)]
+    s.tmp_ = Wire(s.interface.MultiplierLen + s.interface.MultiplicandLen)
 
     if plen >= s.interface.MultiplierLen:
 
@@ -307,14 +305,13 @@ class MulCombinational(Model):
 
       @s.combinational
       def eval():
-        s.partials_[0].v = 0
+        s.tmp_.v = 0
         for i in range(s.interface.MultiplicandLen):
-          s.partials_[i + 1].v = s.partials_[i] + (
-              (s.src1_ << i) if (s.mult_src2[i] and s.mult_call) else 0)
+          if s.mult_src2[i] and s.mult_call:
+            s.tmp_.v += s.src1_ << i
 
-        s.mult_res.v = s.partials_[s.interface.MultiplicandLen]
+        s.mult_res.v = s.tmp_[:plen]
     else:
-      s.tmp_ = Wire(s.interface.MultiplierLen + s.interface.MultiplicandLen)
 
       @s.combinational
       def eval():
