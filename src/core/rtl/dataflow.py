@@ -10,16 +10,19 @@ from util.rtl.snapshotting_freelist import SnapshottingFreeList
 from util.rtl.registerfile import RegisterFile
 from util.rtl.async_ram import AsynchronousRAM, AsynchronousRAMInterface
 from core.rtl.renametable import RenameTableInterface, RenameTable
+from bitutil import clog2nz
 
 
 class DataFlowManagerInterface(Interface):
 
-  def __init__(s, dlen, naregs, npregs, nsnapshots, num_src_ports,
+  def __init__(s, dlen, naregs, npregs, nsnapshots, nstore_queue, num_src_ports,
                num_dst_ports):
     s.DataLen = dlen
     s.NumAregs = naregs
     s.NumPregs = npregs
     s.NumSnapshots = nsnapshots
+    s.NumStoreQueue = nstore_queue
+    s.StoreQueueIdxNbits = clog2nz(nstore_queue)
     s.NumSrcPorts = num_src_ports
     s.NumDstPorts = num_dst_ports
     rename_table_interface = RenameTableInterface(naregs, npregs, 0, 0,
@@ -50,6 +53,25 @@ class DataFlowManagerInterface(Interface):
                 },
                 rets={
                     'preg': s.Preg,
+                },
+                call=True,
+                rdy=True,
+                count=num_dst_ports,
+            ),
+            MethodSpec(
+                'valid_store_mask',
+                args=None,
+                rets={
+                    'mask': s.NumStoreQueue,
+                },
+                call=False,
+                rdy=False,
+            ),
+            MethodSpec(
+                'get_store_id',
+                args=None,
+                rets={
+                    'store_id': s.StoreQueueIdxNbits,
                 },
                 call=True,
                 rdy=True,
@@ -100,6 +122,15 @@ class DataFlowManagerInterface(Interface):
                 rdy=False,
             ),
             MethodSpec(
+                'free_store_id',
+                args={
+                    'id_': s.StoreQueueIdxNbits,
+                },
+                rets=None,
+                call=True,
+                rdy=False,
+            ),
+            MethodSpec(
                 'commit',
                 args={
                     'tag': s.Preg,
@@ -141,8 +172,8 @@ class DataFlowManagerInterface(Interface):
         ordering_chains=[
             [
                 'is_ready', 'write', 'get_updated', 'get_src', 'get_dst',
-                'commit', 'read', 'snapshot', 'free_snapshot', 'restore',
-                'rollback'
+                'valid_store_mask', 'get_store_id', 'free_store_id', 'commit',
+                'read', 'snapshot', 'free_snapshot', 'restore', 'rollback'
             ],
         ],
     )
@@ -156,6 +187,7 @@ class DataFlowManager(Model):
     naregs = s.interface.NumAregs
     npregs = s.interface.NumPregs
     nsnapshots = s.interface.NumSnapshots
+    nstore_queue = s.interface.NumStoreQueue
     num_src_ports = s.interface.NumSrcPorts
     num_dst_ports = s.interface.NumDstPorts
 
@@ -171,6 +203,8 @@ class DataFlowManager(Model):
         num_dst_ports,
         nsnapshots,
         used_slots_initial=naregs - 1)
+    s.store_ids = SnapshottingFreeList(nstore_queue, num_dst_ports,
+                                       num_dst_ports, nsnapshots)
     # arch_used_pregs tracks the physical registers used by the current architectural state
     # arch_used_pregs[i] is 1 if preg i is used by the arf, and 0 otherwise
     # on reset, the ARF is backed by pregs [0, naregs - 1]
@@ -277,6 +311,10 @@ class DataFlowManager(Model):
       s.connect(s.areg_file.set_in_[i], 0)
 
     # commit
+    @s.combinational
+    def compute_valid_store_mask():
+      s.valid_store_mask_mask.v = ~s.store_ids.get_state_state
+
     s.is_commit_not_zero_tag = [Wire(1) for _ in range(num_dst_ports)]
     for i in range(num_dst_ports):
       # Determine if the commit is not the zero tag
@@ -293,6 +331,10 @@ class DataFlowManager(Model):
       s.connect(s.free_regs.free_index[i], s.areg_file.read_data[i])
       # Only free if not the zero tag
       s.connect(s.free_regs.free_call[i], s.is_commit_not_zero_tag[i])
+      # Free the store ID from the committing instruction
+      s.connect(s.store_ids.free_index[i], s.free_store_id_id_[i])
+      # Only free if the commit is valid
+      s.connect(s.store_ids.free_call[i], s.free_store_id_call[i])
 
       # Write into the ARF the new preg
       s.connect(s.areg_file.write_addr[i], s.inverse.read_data[i])
@@ -360,6 +402,9 @@ class DataFlowManager(Model):
     # get_dst
     s.get_dst_need_writeback = [Wire(1) for _ in range(num_dst_ports)]
     s.connect(s.get_dst_rdy[i], s.free_regs.alloc_rdy[i])
+    s.connect(s.get_store_id_rdy[i], s.store_ids.alloc_rdy[i])
+    s.connect(s.store_ids.alloc_call[i], s.get_store_id_call[i])
+    s.connect(s.get_store_id_store_id[i], s.store_ids.alloc_index[i])
     for i in range(num_dst_ports):
 
       @s.combinational
@@ -436,6 +481,8 @@ class DataFlowManager(Model):
     # snapshot the freelist
     s.connect(s.free_regs.reset_alloc_tracking_target_id, s.snapshot_id_)
     s.connect(s.free_regs.reset_alloc_tracking_call, s.snapshot_call)
+    s.connect(s.store_ids.reset_alloc_tracking_target_id, s.snapshot_id_)
+    s.connect(s.store_ids.reset_alloc_tracking_call, s.snapshot_call)
     # snapshot the rename table
     s.connect(s.rename_table.snapshot_target_id, s.snapshot_id_)
     s.connect(s.rename_table.snapshot_call, s.snapshot_call)
@@ -453,6 +500,8 @@ class DataFlowManager(Model):
     # restore the free list
     s.connect(s.free_regs.revert_allocs_source_id, s.restore_source_id)
     s.connect(s.free_regs.revert_allocs_call, s.restore_call)
+    s.connect(s.store_ids.revert_allocs_source_id, s.restore_source_id)
+    s.connect(s.store_ids.revert_allocs_call, s.restore_call)
     # restore the rename table
     s.connect(s.rename_table.restore_source_id, s.restore_source_id)
     s.connect(s.rename_table.restore_call, s.restore_call)
@@ -475,6 +524,8 @@ class DataFlowManager(Model):
       s.free_regs.set_state.v = ~s.arch_used_pregs_packer.pack_packed
 
     s.connect(s.free_regs.set_call, s.rollback_call)
+    s.connect(s.store_ids.set_state, (~Bits(nstore_queue, 0)).uint())
+    s.connect(s.store_ids.set_call, s.rollback_call)
     # set the rename table to the areg_file (again write_dump_bypass is true)
     for i in range(naregs):
       s.connect(s.rename_table.set_in_[i], s.areg_file.dump_out[i])

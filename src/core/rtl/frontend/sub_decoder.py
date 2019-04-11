@@ -21,6 +21,7 @@ class SubDecoderInterface(Interface):
                 'success': Bits(1),
                 'serialize': Bits(1),
                 'speculative': Bits(1),
+                'store': Bits(1),
                 'rs1_val': Bits(1),
                 'rs2_val': Bits(1),
                 'rd_val': Bits(1),
@@ -66,6 +67,7 @@ class GenDecoder(Model):
                In,
                serialize=0,
                speculative=0,
+               store=0,
                rs1_val=0,
                rs2_val=0,
                rd_val=0,
@@ -120,6 +122,7 @@ class GenDecoder(Model):
 
     s.connect(s.decode_serialize, serialize)
     s.connect(s.decode_speculative, speculative)
+    s.connect(s.decode_store, store)
     s.connect(s.decode_rs1_val, rs1_val)
     s.connect(s.decode_rs2_val, rs2_val)
     s.connect(s.decode_rd_val, rd_val)
@@ -177,6 +180,7 @@ class GenDecoderFixed(Model):
                field_map,
                serialize=0,
                speculative=0,
+               store=0,
                rs1_val=0,
                rs2_val=0,
                rd_val=0,
@@ -196,6 +200,7 @@ class GenDecoderFixed(Model):
         ResultKind,
         serialize=serialize,
         speculative=speculative,
+        store=store,
         rs1_val=rs1_val,
         rs2_val=rs2_val,
         rd_val=rd_val,
@@ -223,6 +228,7 @@ class BinaryCompositeDecoder(Model):
         s.decode_success.v = s.decode_a_success
         s.decode_serialize.v = s.decode_a_serialize
         s.decode_speculative.v = s.decode_a_speculative
+        s.decode_store.v = s.decode_a_store
         s.decode_rs1_val.v = s.decode_a_rs1_val
         s.decode_rs2_val.v = s.decode_a_rs2_val
         s.decode_rd_val.v = s.decode_a_rd_val
@@ -234,6 +240,7 @@ class BinaryCompositeDecoder(Model):
         s.decode_success.v = s.decode_b_success
         s.decode_serialize.v = s.decode_b_serialize
         s.decode_speculative.v = s.decode_b_speculative
+        s.decode_store.v = s.decode_b_store
         s.decode_rs1_val.v = s.decode_b_rs1_val
         s.decode_rs2_val.v = s.decode_b_rs2_val
         s.decode_rd_val.v = s.decode_b_rd_val
