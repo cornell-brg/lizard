@@ -19,8 +19,7 @@ class MulFL(FLModel):
         res = sext(Bits(64, src1), 128) * sext(Bits(64, src2), 128)
       else:
         res = zext(Bits(64, src1), 128) * zext(Bits(64, src2), 128)
-      s.results += [ res[:128] ]
-
+      s.results += [res[:128]]
 
     @s.ready_method
     def mult():
