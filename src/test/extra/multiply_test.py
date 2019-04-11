@@ -128,6 +128,11 @@ def test_state_machine():
       MulFL, (MulPipelinedInterface(64), 4),
       release_cycle_accuracy=True)
 
+def test_state_machine_single_cycle():
+  run_test_state_machine(
+      MulPipelined,
+      MulFL, (MulPipelinedInterface(64), 1),
+      release_cycle_accuracy=True)
 
 def test_state_machine2():
   run_test_state_machine(
