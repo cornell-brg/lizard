@@ -15,7 +15,7 @@ from core.rtl.backend.pipe_selector import PipeSelector
 from core.rtl.backend.alu import ALU, ALUInterface
 from core.rtl.backend.branch import Branch, BranchInterface
 from core.rtl.backend.csr import CSR, CSRInterface
-from core.rtl.backend.mem_pipe import MemRequestInterface, MemRequest, MemResponseInterface, MemResponse
+from core.rtl.backend.mem_pipe import MemJointInterface, MemJoint
 from core.rtl.pipeline_arbiter import PipelineArbiter, PipelineArbiterInterface
 from core.rtl.backend.writeback import Writeback, WritebackInterface
 from core.rtl.backend.commit import Commit, CommitInterface
@@ -207,20 +207,15 @@ class Proc(Model):
     s.connect_m(s.csr_pipe.in_take, s.pipe_selector.csr_take)
 
     ## Mem
-    s.mem_request_interface = MemRequestInterface()
-    s.mem_request = MemRequest(s.mem_request_interface)
-    s.connect_m(s.mem_request.store_pending, s.mflow.store_pending)
-    s.connect_m(s.mem_request.send_load, s.mflow.send_load)
-    s.connect_m(s.mem_request.enter_store, s.mflow.enter_store)
-    s.connect_m(s.mem_request.in_peek, s.pipe_selector.mem_peek)
-    s.connect_m(s.mem_request.in_take, s.pipe_selector.mem_take)
-    s.connect_m(s.mem_request.valid_store_mask, s.dflow.valid_store_mask)
-
-    s.mem_response_interface = MemResponseInterface()
-    s.mem_response = MemResponse(s.mem_response_interface)
-    s.connect_m(s.mem_response.recv_load, s.mflow.recv_load)
-    s.connect_m(s.mem_response.in_peek, s.mem_request.peek)
-    s.connect_m(s.mem_response.in_take, s.mem_request.take)
+    s.mem_joint_interface = MemJointInterface()
+    s.mem_joint = MemJoint(s.mem_joint_interface)
+    s.connect_m(s.mem_joint.in_peek, s.pipe_selector.mem_peek)
+    s.connect_m(s.mem_joint.in_take, s.pipe_selector.mem_take)
+    s.connect_m(s.mem_joint.store_pending, s.mflow.store_pending)
+    s.connect_m(s.mem_joint.send_load, s.mflow.send_load)
+    s.connect_m(s.mem_joint.enter_store, s.mflow.enter_store)
+    s.connect_m(s.mem_joint.valid_store_mask, s.dflow.valid_store_mask)
+    s.connect_m(s.mem_joint.recv_load, s.mflow.recv_load)
 
     # Writeback Arbiter
     s.writeback_arbiter_interface = PipelineArbiterInterface(ExecuteMsg())
@@ -232,8 +227,8 @@ class Proc(Model):
     s.connect_m(s.writeback_arbiter.csr_take, s.csr_pipe.take)
     s.connect_m(s.writeback_arbiter.branch_peek, s.branch.peek)
     s.connect_m(s.writeback_arbiter.branch_take, s.branch.take)
-    s.connect_m(s.writeback_arbiter.mem_peek, s.mem_response.peek)
-    s.connect_m(s.writeback_arbiter.mem_take, s.mem_response.take)
+    s.connect_m(s.writeback_arbiter.mem_peek, s.mem_joint.peek)
+    s.connect_m(s.writeback_arbiter.mem_take, s.mem_joint.take)
 
     # Writeback
     s.writeback_interface = WritebackInterface()
@@ -277,8 +272,7 @@ class Proc(Model):
             line_block.join([
                 'M',
                 Divider(': '),
-                s.mem_request.line_trace(),
-                s.mem_response.line_trace()
+                s.mem_joint.line_trace(),
             ]).normalized().blocks),
         Divider(' | '),
         s.writeback.line_trace(),
