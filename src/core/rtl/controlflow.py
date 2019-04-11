@@ -23,11 +23,12 @@ def KillType(nbits):
 class ControlFlowManagerInterface(Interface):
 
   def __init__(s, dlen, seq_idx_nbits, speculative_idx_nbits,
-               speculative_mask_nbits):
+               speculative_mask_nbits, store_id_nbits):
     s.DataLen = dlen
     s.SeqIdxNbits = seq_idx_nbits
     s.SpecIdxNbits = speculative_idx_nbits
     s.SpecMaskNbits = speculative_mask_nbits
+    s.StoreIdNbits = store_id_nbits
     s.KillArgType = KillType(s.SpecMaskNbits)
 
     super(ControlFlowManagerInterface, s).__init__(
@@ -69,6 +70,7 @@ class ControlFlowManagerInterface(Interface):
                 args={
                     'speculative': Bits(1),
                     'serialize': Bits(1),  # Serialize the instruction
+                    'store': Bits(1),
                     'pc': Bits(dlen),
                     'pc_succ': Bits(dlen),
                 },
@@ -76,6 +78,7 @@ class ControlFlowManagerInterface(Interface):
                     'seq': Bits(seq_idx_nbits),
                     'spec_idx': Bits(speculative_idx_nbits),
                     'branch_mask': Bits(speculative_mask_nbits),
+                    'store_id': Bits(store_id_nbits),
                     'success': Bits(1),
                 },
                 call=True,
@@ -112,9 +115,19 @@ class ControlFlowManager(Model):
     seqidx_nbits = s.interface.SeqIdxNbits
     specidx_nbits = s.interface.SpecIdxNbits
     specmask_nbits = s.interface.SpecMaskNbits
+    store_id_nbits = s.interface.StoreIdNbits
     max_entries = 1 << seqidx_nbits
 
     s.require(
+        MethodSpec(
+            'dflow_get_store_id',
+            args=None,
+            rets={
+                'store_id': store_id_nbits,
+            },
+            call=True,
+            rdy=True,
+        ),
         # Snapshot call on dataflow
         MethodSpec(
             'dflow_snapshot',
@@ -172,6 +185,7 @@ class ControlFlowManager(Model):
 
     s.register_success_ = Wire(1)
     s.spec_register_success_ = Wire(1)
+    s.store_register_success_ = Wire(1)
 
     # Branch mask stuff:
     s.kill_mask_ = Wire(specmask_nbits)
@@ -216,6 +230,10 @@ class ControlFlowManager(Model):
     s.connect(s.dflow_restore_call, s.branch_redirect_)
     # Connect up free snapshot val
     s.connect(s.dflow_free_snapshot_id_, s.redirect_spec_idx)
+
+    # Alloc the store ID if needed
+    s.connect(s.dflow_get_store_id_call, s.store_register_success_)
+    s.connect(s.register_store_id, s.dflow_get_store_id_store_id)
 
     # Save the speculative PC
     s.connect(s.pc_pred.write_call[0], s.spec_register_success_)
@@ -312,16 +330,19 @@ class ControlFlowManager(Model):
     def handle_register():
       s.register_success_.v = 0
       s.spec_register_success_.v = 0
+      s.store_register_success_.v = 0
       if s.register_call:
         s.register_success_.v = (
             s.seq.allocate_rdy and  # ROB slot availible
-            (not s.register_speculative or s.dflow_snapshot_rdy)
+            (not s.register_speculative or s.dflow_snapshot_rdy) and
+            (not s.register_store or s.dflow_get_store_id_rdy)
             and  # RT snapshot
             (not s.register_serialize or
              not s.seq.free_rdy) and  # Serialized inst
             not s.serial.read_data)
 
         s.spec_register_success_.v = s.register_success_.v and s.register_speculative
+        s.store_register_success_.v = s.register_success_.v and s.register_store
 
     @s.combinational
     def handle_commit():

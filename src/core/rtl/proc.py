@@ -102,14 +102,15 @@ class Proc(Model):
     )
 
     # Dataflow
-    s.dflow_interface = DataFlowManagerInterface(XLEN, AREG_COUNT, PREG_COUNT,
-                                                 MAX_SPEC_DEPTH, 2, 1)
+    s.dflow_interface = DataFlowManagerInterface(
+        XLEN, AREG_COUNT, PREG_COUNT, MAX_SPEC_DEPTH, STORE_QUEUE_SIZE, 2, 1)
     s.dflow = DataFlowManager(s.dflow_interface)
 
     # Control flow
     s.cflow_interface = ControlFlowManagerInterface(
-        XLEN, INST_IDX_NBITS, SPEC_IDX_NBITS, SPEC_MASK_NBITS)
+        XLEN, INST_IDX_NBITS, SPEC_IDX_NBITS, SPEC_MASK_NBITS, STORE_IDX_NBITS)
     s.cflow = ControlFlowManager(s.cflow_interface, RESET_VECTOR)
+    s.connect_m(s.cflow.dflow_get_store_id, s.dflow.get_store_id[0])
     s.connect_m(s.cflow.dflow_snapshot, s.dflow.snapshot)
     s.connect_m(s.cflow.dflow_restore, s.dflow.restore)
     s.connect_m(s.cflow.dflow_free_snapshot, s.dflow.free_snapshot)
@@ -248,6 +249,7 @@ class Proc(Model):
     s.connect_m(s.writeback.peek, s.commit.in_peek)
     s.connect_m(s.writeback.take, s.commit.in_take)
     s.connect_m(s.commit.dataflow_commit, s.dflow.commit[0])
+    s.connect_m(s.commit.dataflow_free_store_id, s.dflow.free_store_id[0])
     s.connect_m(s.cflow.commit, s.commit.cflow_commit)
     s.connect_m(s.cflow.get_head, s.commit.cflow_get_head)
     s.connect_m(s.commit.send_store, s.mflow.send_store)

@@ -90,6 +90,7 @@ class StoreDecoder(Model):
         0,
         Bits(1),
         serialize=1,
+        store=1,
         rs1_val=1,
         rs2_val=1,
         imm_type=ImmType.IMM_TYPE_S,

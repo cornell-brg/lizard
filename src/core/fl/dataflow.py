@@ -19,6 +19,7 @@ class DataFlowManagerFL(FLModel):
     naregs = s.interface.NumAregs
     npregs = s.interface.NumPregs
     nsnapshots = s.interface.NumSnapshots
+    nstore_queue = s.interface.NumStoreQueue
     num_src_ports = s.interface.NumSrcPorts
     num_dst_ports = s.interface.NumDstPorts
 
@@ -30,6 +31,8 @@ class DataFlowManagerFL(FLModel):
             num_dst_ports,
             nsnapshots,
             used_slots_initial=naregs - 1),
+        store_ids=SnapshottingFreeListFL(nstore_queue, num_dst_ports,
+                                         num_dst_ports, nsnapshots),
     )
     arch_used_pregs_reset = [Bits(1, 0) for _ in range(npregs - 1)]
     for i in range(naregs):
@@ -98,6 +101,10 @@ class DataFlowManagerFL(FLModel):
     )
 
     @s.model_method
+    def free_store_id(id_):
+      s.store_ids.free(id_)
+
+    @s.model_method
     def commit(tag):
       if tag == s.ZERO_TAG:
         return
@@ -127,6 +134,18 @@ class DataFlowManagerFL(FLModel):
     @s.model_method
     def get_src(areg):
       return s.rename_table.lookup(areg).preg
+
+    @s.model_method
+    def valid_store_mask():
+      return int(s.store_ids.get_state().state)
+
+    @s.ready_method
+    def get_store_id():
+      return s.store_ids.alloc.rdy()
+
+    @s.model_method
+    def get_store_id():
+      return s.store_ids.alloc().index
 
     @s.ready_method
     def get_dst():
@@ -167,6 +186,7 @@ class DataFlowManagerFL(FLModel):
       id_ = s.snapshot_allocator.alloc().index
       s.snapshot_allocator.reset_alloc_tracking(id_)
       s.free_regs.reset_alloc_tracking(id_)
+      s.store_ids.reset_alloc_tracking(id_)
       s.rename_table.snapshot(id_)
       return id_
 
@@ -178,6 +198,7 @@ class DataFlowManagerFL(FLModel):
     def restore(source_id):
       s.snapshot_allocator.revert_allocs(source_id)
       s.free_regs.revert_allocs(source_id)
+      s.store_ids.revert_allocs(source_id)
       s.rename_table.restore(source_id)
 
     @s.model_method
@@ -188,4 +209,5 @@ class DataFlowManagerFL(FLModel):
       for i in range(npregs - 1):
         arch_used_pregs_packed[i] = arch_used_pregs_dump[i]
       s.free_regs.set(~arch_used_pregs_packed)
+      s.store_ids.set(~Bits(nstore_queue, 0).uint())
       s.rename_table.set(s.areg_file.dump().out)

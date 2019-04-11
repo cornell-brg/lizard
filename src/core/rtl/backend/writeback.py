@@ -30,6 +30,8 @@ class WritebackStage(Model):
         ),)
 
     s.connect(s.process_accepted, 1)
+    s.is_store_DEBUG = Wire(1)
+    s.connect(s.is_store_DEBUG, s.process_in_.hdr_is_store)
 
     @s.combinational
     def compute():

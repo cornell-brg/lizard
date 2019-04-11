@@ -49,6 +49,7 @@ class DecodeStage(Model):
 
           s.process_out.serialize.v = s.decoder.decode_serialize
           s.process_out.speculative.v = s.decoder.decode_speculative
+          s.process_out.store.v = s.decoder.decode_store
           s.process_out.rs1_val.v = s.decoder.decode_rs1_val
           s.process_out.rs1.v = s.process_in_.inst_rs1
           s.process_out.rs2_val.v = s.decoder.decode_rs2_val

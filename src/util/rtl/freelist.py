@@ -18,13 +18,23 @@ class FreeListInterface(Interface):
     # Define the ordering
     # Handle the free-alloc bypass, and the release-alloc bypass
     # Require set to be last
-    ordering_chains = [
-        s.bypass_chain('free', 'alloc', free_alloc_bypass),
-        s.bypass_chain('release', 'alloc', release_alloc_bypass),
-    ] + s.successor('set', ['alloc', 'free', 'release'])
+    ordering_chains = s.predecessor(
+        'get_state', ['alloc', 'free', 'release', 'set']) + [
+            s.bypass_chain('free', 'alloc', free_alloc_bypass),
+            s.bypass_chain('release', 'alloc', release_alloc_bypass),
+        ] + s.successor('set', ['alloc', 'free', 'release'])
 
     super(FreeListInterface, s).__init__(
         [
+            MethodSpec(
+                'get_state',
+                args=None,
+                rets={
+                    'state': s.Vector,
+                },
+                call=False,
+                rdy=False,
+            ),
             MethodSpec(
                 'free',
                 args={
@@ -250,6 +260,8 @@ class FreeList(Model):
           s.free_vector[i].n = free
         else:
           s.free_vector[i].n = s.set_mux.mux_out[i]
+
+    s.connect(s.get_state_state, s.free_vector)
 
   def line_trace(s):
     return "{}".format(s.free_vector.bin())

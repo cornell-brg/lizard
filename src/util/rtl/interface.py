@@ -283,6 +283,11 @@ class Interface(object):
       return [action2, action1]
 
   @staticmethod
+  def predecessor(first, latters):
+    """Generates a list of ordering chains placing first before latters."""
+    return [[first, latter] for latter in latters]
+
+  @staticmethod
   def successor(last, priors):
     """Generates a list of ordering chains placing last after priors."""
 

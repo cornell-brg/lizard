@@ -31,6 +31,10 @@ class FreeListFL(FLModel):
     s.state(bits=bits_reset)
 
     @s.model_method
+    def get_state():
+      return int(s.bits)
+
+    @s.model_method
     def free(index):
       # PYMTL_BROKEN
       s.bits[int(index)] = 1
