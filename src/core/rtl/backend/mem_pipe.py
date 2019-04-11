@@ -203,8 +203,6 @@ class MemResponseStage(Model):
     def set_process_out():
       s.process_out.v = 0
       s.process_out.hdr.v = s.process_in_.hdr
-      if s.process_in_.mem_msg_func == MemFunc.MEM_FUNC_STORE:
-        s.process_out.hdr_is_store.v = 1
       s.process_out.result.v = s.result
       s.process_out.rd.v = s.process_in_.rd
       s.process_out.rd_val.v = s.process_in_.rd_val
