@@ -51,6 +51,11 @@ class MulRetimedPipelined(Model):
 
     s.value_ = Wire(2 * m)
 
+    # All the inputs get converted to unsigned
+    s.src1_usign_ = Wire(Bits(m))
+    s.src2_usign_ = Wire(Bits(m))
+    s.sign_in_ = Wire(1)
+
     # Execute call
     s.connect(s.mult_rdy, s.rdy_[0])
 
@@ -64,13 +69,29 @@ class MulRetimedPipelined(Model):
     # HERE is the actual multiply that will be retimed
     @s.combinational
     def comb_mult():
-      s.value_.v = s.mult_src1 * s.mult_src2
+      s.value_.v = s.src1_usign_ * s.src2_usign_
 
     @s.combinational
-    def set_rdy():
+    def unsign_srcs_in():
+      s.src1_usign_.v = 0
+      s.src2_usign_.v = 0
+      s.sign_in_.v = 0
+      if s.mult_call:
+        s.sign_in_.v = (s.mult_src1[m - 1] ^ s.mult_src2[m - 1]) and s.mult_signed
+        s.src1_usign_.v = (~s.mult_src1 + 1) if (s.mult_src1[m - 1] and
+                                                 s.mult_signed) else s.mult_src1
+        s.src2_usign_.v = (~s.mult_src2 + 1) if (s.mult_src2[m - 1] and
+                                                 s.mult_signed) else s.mult_src2
+
+
+    @s.combinational
+    def set_rdy_last():
       # Incoming call:
       s.rdy_[nstages - 1].v = s.result_call or not s.valids_[nstages - 1].out
-      for i in range(nstages - 1):
+
+    for i in range(nstages - 1):
+      @s.combinational
+      def set_rdy(i=i):
         # A stage is ready to accept if it is invalid or next stage is ready
         s.rdy_[i].v = not s.valids_[i].out or s.rdy_[i + 1]
 
@@ -86,18 +107,20 @@ class MulRetimedPipelined(Model):
         s.exec_[i].v = s.rdy_[i] and s.valids_[i - 1].out
 
     @s.combinational
-    def set_valids():
+    def set_valids_last():
       s.valids_[nstages -
                 1].in_.v = (not s.result_call and
                             s.valids_[nstages - 1].out) or s.exec_[nstages - 1]
-      for i in range(nstages - 1):
+    for i in range(nstages - 1):
+      @s.combinational
+      def set_valids(i=i):
         # Valid if blocked on next stage, or multuted this cycle
         s.valids_[i].in_.v = (not s.rdy_[i + 1] and
                               s.valids_[i].out) or s.exec_[i]
 
     @s.combinational
     def mult():
-      s.vals_[0].in_.v = s.value_[:n]
+      s.vals_[0].in_.v = ~s.value_[:n] + 1 if s.sign_in_ else s.value_[:n]
       for i in range(1, nstages):
         s.vals_[i].in_.v = s.vals_[i - 1].out
 
