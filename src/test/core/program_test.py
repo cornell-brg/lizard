@@ -55,7 +55,7 @@ def test_riscv_rtl_proc(program):
   with open(outname, "rb") as fd:
     mem = elf.elf_reader(fd, True)
     name = program + "-out.vcd"
-    mem_image_test(mem, True, name, max_cycles=50000)
+    mem_image_test(mem, True, name, max_cycles=5000)
 
 
 @pytest.mark.parametrize('program', tests_bin)

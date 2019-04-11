@@ -89,12 +89,13 @@ class ALUStage(Model):
     @s.combinational
     def set_src_res():
       if s.msg_.alu_msg_op32:
-        s.src1_.v = zext(s.src1_32_,
-                         data_len) if s.msg_.alu_msg_unsigned else sext(
-                             s.src1_32_, data_len)
-        s.src2_.v = zext(s.src2_32_,
-                         data_len) if s.msg_.alu_msg_unsigned else sext(
-                             s.src2_32_, data_len)
+        if s.msg_.alu_msg_unsigned or s.msg_.alu_msg_func == AluFunc.ALU_FUNC_SRL:
+          s.src1_.v = zext(s.src1_32_, data_len)
+          s.src2_.v = zext(s.src2_32_, data_len)
+        else:
+          s.src1_.v = sext(s.src1_32_, data_len)
+          s.src2_.v = sext(s.src2_32_, data_len)
+
         # If op32 shift w, need to ignore bit 5
         s.src2_[5].v &= not (s.msg_.alu_msg_func == AluFunc.ALU_FUNC_SLL or
                s.msg_.alu_msg_func == AluFunc.ALU_FUNC_SRL or
