@@ -569,8 +569,7 @@ def elf_reader(file_obj, is_64bit=False):
     # Otherwise create section and append it to our list of sections
 
     else:
-      section = SparseMemoryImage.Section(section_name, shdr.addr, data)
-      mem_image.add_section(section)
+      mem_image.add_section(section_name, shdr.addr, bytearray(data))
 
   # Load symbols. We skip the first symbol since it both "designates the
   # first entry in the table and serves as the undefined symbol index".

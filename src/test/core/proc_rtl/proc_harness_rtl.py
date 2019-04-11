@@ -37,9 +37,7 @@ class ProcTestHarness(Model):
   def line_trace(s):
     return s.dut.line_trace()
 
-
-def asm_test(asm, translate, vcd_file, max_cycles=200000):
-  mem_image = assembler.assemble(asm)
+def mem_image_test(mem_image, translate, vcd_file, max_cycles=200000):
   initial_mem = {}
   mngr2proc_data = deque()
   proc2mngr_data = deque()
@@ -85,3 +83,7 @@ def asm_test(asm, translate, vcd_file, max_cycles=200000):
 
       curr += 1
     dut.cycle()
+
+def asm_test(asm, translate, vcd_file, max_cycles=200000):
+  mem_image = assembler.assemble(asm)
+  mem_image_test(mem_image, translate, vcd_file, max_cycles=max_cycles)
