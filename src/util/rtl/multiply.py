@@ -13,11 +13,17 @@ class MulPipelinedInterface(Interface):
     s.KeepUpper = keep_upper
     super(MulPipelinedInterface, s).__init__([
         MethodSpec(
-            'result',
+            'peek',
             args=None,
             rets={
                 'res': Bits(2 * s.DataLen if keep_upper else s.DataLen),
             },
+            call=False,
+            rdy=True,
+        ),
+        MethodSpec(
+            'take',
+            args=None,
             call=True,
             rdy=True,
         ),
@@ -64,8 +70,9 @@ class MulRetimedPipelined(Model):
     s.connect(s.mult_rdy, s.rdy_[0])
 
     # Result call
-    s.connect(s.result_rdy, s.valids_[nstages - 1].read_data)
-    s.connect(s.result_res, s.vals_[nstages - 1].read_data)
+    s.connect(s.peek_rdy, s.valids_[nstages - 1].read_data)
+    s.connect(s.take_rdy, s.valids_[nstages - 1].read_data)
+    s.connect(s.peek_res, s.vals_[nstages - 1].read_data)
 
     for i in range(nstages):
       s.connect(s.vals_[i].write_call, s.exec_[i])
@@ -92,7 +99,7 @@ class MulRetimedPipelined(Model):
     def set_rdy_last():
       # Incoming call:
       s.rdy_[nstages -
-             1].v = s.result_call or not s.valids_[nstages - 1].read_data
+             1].v = s.take_call or not s.valids_[nstages - 1].read_data
 
     for i in range(nstages - 1):
 
@@ -115,7 +122,7 @@ class MulRetimedPipelined(Model):
     @s.combinational
     def set_valids_last():
       s.valids_[nstages - 1].write_data.v = (
-          not s.result_call and
+          not s.take_call and
           s.valids_[nstages - 1].read_data) or s.exec_[nstages - 1]
 
     for i in range(nstages - 1):
@@ -205,8 +212,9 @@ class MulPipelined(Model):
     # Execute call rdy
     s.connect(s.mult_rdy, s.rdy_[0])
     # Result call rdy
-    s.connect(s.result_rdy, s.valids_[last].read_data)
-    s.connect(s.result_res, s.vals_[last].read_data)
+    s.connect(s.peek_rdy, s.valids_[last].read_data)
+    s.connect(s.take_rdy, s.valids_[last].read_data)
+    s.connect(s.peek_res, s.vals_[last].read_data)
 
     for i in range(nstages):
       s.connect(s.vals_[i].write_call, s.exec_[i])
@@ -241,7 +249,7 @@ class MulPipelined(Model):
 
     @s.combinational
     def set_rdy_last():
-      s.rdy_[last].v = s.result_call or not s.valids_[last].read_data
+      s.rdy_[last].v = s.take_call or not s.valids_[last].read_data
 
     for i in range(nstages - 1):
 
@@ -264,7 +272,7 @@ class MulPipelined(Model):
     @s.combinational
     def set_valids_last():
       s.valids_[last].write_data.v = (
-          not s.result_call and s.valids_[last].read_data) or s.exec_[last]
+          not s.take_call and s.valids_[last].read_data) or s.exec_[last]
 
     for i in range(nstages - 1):
 
