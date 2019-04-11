@@ -5,7 +5,10 @@ from mem.rtl.memory_bus import MemMsgType
 from core.rtl.messages import MemFunc, DispatchMsg, ExecuteMsg
 from util.rtl.lookup_table import LookupTableInterface, LookupTable
 from util.rtl.pipeline_stage import gen_stage, StageInterface, DropControllerInterface, PipelineStageInterface
+from util.rtl.killable_pipeline_wrapper import InputPipelineAdapterInterface, OutputPipelineAdapterInterface, PipelineWrapper
 from util import line_block
+from core.rtl.controlflow import KillType
+from core.rtl.kill_unit import KillDropController, KillDropControllerInterface
 from config.general import *
 
 
@@ -310,3 +313,65 @@ class MemJoint(Model):
     return line_block.join(
         [s.mem_request.line_trace(),
          s.mem_response.line_trace()])
+
+
+def BranchMaskInputPipelineAdapterInterface(In):
+  return InputPipelineAdapterInterface(In, In, Bits(In.hdr_branch_mask.nbits))
+
+
+class BranchMaskInputPipelineAdapter(Model):
+
+  def __init__(s, interface):
+    UseInterface(s, interface)
+
+    s.connect(s.split_internal_in, s.split_in_)
+    s.connect(s.split_kill_data, s.split_in_.hdr_branch_mask)
+
+
+def BranchMaskOutputPipelineAdapterInterface(Out):
+  return OutputPipelineAdapterInterface(Out, Bits(Out.hdr_branch_mask.nbits),
+                                        Out)
+
+
+class BranchMaskOutputPipelineAdapter(Model):
+
+  def __init__(s, interface):
+    UseInterface(s, interface)
+
+    s.out_temp = Wire(s.interface.Out)
+    # PYMTL_BROKEN
+    # Use temporary wire to prevent pymtl bug
+    @s.combinational
+    def compute_out():
+      s.out_temp.v = s.fuse_internal_out
+      s.out_temp.hdr_branch_mask.v = s.fuse_kill_data
+
+    s.connect(s.fuse_out, s.out_temp)
+
+
+def MemInputPipelineAdapter():
+  return BranchMaskInputPipelineAdapter(
+      BranchMaskInputPipelineAdapterInterface(DispatchMsg()))
+
+
+def MemOutputPipelineAdapter():
+  return BranchMaskOutputPipelineAdapter(
+      BranchMaskOutputPipelineAdapterInterface(ExecuteMsg()))
+
+
+def MemDropController():
+  return KillDropController(KillDropControllerInterface(MAX_SPEC_DEPTH))
+
+
+def MemInterface():
+  return PipelineStageInterface(ExecuteMsg(), KillType(MAX_SPEC_DEPTH))
+
+
+def Mem(interface):
+
+  def internal_pipeline():
+    return MemJoint(MemJointInterface())
+
+  return PipelineWrapper(interface, 2, MemInputPipelineAdapter,
+                         internal_pipeline, MemOutputPipelineAdapter,
+                         MemDropController)

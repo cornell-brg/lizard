@@ -3,7 +3,7 @@ from util.rtl.interface import Interface, UseInterface
 from util.rtl.method import MethodSpec
 from util.rtl.types import Array
 from util.rtl.register import Register, RegisterInterface
-from util.rtl.pipeline_stage import PipelineStageInterface, ValidValueManager, ValidValueManagerInterface
+from util.rtl.pipeline_stage import PipelineStageInterface, ValidValueManager, ValidValueManagerInterface, gen_valid_value_manager
 
 KillablePipelineWrapperInterface = PipelineStageInterface
 
@@ -62,16 +62,13 @@ class PipelineWrapper(Model):
 
     s.input_adapter = InputPipelineAdapter()
     s.internal_pipeline = InternalPipeline()
+    s.wrap(s.internal_pipeline, ['in_peek', 'in_take'])
     s.output_adapter = OutputPipelineAdapter()
-    s.drop_controllers = [DropController() for _ in range(nstages)]
     s.KillData = s.input_adapter.interface.KillData
     s.KillArgType = s.interface.KillArgType
 
-    s.vvms = [
-        ValidValueManager(
-            ValueValueManagerInterface(s.KillData, s.KillData, s.KillArgType))
-        for _ in range(nstages)
-    ]
+    s.ValidValueManager = gen_valid_value_manager(DropController)
+    s.vvms = [s.ValidValueManager() for _ in range(nstages)]
     s.present = [
         Register(RegisterInterface(Bits(1), enable=True), reset_value=0)
         for _ in range(nstages)
@@ -82,7 +79,7 @@ class PipelineWrapper(Model):
     # Name the methods in_peek, in_take
     s.require(*[
         m.variant(name='in_{}'.format(m.name)) for m in PipelineStageInterface(
-            s.input_adapter.In, None).methods.values()
+            s.input_adapter.interface.In, None).methods.values()
     ])
 
     s.connect(s.internal_pipeline.in_peek_rdy, s.in_peek_rdy)
@@ -121,7 +118,7 @@ class PipelineWrapper(Model):
     for i in range(nstages):
       s.connect(s.vvms[i].add_call, s.advance[i])
       s.connect(s.present[i].write_call, s.advance[i])
-      s.connect(s.vvms[i].kill_notify, s.kill_notify)
+      s.connect_m(s.vvms[i].kill_notify, s.kill_notify)
 
     s.connect(s.output_adapter.fuse_internal_out, s.internal_pipeline.peek_msg)
     s.connect(s.output_adapter.fuse_kill_data, s.vvms[-1].peek_msg)
@@ -141,3 +138,6 @@ class PipelineWrapper(Model):
       else:
         s.peek_rdy.v = 0
         s.internal_pipeline.take_call.v = 0
+
+  def line_trace(s):
+    return s.internal_pipeline.line_trace()

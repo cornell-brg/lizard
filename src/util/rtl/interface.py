@@ -145,10 +145,14 @@ def _connect_ports(model, source_port, target_port):
     model.connect(source_port, target_port)
 
 
-def _wrap(model, wrapped):
-  model.require(*wrapped._requirements.values())
+def _wrap(model, wrapped, ignore):
+  if ignore is None:
+    ignore = []
   for method in wrapped._requirements.values():
-    model.connect_m(getattr(wrapped, method.name), getattr(model, method.name))
+    if method.name not in ignore:
+      model.require(method)
+      model.connect_m(
+          getattr(wrapped, method.name), getattr(model, method.name))
 
 
 class Interface(object):
@@ -345,8 +349,8 @@ class Interface(object):
     _safe_setattr(target, 'require', require)
     _safe_setattr(target, '_requirements', {})
 
-    def wrap(wrapped):
-      _wrap(target, wrapped)
+    def wrap(wrapped, ignore=None):
+      _wrap(target, wrapped, ignore)
 
     _safe_setattr(target, 'wrap', wrap)
 
