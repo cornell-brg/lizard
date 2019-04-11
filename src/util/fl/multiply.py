@@ -10,7 +10,7 @@ class MulFL(FLModel):
   @HardwareModel.validate
   def __init__(s, mul_interface, nstages):
     super(MulFL, s).__init__(mul_interface)
-    s.reset()
+    s.state(results=[])
     s.keep_uppser = mul_interface.KeepUpper
 
     @s.model_method
@@ -25,21 +25,28 @@ class MulFL(FLModel):
     def mult():
       return len(s.results) <= nstages
 
+    @s.ready_method
+    def peek():
+      return len(s.results) > 0
+
     @s.model_method
-    def result():
+    def peek():
       ret = s.results[0]
-      del s.results[0]
+      print("peek called %d" % ret)
       if s.keep_uppser:
         return ret
       else:
         return ret[:64]
 
     @s.ready_method
-    def result():
+    def take():
       return len(s.results) > 0
 
-  def reset(s):
-    s.results = []
+    @s.model_method
+    def take():
+      print("Take called")
+      del s.results[0]
+
 
   def to_signed(s, x, nbits):
     return x - (1 << nbits) if x >= (1 << nbits) else x

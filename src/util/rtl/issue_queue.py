@@ -214,7 +214,7 @@ class IssueQueueInterface(Interface):
 
 class CompactingIssueQueue(Model):
 
-  def __init__(s, interface, make_kill, num_slots=4):
+  def __init__(s, interface, make_kill, num_slots=4, in_order=False):
     """ This model implements a generic issue queue
 
       create_slot: A function that instatiates a model that conforms
@@ -254,9 +254,15 @@ class CompactingIssueQueue(Model):
     # Mux all the outputs from the slots
     s.mux_ = Mux(s.interface.SlotType, num_slots)
 
+    if in_order:
+      s.valids_packer_ = Packer(Bits(1), num_slots)
+      s.first_valid_ = PriorityDecoder(num_slots)
+      s.connect(s.first_valid_.decode_signal, s.valids_packer_.pack_packed)
+      for i in range(num_slots):
+        # Connect slot valid signal to packer
+        s.connect(s.valids_packer_.pack_in_[i], s.slots_[i].valid_ret)
+
     # Connect packer's output to decoder
-    s.connect(s.slot_select_.decode_signal, s.pdecode_packer_.pack_packed)
-    # Connect packed ready signals into slot decoder
     s.connect(s.slot_select_.decode_signal, s.pdecode_packer_.pack_packed)
     # Connect slot select mux from decoder's output
     s.connect(s.mux_.mux_select, s.slot_select_.decode_decoded)
@@ -336,14 +342,26 @@ class CompactingIssueQueue(Model):
       s.add_rdy.v = not s.slots_[num_slots - 1].valid_ret or s.slots_[
           num_slots - 1].output_call
 
-    @s.combinational
-    def handle_remove():
-      s.remove_rdy.v = s.slot_select_.decode_valid
-      s.remove_value.v = s.mux_.mux_out
-      for i in range(num_slots):
-        s.will_issue_[i].v = (
-            s.slot_select_.decode_valid and s.remove_call and
-            s.slot_issue_.encode_onehot[i])
+    if in_order:
+      @s.combinational
+      def handle_remove():
+        # Must be valid and first entry
+        s.remove_rdy.v = s.slot_select_.decode_valid and (s.slot_select_.decode_decoded == s.first_valid_.decode_decoded)
+        s.remove_value.v = s.mux_.mux_out
+        for i in range(num_slots):
+          s.will_issue_[i].v = (
+              s.slot_select_.decode_valid and s.remove_call and
+              s.slot_issue_.encode_onehot[i] and
+              (s.slot_select_.decode_decoded == s.first_valid_.decode_decoded))
+    else:
+      @s.combinational
+      def handle_remove():
+        s.remove_rdy.v = s.slot_select_.decode_valid
+        s.remove_value.v = s.mux_.mux_out
+        for i in range(num_slots):
+          s.will_issue_[i].v = (
+              s.slot_select_.decode_valid and s.remove_call and
+              s.slot_issue_.encode_onehot[i])
 
   def line_trace(s):
     return ":".join(["{}".format(x.valid_out) for x in s.slots_])
