@@ -1,6 +1,6 @@
 from pymtl import *
 from util.rtl.multiply import MulPipelined, MulPipelinedInterface, MulRetimedPipelined
-from util.fl.multiply import MulFL
+from util.cl.multiply import MulCL
 from test.config import test_verilog
 from util.test_utils import run_model_translation, run_test_vector_sim
 from model.test_model import run_test_state_machine
@@ -124,21 +124,13 @@ def test_fail3():
 
 
 def test_state_machine():
-  run_test_state_machine(
-      MulPipelined,
-      MulFL, (MulPipelinedInterface(64), 4),
-      release_cycle_accuracy=True)
+  run_test_state_machine(MulPipelined, MulCL, (MulPipelinedInterface(64), 4))
 
 
 def test_state_machine_single_cycle():
-  run_test_state_machine(
-      MulPipelined,
-      MulFL, (MulPipelinedInterface(64), 1),
-      release_cycle_accuracy=True)
+  run_test_state_machine(MulPipelined, MulCL, (MulPipelinedInterface(64), 1))
 
 
 def test_state_machine2():
-  run_test_state_machine(
-      MulRetimedPipelined,
-      MulFL, (MulPipelinedInterface(64), 4),
-      release_cycle_accuracy=True)
+  run_test_state_machine(MulRetimedPipelined, MulCL,
+                         (MulPipelinedInterface(64), 4))
