@@ -37,25 +37,27 @@ def test(proc_key, program, opt_level):
 
 @pytest.mark.parametrize('opt_level', opt_levels)
 @pytest.mark.parametrize('program', tests)
-def test_rtl_proc(program, opt_level):
+@pytest.mark.parametrize('translate', ['verilate', 'sim'])
+def test_rtl_proc(program, opt_level, translate):
   # Build the program
   print("Building: %s" % program)
-  outname = collector.build(program, opt_level)
+  outname =  translate + '-' + collector.build(program, opt_level)
   # Run it
   with open(outname, "rb") as fd:
     mem = elf.elf_reader(fd, True)
     name = program + "-out.vcd"
-    mem_image_test(mem, True, name, max_cycles=200000)
+    mem_image_test(mem, translate =='verilate', name, max_cycles=200000)
 
 
 @pytest.mark.parametrize('program', tests_bin)
-def test_riscv_rtl_proc(program):
-  outname = dir_bin + program
+@pytest.mark.parametrize('translate', ['verilate', 'sim'])
+def test_riscv_rtl_proc(program, translate):
+  outname = translate + '-' + dir_bin + program
   # Run it
   with open(outname, "rb") as fd:
     mem = elf.elf_reader(fd, True)
-    name = program + "-out.vcd"
-    mem_image_test(mem, True, name, max_cycles=5000)
+    name =program + "-out.vcd"
+    mem_image_test(mem, translate =='verilate', name, max_cycles=5000)
 
 
 @pytest.mark.parametrize('program', tests_bin)
