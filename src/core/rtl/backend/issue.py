@@ -76,7 +76,7 @@ class Issue(Model):
         IssueQueueInterface(SlotType(), s.interface.KillArgType),
         make_kill,
         num_slots,
-        in_order=False)
+        in_order=True)
     # Connect the notify signal
     s.updated_ = PriorityDecoder(s.NumPregs)
     s.connect(s.updated_.decode_signal, s.get_updated_mask)
