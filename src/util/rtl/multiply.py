@@ -28,6 +28,13 @@ class MulPipelinedInterface(Interface):
             rdy=True,
         ),
         MethodSpec(
+            'cl_helper_shift',
+            args=None,
+            rets=None,
+            call=False,
+            rdy=False,
+        ),
+        MethodSpec(
             'mult',
             args={
                 'src1': Bits(s.DataLen),

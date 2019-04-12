@@ -269,7 +269,8 @@ class ControlFlowManager(Model):
       s.reg_kill.write_data.v = 0
       s.reg_clear.write_data.v = 0
       if s.update_kills_:
-        s.reg_force.write_data.v = (s.branch_redirect_ and s.redirect_force) or (s.commit_redirect_)
+        s.reg_force.write_data.v = (s.branch_redirect_ and
+                                    s.redirect_force) or (s.commit_redirect_)
         s.reg_kill.write_data.v = s.kill_mask_
         s.reg_clear.write_data.v = s.clear_mask_
 
