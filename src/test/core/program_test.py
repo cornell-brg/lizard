@@ -45,8 +45,8 @@ def test_rtl_proc(program, opt_level, translate):
   # Run it
   with open(outname, "rb") as fd:
     mem = elf.elf_reader(fd, True)
-    name =  translate + '-' + program + "-out.vcd"
-    mem_image_test(mem, translate =='verilate', name, max_cycles=200000)
+    name = translate + '-' + program + "-out.vcd"
+    mem_image_test(mem, translate == 'verilate', name, max_cycles=200000)
 
 
 @pytest.mark.parametrize('program', tests_bin)
@@ -56,8 +56,8 @@ def test_riscv_rtl_proc(program, translate):
   # Run it
   with open(outname, "rb") as fd:
     mem = elf.elf_reader(fd, True)
-    name =  translate + '-' + program + "-out.vcd"
-    mem_image_test(mem, translate =='verilate', name, max_cycles=5000)
+    name = translate + '-' + program + "-out.vcd"
+    mem_image_test(mem, translate == 'verilate', name, max_cycles=5000)
 
 
 @pytest.mark.parametrize('program', tests_bin)
