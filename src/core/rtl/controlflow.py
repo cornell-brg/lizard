@@ -94,7 +94,8 @@ class ControlFlowManagerInterface(Interface):
             MethodSpec(
                 'commit',
                 args={
-                    'status': PipelineMsgStatus.bits,
+                    'redirect_target': Bits(dlen),
+                    'redirect': Bits(1),
                 },
                 rets={},
                 call=True,
@@ -108,8 +109,8 @@ class ControlFlowManagerInterface(Interface):
 
 
 class ControlFlowManager(Model):
-  # TODO trap_vector should not be hard coded, but instead come from mtvec
-  def __init__(s, cflow_interface, reset_vector, trap_vector=0x00):
+
+  def __init__(s, cflow_interface, reset_vector):
     UseInterface(s, cflow_interface)
     xlen = s.interface.DataLen
     seqidx_nbits = s.interface.SeqIdxNbits
@@ -353,9 +354,9 @@ class ControlFlowManager(Model):
       # If we are committing there are a couple cases
       if s.commit_call:
         # Jump to exception handler
-        if s.commit_status != PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID:
+        if s.commit_redirect:
           # TODO jump to proper handler
-          s.commit_redirect_target_.v = trap_vector
+          s.commit_redirect_target_.v = s.commit_redirect_target
           s.commit_redirect_.v = 1
           s.dflow_rollback_call.v = 1
 

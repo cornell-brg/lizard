@@ -406,7 +406,8 @@ CsrRegisters = bit_enum(
 )
 
 # mtvec MODE field privileged spec 3.1.12
-MtvecMode = bit_enum('MtvecMode', bits=2, direct=0, vectored=1)
+MtvecMode = bit_enum(
+    'MtvecMode', bits=2, MTVEC_MODE_DIRECT=0, MTVEC_MODE_VECTORED=1)
 
 InterruptCode = bit_enum(
     'InterruptCode',

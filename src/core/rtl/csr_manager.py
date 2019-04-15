@@ -144,7 +144,7 @@ class CSRManager(Model):
           s.temp_op_success.v = s.csr_file.read_valid[num_read_ports]
           s.temp_read_key.v = s.op_csr
           s.temp_op_old.v = s.csr_file.read_value[num_read_ports]
-          if s.op_op == CsrFuc.CSR_FUNC_READ_WRITE:
+          if s.op_op == CsrFunc.CSR_FUNC_READ_WRITE:
             s.temp_write_key.v = s.op_csr
             s.temp_write_value.v = s.op_value
             s.temp_write_call.v = 1
