@@ -130,7 +130,7 @@ class Proc(Model):
     s.connect_m(s.redirect_notifier.check_redirect, s.cflow.check_redirect)
 
     # CSR
-    s.csr_interface = CSRManagerInterface()
+    s.csr_interface = CSRManagerInterface(3, 1)
     s.csr = CSRManager(s.csr_interface)
     s.connect_m(s.db_recv, s.csr.debug_recv)
     s.connect_m(s.db_send, s.csr.debug_send)
