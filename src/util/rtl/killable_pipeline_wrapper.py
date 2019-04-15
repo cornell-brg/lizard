@@ -96,7 +96,7 @@ class PipelineWrapper(Model):
 
       @s.combinational
       def handle_advance_i(i=i, j=i + 1):
-        s.advance[i].v = not s.present[j] or s.advance[j]
+        s.advance[i].v = not s.present[j].read_data or s.advance[j]
 
     @s.combinational
     def handle_advance_last(i=nstages - 1):

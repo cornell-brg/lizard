@@ -38,3 +38,5 @@ BIT32_MASK = Bits(32, 0xFFFFFFFF)
 
 # While mcause it a 64-bit register, it is only defined up to 16
 MCAUSE_NBITS = 4
+
+MUL_NSTAGES = 4
