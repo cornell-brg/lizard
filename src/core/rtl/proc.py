@@ -130,7 +130,7 @@ class Proc(Model):
     s.connect_m(s.redirect_notifier.check_redirect, s.cflow.check_redirect)
 
     # CSR
-    s.csr_interface = CSRManagerInterface(3, 1)
+    s.csr_interface = CSRManagerInterface(1, 3)
     s.csr = CSRManager(s.csr_interface)
     s.connect_m(s.db_recv, s.csr.debug_recv)
     s.connect_m(s.db_send, s.csr.debug_send)
@@ -250,6 +250,8 @@ class Proc(Model):
     s.connect_m(s.cflow.commit, s.commit.cflow_commit)
     s.connect_m(s.cflow.get_head, s.commit.cflow_get_head)
     s.connect_m(s.commit.send_store, s.mflow.send_store)
+    s.connect_m(s.commit.read_csr, s.csr.read)
+    s.connect_m(s.commit.write_csr, s.csr.write)
 
   def line_trace(s):
     return line_block.join([

@@ -6,6 +6,7 @@ from util.rtl.register import Register, RegisterInterface
 from util.rtl.reorder_buffer import ReorderBuffer, ReorderBufferInterface
 from config.general import *
 from util.rtl.pipeline_stage import PipelineStageInterface
+from msg.codes import CsrRegisters, MtvecMode
 from core.rtl.controlflow import KillType
 from core.rtl.kill_unit import KillDropController, KillDropControllerInterface
 
@@ -67,7 +68,8 @@ class Commit(Model):
         MethodSpec(
             'cflow_commit',
             args={
-                'status': PipelineMsgStatus.bits,
+                'redirect_target': Bits(XLEN),
+                'redirect': Bits(1),
             },
             rets={},
             call=True,
@@ -82,6 +84,32 @@ class Commit(Model):
             rets=None,
             call=True,
             rdy=True,
+        ),
+        MethodSpec(
+            'read_csr',
+            args={
+                'csr': Bits(CSR_SPEC_NBITS),
+            },
+            rets={
+                'value': Bits(XLEN),
+                'valid': Bits(1),
+            },
+            call=False,
+            rdy=False,
+            count=1,
+        ),
+        MethodSpec(
+            'write_csr',
+            args={
+                'csr': Bits(CSR_SPEC_NBITS),
+                'value': Bits(XLEN),
+            },
+            rets={
+                'valid': Bits(1),
+            },
+            call=True,
+            rdy=False,
+            count=3,
         ),
     )
 
@@ -118,13 +146,12 @@ class Commit(Model):
     s.connect(s.rob.free_idx, s.cflow_get_head_seq)
     s.connect(s.rob.free_call, s.rob_remove)
 
-    # Connect up cflow commit
-    s.connect(s.cflow_commit_call, s.rob_remove)
-    s.connect(s.cflow_commit_status, s.rob.free_value.hdr_status)
-
     @s.combinational
     def set_rob_remove():
       s.rob_remove.v = s.cflow_get_head_rdy and s.rob.check_done_is_rdy and not s.store_pending_after_send
+
+    s.is_exception = Wire(1)
+    s.exception_target = Wire(XLEN)
 
     @s.combinational
     def handle_commit():
@@ -133,19 +160,72 @@ class Commit(Model):
       s.dataflow_free_store_id_call.v = 0
       s.dataflow_free_store_id_id_.v = 0
 
+      s.cflow_commit_call.v = 0
+      s.cflow_commit_redirect.v = 0
+      s.cflow_commit_redirect_target.v = 0
+
+      s.is_exception.v = 0
+
       # The head is ready to commit
       if s.rob_remove:
         if s.rob.free_value.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID:
           if s.rob.free_value.rd_val:
+            s.cflow_commit_call.v = 1
             s.dataflow_commit_call.v = 1
             s.dataflow_commit_tag.v = s.rob.free_value.rd
           s.dataflow_free_store_id_call.v = s.rob.free_value.hdr_is_store
           s.dataflow_free_store_id_id_.v = s.rob.free_value.hdr_store_id
         else:
-          # TODO handle exception
-          # PYMTL_BROKEN pass doesn't work
-          # pass
-          s.dataflow_commit_tag.v = 0
+          s.cflow_commit_call.v = 1
+          s.cflow_commit_redirect.v = 1
+          s.cflow_commit_redirect_target.v = s.exception_target
+          s.is_exception.v = 1
+
+    s.connect(s.write_csr_csr[0], int(CsrRegisters.mcause))
+    s.zext_mcause = Wire(XLEN)
+
+    @s.combinational
+    def zext_mcause():
+      s.zext_mcause.v = zext(s.rob.free_value.exception_info_mcause, XLEN)
+
+    s.connect(s.write_csr_value[0], s.zext_mcause)
+
+    s.connect(s.write_csr_call[0], s.is_exception)
+    s.connect(s.write_csr_csr[1], int(CsrRegisters.mtval))
+    s.connect(s.write_csr_value[1], s.rob.free_value.exception_info_mtval)
+    s.connect(s.write_csr_call[1], s.is_exception)
+    s.connect(s.write_csr_csr[2], int(CsrRegisters.mepc))
+    # TODO: care needs to be taken here, as mepc can never
+    # hold a PC value that would cause an instruction-address-misaligned
+    # exception. This is done by forcing the 2 low bits to 0
+    s.connect(s.write_csr_value[2], s.rob.free_value.hdr_pc)
+    s.connect(s.write_csr_call[2], s.is_exception)
+
+    s.mtvec = Wire(XLEN)
+    s.connect(s.read_csr_csr[0], int(CsrRegisters.mtvec))
+    s.connect(s.mtvec, s.read_csr_value[0])
+    s.mtvec_base = Wire(XLEN)
+    s.mtvec_mode = Wire(2)
+
+    @s.combinational
+    def decode_mtvec():
+      s.mtvec_mode.v = s.mtvec[0:2]
+      s.mtvec_base[2:XLEN].v = s.mtvec[2:XLEN]
+      s.mtvec_base[0:2].v = 0
+
+    @s.combinational
+    def compute_exception_target():
+      if s.mtvec_mode == MtvecMode.MTVEC_MODE_DIRECT:
+        s.exception_target.v = s.mtvec_base
+      elif s.mtvec_mode == MtvecMode.MTVEC_MODE_VECTORED:
+        s.exception_target.v = s.mtvec_base + (s.zext_mcause << 2)
+      else:
+        # this is a bad state. mtvec is curcial to handling
+        # exceptions, and there is no way to handle and exception
+        # related to mtvec.
+        # In a real processor, this would probably just halt or reset
+        # the entire processor
+        s.exception_target.v = s.mtvec_base
 
     @s.combinational
     def handle_committing_store():
