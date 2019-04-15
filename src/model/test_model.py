@@ -164,10 +164,26 @@ class TestStateMachine(GenericStateMachine):
 
     method_line_trace = []
     # go though all rules for this step
+    rule_to_fire = {}
     for ruledata in step:
       rule, data = ruledata
       data = dict(data)
+      rule_to_fire[rule.method_name] = (rule, data)
 
+    for name, (data, rule, _) in self.__rtl_pending.iteritems():
+      rule_to_fire[rule.method_name] = (rule, data)
+
+    rule_to_fire = rule_to_fire.values()
+
+    rule_to_fire.sort(
+      key=lambda ruledata: (
+        self.interface.methods.keys().index( ruledata[0].method_name ),
+        ruledata[0].index,
+        ruledata[0].method_name,
+      )
+    )
+
+    for (rule, data) in rule_to_fire:
       # For dependency reason we do allow rules invalid in the first place
       # to be added to step.
       # See MethodBasedRuleStrategy for more
@@ -188,12 +204,14 @@ class TestStateMachine(GenericStateMachine):
       if self.release_cycle_accuracy:
         if self.__rtl_pending.has_key(method_name):
           assert not self.__fl_pending.has_key(method_name)
-          data, r_result = self.__rtl_pending[method_name]
+          data, rule, r_result = self.__rtl_pending[method_name]
+          index = rule.index
           s_result = self._call_func(self.sim, method_name, data, index)
           del self.__rtl_pending[method_name]
         elif self.__fl_pending.has_key(method_name):
           assert not self.__rtl_pending.has_key(method_name)
-          data, s_result = self.__fl_pending[method_name]
+          data, rule, s_result = self.__fl_pending[method_name]
+          index = rule.index
           r_result = self._call_func(self.reference, method_name, data, index)
           del self.__fl_pending[method_name]
         else:
@@ -202,12 +220,12 @@ class TestStateMachine(GenericStateMachine):
 
         if isinstance(s_result, NotReady):
           if not isinstance(r_result, NotReady):
-            self.__rtl_pending[method_name] = (data, r_result)
+            self.__rtl_pending[method_name] = (data, rule, r_result)
             continue
           continue
 
         if isinstance(r_result, NotReady):
-          self.__fl_pending[method_name] = (data, s_result)
+          self.__fl_pending[method_name] = (data, rule, s_result)
           continue
 
       else:
@@ -216,9 +234,6 @@ class TestStateMachine(GenericStateMachine):
 
         if isinstance(s_result, NotReady):
           if not isinstance(r_result, NotReady):
-            if self.release_cycle_accuracy:
-              self.__rtl_pending_data[method_name] = data
-              continue
             raise RunMethodTestError(
                 "Reference model is rdy but RTL model is not: {}".format(
                     method_name))
