@@ -22,6 +22,7 @@ class DataFlowManagerFL(FLModel):
     nstore_queue = s.interface.NumStoreQueue
     num_src_ports = s.interface.NumSrcPorts
     num_dst_ports = s.interface.NumDstPorts
+    num_is_ready_ports = s.interface.NumIsReadyPorts
 
     s.state(
         snapshot_allocator=SnapshottingFreeListFL(nsnapshots, 1, 1, nsnapshots),
@@ -73,7 +74,7 @@ class DataFlowManagerFL(FLModel):
         ready_table=RegisterFileFL(
             Bits(1),
             npregs,
-            num_src_ports,
+            num_is_ready_ports,
             num_dst_ports * 2,
             False,
             False,

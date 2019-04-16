@@ -104,7 +104,7 @@ class Proc(Model):
 
     # Dataflow
     s.dflow_interface = DataFlowManagerInterface(
-        XLEN, AREG_COUNT, PREG_COUNT, MAX_SPEC_DEPTH, STORE_QUEUE_SIZE, 2, 1)
+        XLEN, AREG_COUNT, PREG_COUNT, MAX_SPEC_DEPTH, STORE_QUEUE_SIZE, 2, 1, 4)
     s.dflow = DataFlowManager(s.dflow_interface)
 
     # Control flow
