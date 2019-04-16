@@ -21,7 +21,7 @@ def IssueInterface():
 
 class Issue(Model):
 
-  def __init__(s, interface, num_pregs, num_slots=4):
+  def __init__(s, interface, num_pregs, num_slots, in_order):
     UseInterface(s, interface)
     s.NumPregs = num_pregs
     s.require(
@@ -76,7 +76,7 @@ class Issue(Model):
         IssueQueueInterface(SlotType(), s.interface.KillArgType),
         make_kill,
         num_slots,
-        in_order=True)
+        in_order=in_order)
     # Connect the notify signal
     s.updated_ = PriorityDecoder(s.NumPregs)
     s.connect(s.updated_.decode_signal, s.get_updated_mask)

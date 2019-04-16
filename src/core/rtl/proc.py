@@ -160,10 +160,11 @@ class Proc(Model):
     s.connect_m(s.dflow.get_src[0], s.rename.get_src[0])
     s.connect_m(s.dflow.get_src[1], s.rename.get_src[1])
     s.connect_m(s.dflow.get_dst[0], s.rename.get_dst)
+    s.connect_m(s.mflow.register_store, s.rename.mflow_register_store)
 
     # Issue
     s.issue_interface = IssueInterface()
-    s.issue = Issue(s.issue_interface, PREG_COUNT, num_slots=NUM_ISSUE_SLOTS)
+    s.issue = Issue(s.issue_interface, PREG_COUNT, NUM_ISSUE_SLOTS, True)
     s.connect_m(s.issue.kill_notify, s.kill_notifier.kill_notify)
     s.connect_m(s.rename.peek, s.issue.in_peek)
     s.connect_m(s.rename.take, s.issue.in_take)
