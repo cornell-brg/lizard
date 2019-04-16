@@ -55,6 +55,9 @@ class Div(Model):
     def handle_vvm_add_msg():
       s.vvm.add_msg.v = 0
       s.vvm.add_msg.hdr.v = s.in_peek_msg.hdr
+      # TODO AARON YOU CAN SAVE STUFF IN RESULT HERE TO DECIDE
+      # HOW TO INTERPRET IT WHEN IT COMES OUT
+      s.vvm.add_msg.result.v = 0
       s.vvm.add_msg.rd.v = s.in_peek_msg.rd
       s.vvm.add_msg.rd_val.v = s.in_peek_msg.rd_val
 

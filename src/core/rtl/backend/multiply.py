@@ -67,6 +67,8 @@ class MultInputPipelineAdapter(Model):
     def set_kill_data():
       s.split_kill_data.v = 0
       s.split_kill_data.hdr.v = s.split_in_.hdr
+      # TODO AARON YOU CAN STUFF STUFF IN HERE AND USE IT WHEN IT COMES OUT
+      s.split_kill_data.result.v = 0
       s.split_kill_data.rd.v = s.split_in_.rd
       s.split_kill_data.rd_val.v = s.split_in_.rd_val
 
@@ -86,6 +88,8 @@ class MultOutputPipelineAdapter(Model):
     @s.combinational
     def compute_out():
       s.out_temp.v = s.fuse_kill_data
+      # TODO AARON YOU CAN READ THE RESULT FROM fuse_kill_data.result
+      # AND USE IT TO POST-PROCESS THE INTERNAL OUT
       s.out_temp.result.v = s.fuse_internal_out
 
     s.connect(s.fuse_out, s.out_temp)
