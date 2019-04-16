@@ -9,6 +9,7 @@ from core.rtl.csr_manager import CSRManager, CSRManagerInterface
 from core.rtl.frontend.fetch import Fetch, FetchInterface
 from core.rtl.frontend.decode import Decode, DecodeInterface
 from core.rtl.backend.rename import Rename, RenameInterface
+from core.rtl.backend.issue_selector import IssueSelector
 from core.rtl.backend.issue import Issue, IssueInterface
 from core.rtl.backend.dispatch import Dispatch, DispatchInterface
 from core.rtl.backend.pipe_selector import PipeSelector
@@ -104,7 +105,7 @@ class Proc(Model):
 
     # Dataflow
     s.dflow_interface = DataFlowManagerInterface(
-        XLEN, AREG_COUNT, PREG_COUNT, MAX_SPEC_DEPTH, STORE_QUEUE_SIZE, 2, 1)
+        XLEN, AREG_COUNT, PREG_COUNT, MAX_SPEC_DEPTH, STORE_QUEUE_SIZE, 2, 1, 4)
     s.dflow = DataFlowManager(s.dflow_interface)
 
     # Control flow
@@ -162,21 +163,48 @@ class Proc(Model):
     s.connect_m(s.dflow.get_dst[0], s.rename.get_dst)
     s.connect_m(s.mflow.register_store, s.rename.mflow_register_store)
 
+    # Split to normal and mem issue queues
+    s.issue_selector = IssueSelector()
+    s.connect_m(s.issue_selector.in_peek, s.rename.peek)
+    s.connect_m(s.issue_selector.in_take, s.rename.take)
+
     # Issue
-    s.issue_interface = IssueInterface()
-    s.issue = Issue(s.issue_interface, PREG_COUNT, NUM_ISSUE_SLOTS, True)
-    s.connect_m(s.issue.kill_notify, s.kill_notifier.kill_notify)
-    s.connect_m(s.rename.peek, s.issue.in_peek)
-    s.connect_m(s.rename.take, s.issue.in_take)
-    s.connect_m(s.dflow.is_ready, s.issue.is_ready)
-    s.connect_m(s.dflow.get_updated, s.issue.get_updated)
+    ## Out of Order (OO) Issue
+    s.oo_issue_interface = IssueInterface()
+    s.oo_issue = Issue(s.oo_issue_interface, PREG_COUNT, NUM_ISSUE_SLOTS, False)
+    s.connect_m(s.oo_issue.kill_notify, s.kill_notifier.kill_notify)
+    s.connect_m(s.issue_selector.normal_peek, s.oo_issue.in_peek)
+    s.connect_m(s.issue_selector.normal_take, s.oo_issue.in_take)
+    s.connect_m(s.dflow.is_ready[0], s.oo_issue.is_ready[0])
+    s.connect_m(s.dflow.is_ready[1], s.oo_issue.is_ready[1])
+    s.connect_m(s.dflow.get_updated, s.oo_issue.get_updated)
+
+    ## In Order (IO) Issue (for memory)
+    s.io_issue_interface = IssueInterface()
+    s.io_issue = Issue(s.io_issue_interface, PREG_COUNT, NUM_MEM_ISSUE_SLOTS,
+                       True)
+    s.connect_m(s.io_issue.kill_notify, s.kill_notifier.kill_notify)
+    s.connect_m(s.issue_selector.mem_peek, s.io_issue.in_peek)
+    s.connect_m(s.issue_selector.mem_take, s.io_issue.in_take)
+    s.connect_m(s.dflow.is_ready[2], s.io_issue.is_ready[0])
+    s.connect_m(s.dflow.is_ready[3], s.io_issue.is_ready[1])
+    s.connect_m(s.dflow.get_updated, s.io_issue.get_updated)
+
+    ## Dispatch Arbiter (Unify the issue output streams)
+    s.dispatch_arbiter_interface = PipelineArbiterInterface(IssueMsg())
+    s.dispatch_arbiter = PipelineArbiter(s.dispatch_arbiter_interface,
+                                         ['normal', 'mem'])
+    s.connect_m(s.dispatch_arbiter.normal_peek, s.oo_issue.peek)
+    s.connect_m(s.dispatch_arbiter.normal_take, s.oo_issue.take)
+    s.connect_m(s.dispatch_arbiter.mem_peek, s.io_issue.peek)
+    s.connect_m(s.dispatch_arbiter.mem_take, s.io_issue.take)
 
     # Dispatch
     s.dispatch_interface = DispatchInterface()
     s.dispatch = Dispatch(s.dispatch_interface)
     s.connect_m(s.dispatch.kill_notify, s.kill_notifier.kill_notify)
-    s.connect_m(s.issue.peek, s.dispatch.in_peek)
-    s.connect_m(s.issue.take, s.dispatch.in_take)
+    s.connect_m(s.dispatch_arbiter.peek, s.dispatch.in_peek)
+    s.connect_m(s.dispatch_arbiter.take, s.dispatch.in_take)
     s.connect_m(s.dflow.read, s.dispatch.read)
 
     # Split
@@ -272,7 +300,11 @@ class Proc(Model):
         Divider(' | '),
         s.rename.line_trace(),
         Divider(' | '),
-        s.issue.line_trace(),
+        LineBlock(
+            line_block.join(['O', Divider(': '),
+                             s.oo_issue.line_trace()]).normalized().blocks +
+            line_block.join(['I', Divider(': '),
+                             s.io_issue.line_trace()]).normalized().blocks),
         Divider(' | '),
         s.dispatch.line_trace(),
         Divider(' | '),

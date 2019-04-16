@@ -16,7 +16,7 @@ from bitutil import clog2nz
 class DataFlowManagerInterface(Interface):
 
   def __init__(s, dlen, naregs, npregs, nsnapshots, nstore_queue, num_src_ports,
-               num_dst_ports):
+               num_dst_ports, num_is_ready_ports):
     s.DataLen = dlen
     s.NumAregs = naregs
     s.NumPregs = npregs
@@ -25,6 +25,7 @@ class DataFlowManagerInterface(Interface):
     s.StoreQueueIdxNbits = clog2nz(nstore_queue)
     s.NumSrcPorts = num_src_ports
     s.NumDstPorts = num_dst_ports
+    s.NumIsReadyPorts = num_is_ready_ports
     rename_table_interface = RenameTableInterface(naregs, npregs, 0, 0,
                                                   nsnapshots)
 
@@ -87,7 +88,7 @@ class DataFlowManagerInterface(Interface):
                 },
                 call=False,
                 rdy=False,
-                count=num_src_ports,
+                count=num_is_ready_ports,
             ),
             MethodSpec(
                 'read',
@@ -190,6 +191,7 @@ class DataFlowManager(Model):
     nstore_queue = s.interface.NumStoreQueue
     num_src_ports = s.interface.NumSrcPorts
     num_dst_ports = s.interface.NumDstPorts
+    num_is_ready_ports = s.interface.NumIsReadyPorts
 
     # used to allocate snapshot IDs
     s.snapshot_allocator = SnapshottingFreeList(nsnapshots, 1, 1, nsnapshots)
@@ -273,7 +275,7 @@ class DataFlowManager(Model):
         AsynchronousRAMInterface(
             Bits(1),
             npregs,
-            num_src_ports,
+            num_is_ready_ports,
             num_dst_ports * 2,
             False,
         ),
@@ -439,9 +441,9 @@ class DataFlowManager(Model):
       s.connect(s.inverse.write_call[i], s.get_dst_need_writeback[i])
 
     # is_ready
-    s.read_muxes_ready = [Mux(Bits(1), 2) for _ in range(num_src_ports)]
-    s.is_ready_is_zero_tag = [Wire(1) for _ in range(num_src_ports)]
-    for i in range(num_src_ports):
+    s.read_muxes_ready = [Mux(Bits(1), 2) for _ in range(num_is_ready_ports)]
+    s.is_ready_is_zero_tag = [Wire(1) for _ in range(num_is_ready_ports)]
+    for i in range(num_is_ready_ports):
 
       @s.combinational
       def handle_read(i=i):
