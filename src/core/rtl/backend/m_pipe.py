@@ -36,11 +36,11 @@ class MPipe(Model):
     def route_input():
       if s.in_peek_msg.m_msg_func == MFunc.M_FUNC_MUL:
         s.mult.in_peek_rdy.v = s.in_peek_rdy
-        s.in_take_call = s.mult.in_take_call
+        s.in_take_call.v = s.mult.in_take_call
         s.div.in_peek_rdy.v = 0
       else:
         s.div.in_peek_rdy.v = s.in_peek_rdy
-        s.in_take_call = s.div.in_take_call
+        s.in_take_call.v = s.div.in_take_call
         s.mult.in_peek_rdy.v = 0
 
     @s.combinational
