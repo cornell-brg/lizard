@@ -24,14 +24,7 @@ class Div(Model):
         for m in PipelineStageInterface(DispatchMsg(), None).methods.values()
     ])
 
-    class TempDivider(Model):
-
-      def __init__(s):
-        UseInterface(s, DivideInterface(XLEN))
-
-    # TODO AARON YOUR DIVIDER DOES NOT VERILATE DUE TO LINTING ERRORS
-    # s.divider = NonRestoringDivider(DivideInterface(XLEN), DIV_NSTEPS)
-    s.divider = TempDivider()
+    s.divider = NonRestoringDivider(DivideInterface(XLEN), DIV_NSTEPS)
 
     s.vvm = gen_valid_value_manager(MultDropController)()
     s.can_take_input = Wire(1)
