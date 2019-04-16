@@ -15,7 +15,7 @@ class PipeSelectorController(Model):
     def handle_sort():
       if s.sort_msg.hdr_status != PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID:
         s.sort_pipe.v = 0  # CSR pipe
-      elif s.sort_msg.op_class == OpClass.OP_CLASS_CSR:
+      elif s.sort_msg.op_class == OpClass.OP_CLASS_CSR or s.sort_msg.op_class == OpClass.OP_CLASS_SYSTEM:
         s.sort_pipe.v = 0  # CSR pipe
       elif s.sort_msg.op_class == OpClass.OP_CLASS_ALU:
         s.sort_pipe.v = 1  # ALU pipe

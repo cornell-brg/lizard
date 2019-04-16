@@ -11,6 +11,6 @@ exception_handler:
   csrr x3, mepc
   csrw proc2mngr, x3 > 0x20c
   csrr x3, mcause
-  csrw proc2mngr, x3 > 8
+  csrw proc2mngr, x3 > 11
 
   """
