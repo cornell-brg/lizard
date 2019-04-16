@@ -9,6 +9,7 @@ from core.rtl.kill_unit import PipelineKillDropController
 from core.rtl.controlflow import KillType
 from util.rtl.multiply import MulPipelined, MulPipelinedInterface
 
+
 @bit_struct_generator
 def MultIn():
   return [
