@@ -108,6 +108,8 @@ def FrontendHeader():
   return [
       Field('status', PipelineMsgStatus.bits),
       Field('pc', XLEN),
+      Field('replay', 1),
+      Field('replay_next', 1),
   ]
 
 

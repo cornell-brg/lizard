@@ -79,6 +79,12 @@ class CSRStage(Model):
               s.process_out.hdr_status.v = PipelineMsgStatus.PIPELINE_MSG_STATUS_EXCEPTION_RAISED
               s.process_out.exception_info_mcause.v = ExceptionCode.BREAKPOINT
               s.process_out.exception_info_mtval.v = 0
+            elif s.process_in_.system_msg_func == SystemFunc.SYSTEM_FUNC_FENCE_I:
+              # Force a replay redirect
+              s.process_out.hdr_replay.v = 1
+              s.process_out.hdr_replay_next.v = 1
+            # For FENCE we do nothing
+
         else:
           s.process_out.exception_info.v = s.process_in_.exception_info
 
