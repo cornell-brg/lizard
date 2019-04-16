@@ -142,10 +142,11 @@ class Issue(Model):
       # Copy over the source info again
       s.peek_msg.v = 0
       s.peek_msg.v = s.iq.remove_value.opaque
-      s.peek_msg.rs1.v = s.iq.remove_value.src0
-      s.peek_msg.rs1_val.v = s.iq.remove_value.src0_val
-      s.peek_msg.rs2.v = s.iq.remove_value.src1
-      s.peek_msg.rs2_val.v = s.iq.remove_value.src1_val
+      if s.peek_msg.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID:
+        s.peek_msg.rs1.v = s.iq.remove_value.src0
+        s.peek_msg.rs1_val.v = s.iq.remove_value.src0_val
+        s.peek_msg.rs2.v = s.iq.remove_value.src1
+        s.peek_msg.rs2_val.v = s.iq.remove_value.src1_val
       s.peek_msg.hdr_branch_mask.v = s.iq.remove_value.kill_opaque
 
   def line_trace(s):
