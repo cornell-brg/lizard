@@ -79,12 +79,13 @@ class NonRestoringDividerStep(Model):
     s.div_dividend_end_ = Wire(1)
 
     @s.combinational
-    def eval(end=dlen - 1, aend=dlen, acc_len=dlen+1):
+    def eval(end=dlen - 1, aend=dlen, acc_len=dlen + 1):
       s.div_acc_next.v = s.div_acc
       s.div_dividend_next.v = s.div_dividend
       for i in range(nsteps):
         s.div_dividend_end_.v = s.div_dividend_next[end]
-        s.acc_shift.v = (s.div_acc_next.v << 1) | zext(s.div_dividend_end_, acc_len)
+        s.acc_shift.v = (s.div_acc_next.v << 1) | zext(s.div_dividend_end_,
+                                                       acc_len)
         if s.div_acc_next.v[aend]:  # Negative, so add
           s.div_acc_next.v = s.acc_shift.v + s.div_divisor
         else:  # Otherwise subtract
@@ -118,8 +119,7 @@ class NonRestoringDivider(Model):
     s.connect(s.unit.div_dividend, s.dividend.read_data)
 
     s.counter = Register(RegisterInterface(clog2(ncycles + 1), enable=True))
-    s.busy = Register(
-        RegisterInterface(1, enable=True), reset_value=0)
+    s.busy = Register(RegisterInterface(1, enable=True), reset_value=0)
 
     @s.combinational
     def handle_calls():
