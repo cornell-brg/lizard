@@ -21,7 +21,7 @@ def MultIn():
 
 
 def MultOut():
-  return Bits(XLEN)
+  return Bits(2*XLEN)
 
 
 def MultInternalInterface():
@@ -61,10 +61,7 @@ class MultInternal(Model):
     # # Connect output
     # s.connect(s.multiplier.take_call, s.take_call)
     # s.connect(s.peek_rdy, s.multiplier.peek_rdy)
-    #
-    # @s.combinational
-    # def set_result():
-    #   s.peek_msg = s.multiplier.peek_res[:XLEN]
+    # s.connect(s.peek_msg, s.multiplier.peek_res)
 
 
 def MultInputPipelineAdapterInterface():
