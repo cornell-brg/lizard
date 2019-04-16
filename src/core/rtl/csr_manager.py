@@ -106,10 +106,10 @@ class CSRManager(Model):
     s.temp_debug_send_msg = Wire(Bits(XLEN))
     s.temp_op_success = Wire(1)
     s.temp_op_old = Wire(Bits(XLEN))
-    s.temp_read_key = Bits(CSR_SPEC_NBITS)
-    s.temp_write_key = Bits(CSR_SPEC_NBITS)
-    s.temp_write_value = Bits(XLEN)
-    s.temp_write_call = Bits(1)
+    s.temp_read_key = Wire(CSR_SPEC_NBITS)
+    s.temp_write_key = Wire(CSR_SPEC_NBITS)
+    s.temp_write_value = Wire(XLEN)
+    s.temp_write_call = Wire(1)
 
     @s.combinational
     def handle_op():
@@ -163,10 +163,13 @@ class CSRManager(Model):
       s.op_success.v = s.temp_op_success
       s.op_old.v = s.temp_op_old
 
-      s.csr_file.read_key[num_read_ports].v = s.temp_read_key
-      s.csr_file.write_key[0].v = s.temp_write_key
-      s.csr_file.write_value[0].v = s.temp_write_value
-      s.csr_file.write_call[0].v = s.temp_write_call
+    # PYMTL_BROKEN
+    # Since we use s.connect on the ports below, we must use
+    # s.connect on all array elements
+    s.connect(s.csr_file.read_key[num_read_ports], s.temp_read_key)
+    s.connect(s.csr_file.write_key[0], s.temp_write_key)
+    s.connect(s.csr_file.write_value[0], s.temp_write_value)
+    s.connect(s.csr_file.write_call[0], s.temp_write_call)
 
     for i in range(num_read_ports):
       s.connect(s.csr_file.read_key[i], s.read_csr[i])
