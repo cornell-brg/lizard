@@ -170,5 +170,5 @@ class NonRestoringDivider(Model):
 
     @s.combinational
     def handle_busy():
-      s.busy.write_call.v = s.div_call or s.result_call
+      s.busy.write_call.v = s.div_call or s.result_call or s.preempt_call
       s.busy.write_data.v = s.div_call
