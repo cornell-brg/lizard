@@ -129,6 +129,15 @@ class ValidValueManagerInterface(Interface):
 
     methods = first + [
         MethodSpec(
+            'dropping',
+            args=None,
+            rets={
+                'out': Bits(1),
+            },
+            call=False,
+            rdy=False,
+        ),
+        MethodSpec(
             'peek',
             args=None,
             rets={
@@ -180,8 +189,10 @@ class ValidValueManager(Model):
     def handle_rdy():
       if s.val_reg.read_data:
         s.output_rdy.v = s.check_keep
+        s.dropping_out.v = not s.check_keep
       else:
         s.output_rdy.v = 0
+        s.dropping_out.v = 0
 
     s.connect(s.peek_rdy, s.output_rdy)
 

@@ -16,7 +16,7 @@ from core.rtl.backend.alu import ALU, ALUInterface
 from core.rtl.backend.branch import Branch, BranchInterface
 from core.rtl.backend.csr import CSR, CSRInterface
 from core.rtl.backend.mem_pipe import MemInterface, Mem
-from core.rtl.backend.multiply import Mult
+from core.rtl.backend.m_pipe import MPipe
 from core.rtl.pipeline_arbiter import PipelineArbiter, PipelineArbiterInterface
 from core.rtl.backend.writeback import Writeback, WritebackInterface
 from core.rtl.backend.commit import Commit, CommitInterface
@@ -219,16 +219,17 @@ class Proc(Model):
     s.connect_m(s.mem.valid_store_mask, s.dflow.valid_store_mask)
     s.connect_m(s.mem.recv_load, s.mflow.recv_load)
 
-    ## Mult
-    s.mult = Mult(MUL_NSTAGES)
-    s.connect_m(s.mult.in_peek, s.pipe_selector.mult_peek)
-    s.connect_m(s.mult.in_take, s.pipe_selector.mult_take)
-    s.connect_m(s.mult.kill_notify, s.kill_notifier.kill_notify)
+    ## M Pipe
+    s.m_pipe = MPipe()
+    s.connect_m(s.m_pipe.in_peek, s.pipe_selector.m_pipe_peek)
+    s.connect_m(s.m_pipe.in_take, s.pipe_selector.m_pipe_take)
+    s.connect_m(s.m_pipe.kill_notify, s.kill_notifier.kill_notify)
 
     # Writeback Arbiter
     s.writeback_arbiter_interface = PipelineArbiterInterface(ExecuteMsg())
     s.writeback_arbiter = PipelineArbiter(
-        s.writeback_arbiter_interface, ['alu', 'csr', 'branch', 'mem', 'mult'])
+        s.writeback_arbiter_interface,
+        ['alu', 'csr', 'branch', 'mem', 'm_pipe'])
     s.connect_m(s.writeback_arbiter.alu_peek, s.alu.peek)
     s.connect_m(s.writeback_arbiter.alu_take, s.alu.take)
     s.connect_m(s.writeback_arbiter.csr_peek, s.csr_pipe.peek)
@@ -237,8 +238,8 @@ class Proc(Model):
     s.connect_m(s.writeback_arbiter.branch_take, s.branch.take)
     s.connect_m(s.writeback_arbiter.mem_peek, s.mem.peek)
     s.connect_m(s.writeback_arbiter.mem_take, s.mem.take)
-    s.connect_m(s.writeback_arbiter.mult_peek, s.mult.peek)
-    s.connect_m(s.writeback_arbiter.mult_take, s.mult.take)
+    s.connect_m(s.writeback_arbiter.m_pipe_peek, s.m_pipe.peek)
+    s.connect_m(s.writeback_arbiter.m_pipe_take, s.m_pipe.take)
 
     # Writeback
     s.writeback_interface = WritebackInterface()

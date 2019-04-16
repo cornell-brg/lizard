@@ -13,6 +13,13 @@ class DivideInterface(Interface):
     s.DataLen = data_len
     super(DivideInterface, s).__init__([
         MethodSpec(
+            'preempt',
+            args=None,
+            rets=None,
+            call=True,
+            rdy=False,
+        ),
+        MethodSpec(
             'result',
             args=None,
             rets={

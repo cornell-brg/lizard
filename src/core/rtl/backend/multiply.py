@@ -101,11 +101,11 @@ def MultInterface():
   return PipelineStageInterface(ExecuteMsg(), KillType(MAX_SPEC_DEPTH))
 
 
-def Mult(num_stages):
+def Mult():
 
   def make_internal():
-    return MultInternal(num_stages)
+    return MultInternal(MUL_NSTAGES)
 
-  return PipelineWrapper(MultInterface(), num_stages, MultInputPipelineAdapter,
+  return PipelineWrapper(MultInterface(), MUL_NSTAGES, MultInputPipelineAdapter,
                          make_internal, MultOutputPipelineAdapter,
                          MultDropController)
