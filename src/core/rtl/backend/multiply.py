@@ -40,7 +40,7 @@ class MultInternal(Model):
         for m in PipelineStageInterface(MultIn(), None).methods.values()
     ])
     # s.multiplier = MulPipelined(MulPipelinedInterface(XLEN, keep_upper=True),
-    #                                           nstages=num_stages, use_mul=True)
+    #                                            nstages=num_stages, use_mul=True)
     # # TODO: AARON
     # # You have:
     # # in_peek (rdy, msg), where msg is MultIn
@@ -107,7 +107,7 @@ class MultOutputPipelineAdapter(Model):
       s.out_temp.v = s.fuse_kill_data
       # TODO AARON YOU CAN READ THE RESULT FROM fuse_kill_data.result
       # AND USE IT TO POST-PROCESS THE INTERNAL OUT
-      s.out_temp.result.v = s.fuse_internal_out
+      s.out_temp.result.v = s.fuse_internal_out[:64]
 
     s.connect(s.fuse_out, s.out_temp)
 
