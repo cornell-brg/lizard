@@ -7,7 +7,7 @@ from util.rtl.pipeline_stage import gen_stage, StageInterface, DropControllerInt
 from util.rtl.killable_pipeline_wrapper import InputPipelineAdapterInterface, OutputPipelineAdapterInterface, PipelineWrapper
 from core.rtl.kill_unit import PipelineKillDropController
 from core.rtl.controlflow import KillType
-
+from util.rtl.multiply import MulPipelined, MulPipelinedInterface
 
 @bit_struct_generator
 def MultIn():
@@ -38,14 +38,33 @@ class MultInternal(Model):
         m.variant(name='in_{}'.format(m.name))
         for m in PipelineStageInterface(MultIn(), None).methods.values()
     ])
-
-    # TODO: AARON
-    # You have:
-    # in_peek (rdy, msg), where msg is MultIn
-    # in_take (call)
-    # peek (rdy, msg), where msg is MultOut
-    # take (call)
-    # DO YOUR THING!
+    # s.multiplier = MulPipelined(MulPipelinedInterface(XLEN, keep_upper=True),
+    #                                           nstages=num_stages, use_mul=True)
+    # # TODO: AARON
+    # # You have:
+    # # in_peek (rdy, msg), where msg is MultIn
+    # # in_take (call)
+    # # peek (rdy, msg), where msg is MultOut
+    # # take (call)
+    # # DO YOUR THING!
+    #
+    # # Connect input method
+    # s.connect(s.multiplier.mult_src1, s.in_peek_msg.a)
+    # s.connect(s.multiplier.mult_src2, s.in_peek_msg.b)
+    # # TODO fix this
+    # s.connect(s.multiplier.mult_signed, 0)
+    #
+    # @s.combinational
+    # def set_in_take_call():
+    #   s.in_take_call.v = s.multiplier.mult_rdy and s.in_peek_rdy
+    #
+    # # Connect output
+    # s.connect(s.multiplier.take_call, s.take_call)
+    # s.connect(s.peek_rdy, s.multiplier.peek_rdy)
+    #
+    # @s.combinational
+    # def set_result():
+    #   s.peek_msg = s.multiplier.peek_res[:XLEN]
 
 
 def MultInputPipelineAdapterInterface():
