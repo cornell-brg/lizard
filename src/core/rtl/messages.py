@@ -23,6 +23,7 @@ OpClass = bit_enum(
     ('OP_CLASS_BRANCH', 'br'),
     ('OP_CLASS_JUMP', 'jp'),
     ('OP_CLASS_CSR', 'cs'),
+    ('OP_CLASS_SYSTEM', 'sy'),
     ('OP_CLASS_MEM', 'me'),
 )
 
@@ -82,6 +83,15 @@ MemFunc = bit_enum(
     None,
     ('MEM_FUNC_LOAD', 'ld'),
     ('MEM_FUNC_STORE', 'st'),
+)
+
+SystemFunc = bit_enum(
+    'SystemFunc',
+    None,
+    ('SYSTEM_FUNC_FENCE', 'fn'),
+    ('SYSTEM_FUNC_FENCE_I', 'fi'),
+    ('SYSTEM_FUNC_ECALL', 'ec'),
+    ('SYSTEM_FUNC_EBREAK', 'eb'),
 )
 
 
@@ -194,6 +204,13 @@ def MemMsg():
 
 
 @bit_struct_generator
+def SystemMsg():
+  return [
+      Field('func', SystemFunc.bits),
+  ]
+
+
+@bit_struct_generator
 def PipeMsg():
   return [
       Union(
@@ -204,6 +221,7 @@ def PipeMsg():
           Field('branch_msg', BranchMsg()),
           Field('jump_msg', JumpMsg()),
           Field('mem_msg', MemMsg()),
+          Field('system_msg', SystemMsg()),
       ),
   ]
 

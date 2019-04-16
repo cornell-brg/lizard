@@ -13,11 +13,13 @@ from core.rtl.frontend.branch_decoder import BranchDecoder
 from core.rtl.frontend.jump_decoder import JumpDecoder
 from core.rtl.frontend.mem_decoder import MemDecoder
 from core.rtl.frontend.m_decoder import MDecoder
+from core.rtl.frontend.system_decoder import SystemDecoder
 from config.general import *
 from util.rtl.pipeline_stage import gen_stage, StageInterface, DropControllerInterface
 
 ComposedDecoder = compose_decoders(AluDecoder, CsrDecoder, BranchDecoder,
-                                   JumpDecoder, MemDecoder, MDecoder)
+                                   JumpDecoder, MemDecoder, MDecoder,
+                                   SystemDecoder)
 
 
 def DecodeInterface():
