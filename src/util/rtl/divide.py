@@ -102,6 +102,7 @@ class NonRestoringDivider(Model):
     assert s.interface.DataLen % ncycles == 0
     nsteps = s.interface.DataLen // ncycles
     END = s.interface.DataLen - 1
+    AEND = s.interface.DataLen
     iface = NonRestoringDividerStepInterface(s.interface.DataLen)
     s.unit = NonRestoringDividerStep(iface, nsteps)
 
@@ -110,7 +111,9 @@ class NonRestoringDivider(Model):
     s.dividend = Register(RegisterInterface(s.interface.DataLen, enable=True))
     # Set if we need to take twos compliment at end
     s.negate = Register(RegisterInterface(1, enable=True))
+    s.negate_rem = Register(RegisterInterface(1, enable=True))
     s.connect(s.negate.write_call, s.div_call)
+    s.connect(s.negate_rem.write_call, s.div_call)
     s.connect(s.divisor.write_call, s.div_call)
 
     # Connect up the unit
@@ -132,6 +135,7 @@ class NonRestoringDivider(Model):
       # Figure out if we need to negative
       s.negate.write_data.v = s.div_signed and (
           s.div_divisor[END] ^ s.div_dividend[END])
+      s.negate_rem.write_data.v = s.div_signed and s.div_dividend[END]
 
     @s.combinational
     def handle_counter():
@@ -160,13 +164,13 @@ class NonRestoringDivider(Model):
         s.acc.write_data.v = s.unit.div_acc_next
         # Special case last cycle
         if s.counter.read_data == 1:
-          if s.unit.div_acc_next[END]:
+          if s.unit.div_acc_next[AEND]:
             s.acc.write_data.v += s.divisor.read_data
-          if s.negate.read_data:  # Last cycle, compliment
+          if s.negate_rem.read_data:  # Last cycle, compliment
             s.acc.write_data.v = ~s.acc.write_data + 1
-            # Only if not divided by zero
-            if s.divisor.read_data != 0:
-              s.dividend.write_data.v = ~s.dividend.write_data + 1
+          # Only if not divided by zero
+          if s.negate.read_data and s.divisor.read_data != 0:
+            s.dividend.write_data.v = ~s.dividend.write_data + 1
 
     @s.combinational
     def handle_busy():
