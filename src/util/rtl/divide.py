@@ -72,19 +72,26 @@ class NonRestoringDividerStep(Model):
   def __init__(s, interface, nsteps=1):
     UseInterface(s, interface)
     s.acc_shift = Wire(s.interface.DataLen + 1)
+    dlen = s.interface.DataLen
+
+    # PTMTL_BROKEN
+    s.acc_next_end_ = Wire(1)
+    s.div_dividend_end_ = Wire(1)
 
     @s.combinational
-    def eval(end=s.interface.DataLen - 1, aend=s.interface.DataLen):
+    def eval(end=dlen - 1, aend=dlen, acc_len=dlen+1):
       s.div_acc_next.v = s.div_acc
       s.div_dividend_next.v = s.div_dividend
       for i in range(nsteps):
-        s.acc_shift.v = (s.div_acc_next.v << 1) | s.div_dividend_next[end]
+        s.div_dividend_end_.v = s.div_dividend_next[end]
+        s.acc_shift.v = (s.div_acc_next.v << 1) | zext(s.div_dividend_end_, acc_len)
         if s.div_acc_next.v[aend]:  # Negative, so add
           s.div_acc_next.v = s.acc_shift.v + s.div_divisor
         else:  # Otherwise subtract
           s.div_acc_next.v = s.acc_shift.v - s.div_divisor
-        s.div_dividend_next.v = s.div_dividend_next << 1 | (
-            not s.div_acc_next[aend])
+        s.acc_next_end_.v = not s.div_acc_next[aend]
+        s.div_dividend_next.v = s.div_dividend_next << 1 | zext(
+            s.acc_next_end_, aend)
 
 
 class NonRestoringDivider(Model):
@@ -112,7 +119,7 @@ class NonRestoringDivider(Model):
 
     s.counter = Register(RegisterInterface(clog2(ncycles + 1), enable=True))
     s.busy = Register(
-        RegisterInterface(s.interface.DataLen, enable=True), reset_value=0)
+        RegisterInterface(1, enable=True), reset_value=0)
 
     @s.combinational
     def handle_calls():
