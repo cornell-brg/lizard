@@ -66,8 +66,18 @@ class RenameStage(Model):
             call=True,
             rdy=True,
         ),
+        MethodSpec(
+            'mflow_register_store',
+            args={
+                'id_': STORE_IDX_NBITS,
+            },
+            rets=None,
+            call=True,
+            rdy=False,
+        ),
     )
     s.accepted_ = Wire(1)
+    s.going = Wire(1)
     s.connect(s.process_accepted, s.accepted_)
 
     s.decoded_ = Wire(DecodeMsg())
@@ -97,8 +107,12 @@ class RenameStage(Model):
     # Handle the conditional calls
     @s.combinational
     def handle_calls():
-      s.get_dst_call.v = s.accepted_ and s.decoded_.rd_val and (
+      s.going.v = s.accepted_ and (
           s.decoded_.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID)
+      s.get_dst_call.v = s.going and s.decoded_.rd_val
+      s.mflow_register_store_call.v = s.going and s.register_store
+
+    s.connect(s.mflow_register_store_id_, s.register_store_id)
 
     # Connect the outgoing signals
     @s.combinational
