@@ -146,6 +146,8 @@ class Commit(Model):
     s.connect(s.rob.free_idx, s.cflow_get_head_seq)
     s.connect(s.rob.free_call, s.rob_remove)
 
+    s.connect(s.cflow_commit_call, s.rob_remove)
+
     @s.combinational
     def set_rob_remove():
       s.rob_remove.v = s.cflow_get_head_rdy and s.rob.check_done_is_rdy and not s.store_pending_after_send
@@ -160,7 +162,6 @@ class Commit(Model):
       s.dataflow_free_store_id_call.v = 0
       s.dataflow_free_store_id_id_.v = 0
 
-      s.cflow_commit_call.v = 0
       s.cflow_commit_redirect.v = 0
       s.cflow_commit_redirect_target.v = 0
 
@@ -170,13 +171,11 @@ class Commit(Model):
       if s.rob_remove:
         if s.rob.free_value.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID:
           if s.rob.free_value.rd_val:
-            s.cflow_commit_call.v = 1
             s.dataflow_commit_call.v = 1
             s.dataflow_commit_tag.v = s.rob.free_value.rd
           s.dataflow_free_store_id_call.v = s.rob.free_value.hdr_is_store
           s.dataflow_free_store_id_id_.v = s.rob.free_value.hdr_store_id
         else:
-          s.cflow_commit_call.v = 1
           s.cflow_commit_redirect.v = 1
           s.cflow_commit_redirect_target.v = s.exception_target
           s.is_exception.v = 1

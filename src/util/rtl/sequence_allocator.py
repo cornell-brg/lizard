@@ -106,7 +106,8 @@ class SequenceAllocator(Model):
       s.num.write_call.v = s.tail.write_call or s.head.write_call
       s.num.write_data.v = s.num.read_data
       if s.rollback_call:
-        s.num.write_data.v = 0  # An exception clears everything
+        s.num.write_data.v = max_entries if s.head_tail_delta == 0 else zext(
+            s.head_tail_delta, seqp1)  # An exception clears everything
       elif s.allocate_call ^ s.free_call:
         if s.allocate_call:
           s.num.write_data.v = s.num.read_data + 1
