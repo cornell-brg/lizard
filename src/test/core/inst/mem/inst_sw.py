@@ -164,7 +164,7 @@ def gen_stupid_test():
     nop                             # 0x224
     nop                             # 0x228
     nop                             # 0x22c
-    nop                             # 0x230
+    fence.i                         # 0x230
     addi x3, x3, 0b10               # 0x234
     nop                             # 0x238
     nop                             # 0x23c
