@@ -61,6 +61,7 @@ class SequenceAllocator(Model):
         RegisterInterface(Bits(seqidx_nbits + 1), enable=True), reset_value=0)
 
     s.head_next = Wire(seqidx_nbits)
+    s.tail_next = Wire(seqidx_nbits)
 
     s.empty_ = Wire(1)
     s.full_ = Wire(1)
@@ -88,9 +89,10 @@ class SequenceAllocator(Model):
     @s.combinational
     def update_tail():
       s.tail.write_call.v = s.allocate_call or s.rollback_call
-      s.tail.write_data.v = s.tail.read_data + 1
+      s.tail_next.v = s.tail.read_data + 1
       if s.rollback_call:
-        s.tail.write_data.v = s.rollback_idx + 1
+        s.tail_next.v = s.rollback_idx + 1
+      s.tail.write_data.v = s.tail_next.v
 
     @s.combinational
     def update_head():
@@ -102,12 +104,15 @@ class SequenceAllocator(Model):
 
     @s.combinational
     def update_num(seqp1=seqidx_nbits + 1):
-      s.head_tail_delta.v = s.tail.write_data - s.head_next
+      s.head_tail_delta.v = s.tail_next - s.head_next
       s.num.write_call.v = s.tail.write_call or s.head.write_call
       s.num.write_data.v = s.num.read_data
       if s.rollback_call:
-        s.num.write_data.v = max_entries if s.head_tail_delta == 0 and s.full_ else zext(
-            s.head_tail_delta, seqp1)  # An exception clears everything
+        # If it is going to be full (head=tail and not rolling back to head)
+        if s.head_tail_delta == 0 and (s.rollback_idx != s.head.read_data):
+          s.num.write_data.v = max_entries
+        else:
+          s.num.write_data.v = zext(s.head_tail_delta, seqp1)  # An exception clears everything
       elif s.allocate_call ^ s.free_call:
         if s.allocate_call:
           s.num.write_data.v = s.num.read_data + 1
