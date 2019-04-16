@@ -112,7 +112,8 @@ class SequenceAllocator(Model):
         if s.head_tail_delta == 0 and (s.rollback_idx != s.head.read_data):
           s.num.write_data.v = max_entries
         else:
-          s.num.write_data.v = zext(s.head_tail_delta, seqp1)  # An exception clears everything
+          s.num.write_data.v = zext(s.head_tail_delta,
+                                    seqp1)  # An exception clears everything
       elif s.allocate_call ^ s.free_call:
         if s.allocate_call:
           s.num.write_data.v = s.num.read_data + 1
