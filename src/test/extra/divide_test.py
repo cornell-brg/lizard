@@ -11,8 +11,8 @@ import pytest
 #Create a single instance of an issue slot
 def test_translation():
   iface = DivideInterface(64)
-  run_model_translation(NonRestoringDivider(iface, 64))
-  run_model_translation(NonRestoringDivider(iface, 16))
+  run_model_translation(NonRestoringDivider(iface, 64), lint=True)
+  run_model_translation(NonRestoringDivider(iface, 16), lint=True)
 
 
 @pytest.mark.parametrize(

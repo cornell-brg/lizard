@@ -37,7 +37,7 @@ class PipeSelector(Model):
     UseInterface(
         s,
         PipelineSplitterInterface(DispatchMsg(),
-                                  ['csr', 'alu', 'branch', 'mem', 'mult']))
+                                  ['csr', 'alu', 'branch', 'mem', 'm_pipe']))
     s.require(
         MethodSpec(
             'in_peek',
