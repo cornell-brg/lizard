@@ -65,7 +65,7 @@ class DataFlowManagerFL(FLModel):
         preg_file=RegisterFileFL(
             Bits(dlen),
             npregs,
-            num_src_ports,
+            num_is_ready_ports,
             num_dst_ports,
             True,
             False,

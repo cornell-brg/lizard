@@ -190,27 +190,30 @@ class Proc(Model):
     s.connect_m(s.dflow.is_ready[3], s.io_issue.is_ready[1])
     s.connect_m(s.dflow.get_updated, s.io_issue.get_updated)
 
-    ## Dispatch Arbiter (Unify the issue output streams)
-    s.dispatch_arbiter_interface = PipelineArbiterInterface(IssueMsg())
-    s.dispatch_arbiter = PipelineArbiter(s.dispatch_arbiter_interface,
-                                         ['normal', 'mem'])
-    s.connect_m(s.dispatch_arbiter.normal_peek, s.oo_issue.peek)
-    s.connect_m(s.dispatch_arbiter.normal_take, s.oo_issue.take)
-    s.connect_m(s.dispatch_arbiter.mem_peek, s.io_issue.peek)
-    s.connect_m(s.dispatch_arbiter.mem_take, s.io_issue.take)
-
     # Dispatch
-    s.dispatch_interface = DispatchInterface()
-    s.dispatch = Dispatch(s.dispatch_interface)
-    s.connect_m(s.dispatch.kill_notify, s.kill_notifier.kill_notify)
-    s.connect_m(s.dispatch_arbiter.peek, s.dispatch.in_peek)
-    s.connect_m(s.dispatch_arbiter.take, s.dispatch.in_take)
-    s.connect_m(s.dflow.read, s.dispatch.read)
+    ## Dispatch OO
+    s.oo_dispatch_interface = DispatchInterface()
+    s.oo_dispatch = Dispatch(s.oo_dispatch_interface)
+    s.connect_m(s.oo_dispatch.kill_notify, s.kill_notifier.kill_notify)
+    s.connect_m(s.oo_issue.peek, s.oo_dispatch.in_peek)
+    s.connect_m(s.oo_issue.take, s.oo_dispatch.in_take)
+    s.connect_m(s.dflow.read[0], s.oo_dispatch.read[0])
+    s.connect_m(s.dflow.read[1], s.oo_dispatch.read[1])
+
+    ## Dispatch IO
+    s.io_dispatch_interface = DispatchInterface()
+    s.io_dispatch = Dispatch(s.io_dispatch_interface)
+    s.connect_m(s.io_dispatch.kill_notify, s.kill_notifier.kill_notify)
+    s.connect_m(s.io_issue.peek, s.io_dispatch.in_peek)
+    s.connect_m(s.io_issue.take, s.io_dispatch.in_take)
+    s.connect_m(s.dflow.read[2], s.io_dispatch.read[0])
+    s.connect_m(s.dflow.read[3], s.io_dispatch.read[1])
 
     # Split
+    # Only OO dispatch needs split - IO dispatch goes straight to mem
     s.pipe_selector = PipeSelector()
-    s.connect_m(s.pipe_selector.in_peek, s.dispatch.peek)
-    s.connect_m(s.pipe_selector.in_take, s.dispatch.take)
+    s.connect_m(s.pipe_selector.in_peek, s.oo_dispatch.peek)
+    s.connect_m(s.pipe_selector.in_take, s.oo_dispatch.take)
 
     # Execute
     ## ALU
@@ -236,23 +239,23 @@ class Proc(Model):
     s.connect_m(s.csr_pipe.in_peek, s.pipe_selector.csr_peek)
     s.connect_m(s.csr_pipe.in_take, s.pipe_selector.csr_take)
 
+    ## M Pipe
+    s.m_pipe = MPipe()
+    s.connect_m(s.m_pipe.in_peek, s.pipe_selector.m_pipe_peek)
+    s.connect_m(s.m_pipe.in_take, s.pipe_selector.m_pipe_take)
+    s.connect_m(s.m_pipe.kill_notify, s.kill_notifier.kill_notify)
+
     ## Mem
     s.mem_interface = MemInterface()
     s.mem = Mem(s.mem_interface)
-    s.connect_m(s.mem.in_peek, s.pipe_selector.mem_peek)
-    s.connect_m(s.mem.in_take, s.pipe_selector.mem_take)
+    s.connect_m(s.mem.in_peek, s.io_dispatch.peek)
+    s.connect_m(s.mem.in_take, s.io_dispatch.take)
     s.connect_m(s.mem.kill_notify, s.kill_notifier.kill_notify)
     s.connect_m(s.mem.store_pending, s.mflow.store_pending)
     s.connect_m(s.mem.send_load, s.mflow.send_load)
     s.connect_m(s.mem.enter_store, s.mflow.enter_store)
     s.connect_m(s.mem.valid_store_mask, s.dflow.valid_store_mask)
     s.connect_m(s.mem.recv_load, s.mflow.recv_load)
-
-    ## M Pipe
-    s.m_pipe = MPipe()
-    s.connect_m(s.m_pipe.in_peek, s.pipe_selector.m_pipe_peek)
-    s.connect_m(s.m_pipe.in_take, s.pipe_selector.m_pipe_take)
-    s.connect_m(s.m_pipe.kill_notify, s.kill_notifier.kill_notify)
 
     # Writeback Arbiter
     s.writeback_arbiter_interface = PipelineArbiterInterface(ExecuteMsg())
@@ -306,7 +309,12 @@ class Proc(Model):
             line_block.join(['I', Divider(': '),
                              s.io_issue.line_trace()]).normalized().blocks),
         Divider(' | '),
-        s.dispatch.line_trace(),
+        LineBlock(
+            line_block.join(
+                ['O', Divider(': '),
+                 s.oo_dispatch.line_trace()]).normalized().blocks + line_block
+            .join(['I', Divider(': '),
+                   s.io_dispatch.line_trace()]).normalized().blocks),
         Divider(' | '),
         LineBlock(
             line_block.join(['A', Divider(': '),

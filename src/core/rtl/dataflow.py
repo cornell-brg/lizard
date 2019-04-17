@@ -100,7 +100,7 @@ class DataFlowManagerInterface(Interface):
                 },
                 call=False,
                 rdy=False,
-                count=num_src_ports,
+                count=num_is_ready_ports,
             ),
             MethodSpec(
                 'write',
@@ -254,7 +254,7 @@ class DataFlowManager(Model):
         AsynchronousRAMInterface(
             Bits(dlen),
             npregs,
-            num_src_ports,
+            num_is_ready_ports,
             num_dst_ports,
             True,
         ),
@@ -456,9 +456,9 @@ class DataFlowManager(Model):
       s.connect(s.is_ready_ready[i], s.read_muxes_ready[i].mux_out)
 
     # read
-    s.read_muxes_value = [Mux(Bits(dlen), 2) for _ in range(num_src_ports)]
-    s.read_is_zero_tag = [Wire(1) for _ in range(num_src_ports)]
-    for i in range(num_src_ports):
+    s.read_muxes_value = [Mux(Bits(dlen), 2) for _ in range(num_is_ready_ports)]
+    s.read_is_zero_tag = [Wire(1) for _ in range(num_is_ready_ports)]
+    for i in range(num_is_ready_ports):
 
       @s.combinational
       def handle_read(i=i):
