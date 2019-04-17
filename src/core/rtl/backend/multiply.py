@@ -22,7 +22,7 @@ def MultIn():
 
 
 def MultOut():
-  return Bits(2*XLEN)
+  return Bits(2 * XLEN)
 
 
 def MultInternalInterface():
