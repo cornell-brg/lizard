@@ -46,6 +46,7 @@ class Div(Model):
 
     s.rs1_32 = Wire(32)
     s.rs2_32 = Wire(32)
+
     @s.combinational
     def handle_add():
       s.rs1_32.v = s.in_peek_msg.rs1[:32]
@@ -55,13 +56,12 @@ class Div(Model):
       s.divider.div_divisor.v = s.in_peek_msg.rs2
       s.divider.div_signed.v = s.in_peek_msg.m_msg_variant == MVariant.M_VARIANT_N
       if s.in_peek_msg.m_msg_op32:
-        if s.in_peek_msg.m_msg_variant == MVariant.M_VARIANT_N: # signed
+        if s.in_peek_msg.m_msg_variant == MVariant.M_VARIANT_N:  # signed
           s.divider.div_dividend.v = sext(s.rs1_32, XLEN)
           s.divider.div_divisor.v = sext(s.rs2_32, XLEN)
         else:
           s.divider.div_dividend.v = zext(s.rs1_32, XLEN)
           s.divider.div_divisor.v = zext(s.rs2_32, XLEN)
-
 
     @s.combinational
     def handle_vvm_add_msg():
@@ -76,6 +76,7 @@ class Div(Model):
     s.mul_msg = Wire(MMsg())
     s.res_32 = Wire(32)
     num_bits = MMsg().nbits
+
     @s.combinational
     def handle_output_msg(msg_bits=num_bits):
       s.peek_msg.v = s.vvm.peek_msg
