@@ -72,6 +72,8 @@ class MemRequestStage(Model):
     s.imm = Wire(DECODED_IMM_LEN)
     s.connect(s.imm, s.process_in_.imm)
     s.sext_imm = Wire(XLEN)
+    s.DEBUG_PC = Wire(XLEN)
+    s.connect(s.DEBUG_PC, s.process_in_.hdr_pc)
 
     @s.combinational
     def handle_sext_imm():
