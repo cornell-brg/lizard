@@ -40,7 +40,19 @@ class BranchStage(Model):
             rets={},
             call=True,
             rdy=False,
-        ),)
+        ),
+        MethodSpec(
+            'btb_write',
+            args={
+                'key': XLEN,
+                'remove': Bits(1),
+                'value': XLEN,
+            },
+            rets=None,
+            call=True,
+            rdy=False,
+        ),
+    )
 
     s.connect(s.process_accepted, 1)
 
@@ -108,6 +120,13 @@ class BranchStage(Model):
       s.process_out.result.v = s.msg_.hdr_pc + ILEN_BYTES
       s.process_out.rd.v = s.msg_.rd
       s.process_out.rd_val.v = s.msg_.rd_val
+
+    @s.combinational
+    def update_btb():
+      s.btb_write_key.v = s.msg_.hdr_pc
+      s.btb_write_value.v = s.branch_target_
+      s.btb_write_remove.v = not s.take_branch_
+      s.btb_write_call.v = s.process_call
 
 
 def BranchDropController():

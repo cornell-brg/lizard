@@ -16,7 +16,7 @@ def FetchInterface():
 
 class Fetch(Model):
 
-  def __init__(s, fetch_interface, MemMsg):
+  def __init__(s, fetch_interface, MemMsg, disable_btb):
     UseInterface(s, fetch_interface)
     s.MemMsg = MemMsg
     xlen = XLEN
@@ -43,6 +43,18 @@ class Fetch(Model):
             rets={
                 'redirect': Bits(1),
                 'target': Bits(xlen),
+            },
+            call=False,
+            rdy=False,
+        ),
+        MethodSpec(
+            'btb_read',
+            args={
+                'key': XLEN,
+            },
+            rets={
+                'value': XLEN,
+                'valid': Bits(1)
             },
             call=False,
             rdy=False,
@@ -87,12 +99,16 @@ class Fetch(Model):
         # the new PC is the target
         s.pc.write_data.v = s.check_redirect_target
         s.pc.write_call.v = 1
-
+        s.btb_read_key.v = 0
       else:
         s.drop_unit.drop_call.v = 0
         # if we are issuing now, the new PC is just ilen_bytes more than the last one
         # Insert BTB here!
-        s.pc.write_data.v = s.pc.read_data + ilen_bytes
+        s.btb_read_key.v = s.pc.read_data
+        if s.btb_read_valid and not disable_btb:
+          s.pc.write_data.v = s.btb_read_value
+        else:
+          s.pc.write_data.v = s.pc.read_data + ilen_bytes
         s.pc.write_call.v = s.advance_f0
 
     s.connect(s.in_flight.write_data, 1)

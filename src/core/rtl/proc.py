@@ -6,6 +6,7 @@ from core.rtl.controlflow import ControlFlowManager, ControlFlowManagerInterface
 from core.rtl.dataflow import DataFlowManager, DataFlowManagerInterface
 from core.rtl.memoryflow import MemoryFlowManager, MemoryFlowManagerInterface
 from core.rtl.csr_manager import CSRManager, CSRManagerInterface
+from util.rtl.cam import RandomReplacementCAM, CAMInterface
 from core.rtl.frontend.fetch import Fetch, FetchInterface
 from core.rtl.frontend.decode import Decode, DecodeInterface
 from core.rtl.backend.rename import Rename, RenameInterface
@@ -137,12 +138,16 @@ class Proc(Model):
     s.connect_m(s.db_recv, s.csr.debug_recv)
     s.connect_m(s.db_send, s.csr.debug_send)
 
+    # BTB
+    s.btb = RandomReplacementCAM(CAMInterface(XLEN, XLEN, BTB_SIZE))
+
     # Fetch
     s.fetch_interface = FetchInterface()
-    s.fetch = Fetch(s.fetch_interface, MemMsg)
+    s.fetch = Fetch(s.fetch_interface, MemMsg, 1)
     s.connect_m(s.mb_recv_0, s.fetch.mem_recv)
     s.connect_m(s.mb_send_0, s.fetch.mem_send)
     s.connect_m(s.cflow.check_redirect, s.fetch.check_redirect)
+    s.connect_m(s.btb.read, s.fetch.btb_read)
 
     # Decode
     s.decode_interface = DecodeInterface()
@@ -230,6 +235,7 @@ class Proc(Model):
     s.connect_m(s.cflow.redirect, s.branch.cflow_redirect)
     s.connect_m(s.branch.in_peek, s.pipe_selector.branch_peek)
     s.connect_m(s.branch.in_take, s.pipe_selector.branch_take)
+    s.connect_m(s.btb.write, s.branch.btb_write)
 
     ## CSR
     s.csr_pipe_interface = CSRInterface()
