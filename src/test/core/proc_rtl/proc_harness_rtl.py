@@ -37,8 +37,11 @@ class ProcTestHarness(Model):
   def line_trace(s):
     return s.dut.line_trace()
 
+def run_mem_image(mem_image, translate, vcd_file, max_cycles, proc2mngr_handler, trace):
+  def tp(thing):
+    if trace:
+      print(thing)
 
-def mem_image_test(mem_image, translate, vcd_file, max_cycles=200000):
   initial_mem = {}
   mngr2proc_data = deque()
   proc2mngr_data = deque()
@@ -64,27 +67,37 @@ def mem_image_test(mem_image, translate, vcd_file, max_cycles=200000):
   curr = 0
   i = 0
   dut.reset()
-  print('')
-  while curr < len(proc2mngr_data):
+  tp('')
+  while True:
     assert i < max_cycles
     i += 1
-    print(line_block.join([
+    tp(line_block.join([
         '{:>5}'.format(i),
         Divider(': '),
         dut.line_trace(),
     ]))
-    print('')
+    tp('')
     while len(pth.tdb.received_messages) > curr:
-      if pth.tdb.received_messages[curr] != proc2mngr_data[curr]:
-        msg = "Expected: {}, got {}".format(
-            int(proc2mngr_data[curr]), int(pth.tdb.received_messages[curr]))
-        # Cycle once so line trace looks good
-        dut.cycle()
-        assert pth.tdb.received_messages[curr] == proc2mngr_data[curr], msg
-
+      result = proc2mngr_handler(pth.tdb.received_messages[curr], proc2mngr_data, curr)
+      if result is not None:
+        return result
       curr += 1
     dut.cycle()
 
+def test_proc2mngr_handler(received_msg, proc2mngr_data, curr):
+  if received_msg != proc2mngr_data[curr]:
+    msg = "Expected: {}, got {}".format(
+        int(proc2mngr_data[curr]), int(received_msg))
+    assert received_msg == proc2mngr_data[curr], msg
+  
+  # if curr is the last one return to break
+  if curr  >= len(proc2mngr_data) - 1:
+    return 'done'
+  else:
+    return None
+
+def mem_image_test(mem_image, translate, vcd_file, max_cycles=200000):
+  run_mem_image(mem_image, translate, vcd_file, max_cycles, test_proc2mngr_handler)
 
 def asm_test(asm, translate, vcd_file, max_cycles=200000):
   mem_image = assembler.assemble(asm)
