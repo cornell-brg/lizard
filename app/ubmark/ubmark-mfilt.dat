@@ -4,7 +4,7 @@
 
 int size = 20;
 
-uint src[] = {
+unsigned int src[] = {
   128,
   128,
   128,
@@ -407,7 +407,7 @@ uint src[] = {
   35,
 };
 
-uint mask[] = {
+unsigned int mask[] = {
   0,
   255,
   255,
@@ -810,7 +810,7 @@ uint mask[] = {
   0,
 };
 
-uint ref[] = {
+unsigned int ref[] = {
   0,
   0,
   0,
