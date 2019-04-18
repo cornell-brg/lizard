@@ -19,3 +19,5 @@ ubmark_install_prog_srcs = \
   ubmark-cmult.c \
   ubmark-mfilt.c \
   ubmark-quicksort.c \
+	hello-world.c \
+

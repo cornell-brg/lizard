@@ -49,13 +49,6 @@ _start:
   la      t0, _fbss
   la      t1, _end
 
-1:
-  # bthread_init need this ...
-
-  sw      zero,0(t0)
-  addi    t0, t0, 4
-  bltu    t0, t1, 1b
-
   call    main
 1:
   beq     zero, zero, 1b
