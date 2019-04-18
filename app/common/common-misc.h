@@ -11,14 +11,6 @@
 typedef unsigned char byte;
 typedef unsigned int uint;
 
-#ifdef _RISCV
-
-inline void exit(int i) {
-  int msg = 0x00010000 | i;
-  asm("csrw 0x7C0, %0;" ::"r"(msg));
-}
-
-#endif
 
 #ifdef _RISCV
 
