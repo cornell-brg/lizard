@@ -8,10 +8,6 @@
 
 #include <stdint.h>
 
-typedef unsigned char byte;
-typedef unsigned int uint;
-
-
 #ifdef _RISCV
 
 inline void test_fail(int index, int val, int ref) {

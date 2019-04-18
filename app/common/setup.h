@@ -7,28 +7,30 @@
 #define PROC2MNGR_REG "0x7C0"
 #define MNGR2PROC_REG "0xFC0"
 
+#include <stdint.h>
+
 int main();
 
-#define PROC2MNGR(X)         asm volatile ("csrw " PROC2MNGR_REG ", %[rs1]\n"  \
-                                            : : [rs1]"r"(X)                    \
-                                          )
-
-#define MNGR2PROC(X)       asm volatile ("csrr %[rd]," MNGR2PROC_REG "\n"    \
-                                            : [rd]"=r"(X)                      \
-                                          )
-
-#define NOP() asm volatile ("nop\n")
-
-inline void sim_exit(int i) {
-  PROC2MNGR(0x00010000);
-  PROC2MNGR(i);
+inline void proc2mngr(uint64_t x) {
+  asm("csrw " PROC2MNGR_REG ", %[rs1]\n" : : [rs1] "r"(x));
 }
 
-__attribute__((weak)) __attribute__((section(".start"))) __attribute__ ((naked)) void _start() {
+inline uint64_t mngr2proc() {
+  uint64_t result;
+  asm("csrr %[rd]," MNGR2PROC_REG "\n" : [rd] "=r"(result));
+  return result;
+}
+
+inline void sim_exit(int i) {
+  proc2mngr(0x00010000);
+  proc2mngr(i);
+}
+
+__attribute__((weak)) __attribute__((section(".start")))
+__attribute__((naked)) void
+_start() {
   // Setup up stack pointer
-  asm volatile  ("mv sp, %[rs1]\n"
-                  : : [rs1]"r"(STACK_START)
-                );
+  asm volatile("mv sp, %[rs1]\n" : : [rs1] "r"(STACK_START));
 
   int exit_code = main();
   sim_exit(exit_code);
