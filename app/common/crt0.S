@@ -32,19 +32,7 @@ _start:
   # Initialize stack pointer to 0xffffc
   lui   sp, 256
   addi  sp, sp, -4
-
-  # This piece of code allocate 0x4000 (16KB) stack memory for each core
-  # core #0 uses 0x100000~0xfc000 as stack
-  # core #1 uses 0xfc0000-0xf8000 as stack
-  # core #2 uses 0xf80000-0xf4000 as stack
-  # core #3 uses 0xf40000-0xf0000 as stack
-
-  addi  t0, zero, 0
-  lui   t0, 4
-  csrr  t1, 0xF14
-  mul   t2, t0, t1
-  sub   sp, sp, t2
-
+  
   # clear the bss segment
   la      t0, _fbss
   la      t1, _end

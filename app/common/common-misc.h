@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #endif
 
+#include <stdint.h>
+
 typedef unsigned char byte;
 typedef unsigned int uint;
 
@@ -82,7 +84,6 @@ void reset_stat_counters() {}
 #ifdef _RISCV
 
 inline void read_stat_counters(uint64_t mcycle, uint64_t minstret) {
-  int status = 0;
   asm("csrr %0, 0xB00;\n\t"
       "csrr %1, 0xB02"
       : "=r"(mcycle), "=r"(minstret)
