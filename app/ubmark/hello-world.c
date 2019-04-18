@@ -1,6 +1,7 @@
 #include "common.h"
+#include "setup.h"
 
-int main( int argc, char* argv[] ) {
+int main() {
   wprintf(L"Hello World!\n");
   return 0;
 }

@@ -27,8 +27,4 @@ int main(int argc, char* argv[]) {
   wprintf(L"string = %S\n", L"foobar");
 
   wprintf(L"number = %d, char = %C, string = %S \n", 42, L'a', L"foobar");
-
-  // Must end program with an exit, pass in status code
-
-  exit(0);
 }
