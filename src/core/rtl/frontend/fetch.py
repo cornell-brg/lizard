@@ -16,7 +16,7 @@ def FetchInterface():
 
 class Fetch(Model):
 
-  def __init__(s, fetch_interface, MemMsg, disable_btb):
+  def __init__(s, fetch_interface, MemMsg, enable_btb):
     UseInterface(s, fetch_interface)
     s.MemMsg = MemMsg
     xlen = XLEN
@@ -105,7 +105,7 @@ class Fetch(Model):
         # if we are issuing now, the new PC is just ilen_bytes more than the last one
         # Insert BTB here!
         s.btb_read_key.v = s.pc.read_data
-        if s.btb_read_valid and not disable_btb:
+        if s.btb_read_valid and enable_btb:
           s.pc.write_data.v = s.btb_read_value
         else:
           s.pc.write_data.v = s.pc.read_data + ilen_bytes

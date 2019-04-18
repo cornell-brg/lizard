@@ -92,11 +92,23 @@ class CSRManager(Model):
                 CsrRegisters.mepc,
                 CsrRegisters.mcause,
                 CsrRegisters.mtval,
+                CsrRegisters.mcycle,
+                CsrRegisters.minstret,
+                CsrRegisters.mvendorid,
+                CsrRegisters.marchid,
+                CsrRegisters.mimpid,
+                CsrRegisters.mhartid,
             ],
         reset_values=[
             0,
             0,
             0,
+            0,
+            0,
+            0,
+            0xdeadbeef,
+            0x42424242,
+            0x00000001,
             0,
         ])
 

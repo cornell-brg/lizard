@@ -96,7 +96,7 @@ class Commit(Model):
             },
             call=False,
             rdy=False,
-            count=1,
+            count=3,
         ),
         MethodSpec(
             'write_csr',
@@ -109,7 +109,7 @@ class Commit(Model):
             },
             call=True,
             rdy=False,
-            count=3,
+            count=5,
         ),
     )
 
@@ -248,6 +248,18 @@ class Commit(Model):
       else:
         s.send_store_call.v = 0
         s.store_pending_after_send.v = s.store_pending.read_data
+
+    s.connect(s.read_csr_csr[1], int(CsrRegisters.mcycle))
+    s.connect(s.read_csr_csr[2], int(CsrRegisters.minstret))
+    s.connect(s.write_csr_csr[3], int(CsrRegisters.mcycle))
+    s.connect(s.write_csr_call[3], 1)
+    s.connect(s.write_csr_csr[4], int(CsrRegisters.minstret))
+    s.connect(s.write_csr_call[4], s.rob_remove)
+
+    @s.combinational
+    def handle_mcycle_minstret():
+      s.write_csr_value[3].v = s.read_csr_value[1] + 1
+      s.write_csr_value[4].v = s.read_csr_value[2] + 1
 
   def line_trace(s):
     if s.in_take_call:
