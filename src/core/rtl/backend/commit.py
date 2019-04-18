@@ -139,6 +139,7 @@ class Commit(Model):
 
     # Add incoming message into ROB
     s.connect(s.rob.add_value, s.in_peek_msg)
+    s.connect(s.rob.add_kill_opaque, s.in_peek_msg.hdr_branch_mask)
     s.connect_wire(s.rob.add_idx, s.seq_num)
     s.connect(s.rob.add_call, s.advance)
 

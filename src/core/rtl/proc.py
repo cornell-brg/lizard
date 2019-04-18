@@ -143,7 +143,7 @@ class Proc(Model):
 
     # Fetch
     s.fetch_interface = FetchInterface()
-    s.fetch = Fetch(s.fetch_interface, MemMsg, 1)
+    s.fetch = Fetch(s.fetch_interface, MemMsg, 0)
     s.connect_m(s.mb_recv_0, s.fetch.mem_recv)
     s.connect_m(s.mb_send_0, s.fetch.mem_send)
     s.connect_m(s.cflow.check_redirect, s.fetch.check_redirect)
