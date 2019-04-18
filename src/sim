@@ -18,13 +18,12 @@ class Proc2MngrHandler():
         0x00030002: 'print_string',
     }
 
-  def handle(msg, proc2mngr_data, curr):
+  def handle(s, msg, proc2mngr_data, curr):
     msg = int(msg)
 
     if s.mode is None:
       s.string_accum = ''
       s.mode = s.modes[msg]
-      print('mode change to: {}'.format(s.mode))
     elif s.mode == 'exit':
       # Exit with the given status
       return ('exit', msg)
@@ -35,8 +34,14 @@ class Proc2MngrHandler():
         s.mode = None
       else:
         s.string_accum += chr(msg)
+    elif s.mode == 'print_int':
+      print(msg)
+      s.mode = None
+    elif s.mode == 'print_char':
+      print(chr(msg), end='')
+      s.mode = None
     else:
-      raise ValueError('mode: {} is not supported')
+      raise ValueError('mode: {} is not supported'.format(s.mode))
 
 def main():
   p = argparse.ArgumentParser( add_help=False )

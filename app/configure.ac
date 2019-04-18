@@ -50,11 +50,11 @@ AC_SUBST([CFLAGS],["-Wall -g -O3"])
 
 # Check for C++ compiler and set default C++ compiler flags
 AC_PROG_CXX
-AS_IF([ test "${host}" != "riscv32-unknown-elf" ],
+AS_IF([ test "${host}" != "riscv64-unknown-elf" ],
   [
     AC_SUBST([CXXFLAGS],["-Wall -g -O3"])
   ],[
-    AC_SUBST([CXXFLAGS],["-Wall -g -D_RISCV -fno-builtin -fno-exceptions -fno-rtti -O3 -march=RV32IMXcustom"])
+    AC_SUBST([CXXFLAGS],["-Wall -g -D_RISCV -fno-builtin -fno-exceptions -fno-rtti -O3 -march=rv64im"])
     AC_SUBST([LDFLAGS], ["-nostdlib -T../scripts/tinyrv2.ld"])
   ])
 
