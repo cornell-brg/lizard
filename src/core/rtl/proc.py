@@ -133,7 +133,7 @@ class Proc(Model):
     s.connect_m(s.redirect_notifier.check_redirect, s.cflow.check_redirect)
 
     # CSR
-    s.csr_interface = CSRManagerInterface(1, 3)
+    s.csr_interface = CSRManagerInterface(3, 5)
     s.csr = CSRManager(s.csr_interface)
     s.connect_m(s.db_recv, s.csr.debug_recv)
     s.connect_m(s.db_send, s.csr.debug_send)
@@ -143,7 +143,7 @@ class Proc(Model):
 
     # Fetch
     s.fetch_interface = FetchInterface()
-    s.fetch = Fetch(s.fetch_interface, MemMsg, 0)
+    s.fetch = Fetch(s.fetch_interface, MemMsg, ENABLE_BTB)
     s.connect_m(s.mb_recv_0, s.fetch.mem_recv)
     s.connect_m(s.mb_send_0, s.fetch.mem_send)
     s.connect_m(s.cflow.check_redirect, s.fetch.check_redirect)

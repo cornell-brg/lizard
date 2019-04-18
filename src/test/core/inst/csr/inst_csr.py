@@ -153,33 +153,21 @@ def gen_random_test():
   return asm_code
 
 
-#-------------------------------------------------------------------------
-# num_cores and core_id tests; turn on -s to see stats_on/off trace
-#-------------------------------------------------------------------------
-
-
-# TODO skip this
-#def gen_core_stats_test():
-def foo():
+def various_csrs_test():
   return """
 
-    # Turn on stats here
-    addi x1, x0, 1
-    csrw stats_en, x1
+    csrw minstret, x0
+    add x0, x0, x0
+    add x0, x0, x0
+    add x0, x0, x0
+    csrr x1, minstret
+    csrw proc2mngr, x1 > 4
 
-    # Check numcores/coreid
-    csrr x2, numcores
+    csrw mcycle, x0
+    csrr x1, mcycle
+    beq x1, x0, fail
+    addi x2, x0, 1
     csrw proc2mngr, x2 > 1
-    csrr x2, coreid
-    csrw proc2mngr, x2 > 0
-
-    # Turn off stats here
-    csrw stats_en, x0
-    nop
-    nop
-    addi x1, x0, 1
-    csrw proc2mngr, x1 > 1
-    nop
-    nop
-    nop
+  fail:
+    csrw proc2mngr, x2
   """
