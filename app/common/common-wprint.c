@@ -20,7 +20,7 @@ void wprintf(const wchar_t* fmt...) {
     if (*fmt == '%') {
       flag = 1;
     } else if (flag && (*fmt == 'd')) {
-      wprint(va_arg(args, int));
+      wprinti(va_arg(args, int));
       flag = 0;
     } else if (flag && (*fmt == 'C')) {
       // note automatic conversion to integral type

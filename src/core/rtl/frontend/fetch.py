@@ -169,7 +169,8 @@ class Fetch(Model):
     s.connect(s.mem_send_call, s.advance_f0)
 
   def line_trace(s):
+    pc = s.pc.read_data.hex()[2:]
     if s.advance_f1:
-      return '*'
+      return pc
     else:
-      return ' '
+      return ' ' * len(pc)

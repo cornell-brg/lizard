@@ -2,12 +2,14 @@
 
 from __future__ import print_function
 import argparse
-from pymtl      import *
+from pymtl import *
 from test.core.proc_rtl.proc_harness_rtl import run_mem_image
 from util import elf
 import sys
 
+
 class Proc2MngrHandler():
+
   def __init__(s):
     s.mode = None
     s.modes = {
@@ -17,6 +19,7 @@ class Proc2MngrHandler():
         0x00030000: 'print_int',
         0x00030001: 'print_char',
         0x00030002: 'print_string',
+        0x00030003: 'print_hex',
     }
 
   def handle(s, msg, proc2mngr_data, curr):
@@ -41,31 +44,37 @@ class Proc2MngrHandler():
     elif s.mode == 'print_char':
       print(chr(msg), end='')
       s.mode = None
+    elif s.mode == 'print_hex':
+      print(hex(msg))
+      s.mode = None
     else:
       raise ValueError('mode: {} is not supported'.format(s.mode))
 
+
 def main():
-  p = argparse.ArgumentParser( add_help=False )
-  p.add_argument( '--trace', action='store_true')
-  p.add_argument( '--vcd', action='store_true')
-  p.add_argument( '--verilate', action='store_true')
-  p.add_argument( '--maxcycles',    default=200000, type=int )
-  p.add_argument( 'elf_file' )
+  p = argparse.ArgumentParser(add_help=False)
+  p.add_argument('--trace', action='store_true')
+  p.add_argument('--vcd', action='store_true')
+  p.add_argument('--verilate', action='store_true')
+  p.add_argument('--maxcycles', default=200000, type=int)
+  p.add_argument('elf_file')
   opts = p.parse_args()
 
-  with open(opts.elf_file,'rb') as ef:
+  with open(opts.elf_file, 'rb') as ef:
     mem_image = elf.elf_reader(ef, True)
 
   if opts.vcd:
-    elf_file_basename = os.path.basename( opts.elf_file )
+    elf_file_basename = os.path.basename(opts.elf_file)
     verilate_name = 'verilate' if opts.verilate else 'sim'
-    name = '{}-{}.vcd'.format( elf_file_basename, verilate_name )
+    name = '{}-{}.vcd'.format(elf_file_basename, verilate_name)
   else:
     name = ''
 
   handler = Proc2MngrHandler()
-  result = run_mem_image(mem_image, opts.verilate, name, opts.maxcycles, handler.handle, opts.trace)
+  result = run_mem_image(mem_image, opts.verilate, name, opts.maxcycles,
+                         handler.handle, opts.trace)
   sys.exit(result)
+
 
 if __name__ == '__main__':
   main()
