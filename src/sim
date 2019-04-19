@@ -6,6 +6,7 @@ from pymtl import *
 from test.core.proc_rtl.proc_harness_rtl import run_mem_image
 from util import elf
 import sys
+import os
 
 
 class Proc2MngrHandler():
