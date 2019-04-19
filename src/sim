@@ -5,6 +5,7 @@ import argparse
 from pymtl      import *
 from test.core.proc_rtl.proc_harness_rtl import run_mem_image
 from util import elf
+import sys
 
 class Proc2MngrHandler():
   def __init__(s):
@@ -26,7 +27,7 @@ class Proc2MngrHandler():
       s.mode = s.modes[msg]
     elif s.mode == 'exit':
       # Exit with the given status
-      return ('exit', msg)
+      return msg
     elif s.mode == 'print_string':
       # Null terminated string, print
       if msg == 0:
@@ -63,7 +64,8 @@ def main():
     name = ''
 
   handler = Proc2MngrHandler()
-  run_mem_image(mem_image, opts.verilate, name, opts.maxcycles, handler.handle, opts.trace)
+  result = run_mem_image(mem_image, opts.verilate, name, opts.maxcycles, handler.handle, opts.trace)
+  sys.exit(result)
 
 if __name__ == '__main__':
   main()

@@ -55,7 +55,7 @@ AS_IF([ test "${host}" != "riscv64-unknown-elf" ],
     AC_SUBST([CXXFLAGS],["-Wall -g -O3"])
   ],[
     AC_SUBST([CXXFLAGS],["-Wall -g -D_RISCV -fno-builtin -fno-exceptions -fno-rtti -O3 -march=rv64im"])
-    AC_SUBST([LDFLAGS], ["-Wl,--section-start,.start=0x200,--section-start,.exception_handler=0x0"])
+    AC_SUBST([LDFLAGS], ["-nostdlib -lc -T../scripts/link.ld"])
   ])
 
 
