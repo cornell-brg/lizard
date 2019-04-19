@@ -5,13 +5,15 @@
 
 #define PROC2MNGR_CSR "0x7C0"
 #define MNGR2PROC_CSR "0xFC0"
+#define MEPC_CSR "0x341"
+#define MCAUSE_CSR "0x342"
+#define MTVAL_CSR "0x343"
+#define MTVEC_CSR "0x305"
 
 #define CSRW(CSR, VALUE) asm("csrw " CSR ", %[rs1]\n" : : [rs1] "r"(VALUE))
 #define CSRR(CSR, OUTPUT) asm("csrr %[rd]," CSR "\n" : [rd] "=r"(OUTPUT));
 
-inline void proc2mngr(uint64_t x) {
-  CSRW(PROC2MNGR_CSR, x);
-}
+inline void proc2mngr(uint64_t x) { CSRW(PROC2MNGR_CSR, x); }
 
 inline uint64_t mngr2proc() {
   uint64_t result;

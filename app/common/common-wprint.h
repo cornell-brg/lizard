@@ -19,6 +19,8 @@
 #ifndef COMMON_WPRINT_H
 #define COMMON_WPRINT_H
 
+#include <stdint.h>
+
 #ifndef _RISCV
 #include <wchar.h>
 #endif
@@ -30,13 +32,27 @@
 
 #ifdef _RISCV
 
-inline void wprint(int i) {
+inline void wprinti(uint64_t i) {
   asm("csrw 0x7C0, %0" ::"r"(0x00030000));
   asm("csrw 0x7C0, %0" ::"r"(i));
 }
 #else
 
-inline void wprint(int i) { wprintf(L"%d", i); }
+inline void wprinti(uint64_t i) { wprintf(L"%d", i); }
+
+#endif
+
+// Print a single integer to the terminal in hex format.
+
+#ifdef _RISCV
+
+inline void wprinth(uint64_t i) {
+  asm("csrw 0x7C0, %0" ::"r"(0x00030003));
+  asm("csrw 0x7C0, %0" ::"r"(i));
+}
+#else
+
+inline void wprinth(uint64_t i) { wprintf(L"%d", i); }
 
 #endif
 
