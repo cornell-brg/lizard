@@ -24,6 +24,7 @@ common_install_prog_srcs = \
 ifeq ($(riscv_crosscompile),yes)
 
 common_srcs += \
-  crt0.S
+	runtime_start.c \
+  crt0.S \
 
 endif

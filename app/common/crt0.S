@@ -16,8 +16,6 @@
 # What I'm doing here is that I grabbed the sp init from proc-sim-elf
 # and add it to this crt0.S.
 #
-# TODO: add an argument _sp to tinyrv2.ld
-#
 # Author : Shunning Jiang
 # Date   : Sep 22, 2016
 
@@ -32,11 +30,11 @@ _start:
   # Initialize stack pointer to 0xffffc
   lui   sp, 256
   addi  sp, sp, -4
-  
+
   # clear the bss segment
   la      t0, _fbss
   la      t1, _end
 
-  call    main
+  call    _runtime_start
 1:
   beq     zero, zero, 1b
