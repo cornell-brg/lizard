@@ -256,10 +256,20 @@ class Commit(Model):
     s.connect(s.write_csr_csr[4], int(CsrRegisters.minstret))
     s.connect(s.write_csr_call[4], s.rob_remove)
 
+    # PYMTL_BROKEN
+    # These are the only parts of the write_csr_value which are hooked up in a
+    # combinational block, while all other write_csr_value
+    # ports are set using a connect. But that causes a double assign in verilog.
+    s.temp_mcycle_pymtl_broken = Wire(XLEN)
+    s.temp_minstret_pymtl_broken = Wire(XLEN)
+
     @s.combinational
     def handle_mcycle_minstret():
-      s.write_csr_value[3].v = s.read_csr_value[1] + 1
-      s.write_csr_value[4].v = s.read_csr_value[2] + 1
+      s.temp_mcycle_pymtl_broken.v = s.read_csr_value[1] + 1
+      s.temp_minstret_pymtl_broken.v = s.read_csr_value[2] + 1
+
+    s.connect(s.write_csr_value[3], s.temp_mcycle_pymtl_broken)
+    s.connect(s.write_csr_value[4], s.temp_minstret_pymtl_broken)
 
   def line_trace(s):
     if s.in_take_call:
