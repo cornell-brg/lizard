@@ -67,13 +67,10 @@ class PipelineWrapper(Model):
     s.KillData = s.input_adapter.interface.KillData
     s.KillArgType = s.interface.KillArgType
 
-    s.ValidValueManager = gen_valid_value_manager(DropController)
+    # Generate tracking ValidValueManagers which do not drop packets
+    # but rather mark them with a dead flag
+    s.ValidValueManager = gen_valid_value_manager(DropController, tracking=True)
     s.vvms = [s.ValidValueManager() for _ in range(nstages)]
-    s.present = [
-        Register(RegisterInterface(Bits(1), enable=True), reset_value=0)
-        for _ in range(nstages)
-    ]
-    s.advance = [Wire(1) for _ in range(nstages)]
 
     # Require the methods of an incoming pipeline stage
     # Name the methods in_peek, in_take
@@ -88,36 +85,20 @@ class PipelineWrapper(Model):
               s.input_adapter.split_internal_in)
     s.connect(s.in_take_call, s.internal_pipeline.in_take_call)
 
-    @s.combinational
-    def handle_advance_0():
-      s.advance[0].v = s.internal_pipeline.in_take_call
-
-    for i in range(1, nstages - 1):
-
-      @s.combinational
-      def handle_advance_i(i=i, j=i + 1):
-        s.advance[i].v = not s.present[j].read_data or s.advance[j]
-
-    @s.combinational
-    def handle_advance_last(i=nstages - 1):
-      # The last stage advances if someone is taking something, or it was killed
-      # so we are draining it
-      s.advance[i].v = s.take_call or not s.vvms[i].peek_rdy
-
+    s.connect(s.vvms[0].add_call, s.internal_pipeline.in_take_call)
     s.connect(s.vvms[0].add_msg, s.input_adapter.split_kill_data)
-    s.connect(s.present[0].write_data, s.advance[0])
+    s.connect(s.vvms[0].add_dead, 0)
 
     for i in range(1, nstages):
       s.connect(s.vvms[i].add_msg, s.vvms[i - 1].peek_msg)
-      s.connect(s.vvms[i - 1].take_call, s.advance[i])
+      s.connect(s.vvms[i].add_dead, s.vvms[i - 1].peek_dead)
 
       @s.combinational
-      def handle_shift_data(i=i, j=i - 1):
-        s.present[i].write_data.v = s.present[j].read_data
+      def handle_shift(i=i, j=i - 1):
+        s.vvms[j].take_call.v = s.vvms[j].peek_rdy and s.vvms[i].add_rdy
+        s.vvms[i].add_call.v = s.vvms[j].take_call
 
     for i in range(nstages):
-      s.connect(s.vvms[i].add_call, s.advance[i])
-      s.connect(s.present[i].write_call, s.advance[i])
       s.connect_m(s.vvms[i].kill_notify, s.kill_notify)
 
     s.connect(s.output_adapter.fuse_internal_out, s.internal_pipeline.peek_msg)
@@ -126,18 +107,22 @@ class PipelineWrapper(Model):
 
     @s.combinational
     def handle_output_peek_take(i=nstages - 1):
-      if s.internal_pipeline.peek_rdy:
+      # If we have something at the end of both pipeline
+      if s.internal_pipeline.peek_rdy and s.vvms[i].peek_rdy:
         # If the thing has not been killed
-        if s.vvms[i].peek_rdy:
+        if not s.vvms[i].peek_dead:
           s.peek_rdy.v = 1
           s.internal_pipeline.take_call.v = s.take_call
+          s.vvms[i].take_call.v = s.take_call
         else:
           s.peek_rdy.v = 0
           # Eat the message from the internal pipeline
           s.internal_pipeline.take_call.v = 1
+          s.vvms[i].take_call.v = 1
       else:
         s.peek_rdy.v = 0
         s.internal_pipeline.take_call.v = 0
+        s.vvms[i].take_call.v = 0
 
   def line_trace(s):
     return s.internal_pipeline.line_trace()
