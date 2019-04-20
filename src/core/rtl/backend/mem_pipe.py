@@ -177,7 +177,7 @@ class MemResponseStage(Model):
 
     @s.combinational
     def compute_receiving_load():
-      s.receiving_load.v = s.can_accept and s.response_needed
+      s.receiving_load.v = s.process_call and s.response_needed
 
     s.connect(s.recv_load_call, s.receiving_load)
 
