@@ -172,16 +172,19 @@ class MulPipelined(Model):
     ]
     if s.interface.KeepUpper:
       s.vals_ = [
-          Register(RegisterInterface(m + k * (i + 1), enable=True))
+          # nbits = m + k * (i + 1)
+          Register(RegisterInterface(2*m, enable=True))
           for i in range(nstages)
       ]
       s.units_ = [
           MulCombinational(
-              MulCombinationalInterface(m + k * i, k, m + k * (i + 1)), use_mul)
+              # input nbits = m,k, output = k+m
+              MulCombinationalInterface(m, k, 2*m), use_mul)
           for i in range(nstages)
       ]
       s.src2_ = [
-          Register(RegisterInterface(m - k * i, enable=True))
+          # nbits = m - k * i
+          Register(RegisterInterface(m, enable=True))
           for i in range(nstages - 1)
       ]
     else:
@@ -225,7 +228,7 @@ class MulPipelined(Model):
 
     for i in range(nstages):
       s.connect(s.vals_[i].write_call, s.exec_[i])
-      s.connect(s.units_[i].mult_call, s.valids_[i].read_data)
+      s.connect(s.units_[i].mult_call, s.exec_[i])
       # Last stage does not have these
       if i < nstages - 1:
         s.connect(s.src1_[i].write_call, s.exec_[i])
@@ -247,7 +250,7 @@ class MulPipelined(Model):
                                                  s.mult_signed) else s.mult_src2
 
     @s.combinational
-    def connect_units():
+    def connect_unit0():
       s.units_[0].mult_src1.v = s.src1_usign_
       s.units_[0].mult_src2.v = s.src2_usign_[:k]
       for i in range(1, nstages):
@@ -306,7 +309,6 @@ class MulPipelined(Model):
         s.signs_[0].write_data.v = s.sign_in_
 
       for i in range(1, nstages - 1):
-
         @s.combinational
         def connect_stage(i=i):
           s.vals_[i].write_data.v = s.vals_[i - 1].read_data + (
@@ -315,15 +317,15 @@ class MulPipelined(Model):
           s.src2_[i].write_data.v = s.src2_[i - 1].read_data >> k
           s.signs_[i].write_data.v = s.signs_[i - 1].read_data
 
-        @s.combinational
-        def connect_last_stage():
-          if s.sign_out_:
-            s.vals_[last].write_data.v = ~(s.vals_[last - 1].read_data +
-                                           (s.units_[last].mult_res <<
-                                            (k * last))) + 1
-          else:
-            s.vals_[last].write_data.v = s.vals_[last - 1].read_data + (
-                s.units_[last].mult_res << (k * last))
+      @s.combinational
+      def connect_last_stage():
+        if s.sign_out_:
+          s.vals_[last].write_data.v = ~(s.vals_[last - 1].read_data +
+                                         (s.units_[last].mult_res <<
+                                          (k * last))) + 1
+        else:
+          s.vals_[last].write_data.v = s.vals_[last - 1].read_data + (
+              s.units_[last].mult_res << (k * last))
 
 
 class MulCombinationalInterface(Interface):
@@ -356,34 +358,42 @@ class MulCombinational(Model):
     assert s.interface.MultiplierLen >= s.interface.MultiplicandLen
 
     plen = s.interface.ProductLen
-
-    s.src1_ = Wire(s.interface.ProductLen)
-    s.tmp_ = Wire(s.interface.MultiplierLen + s.interface.MultiplicandLen)
-
-    if plen >= s.interface.MultiplierLen:
-
-      @s.combinational
-      def src1_zext():
-        s.src1_.v = zext(s.mult_src1, plen)
-    else:
-
-      @s.combinational
-      def src1_truncate():
-        s.src1_.v = s.mult_src1[:plen]
+    res_len = s.interface.MultiplierLen + s.interface.MultiplicandLen
+    s.tmp_res = Wire(res_len)
 
     if not use_mul:
+      s.src1_ = Wire(plen)
+      s.tmps_ = [Wire(res_len) for _ in range(s.interface.MultiplicandLen+1)]
+      if plen >= s.interface.MultiplierLen:
 
-      @s.combinational
-      def eval():
-        s.tmp_.v = 0
-        for i in range(s.interface.MultiplicandLen):
-          if s.mult_src2[i] and s.mult_call:
-            s.tmp_.v += s.src1_ << i
+        @s.combinational
+        def src1_zext():
+          s.src1_.v = s.mult_src1
+      else:
 
-        s.mult_res.v = s.tmp_[:plen]
+        @s.combinational
+        def src1_truncate():
+          s.src1_.v = s.mult_src1[:plen]
+
+      s.connect(s.tmps_[0], 0)
+      s.connect_wire(s.tmp_res, s.tmps_[s.interface.MultiplicandLen])
+      for i in range(1, s.interface.MultiplicandLen+1):
+        @s.combinational
+        def eval(i=i):
+          s.tmps_[i].v = s.tmps_[i-1]
+          if s.mult_call and s.mult_src2[i-1]:
+            s.tmps_[i].v = s.tmps_[i-1] + (s.src1_ << (i-1))
     else:
-
       @s.combinational
       def eval():
-        s.tmp_.v = (s.mult_src1 * s.mult_src2)
-        s.mult_res.v = s.tmp_[:plen]
+        s.tmp_res.v = (s.mult_src1 * s.mult_src2)
+
+    # Now we need to zext or truncate to productlen
+    if plen > res_len:
+      @s.combinational
+      def zext_prod():
+        s.mult_res.v = zext(s.tmp_res, plen)
+    else:
+      @s.combinational
+      def trunc_prod():
+        s.mult_res.v = s.tmp_res[:plen]
