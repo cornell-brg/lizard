@@ -13,6 +13,8 @@ def test_translation():
   run_model_translation(MulRetimedPipelined(iface, 4))
   run_model_translation(MulPipelined(iface, 4, True))
   run_model_translation(MulPipelined(iface, 4, False))
+
+
 #
 #
 # # Create a single instance of an issue slot
@@ -103,7 +105,7 @@ def test_fail3():
 
   dut.reset()
 
-  peek_tk_mult_cycle(None, (0,2,1))
+  peek_tk_mult_cycle(None, (0, 2, 1))
   dut.cycle()
   dut.cycle()
   dut.cycle()
@@ -115,7 +117,6 @@ def test_fail3():
   # peek_tk_mult_cycle(0, None)
   assert dut.peek().res == 2
   #peek_tk_mult_cycle(2, None)
-
 
 
 def test_state_machine():
