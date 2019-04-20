@@ -55,7 +55,7 @@ class MultInternal(Model):
     s.connect(s.multiplier.mult_src1, s.in_peek_msg.a)
     s.connect(s.multiplier.mult_src2, s.in_peek_msg.b)
     # TODO fix this
-    s.connect(s.multiplier.mult_signed, 0)
+    s.connect(s.multiplier.mult_signed, 1)
     s.connect(s.multiplier.mult_call, s.in_take_call)
 
     @s.combinational
