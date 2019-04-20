@@ -39,8 +39,8 @@ class MultInternal(Model):
         m.variant(name='in_{}'.format(m.name))
         for m in PipelineStageInterface(MultIn(), None).methods.values()
     ])
-    # s.multiplier = MulPipelined(MulPipelinedInterface(XLEN, keep_upper=True),
-    #                                            nstages=num_stages, use_mul=True)
+    s.multiplier = MulPipelined(MulPipelinedInterface(XLEN, keep_upper=True),
+                                               nstages=num_stages, use_mul=True)
     # # TODO: AARON
     # # You have:
     # # in_peek (rdy, msg), where msg is MultIn
@@ -50,19 +50,20 @@ class MultInternal(Model):
     # # DO YOUR THING!
     #
     # # Connect input method
-    # s.connect(s.multiplier.mult_src1, s.in_peek_msg.a)
-    # s.connect(s.multiplier.mult_src2, s.in_peek_msg.b)
-    # # TODO fix this
-    # s.connect(s.multiplier.mult_signed, 0)
-    #
-    # @s.combinational
-    # def set_in_take_call():
-    #   s.in_take_call.v = s.multiplier.mult_rdy and s.in_peek_rdy
-    #
-    # # Connect output
-    # s.connect(s.multiplier.take_call, s.take_call)
-    # s.connect(s.peek_rdy, s.multiplier.peek_rdy)
-    # s.connect(s.peek_msg, s.multiplier.peek_res)
+    s.connect(s.multiplier.mult_src1, s.in_peek_msg.a)
+    s.connect(s.multiplier.mult_src2, s.in_peek_msg.b)
+    # TODO fix this
+    s.connect(s.multiplier.mult_signed, 0)
+    s.connect(s.multiplier.mult_call, s.in_take_call)
+
+    @s.combinational
+    def set_in_take_call():
+      s.in_take_call.v = s.multiplier.mult_rdy and s.in_peek_rdy
+
+    # Connect output
+    s.connect(s.multiplier.take_call, s.take_call)
+    s.connect(s.peek_rdy, s.multiplier.peek_rdy)
+    s.connect(s.peek_msg, s.multiplier.peek_res)
 
 
 def MultInputPipelineAdapterInterface():
