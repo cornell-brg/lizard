@@ -131,6 +131,9 @@ class ALUStage(Model):
       s.process_out.rd.v = s.msg_.rd
       s.process_out.rd_val.v = s.msg_.rd_val
 
+  def line_trace(s):
+    return s.process_in_.hdr_seq.hex()[2:]
+
 
 def ALUDropController():
   return PipelineKillDropController(

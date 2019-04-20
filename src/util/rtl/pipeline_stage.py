@@ -356,12 +356,16 @@ def gen_stage(stage_class, drop_controller_class=None):
       s.wrap(s.stage)
 
     def line_trace(s):
-      if s.pipeline_stage.advance:
-        return '*'
+      internal_trace = s.stage.line_trace()
+      empty = ' ' * len(internal_trace)
+      if s.pipeline_stage.taking:
+        trace = '* {}'.format(internal_trace)
       elif not s.pipeline_stage.output_clear:
-        return '#'
+        trace = '# {}'.format(s.last_internal_trace)
       else:
-        return ' '
+        trace = '  {}'.format(empty)
+      s.last_internal_trace = internal_trace
+      return trace
 
   Pipelined.__name__ = name
   return Pipelined

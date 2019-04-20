@@ -16,6 +16,7 @@ from core.rtl.frontend.m_decoder import MDecoder
 from core.rtl.frontend.system_decoder import SystemDecoder
 from config.general import *
 from util.rtl.pipeline_stage import gen_stage, StageInterface, DropControllerInterface
+from util.arch import rv64g
 
 ComposedDecoder = compose_decoders(AluDecoder, CsrDecoder, BranchDecoder,
                                    JumpDecoder, MemDecoder, MDecoder,
@@ -68,6 +69,9 @@ class DecodeStage(Model):
           s.process_out.exception_info_mtval.v = zext(s.process_in_.inst, XLEN)
       else:
         s.process_out.exception_info.v = s.process_in_.exception_info
+
+  def line_trace(s):
+    return '{:<25}'.format(rv64g.isa.disassemble_inst(s.process_in_.inst))
 
 
 RedirectDropControllerInterface = DropControllerInterface

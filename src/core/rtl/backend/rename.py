@@ -140,6 +140,9 @@ class RenameStage(Model):
 
     s.connect(s.accepted_, s.register_success)
 
+  def line_trace(s):
+    return s.register_seq.hex()[2:]
+
 
 def RenameDropController():
   return PipelineKillDropController(
