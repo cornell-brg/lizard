@@ -104,7 +104,7 @@ def test_proc2mngr_handler(received_msg, proc2mngr_data, curr):
 
 def mem_image_test(mem_image, translate, vcd_file, max_cycles=200000):
   run_mem_image(mem_image, translate, vcd_file, max_cycles,
-                test_proc2mngr_handler)
+                test_proc2mngr_handler, True)
 
 
 def asm_test(asm, translate, vcd_file, max_cycles=200000):
