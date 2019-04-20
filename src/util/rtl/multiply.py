@@ -173,14 +173,14 @@ class MulPipelined(Model):
     if s.interface.KeepUpper:
       s.vals_ = [
           # nbits = m + k * (i + 1)
-          Register(RegisterInterface(2*m, enable=True))
+          Register(RegisterInterface(2 * m, enable=True))
           for i in range(nstages)
       ]
       s.units_ = [
           MulCombinational(
               # input nbits = m,k, output = k+m
-              MulCombinationalInterface(m, k, 2*m), use_mul)
-          for i in range(nstages)
+              MulCombinationalInterface(m, k, 2 * m),
+              use_mul) for i in range(nstages)
       ]
       s.src2_ = [
           # nbits = m - k * i
@@ -309,6 +309,7 @@ class MulPipelined(Model):
         s.signs_[0].write_data.v = s.sign_in_
 
       for i in range(1, nstages - 1):
+
         @s.combinational
         def connect_stage(i=i):
           s.vals_[i].write_data.v = s.vals_[i - 1].read_data + (
@@ -363,7 +364,7 @@ class MulCombinational(Model):
 
     if not use_mul:
       s.src1_ = Wire(plen)
-      s.tmps_ = [Wire(res_len) for _ in range(s.interface.MultiplicandLen+1)]
+      s.tmps_ = [Wire(res_len) for _ in range(s.interface.MultiplicandLen + 1)]
       if plen >= s.interface.MultiplierLen:
 
         @s.combinational
@@ -377,23 +378,27 @@ class MulCombinational(Model):
 
       s.connect(s.tmps_[0], 0)
       s.connect_wire(s.tmp_res, s.tmps_[s.interface.MultiplicandLen])
-      for i in range(1, s.interface.MultiplicandLen+1):
+      for i in range(1, s.interface.MultiplicandLen + 1):
+
         @s.combinational
         def eval(i=i):
-          s.tmps_[i].v = s.tmps_[i-1]
-          if s.mult_call and s.mult_src2[i-1]:
-            s.tmps_[i].v = s.tmps_[i-1] + (s.src1_ << (i-1))
+          s.tmps_[i].v = s.tmps_[i - 1]
+          if s.mult_call and s.mult_src2[i - 1]:
+            s.tmps_[i].v = s.tmps_[i - 1] + (s.src1_ << (i - 1))
     else:
+
       @s.combinational
       def eval():
         s.tmp_res.v = (s.mult_src1 * s.mult_src2)
 
     # Now we need to zext or truncate to productlen
     if plen > res_len:
+
       @s.combinational
       def zext_prod():
         s.mult_res.v = zext(s.tmp_res, plen)
     else:
+
       @s.combinational
       def trunc_prod():
         s.mult_res.v = s.tmp_res[:plen]

@@ -39,8 +39,10 @@ class MultInternal(Model):
         m.variant(name='in_{}'.format(m.name))
         for m in PipelineStageInterface(MultIn(), None).methods.values()
     ])
-    s.multiplier = MulPipelined(MulPipelinedInterface(XLEN, keep_upper=True),
-                                               nstages=num_stages, use_mul=True)
+    s.multiplier = MulPipelined(
+        MulPipelinedInterface(XLEN, keep_upper=True),
+        nstages=num_stages,
+        use_mul=True)
     # # TODO: AARON
     # # You have:
     # # in_peek (rdy, msg), where msg is MultIn
