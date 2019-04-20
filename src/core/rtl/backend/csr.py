@@ -88,6 +88,9 @@ class CSRStage(Model):
         else:
           s.process_out.exception_info.v = s.process_in_.exception_info
 
+  def line_trace(s):
+    return s.process_in_.hdr_seq.hex()[2:]
+
 
 def CSRDropController():
   return PipelineKillDropController(

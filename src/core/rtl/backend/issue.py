@@ -150,7 +150,16 @@ class Issue(Model):
       s.peek_msg.hdr_branch_mask.v = s.iq.remove_value.kill_opaque
 
   def line_trace(s):
-    if s.in_take_call:
-      return '*'
+    incoming = s.in_peek_msg.hdr_seq.hex()[2:]
+    if not s.in_take_call:
+      incoming = ' ' * len(incoming)
+    if s.take_call:
+      outgoing_status = '*'
+    elif s.peek_rdy:
+      outgoing_status = '#'
     else:
-      return ' '
+      outgoing_status = ' '
+    outgoing = s.peek_msg.hdr_seq.hex()[2:]
+    if not s.peek_rdy:
+      outgoing = ' ' * len(outgoing)
+    return '{} : {} {}'.format(incoming, outgoing_status, outgoing)

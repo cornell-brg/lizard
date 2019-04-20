@@ -272,7 +272,10 @@ class Commit(Model):
     s.connect(s.write_csr_value[4], s.temp_minstret_pymtl_broken)
 
   def line_trace(s):
-    if s.in_take_call:
-      return '*'
-    else:
-      return ' '
+    incoming = s.in_peek_msg.hdr_seq.hex()[2:]
+    if not s.in_take_call:
+      incoming = ' ' * len(incoming)
+    outgoing = s.rob.free_value.hdr_seq.hex()[2:]
+    if not s.rob_remove:
+      outgoing = ' ' * len(outgoing)
+    return '{} : {}'.format(incoming, outgoing)

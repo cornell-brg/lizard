@@ -330,10 +330,12 @@ class Proc(Model):
             line_block.join(['C', Divider(': '),
                              s.csr_pipe.line_trace()]).normalized().blocks +
             line_block.join([
-                'M',
+                'm',
                 Divider(': '),
                 s.mem.line_trace(),
-            ]).normalized().blocks),
+            ]).normalized().blocks +
+            line_block.join(['M', Divider(': '),
+                             s.m_pipe.line_trace()]).normalized().blocks),
         Divider(' | '),
         s.writeback.line_trace(),
         Divider(' | '),

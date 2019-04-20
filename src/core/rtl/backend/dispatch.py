@@ -63,6 +63,9 @@ class DispatchStage(Model):
         s.dispatched_.rd_val.v = s.process_in_.rd_val
         s.dispatched_.execution_data.v = s.process_in_.execution_data
 
+  def line_trace(s):
+    return s.process_in_.hdr_seq.hex()[2:]
+
 
 def DispatchDropController():
   return PipelineKillDropController(

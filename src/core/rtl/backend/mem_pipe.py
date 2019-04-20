@@ -7,6 +7,7 @@ from util.rtl.lookup_table import LookupTableInterface, LookupTable
 from util.rtl.pipeline_stage import gen_stage, StageInterface, DropControllerInterface, PipelineStageInterface
 from util.rtl.killable_pipeline_wrapper import InputPipelineAdapterInterface, OutputPipelineAdapterInterface, PipelineWrapper
 from util import line_block
+from util.line_block import Divider
 from core.rtl.controlflow import KillType
 from core.rtl.kill_unit import KillDropController, KillDropControllerInterface
 from config.general import *
@@ -137,6 +138,9 @@ class MemRequestStage(Model):
 
     s.connect(s.process_out, s.process_in_)
 
+  def line_trace(s):
+    return s.process_in_.hdr_seq.hex()[2:]
+
 
 def MemResponseInterface():
   return StageInterface(DispatchMsg(), ExecuteMsg())
@@ -220,6 +224,9 @@ class MemResponseStage(Model):
       s.process_out.result.v = s.result
       s.process_out.rd.v = s.process_in_.rd
       s.process_out.rd_val.v = s.process_in_.rd_val
+
+  def line_trace(s):
+    return s.process_in_.hdr_seq.hex()[2:]
 
 
 MemRequest = gen_stage(MemRequestStage)
@@ -312,9 +319,11 @@ class MemJoint(Model):
     s.connect_m(s.take, s.mem_response.take)
 
   def line_trace(s):
-    return line_block.join(
-        [s.mem_request.line_trace(),
-         s.mem_response.line_trace()])
+    return line_block.join([
+        s.mem_request.line_trace(),
+        Divider(' | '),
+        s.mem_response.line_trace()
+    ])
 
 
 def BranchMaskInputPipelineAdapterInterface(In):

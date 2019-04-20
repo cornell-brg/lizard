@@ -128,6 +128,9 @@ class BranchStage(Model):
       s.btb_write_remove.v = not s.take_branch_
       s.btb_write_call.v = s.process_call
 
+  def line_trace(s):
+    return s.process_in_.hdr_seq.hex()[2:]
+
 
 def BranchDropController():
   return PipelineKillDropController(
