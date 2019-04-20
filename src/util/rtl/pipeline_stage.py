@@ -108,10 +108,11 @@ class NullDropController(Model):
 
 class ValidValueManagerInterface(Interface):
 
-  def __init__(s, DataIn, DataOut, KillArgType):
+  def __init__(s, DataIn, DataOut, KillArgType, tracking=False):
     s.DataIn = DataIn
     s.DataOut = DataOut
     s.KillArgType = KillArgType
+    s.tracking = tracking
     if KillArgType is not None:
       first = [
           MethodSpec(
@@ -127,6 +128,11 @@ class ValidValueManagerInterface(Interface):
     else:
       first = []
 
+    def add_dead(spec):
+      if tracking:
+        spec['dead'] = Bits(1)
+      return spec
+
     methods = first + [
         MethodSpec(
             'dropping',
@@ -140,9 +146,9 @@ class ValidValueManagerInterface(Interface):
         MethodSpec(
             'peek',
             args=None,
-            rets={
+            rets=add_dead({
                 'msg': DataOut,
-            },
+            }),
             call=False,
             rdy=True,
         ),
@@ -155,9 +161,9 @@ class ValidValueManagerInterface(Interface):
         ),
         MethodSpec(
             'add',
-            args={
+            args=add_dead({
                 'msg': DataIn,
-            },
+            }),
             rets=None,
             call=True,
             rdy=True,
@@ -171,12 +177,16 @@ class ValidValueManager(Model):
 
   def __init__(s, interface):
     UseInterface(s, interface)
+    tracking = s.interface.tracking
+
     s.require(
         DropControllerInterface(s.interface.DataIn, s.interface.DataOut,
                                 s.interface.KillArgType)['check'])
 
     s.val_reg = Register(RegisterInterface(Bits(1)), reset_value=0)
     s.out_reg = Register(RegisterInterface(s.interface.DataIn))
+    if tracking:
+      s.dead_reg = Register(RegisterInterface(Bits(1)))
     s.output_rdy = Wire(1)
     s.output_clear = Wire(1)
 
@@ -185,11 +195,18 @@ class ValidValueManager(Model):
     s.connect(s.check_in_, s.out_reg.read_data)
     s.connect(s.peek_msg, s.check_out)
 
+    s.should_keep = Wire(1)
+    # If tracking we always keep it, but just mark it dead
+    if tracking:
+      s.connect(s.should_keep, 1)
+    else:
+      s.connect(s.should_keep, s.check_keep)
+
     @s.combinational
     def handle_rdy():
       if s.val_reg.read_data:
-        s.output_rdy.v = s.check_keep
-        s.dropping_out.v = not s.check_keep
+        s.output_rdy.v = s.should_keep
+        s.dropping_out.v = not s.should_keep
       else:
         s.output_rdy.v = 0
         s.dropping_out.v = 0
@@ -216,13 +233,28 @@ class ValidValueManager(Model):
       else:
         s.out_reg.write_data.v = s.check_out
 
+    if tracking:
 
-def gen_valid_value_manager(drop_controller_class):
+      @s.combinational
+      def handle_dead_reg():
+        # It is dead if it is already dead or we are not keeping it
+        s.peek_dead.v = s.dead_reg.read_data or not s.check_keep
+        if s.add_call:
+          s.dead_reg.write_data.v = s.add_dead
+        else:
+          s.dead_reg.write_data.v = s.peek_dead
+
+
+def gen_valid_value_manager(drop_controller_class, tracking=False):
   name = ''.join([
       '{}L{}'.format(len(class_.__name__), class_.__name__)
       for class_ in [drop_controller_class]
   ])
-  name = 'GenValidValueManager{}'.format(name)
+  if tracking:
+    basename = 'GenValidValueManagerTracking'
+  else:
+    basename = 'GenValidValueManager'
+  name = '{}{}'.format(basename, name)
 
   class Gen(Model):
 
@@ -230,14 +262,17 @@ def gen_valid_value_manager(drop_controller_class):
       s.drop_controller = drop_controller_class()
       UseInterface(
           s,
-          ValidValueManagerInterface(s.drop_controller.interface.In,
-                                     s.drop_controller.interface.Out,
-                                     s.drop_controller.interface.KillArgType))
+          ValidValueManagerInterface(
+              s.drop_controller.interface.In,
+              s.drop_controller.interface.Out,
+              s.drop_controller.interface.KillArgType,
+              tracking=tracking))
 
       s.manager = ValidValueManager(s.interface)
       s.connect_m(s.manager.check, s.drop_controller.check)
       if s.interface.KillArgType is not None:
         s.connect_m(s.manager.kill_notify, s.kill_notify)
+      s.connect_m(s.manager.dropping, s.dropping)
       s.connect_m(s.manager.peek, s.peek)
       s.connect_m(s.manager.take, s.take)
       s.connect_m(s.manager.add, s.add)
