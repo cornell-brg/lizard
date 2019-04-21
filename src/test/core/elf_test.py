@@ -24,18 +24,17 @@ def test_basic(tmpdir):
 
   for i in xrange(4):
 
-    section = SparseMemoryImage.Section()
-    section.name = section_names[random.randint(0, 1)]
-    section.addr = i * 0x00000200
+    name = section_names[random.randint(0, 1)]
+    addr = i * 0x00000200
 
     data_ints = [random.randint(0, 1000) for r in xrange(10)]
     data_bytes = bytearray()
     for data_int in data_ints:
       data_bytes.extend(struct.pack("<I", data_int))
 
-    section.data = data_bytes
+    data = data_bytes
 
-    mem_image.add_section(section)
+    mem_image.add_section(name, addr, data)
 
   # Write the sparse memory image to an ELF file
 
@@ -50,4 +49,10 @@ def test_basic(tmpdir):
 
   # Check that the original and new sparse memory images are equal
 
-  assert mem_image == mem_image_test
+  assert sorted(mem_image.sections.keys()) == sorted(
+      mem_image_test.sections.keys())
+  for key in mem_image.sections.keys():
+    expected = mem_image[key]
+    test = mem_image_test[key]
+    assert expected.addr == test.addr
+    assert expected.data == test.data

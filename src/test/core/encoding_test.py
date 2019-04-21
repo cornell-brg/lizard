@@ -37,7 +37,7 @@ def compare_str(str1, str2):
 def check(inst_str, inst_bits_ref, inst_str_ref):
 
   memory_image = rv64g.assembler.assemble(inst_str)
-  text = memory_image.get_section(".text").data
+  text = memory_image[".text"].data
 
   assert len(text) == ILEN_BYTES
   inst_bits = Bits(ILEN,

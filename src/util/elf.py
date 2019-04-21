@@ -636,7 +636,7 @@ def elf_writer(mem_image, file_obj):
 
   # Get the sections
 
-  sections = mem_image.get_sections()
+  sections = mem_image.sections
 
   ehdr = ElfHeader()
 
@@ -695,7 +695,7 @@ def elf_writer(mem_image, file_obj):
 
   # Write the "normal" section headers to the file
 
-  for section in sections:
+  for name, section in sections.iteritems():
 
     shdr = ElfSectionHeader()
     shdr.name = len(section_names)
@@ -711,7 +711,7 @@ def elf_writer(mem_image, file_obj):
 
     file_obj.write(shdr.to_bytes())
 
-    section_names += section.name + "\0"
+    section_names += name + "\0"
     section_offset += len(section.data)
 
   # Write the ".shstrtab" section header to the file
@@ -735,7 +735,7 @@ def elf_writer(mem_image, file_obj):
 
   # Write the section data for "normal" sections
 
-  for section in sections:
+  for section in sections.values():
     file_obj.write(section.data)
 
   # Write the data for the ".shstrtab" section
