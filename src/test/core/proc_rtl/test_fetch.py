@@ -6,22 +6,9 @@ from core.rtl.messages import FetchMsg
 from model.hardware_model import HardwareModel, Result
 from model.flmodel import FLModel
 from collections import deque
+from core.rtl.frontend.fetch import FetchInterface
 
-
-class TestFetchInterface(Interface):
-
-  def __init__(s):
-    super(TestFetchInterface, s).__init__([
-        MethodSpec(
-            'get',
-            args=None,
-            rets={
-                'msg': FetchMsg(),
-            },
-            call=True,
-            rdy=True,
-        )
-    ])
+TestFetchInterface = FetchInterface
 
 
 class TestFetchFL(FLModel):
@@ -33,9 +20,13 @@ class TestFetchFL(FLModel):
     s.state(fetch_msgs=deque(fetch_msgs))
 
     @s.ready_method
-    def get():
+    def peek():
       return len(s.fetch_msgs) != 0
 
     @s.model_method
-    def get():
-      return s.fetch_msgs.popleft()
+    def peek():
+      return s.fetch_msgs[0]
+
+    @s.model_method
+    def take():
+      s.fetch_msgs.popleft()

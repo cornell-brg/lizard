@@ -41,7 +41,7 @@ Add2Stage = gen_stage(Add2)
 class PipelinedCounter(Model):
 
   def __init__(s):
-    UseInterface(s, PipelineStageInterface(Bits(8)))
+    UseInterface(s, PipelineStageInterface(Bits(8), None))
 
     s.stage_0 = CounterStage()
     s.stage_1 = Add2Stage()

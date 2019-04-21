@@ -1,12 +1,11 @@
 from pymtl import *
 from test.config import test_verilog
-from util.test_utils import run_model_translation, run_test_vector_sim
 from model.test_model import run_test_state_machine
+from mem.rtl.memory_bus import MemMsg
+from core.rtl.dataflow import DataFlowManager, DataFlowManagerInterface
+from model.translate import translate
 
-# Import our proc core
-from core.rtl.dataflow import DataFlowManager
 
-
-# We instantiate and translate our processor
-def test_translate_dataflow():
-  run_model_translation(DataFlowManager(32, 64, 1, 2, 1), lint=True)
+def test_translate():
+  translate(
+      DataFlowManager(DataFlowManagerInterface(64, 32, 64, 4, 2, 2, 1, 4)))

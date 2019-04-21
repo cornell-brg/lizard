@@ -1,5 +1,4 @@
 from pymtl import *
-from core.rtl.controlflow import ControlFlowManagerInterface
 from model.hardware_model import HardwareModel, Result
 from model.flmodel import FLModel
 
@@ -7,9 +6,8 @@ from model.flmodel import FLModel
 class TestControlFlowManagerFL(FLModel):
 
   @HardwareModel.validate
-  def __init__(s, xlen, seq_idx_nbits, reset_vector):
-    super(TestControlFlowManagerFL, s).__init__(
-        ControlFlowManagerInterface(xlen, seq_idx_nbits))
+  def __init__(s, interface, reset_vector):
+    super(TestControlFlowManagerFL, s).__init__(interface)
 
     s.state(init=True, head=0)
 
@@ -22,15 +20,27 @@ class TestControlFlowManagerFL(FLModel):
         return Result(redirect=0, target=0)
 
     @s.model_method
-    def redirect(target):
+    def check_kill():
+      return 0
+
+    @s.model_method
+    def redirect(seq, spec_idx, branch_mask, target, force):
       pass
 
     @s.model_method
-    def register(speculative, pc, pc_succ):
+    def register(speculative, serialize, store, pc, pc_succ):
       ret = s.head
       s.head += 1
       return ret
 
     @s.ready_method
-    def register():
+    def get_head():
       return True
+
+    @s.model_method
+    def get_head():
+      return 0
+
+    @s.model_method
+    def commit(redirect_target, redirect):
+      pass

@@ -3,7 +3,7 @@ import inspect
 import hypothesis.strategies as st
 from pymtl import *
 from hypothesis.stateful import *
-from hypothesis import settings
+from hypothesis import settings, given
 from sets import Set
 from util.rtl.interface import Interface
 from util.rtl.types import Array
@@ -719,6 +719,8 @@ def run_parameterized_test_state_machine(rtl_class,
     arguments = {}
 
     init_args, _, _, default = inspect.getargspec(rtl_class.__init__)
+    if default is None:
+      default = []
     init_args = init_args[1:len(init_args) - len(default)]
     if set(init_args) - set(parameters.keys()):
       raise ValueError("""
