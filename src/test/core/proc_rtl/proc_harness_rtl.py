@@ -16,7 +16,12 @@ from util.line_block import Divider, LineBlock
 
 class ProcTestHarness(Model):
 
-  def __init__(s, initial_mem, mngr2proc_msgs, translate, vcd_file):
+  def __init__(s,
+               initial_mem,
+               mngr2proc_msgs,
+               translate,
+               vcd_file,
+               use_cached_verilated=False):
     s.mbi = MemoryBusInterface(2, 1, 2, 64, 8)
     s.tmb = TestMemoryBusFL(s.mbi, initial_mem)
     s.mb = wrap_to_rtl(s.tmb)
@@ -25,7 +30,12 @@ class ProcTestHarness(Model):
     s.tdb = TestProcDebugBusFL(s.dbi, output_messages=mngr2proc_msgs)
     s.db = wrap_to_rtl(s.tdb)
 
-    TestHarness(s, Proc(ProcInterface(), s.mbi.MemMsg), translate, vcd_file)
+    TestHarness(
+        s,
+        Proc(ProcInterface(), s.mbi.MemMsg),
+        translate,
+        vcd_file,
+        use_cached_verilated=use_cached_verilated)
 
     s.connect_m(s.mb.recv_0, s.dut.mb_recv_0)
     s.connect_m(s.mb.send_0, s.dut.mb_send_0)
@@ -38,8 +48,13 @@ class ProcTestHarness(Model):
     return s.dut.line_trace()
 
 
-def run_mem_image(mem_image, translate, vcd_file, max_cycles, proc2mngr_handler,
-                  trace):
+def run_mem_image(mem_image,
+                  translate,
+                  vcd_file,
+                  max_cycles,
+                  proc2mngr_handler,
+                  trace,
+                  use_cached_verilated=False):
 
   def tp(thing):
     if trace:
@@ -64,7 +79,12 @@ def run_mem_image(mem_image, translate, vcd_file, max_cycles, proc2mngr_handler,
       for i, b in enumerate(section.data):
         initial_mem[i + section.addr] = b
 
-  pth = ProcTestHarness(initial_mem, mngr2proc_data, translate, vcd_file)
+  pth = ProcTestHarness(
+      initial_mem,
+      mngr2proc_data,
+      translate,
+      vcd_file,
+      use_cached_verilated=use_cached_verilated)
   dut = wrap_to_cl(pth)
 
   curr = 0
