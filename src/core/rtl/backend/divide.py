@@ -47,10 +47,17 @@ class Div(Model):
     s.rs1_32 = Wire(32)
     s.rs2_32 = Wire(32)
 
+    # PYMTL_BROKEN
+    # Cannot double-slice so must first assign parts
+    s.workaround_rs1 = Wire(XLEN)
+    s.workaround_rs2 = Wire(XLEN)
+    s.connect(s.workaround_rs1, s.in_peek_msg.rs1)
+    s.connect(s.workaround_rs2, s.in_peek_msg.rs2)
+
     @s.combinational
     def handle_add():
-      s.rs1_32.v = s.in_peek_msg.rs1[:32]
-      s.rs2_32.v = s.in_peek_msg.rs2[:32]
+      s.rs1_32.v = s.workaround_rs1[:32]
+      s.rs2_32.v = s.workaround_rs2[:32]
 
       s.divider.div_dividend.v = s.in_peek_msg.rs1
       s.divider.div_divisor.v = s.in_peek_msg.rs2
@@ -76,11 +83,15 @@ class Div(Model):
     s.mul_msg = Wire(MMsg())
     s.res_32 = Wire(32)
     num_bits = MMsg().nbits
+    # PYMTL_BROKEN
+    # can't slice a bitstrut (illegal verilog double array)
+    s.peek_msg_result = Wire(XLEN)
+    s.connect(s.peek_msg_result, s.vvm.peek_msg.result)
 
     @s.combinational
     def handle_output_msg(msg_bits=num_bits):
       s.peek_msg.v = s.vvm.peek_msg
-      s.mul_msg.v = s.peek_msg.result[:msg_bits]
+      s.mul_msg.v = s.peek_msg_result[:msg_bits]
 
       s.res_32.v = s.divider.result_quotient[:32]
       s.peek_msg.result.v = s.divider.result_quotient

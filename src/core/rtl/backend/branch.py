@@ -110,6 +110,8 @@ class BranchStage(Model):
         elif s.msg_.rs1_val:
           s.branch_target_.v = s.msg_.rs1 + s.imm_
           s.branch_target_[0].v = 0
+        else:
+          s.branch_target_.v = 0
       else:
         s.branch_target_.v = s.msg_.hdr_pc + ILEN_BYTES
 

@@ -403,11 +403,11 @@ class DataFlowManager(Model):
 
     # get_dst
     s.get_dst_need_writeback = [Wire(1) for _ in range(num_dst_ports)]
-    s.connect(s.get_dst_rdy[i], s.free_regs.alloc_rdy[i])
-    s.connect(s.get_store_id_rdy[i], s.store_ids.alloc_rdy[i])
-    s.connect(s.store_ids.alloc_call[i], s.get_store_id_call[i])
-    s.connect(s.get_store_id_store_id[i], s.store_ids.alloc_index[i])
     for i in range(num_dst_ports):
+      s.connect(s.get_dst_rdy[i], s.free_regs.alloc_rdy[i])
+      s.connect(s.get_store_id_rdy[i], s.store_ids.alloc_rdy[i])
+      s.connect(s.store_ids.alloc_call[i], s.get_store_id_call[i])
+      s.connect(s.get_store_id_store_id[i], s.store_ids.alloc_index[i])
 
       @s.combinational
       def handle_get_dst_allocate(i=i):

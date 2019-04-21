@@ -179,3 +179,10 @@ class MemoryFlowManager(Model):
     s.connect(s.memory_arbiter.send_store_data, s.store_table.read_data[0].data)
     s.connect(s.memory_arbiter.send_store_call, s.send_store_call)
     s.connect(s.send_store_rdy, s.memory_arbiter.send_store_rdy)
+
+    s.connect(s.store_table.set_call, 0)
+    for port in s.store_table.set_in_:
+      s.connect(port, 0)
+    s.connect(s.valid_table.set_call, 0)
+    for port in s.valid_table.set_in_:
+      s.connect(port, 0)

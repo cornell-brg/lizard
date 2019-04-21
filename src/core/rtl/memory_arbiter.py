@@ -100,6 +100,7 @@ class MemoryArbiter(Model):
 
     @s.combinational
     def handle_send(size=s.interface.Size.nbits - 1):
+      s.mb_send_msg.v = 0
       if s.send_store_call:
         s.mb_send_call.v = 1
         s.mb_send_msg.type_.v = MemMsgType.WRITE
