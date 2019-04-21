@@ -57,6 +57,7 @@ def main():
   p.add_argument('--trace', action='store_true')
   p.add_argument('--vcd', action='store_true')
   p.add_argument('--verilate', action='store_true')
+  p.add_argument('--clean', action='store_true')
   p.add_argument('--maxcycles', default=200000, type=int)
   p.add_argument('elf_file')
   opts = p.parse_args()
@@ -72,8 +73,14 @@ def main():
     name = ''
 
   handler = Proc2MngrHandler()
-  result = run_mem_image(mem_image, opts.verilate, name, opts.maxcycles,
-                         handler.handle, opts.trace)
+  result = run_mem_image(
+      mem_image,
+      opts.verilate,
+      name,
+      opts.maxcycles,
+      handler.handle,
+      opts.trace,
+      use_cached_verilated=not opts.clean)
   sys.exit(result)
 
 
