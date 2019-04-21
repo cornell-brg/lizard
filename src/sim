@@ -15,8 +15,6 @@ class Proc2MngrHandler():
     s.mode = None
     s.modes = {
         0x00010000: 'exit',
-        0x00020000: 'test_pass',
-        0x00020001: 'test_fail',
         0x00030000: 'print_int',
         0x00030001: 'print_char',
         0x00030002: 'print_string',

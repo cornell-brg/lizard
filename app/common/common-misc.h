@@ -7,17 +7,17 @@
 #endif
 
 #include <stdint.h>
+#include "common-wprint.h"
+#include "csr_utils.h"
 
 #ifdef _RISCV
 
 inline void test_fail(int index, int val, int ref) {
-  int status = 0x00020001;
-  asm("csrw 0x7C0, %0;"
-      "csrw 0x7C0, %1;"
-      "csrw 0x7C0, %2;"
-      "csrw 0x7C0, %3;"
-      :
-      : "r"(status), "r"(index), "r"(val), "r"(ref));
+  wprintf(L"\n");
+  wprintf(L"  [ FAILED ] dest[%d] != ref[%d] (%d != %d)\n", index, index, val,
+          ref);
+  wprintf(L"\n");
+  sim_exit(1);
 }
 
 #else
@@ -35,8 +35,10 @@ inline void test_fail(int index, int val, int ref) {
 #ifdef _RISCV
 
 inline void test_pass() {
-  int status = 0x00020000;
-  asm("csrw 0x7C0, %0;" : : "r"(status));
+  wprintf(L"\n");
+  wprintf(L"  [ passed ] \n");
+  wprintf(L"\n");
+  sim_exit(0);
 }
 
 #else
@@ -49,9 +51,6 @@ inline void test_pass() {
 }
 
 #endif
-
-inline void test_stats_on(){};
-inline void test_stats_off(){};
 
 #ifdef _RISCV
 
@@ -71,7 +70,7 @@ void reset_stat_counters() {}
 
 #ifdef _RISCV
 
-inline void read_stat_counters(uint64_t mcycle, uint64_t minstret) {
+inline void read_stat_counters(uint64_t& mcycle, uint64_t& minstret) {
   asm("csrr %0, 0xB00;\n\t"
       "csrr %1, 0xB02"
       : "=r"(mcycle), "=r"(minstret)
@@ -83,5 +82,15 @@ inline void read_stat_counters(uint64_t mcycle, uint64_t minstret) {
 void read_stat_counters() {}
 
 #endif
+
+inline void test_stats_on() { reset_stat_counters(); };
+
+inline void test_stats_off() {
+  uint64_t mcycle;
+  uint64_t minstret;
+  read_stat_counters(mcycle, minstret);
+
+  wprintf(L"cycles: %d\ninstructions: %d\n", mcycle, minstret);
+};
 
 #endif /* COMMON_MISC_H */
