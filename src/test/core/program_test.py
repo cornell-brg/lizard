@@ -15,24 +15,11 @@ from util import elf
 
 TEST_DIR = "program/"
 
-procs = [ProcTestHarnessFL, ProcTestHarnessCL]
-proc_dict = dict([(x.__name__, x) for x in procs])
 opt_levels = range(4)
 dir, tests = collector.collect()
 
 collector.build_riscv_tests()
 dir_bin, tests_bin = collector.collect_riscv_tests()
-
-
-@pytest.mark.parametrize('opt_level', opt_levels)
-@pytest.mark.parametrize('program', tests)
-@pytest.mark.parametrize('proc_key', proc_dict.keys())
-def test(proc_key, program, opt_level):
-  # Build the program
-  print("Building: %s" % program)
-  outname = collector.build(program, opt_level)
-  # Run it
-  run_test_elf(proc_dict[proc_key], outname, 10000)
 
 
 @pytest.mark.parametrize('opt_level', opt_levels)
@@ -58,12 +45,3 @@ def test_riscv_rtl_proc(program, translate):
     mem = elf.elf_reader(fd, True)
     name = translate + '-' + program + "-out.vcd"
     mem_image_test(mem, translate == 'verilate', name, max_cycles=5000)
-
-
-@pytest.mark.parametrize('program', tests_bin)
-@pytest.mark.parametrize('proc_key', proc_dict.keys())
-def test_bin(proc_key, program):
-  # Build the program
-  outname = dir_bin + program
-  # Run it
-  run_test_elf(proc_dict[proc_key], outname, 10000)
