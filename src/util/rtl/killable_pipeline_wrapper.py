@@ -85,7 +85,14 @@ class PipelineWrapper(Model):
               s.input_adapter.split_internal_in)
     s.connect(s.in_take_call, s.internal_pipeline.in_take_call)
 
-    s.connect(s.vvms[0].add_call, s.internal_pipeline.in_take_call)
+    # PYMTL_BROKEN
+    # All other add_calls are assigned in a combinational block so
+    # this one must be too or else it will generate a double-assign
+    # in verilog
+    @s.combinational
+    def pymtl_broken_workaround():
+      s.vvms[0].add_call.v = s.internal_pipeline.in_take_call
+
     s.connect(s.vvms[0].add_msg, s.input_adapter.split_kill_data)
     s.connect(s.vvms[0].add_dead, 0)
 
