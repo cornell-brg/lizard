@@ -1,7 +1,7 @@
 from pymtl import *
 from lizard.bitutil.bit_struct_generator import *
 from lizard.config.general import *
-from lizard.core.rtl.messages import MFunc, MVariant, DispatchMsg, ExecuteMsg
+from lizard.core.rtl.messages import MFunc, MVariant, DispatchMsg, ExecuteMsg, MMsg
 from lizard.util.rtl.interface import Interface, UseInterface
 from lizard.util.rtl.pipeline_stage import gen_stage, StageInterface, DropControllerInterface, PipelineStageInterface
 from lizard.util.rtl.killable_pipeline_wrapper import InputPipelineAdapterInterface, OutputPipelineAdapterInterface, PipelineWrapper
@@ -52,11 +52,25 @@ class MultInternal(Model):
     # # DO YOUR THING!
     #
     # # Connect input method
-    s.connect(s.multiplier.mult_src1, s.in_peek_msg.a)
-    s.connect(s.multiplier.mult_src2, s.in_peek_msg.b)
-    # TODO fix this
-    s.connect(s.multiplier.mult_src1_signed, 1)
-    s.connect(s.multiplier.mult_src2_signed, 1)
+    s.op32_a = Wire(32)
+    s.op32_b = Wire(32)
+    @s.combinational
+    def set_inputs():
+      s.op32_a.v = s.in_peek_msg.a[:32]
+      s.op32_b.v = s.in_peek_msg.b[:32]
+      s.multiplier.mult_src1_signed.v = not (s.in_peek_msg.variant
+                                == MVariant.M_VARIANT_U or
+                                s.in_peek_msg.variant == MVariant.M_VARIANT_HU)
+      s.multiplier.mult_src2_signed.v = (s.in_peek_msg.variant
+                                == MVariant.M_VARIANT_N or
+                                s.in_peek_msg.variant == MVariant.M_VARIANT_H)
+      if s.in_peek_msg.op32:
+        s.multiplier.mult_src1.v = sext(s.op32_a, XLEN)
+        s.multiplier.mult_src2.v = sext(s.op32_b, XLEN)
+      else:
+        s.multiplier.mult_src1.v = s.in_peek_msg.a
+        s.multiplier.mult_src2.v = s.in_peek_msg.b
+
     s.connect(s.multiplier.mult_call, s.in_take_call)
 
     @s.combinational
@@ -89,7 +103,7 @@ class MultInputPipelineAdapter(Model):
       s.split_kill_data.v = 0
       s.split_kill_data.hdr.v = s.split_in_.hdr
       # TODO AARON YOU CAN STUFF STUFF IN HERE AND USE IT WHEN IT COMES OUT
-      s.split_kill_data.result.v = s.split_in_.m_msg
+      s.split_kill_data.result.v = zext(s.split_in_.m_msg, XLEN)
       s.split_kill_data.rd.v = s.split_in_.rd
       s.split_kill_data.rd_val.v = s.split_in_.rd_val
 
@@ -104,14 +118,24 @@ class MultOutputPipelineAdapter(Model):
     UseInterface(s, MultOutputPipelineAdapterInterface())
 
     s.out_temp = Wire(s.interface.Out)
+    s.out_mmsg = Wire(MMsg())
+    s.out_32 = Wire(32)
     # PYMTL_BROKEN
     # Use temporary wire to prevent pymtl bug
+    num_bits = MMsg().nbits
     @s.combinational
-    def compute_out():
+    def compute_out(XLEN_2 = 2*XLEN, num_bits = num_bits):
+      s.out_mmsg.v = s.fuse_kill_data.result[:num_bits] # Magic cast
       s.out_temp.v = s.fuse_kill_data
       # TODO AARON YOU CAN READ THE RESULT FROM fuse_kill_data.result
       # AND USE IT TO POST-PROCESS THE INTERNAL OUT
-      s.out_temp.result.v = s.fuse_internal_out[:64]
+      s.out_32.v = s.fuse_internal_out[:32]
+      if s.out_mmsg.op32:
+        s.out_temp.result.v = sext(s.out_32, XLEN)
+      elif s.out_mmsg.variant == MVariant.M_VARIANT_N or s.out_mmsg.variant == MVariant.M_VARIANT_U:
+        s.out_temp.result.v = s.fuse_internal_out[:XLEN]
+      else:
+        s.out_temp.result.v = s.fuse_internal_out[XLEN:XLEN_2]
 
     s.connect(s.fuse_out, s.out_temp)
 
