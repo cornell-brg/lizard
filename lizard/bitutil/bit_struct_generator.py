@@ -1,7 +1,7 @@
-from pymtl import *
 import abc
 from functools import wraps
 from collections import OrderedDict
+from pymtl import *
 from lizard.bitutil import slice_len
 
 
@@ -198,7 +198,7 @@ def bit_struct_generator(func):
       #    else:
       #      list_.append( "s.{} = InPort( {} )".format( p.name, p.nbits ) )
       #
-      #  # TODO: fix msg type
+      #  # TQDO: fix msg type
       #  elif isinstance( p, OutPort ):
       #    if isinstance( p.dtype, BitStruct ):
       #      msg = p.dtype

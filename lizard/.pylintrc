@@ -157,6 +157,13 @@ disable=print-statement,
         not-callable,
         superfluous-parens,
         protected-access,
+        no-value-for-parameter,
+        keyword-arg-before-vararg,
+        too-few-public-methods,
+        no-init,
+        too-many-branches,
+        consider-using-enumerate,
+
 
 
 

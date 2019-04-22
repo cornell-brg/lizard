@@ -3,7 +3,7 @@ from lizard.bitutil import bit_enum
 from lizard.config.general import *
 
 
-class RVInstMask:
+class RVInstMask(object):
   OPCODE = slice(0, 7)
   FUNCT3 = slice(12, 15)
   FUNCT7 = slice(25, 32)

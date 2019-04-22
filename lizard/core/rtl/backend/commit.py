@@ -2,7 +2,6 @@ from pymtl import *
 from lizard.util.rtl.interface import UseInterface
 from lizard.util.rtl.method import MethodSpec
 from lizard.core.rtl.messages import WritebackMsg, PipelineMsgStatus
-from lizard.util.rtl.register import Register, RegisterInterface
 from lizard.util.rtl.reorder_buffer import ReorderBuffer, ReorderBufferInterface
 from lizard.config.general import *
 from lizard.util.rtl.pipeline_stage import PipelineStageInterface

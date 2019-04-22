@@ -1,6 +1,5 @@
 from pymtl import *
-from lizard.bitutil import clog2, clog2nz
-from lizard.bitutil import bit_enum
+from lizard.bitutil import clog2
 
 XLEN = 64
 XLEN_BYTES = XLEN // 8
