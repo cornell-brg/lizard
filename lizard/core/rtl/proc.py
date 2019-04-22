@@ -294,6 +294,7 @@ class Proc(Model):
     s.connect_m(s.cflow.commit, s.commit.cflow_commit)
     s.connect_m(s.cflow.get_head, s.commit.cflow_get_head)
     s.connect_m(s.commit.send_store, s.mflow.send_store)
+    s.connect_m(s.commit.store_acks_outstanding, s.mflow.store_acks_outstanding)
     s.connect_m(s.commit.read_csr, s.csr.read)
     s.connect_m(s.commit.write_csr, s.csr.write)
 

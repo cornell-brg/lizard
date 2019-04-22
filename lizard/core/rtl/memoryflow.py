@@ -54,6 +54,15 @@ class MemoryFlowManagerInterface(Interface):
             rdy=True,
         ),
         MethodSpec(
+            'store_acks_outstanding',
+            args=None,
+            rets={
+                'ret': Bits(1),
+            },
+            call=False,
+            rdy=False,
+        ),
+        MethodSpec(
             'send_load',
             args={
                 'addr': s.Addr,
@@ -136,6 +145,8 @@ class MemoryFlowManager(Model):
                                s.interface.Data), MemMsg)
     s.connect_m(s.memory_arbiter.mb_send, s.mb_send)
     s.connect_m(s.memory_arbiter.mb_recv, s.mb_recv)
+    s.connect_m(s.memory_arbiter.store_acks_outstanding,
+                s.store_acks_outstanding)
 
     s.overlapped_and_live = [Wire(1) for _ in range(s.interface.nslots)]
     # PYMTL_BROKEN for some reason reduce_or verilates, but then the C++ fails to compile
