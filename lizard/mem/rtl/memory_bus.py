@@ -1,7 +1,7 @@
 from pymtl import *
 from lizard.util.rtl.interface import Interface
 from lizard.util.rtl.method import MethodSpec
-from lizard.bitutil import clog2, clog2nz, bit_enum
+from lizard.bitutil import clog2, bit_enum
 
 MemMsgType = bit_enum(
     'MemMsgType',

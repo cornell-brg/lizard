@@ -1,4 +1,4 @@
-class Alignment:
+class Alignment(object):
   LEFT = -1
   TOP = -1
   CENTER = 0
@@ -6,7 +6,7 @@ class Alignment:
   BOTTOM = 1
 
 
-class LineBlock:
+class LineBlock(object):
 
   def __init__(s, blocks):
     if isinstance(blocks, str):
@@ -80,7 +80,7 @@ class LineBlock:
     return '\n'.join(s.normalized().blocks)
 
 
-class Divider:
+class Divider(object):
 
   def __init__(s, divider):
     s.divider = divider

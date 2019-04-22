@@ -1,9 +1,9 @@
 from pymtl import *
-from lizard.mem.rtl.memory_bus import MemMsgType, MemMsgStatus, MemoryBusInterface
-from lizard.model.hardware_model import HardwareModel, Result
-from lizard.model.flmodel import FLModel
 from collections import deque
 from functools import partial
+from lizard.mem.rtl.memory_bus import MemMsgType
+from lizard.model.hardware_model import HardwareModel
+from lizard.model.flmodel import FLModel
 
 
 class TestMemoryBusFL(FLModel):
@@ -21,8 +21,10 @@ class TestMemoryBusFL(FLModel):
   }
 
   @HardwareModel.validate
-  def __init__(s, memory_bus_interface, initial_memory={}):
+  def __init__(s, memory_bus_interface, initial_memory=None):
     super(TestMemoryBusFL, s).__init__(memory_bus_interface)
+    if initial_memory is None:
+      initial_memory = {}
     s.data_nbytes = s.interface.data_nbytes
     s.data_nbits = s.data_nbytes * 8
     s.num_ports = memory_bus_interface.num_ports
@@ -69,7 +71,7 @@ class TestMemoryBusFL(FLModel):
       for j in range(nbytes):
         s.mem[addr + j] = req.data[j * 8:j * 8 + 8].uint()
       result = s.MemMsg.resp.mk_wr(req.opaque, 0)
-    elif req.type_ in ASO_FUNS:
+    elif req.type_ in AMO_FUNS:
       read_data = Bits(s.data_nbits)
       for j in range(nbytes):
         read_data[j * 8:j * 8 + 8] = s.mem.get(addr + j, 0)
@@ -85,9 +87,9 @@ class TestMemoryBusFL(FLModel):
 
   def write_mem(s, addr, data):
     assert addr + len(data) < s.max_addr
-    for i in range(len(data)):
-      s.mem[addr + i] = data[i] & 0xff
-      assert s.mem[int(addr + i)] == int(data[i] & 0xff)
+    for i, value in enumerate(data):
+      s.mem[addr + i] = value & 0xff
+      assert s.mem[int(addr + i)] == int(value & 0xff)
 
   def read_mem(s, addr, size):
     assert addr + size < s.max_addr

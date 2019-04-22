@@ -1,9 +1,9 @@
 from pymtl import *
-from lizard.util.rtl.interface import Interface, UseInterface
+from lizard.util.rtl.interface import UseInterface
 from lizard.core.rtl.backend.divide import Div
 from lizard.core.rtl.backend.multiply import Mult
-from lizard.core.rtl.messages import MFunc, MVariant, DispatchMsg, ExecuteMsg
-from lizard.util.rtl.pipeline_stage import gen_stage, StageInterface, DropControllerInterface, PipelineStageInterface, gen_valid_value_manager
+from lizard.core.rtl.messages import MFunc, DispatchMsg, ExecuteMsg
+from lizard.util.rtl.pipeline_stage import PipelineStageInterface
 from lizard.core.rtl.controlflow import KillType
 from lizard.config.general import *
 
