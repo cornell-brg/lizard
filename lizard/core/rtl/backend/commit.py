@@ -176,6 +176,12 @@ class Commit(Model):
             s.dataflow_commit_tag.v = s.rob.free_value.rd
           s.dataflow_free_store_id_call.v = s.rob.free_value.hdr_is_store
           s.dataflow_free_store_id_id_.v = s.rob.free_value.hdr_store_id
+
+          if s.rob.free_value.hdr_replay: # Need to replay the instruction
+            s.cflow_commit_redirect.v = 1
+            s.cflow_commit_redirect_target.v = (s.rob.free_value.hdr_pc + ILEN_BYTES
+                          if s.rob.free_value.hdr_replay_next else
+                          s.rob.free_value.hdr_pc)
         else:
           s.cflow_commit_redirect.v = 1
           s.cflow_commit_redirect_target.v = s.exception_target
