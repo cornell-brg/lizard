@@ -1,5 +1,5 @@
 from pymtl import *
-from lizard.core.rtl.messages import AluMsg, OpClass, AluFunc 
+from lizard.core.rtl.messages import AluMsg, OpClass, AluFunc
 from lizard.core.rtl.frontend.sub_decoder import GenDecoderFixed, compose_decoders
 from lizard.core.rtl.frontend.imm_decoder import ImmType
 from lizard.msg.codes import Opcode

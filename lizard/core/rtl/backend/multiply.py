@@ -43,19 +43,20 @@ class MultInternal(Model):
         MulPipelinedInterface(XLEN, keep_upper=True),
         nstages=num_stages,
         use_mul=True)
-    
+
     s.op32_a = Wire(32)
     s.op32_b = Wire(32)
+
     @s.combinational
     def set_inputs():
       s.op32_a.v = s.in_peek_msg.a[:32]
       s.op32_b.v = s.in_peek_msg.b[:32]
-      s.multiplier.mult_src1_signed.v = not (s.in_peek_msg.variant
-                                == MVariant.M_VARIANT_U or
-                                s.in_peek_msg.variant == MVariant.M_VARIANT_HU)
-      s.multiplier.mult_src2_signed.v = (s.in_peek_msg.variant
-                                == MVariant.M_VARIANT_N or
-                                s.in_peek_msg.variant == MVariant.M_VARIANT_H)
+      s.multiplier.mult_src1_signed.v = not (
+          s.in_peek_msg.variant == MVariant.M_VARIANT_U or
+          s.in_peek_msg.variant == MVariant.M_VARIANT_HU)
+      s.multiplier.mult_src2_signed.v = (
+          s.in_peek_msg.variant == MVariant.M_VARIANT_N or
+          s.in_peek_msg.variant == MVariant.M_VARIANT_H)
       if s.in_peek_msg.op32:
         s.multiplier.mult_src1.v = sext(s.op32_a, XLEN)
         s.multiplier.mult_src2.v = sext(s.op32_b, XLEN)
@@ -114,9 +115,10 @@ class MultOutputPipelineAdapter(Model):
     # PYMTL_BROKEN
     # Use temporary wire to prevent pymtl bug
     num_bits = MMsg().nbits
+
     @s.combinational
-    def compute_out(XLEN_2 = 2*XLEN, num_bits = num_bits):
-      s.out_mmsg.v = s.fuse_kill_data.result[:num_bits] # Magic cast
+    def compute_out(XLEN_2=2 * XLEN, num_bits=num_bits):
+      s.out_mmsg.v = s.fuse_kill_data.result[:num_bits]  # Magic cast
       s.out_temp.v = s.fuse_kill_data
       s.out_32.v = s.fuse_internal_out[:32]
       if s.out_mmsg.op32:

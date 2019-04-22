@@ -1,8 +1,8 @@
 from pymtl import *
 from lizard.util.rtl.interface import Interface, UseInterface
 from lizard.util.rtl.method import MethodSpec
-from lizard.bitutil import clog2 
-from lizard.util.rtl.pipeline_stage import DropControllerInterface 
+from lizard.bitutil import clog2
+from lizard.util.rtl.pipeline_stage import DropControllerInterface
 from lizard.core.rtl.controlflow import KillType
 
 
