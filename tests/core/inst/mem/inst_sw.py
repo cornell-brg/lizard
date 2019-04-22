@@ -150,28 +150,19 @@ def gen_random_test():
 
 
 # overwrite instr
-def gen_stupid_test():
+def gen_fence_i_test():
   return """
-    addi x3, x0, 0
-    csrr x1, mngr2proc < 0x00000234 # 0x200
-    lui  x7, 0b00000000110000000000 # 0x204
-    lui  x6, 0b000001101111         # 0x208
-    srli x6, x6, 12                 # 0x20c
-    or   x2, x7, x6                 # 0x210
-    sw   x2, 0(x1)                  # 0x214
-    nop                             # 0x218
-    nop                             # 0x21c
-    nop                             # 0x220
+    addi x3, x0, 0                  # 0x200
+    csrr x1, mngr2proc < 0x00000220 # 0x204
+    lui  x7, 0b00000000110000000000 # 0x208
+    lui  x6, 0b000001101111         # 0x20c
+    srli x6, x6, 12                 # 0x210
+    or   x2, x7, x6                 # 0x214
+    sw   x2, 0(x1)                  # 0x218
+    fence.i                         # 0x21c
+    addi x3, x3, 0b10               # 0x220
     nop                             # 0x224
     nop                             # 0x228
-    nop                             # 0x22c
-    fence.i                         # 0x230
-    addi x3, x3, 0b10               # 0x234
-    nop                             # 0x238
-    nop                             # 0x23c
-    addi x3, x3, 0b01               # 0x240
-    csrw proc2mngr, x3 > 0b01
-
-    .data
-    .word 0x01020304
+    addi x3, x3, 0b01               # 0x22c
+    csrw proc2mngr, x3 > 0b01       # 0x230
   """

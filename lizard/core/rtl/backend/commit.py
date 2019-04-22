@@ -85,6 +85,16 @@ class Commit(Model):
             call=True,
             rdy=True,
         ),
+        # Memoryflow to handle fences
+        MethodSpec(
+            'store_acks_outstanding',
+            args=None,
+            rets={
+                'ret': Bits(1),
+            },
+            call=False,
+            rdy=False,
+        ),
         MethodSpec(
             'read_csr',
             args={
@@ -144,14 +154,25 @@ class Commit(Model):
     s.connect(s.rob.add_call, s.advance)
 
     # Connect up ROB free
-    s.connect(s.rob.free_idx, s.cflow_get_head_seq)
+    s.connect(s.rob.peek_idx, s.cflow_get_head_seq)
     s.connect(s.rob.free_call, s.rob_remove)
 
     s.connect(s.cflow_commit_call, s.rob_remove)
 
+    s.wait_for_fence = Wire(1)
+    s.super_bob_DEBUG = Wire(1)
+    s.connect(s.super_bob_DEBUG, s.rob.peek_value.hdr_fence)
+    s.status_DEBUG = Wire(PipelineMsgStatus.bits)
+    s.connect(s.status_DEBUG, s.rob.peek_value.hdr_status)
+
     @s.combinational
     def set_rob_remove():
-      s.rob_remove.v = s.cflow_get_head_rdy and s.rob.check_done_is_rdy and not s.store_pending_after_send
+      if s.rob.peek_value.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID and s.rob.peek_value.hdr_fence:
+        s.wait_for_fence.v = not s.store_acks_outstanding_ret
+      else:
+        s.wait_for_fence.v = 1
+
+      s.rob_remove.v = s.cflow_get_head_rdy and s.rob.check_done_is_rdy and not s.store_pending_after_send and s.wait_for_fence
 
     s.is_exception = Wire(1)
     s.exception_target = Wire(XLEN)
@@ -170,18 +191,18 @@ class Commit(Model):
 
       # The head is ready to commit
       if s.rob_remove:
-        if s.rob.free_value.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID:
-          if s.rob.free_value.rd_val:
+        if s.rob.peek_value.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID:
+          if s.rob.peek_value.rd_val:
             s.dataflow_commit_call.v = 1
-            s.dataflow_commit_tag.v = s.rob.free_value.rd
-          s.dataflow_free_store_id_call.v = s.rob.free_value.hdr_is_store
-          s.dataflow_free_store_id_id_.v = s.rob.free_value.hdr_store_id
+            s.dataflow_commit_tag.v = s.rob.peek_value.rd
+          s.dataflow_free_store_id_call.v = s.rob.peek_value.hdr_is_store
+          s.dataflow_free_store_id_id_.v = s.rob.peek_value.hdr_store_id
 
-          if s.rob.free_value.hdr_replay: # Need to replay the instruction
+          if s.rob.peek_value.hdr_replay:  # Need to replay the instruction
             s.cflow_commit_redirect.v = 1
-            s.cflow_commit_redirect_target.v = (s.rob.free_value.hdr_pc + ILEN_BYTES
-                          if s.rob.free_value.hdr_replay_next else
-                          s.rob.free_value.hdr_pc)
+            s.cflow_commit_redirect_target.v = (
+                s.rob.peek_value.hdr_pc + ILEN_BYTES if
+                s.rob.peek_value.hdr_replay_next else s.rob.peek_value.hdr_pc)
         else:
           s.cflow_commit_redirect.v = 1
           s.cflow_commit_redirect_target.v = s.exception_target
@@ -192,16 +213,16 @@ class Commit(Model):
 
     @s.combinational
     def zext_mcause():
-      s.zext_mcause.v = zext(s.rob.free_value.exception_info_mcause, XLEN)
+      s.zext_mcause.v = zext(s.rob.peek_value.exception_info_mcause, XLEN)
 
     s.connect(s.write_csr_value[0], s.zext_mcause)
 
     s.connect(s.write_csr_call[0], s.is_exception)
     s.connect(s.write_csr_csr[1], int(CsrRegisters.mtval))
-    s.connect(s.write_csr_value[1], s.rob.free_value.exception_info_mtval)
+    s.connect(s.write_csr_value[1], s.rob.peek_value.exception_info_mtval)
     s.connect(s.write_csr_call[1], s.is_exception)
     s.connect(s.write_csr_csr[2], int(CsrRegisters.mepc))
-    s.connect(s.write_csr_value[2], s.rob.free_value.hdr_pc)
+    s.connect(s.write_csr_value[2], s.rob.peek_value.hdr_pc)
     s.connect(s.write_csr_call[2], s.is_exception)
 
     s.mtvec = Wire(XLEN)
@@ -232,9 +253,9 @@ class Commit(Model):
 
     @s.combinational
     def handle_committing_store():
-      if s.rob_remove and s.rob.free_value.hdr_is_store and s.rob.free_value.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID:
+      if s.rob_remove and s.rob.peek_value.hdr_is_store and s.rob.peek_value.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID:
         s.pending_store_id.write_call.v = 1
-        s.pending_store_id.write_data.v = s.rob.free_value.hdr_store_id
+        s.pending_store_id.write_data.v = s.rob.peek_value.hdr_store_id
         s.store_pending.write_data.v = 1
       else:
         s.pending_store_id.write_call.v = 0
@@ -278,7 +299,7 @@ class Commit(Model):
     incoming = s.in_peek_msg.hdr_seq.hex()[2:]
     if not s.in_take_call:
       incoming = ' ' * len(incoming)
-    outgoing = s.rob.free_value.hdr_seq.hex()[2:]
+    outgoing = s.rob.peek_value.hdr_seq.hex()[2:]
     if not s.rob_remove:
       outgoing = ' ' * len(outgoing)
     return '{} : {}'.format(incoming, outgoing)

@@ -45,13 +45,20 @@ class ReorderBufferInterface(Interface):
             rdy=False,
         ),
         MethodSpec(
-            'free',
+            'peek',
             args={
                 'idx': s.EntryIdx,
             },
             rets={
                 'value': s.EntryType,
             },
+            call=False,
+            rdy=False,
+        ),
+        MethodSpec(
+            'free',
+            args=None,
+            rets=None,
             call=True,
             rdy=False,
         ),
@@ -89,7 +96,7 @@ class ReorderBuffer(Model):
     s.connect(s.add_encoder_.encode_call, s.add_call)
     s.connect(s.add_encoder_.encode_number, s.add_idx)
     s.connect(s.free_encoder_.encode_call, s.free_call)
-    s.connect(s.free_encoder_.encode_number, s.free_idx)
+    s.connect(s.free_encoder_.encode_number, s.peek_idx)
 
     # Check done
     # Connect up the mux for check done method
@@ -113,8 +120,8 @@ class ReorderBuffer(Model):
     s.connect(s.entries_.write_data[0], s.add_value)
 
     # free
-    s.connect(s.entries_.read_addr[0], s.free_idx)
-    s.connect(s.free_value, s.entries_.read_data[0])
+    s.connect(s.entries_.read_addr[0], s.peek_idx)
+    s.connect(s.peek_value, s.entries_.read_data[0])
 
   def line_trace(s):
     return str(s.valids_.read_data)
