@@ -127,11 +127,6 @@ class Commit(Model):
     s.rob_remove = Wire(1)
     s.seq_num = Wire(s.SeqIdxNbits)
 
-    s.pending_store_id = Register(
-        RegisterInterface(STORE_IDX_NBITS, enable=True))
-    s.store_pending = Register(RegisterInterface(Bits(1)), reset_value=0)
-    s.store_pending_after_send = Wire(1)
-
     def make_kill():
       return KillDropController(KillDropControllerInterface(s.SpecMaskNbits))
 
@@ -160,15 +155,20 @@ class Commit(Model):
     s.connect(s.cflow_commit_call, s.rob_remove)
 
     s.wait_for_fence = Wire(1)
+    s.wait_for_store = Wire(1)
 
     @s.combinational
     def set_rob_remove():
-      if s.rob.peek_value.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID and s.rob.peek_value.hdr_fence:
-        s.wait_for_fence.v = not s.store_acks_outstanding_ret
-      else:
-        s.wait_for_fence.v = 1
+      s.wait_for_fence.v = 1
+      s.wait_for_store.v = 1
 
-      s.rob_remove.v = s.cflow_get_head_rdy and s.rob.check_done_is_rdy and not s.store_pending_after_send and s.wait_for_fence
+      if s.rob.peek_value.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID:
+        if s.rob.peek_value.hdr_fence:
+          s.wait_for_fence.v = not s.store_acks_outstanding_ret
+        if s.rob.peek_value.hdr_is_store:
+          s.wait_for_store.v = s.send_store_rdy
+
+      s.rob_remove.v = s.cflow_get_head_rdy and s.rob.check_done_is_rdy and s.wait_for_fence and s.wait_for_store
 
     s.is_exception = Wire(1)
     s.exception_target = Wire(XLEN)
@@ -250,24 +250,11 @@ class Commit(Model):
     @s.combinational
     def handle_committing_store():
       if s.rob_remove and s.rob.peek_value.hdr_is_store and s.rob.peek_value.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID:
-        s.pending_store_id.write_call.v = 1
-        s.pending_store_id.write_data.v = s.rob.peek_value.hdr_store_id
-        s.store_pending.write_data.v = 1
-      else:
-        s.pending_store_id.write_call.v = 0
-        s.pending_store_id.write_data.v = 0
-        s.store_pending.write_data.v = s.store_pending_after_send
-
-    s.connect(s.send_store_id_, s.pending_store_id.read_data)
-
-    @s.combinational
-    def handle_pending_store():
-      if s.store_pending.read_data and s.send_store_rdy:
+        s.send_store_id_.v = s.rob.peek_value.hdr_store_id
         s.send_store_call.v = 1
-        s.store_pending_after_send.v = 0
       else:
+        s.send_store_id_.v = 0
         s.send_store_call.v = 0
-        s.store_pending_after_send.v = s.store_pending.read_data
 
     s.connect(s.read_csr_csr[1], int(CsrRegisters.mcycle))
     s.connect(s.read_csr_csr[2], int(CsrRegisters.minstret))
