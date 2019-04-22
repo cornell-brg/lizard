@@ -1,13 +1,8 @@
 from pymtl import *
-from lizard.util.rtl.interface import Interface, IncludeSome, UseInterface
+from lizard.util.rtl.interface import UseInterface
 from lizard.util.rtl.method import MethodSpec
-from lizard.util.rtl.types import Array, canonicalize_type
-from lizard.core.rtl.controlflow import ControlFlowManagerInterface
-from lizard.core.rtl.dataflow import DataFlowManagerInterface
-from lizard.bitutil import clog2, clog2nz
-from lizard.util.rtl.register import Register, RegisterInterface
+from lizard.bitutil import clog2
 from lizard.core.rtl.messages import RenameMsg, DecodeMsg, PipelineMsgStatus
-from lizard.msg.codes import RVInstMask, Opcode, ExceptionCode
 from lizard.util.rtl.pipeline_stage import gen_stage, StageInterface, DropControllerInterface
 from lizard.core.rtl.kill_unit import PipelineKillDropController
 from lizard.core.rtl.controlflow import KillType

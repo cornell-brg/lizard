@@ -2,8 +2,8 @@ from pymtl import *
 from lizard.bitutil.bit_struct_generator import *
 from lizard.config.general import *
 from lizard.core.rtl.messages import MFunc, MVariant, DispatchMsg, ExecuteMsg, MMsg
-from lizard.util.rtl.interface import Interface, UseInterface
-from lizard.util.rtl.pipeline_stage import gen_stage, StageInterface, DropControllerInterface, PipelineStageInterface
+from lizard.util.rtl.interface import UseInterface
+from lizard.util.rtl.pipeline_stage import DropControllerInterface, PipelineStageInterface
 from lizard.util.rtl.killable_pipeline_wrapper import InputPipelineAdapterInterface, OutputPipelineAdapterInterface, PipelineWrapper
 from lizard.core.rtl.kill_unit import PipelineKillDropController
 from lizard.core.rtl.controlflow import KillType
