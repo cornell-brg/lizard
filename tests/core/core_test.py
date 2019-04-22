@@ -4,7 +4,7 @@ from pymtl import *
 from tests.context import lizard
 from tests.core.runner import extract_tests
 from tests.core.inst_modules import inst_modules
-from tests.core.proc_rtl.proc_harness_rtl import asm_test
+from lizard.core.rtl.proc_harness_rtl import asm_test
 
 
 def idfn(val):

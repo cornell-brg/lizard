@@ -1,4 +1,4 @@
-from tests.core.proc_rtl.proc_harness_rtl import asm_test
+from lizard.core.rtl.proc_harness_rtl import asm_test
 
 
 def test_basic():
