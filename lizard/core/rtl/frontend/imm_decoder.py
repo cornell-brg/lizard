@@ -3,7 +3,6 @@ from pymtl import *
 from lizard.util.rtl.interface import Interface, UseInterface
 from lizard.util.rtl.method import MethodSpec
 from lizard.bitutil import bit_enum
-from lizard.bitutil import total_slice_len as sl
 from lizard.util.rtl.mux import Mux
 from lizard.core.rtl.messages import InstMsg
 

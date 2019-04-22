@@ -1,6 +1,6 @@
 import struct
+from collections import deque
 from pymtl import *
-from tests.context import lizard
 from lizard.model.test_harness import TestHarness
 from lizard.model.wrapper import wrap_to_rtl, wrap_to_cl
 from lizard.mem.rtl.memory_bus import MemoryBusInterface
@@ -8,11 +8,10 @@ from lizard.mem.fl.test_memory_bus import TestMemoryBusFL
 from lizard.core.rtl.proc_debug_bus import ProcDebugBusInterface
 from lizard.core.fl.test_proc_debug_bus import TestProcDebugBusFL
 from lizard.core.rtl.proc import ProcInterface, Proc
-from lizard.util.arch.rv64g import isa, assembler, DATA_PACK_DIRECTIVE
+from lizard.util.arch.rv64g import assembler, DATA_PACK_DIRECTIVE
 from lizard.config.general import *
-from collections import deque
 from lizard.util import line_block
-from lizard.util.line_block import Divider, LineBlock
+from lizard.util.line_block import Divider 
 
 
 class ProcTestHarness(Model):

@@ -1,6 +1,6 @@
 from pymtl import *
 from lizard.bitutil import slice_len
-from lizard.util.rtl.interface import Interface, IncludeAll, UseInterface
+from lizard.util.rtl.interface import Interface, UseInterface
 from lizard.util.rtl.method import MethodSpec
 from lizard.core.rtl.frontend.imm_decoder import ImmType
 from lizard.core.rtl.messages import OpClass, PipeMsg, InstMsg

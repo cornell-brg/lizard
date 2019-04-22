@@ -1,9 +1,8 @@
 from pymtl import *
-from lizard.util.rtl.interface import Interface, UseInterface
+from lizard.util.rtl.interface import UseInterface
 from lizard.util.rtl.method import MethodSpec
-from lizard.util.rtl.mux import Mux
 from lizard.core.rtl.pipeline_splitter import PipelineSplitterInterface, PipelineSplitterControllerInterface, PipelineSplitter
-from lizard.core.rtl.messages import IssueMsg, DispatchMsg, PipelineMsgStatus, OpClass
+from lizard.core.rtl.messages import DispatchMsg, PipelineMsgStatus, OpClass
 
 
 class PipeSelectorController(Model):
@@ -30,7 +29,7 @@ class PipeSelectorController(Model):
 class PipeSelector(Model):
 
   def __init__(s):
-    # TODO: the order above (0 for CSR 1 for ALU comes from this array
+    # the order above (0 for CSR 1 for ALU comes from this array
     # This is bad
     UseInterface(
         s,

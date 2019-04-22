@@ -1,14 +1,12 @@
 from pymtl import *
-from lizard.util.rtl.interface import Interface, UseInterface
+from lizard.util.rtl.interface import UseInterface
 from lizard.util.rtl.method import MethodSpec
-from lizard.util.rtl.register import Register, RegisterInterface
 from lizard.core.rtl.messages import DispatchMsg, ExecuteMsg, PipelineMsgStatus, CsrFunc, SystemFunc, OpClass
 from lizard.msg.codes import ExceptionCode
 from lizard.config.general import *
 from lizard.util.rtl.pipeline_stage import gen_stage, StageInterface, DropControllerInterface
 from lizard.core.rtl.kill_unit import PipelineKillDropController
 from lizard.core.rtl.controlflow import KillType
-from lizard.config.general import *
 
 
 def CSRInterface():

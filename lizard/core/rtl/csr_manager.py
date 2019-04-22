@@ -5,7 +5,6 @@ from lizard.util.rtl.lookup_registerfile import LookupRegisterFileInterface, Loo
 from lizard.core.rtl.messages import CsrFunc
 from lizard.msg.codes import CsrRegisters
 from lizard.config.general import CSR_SPEC_NBITS, XLEN
-from lizard.bitutil import bit_enum
 
 
 class CSRManagerInterface(Interface):

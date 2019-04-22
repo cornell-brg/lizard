@@ -1,7 +1,6 @@
 from pymtl import *
 from lizard.util.rtl.interface import Interface, UseInterface
 from lizard.util.rtl.method import MethodSpec
-from lizard.util.rtl.pipeline_stage import StageInterface, PipelineStageInterface
 from lizard.core.rtl.controlflow import ControlFlowManager, ControlFlowManagerInterface
 from lizard.core.rtl.dataflow import DataFlowManager, DataFlowManagerInterface
 from lizard.core.rtl.memoryflow import MemoryFlowManager, MemoryFlowManagerInterface
@@ -22,11 +21,8 @@ from lizard.core.rtl.backend.m_pipe import MPipe
 from lizard.core.rtl.pipeline_arbiter import PipelineArbiter, PipelineArbiterInterface
 from lizard.core.rtl.backend.writeback import Writeback, WritebackInterface
 from lizard.core.rtl.backend.commit import Commit, CommitInterface
-from lizard.core.rtl.proc_debug_bus import ProcDebugBusInterface
-from lizard.core.rtl.messages import *
+from lizard.core.rtl.messages import ExecuteMsg
 from lizard.core.rtl.kill_unit import KillNotifier, RedirectNotifier
-from lizard.mem.rtl.memory_bus import MemoryBusInterface
-from lizard.mem.rtl.memory_bus import MemMsg, MemMsgType
 from lizard.util import line_block
 from lizard.util.line_block import Divider, LineBlock
 from lizard.config.general import *

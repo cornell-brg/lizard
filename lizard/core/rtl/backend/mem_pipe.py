@@ -1,10 +1,8 @@
 from pymtl import *
-from lizard.util.rtl.interface import Interface, IncludeSome, UseInterface
+from lizard.util.rtl.interface import UseInterface
 from lizard.util.rtl.method import MethodSpec
-from lizard.mem.rtl.memory_bus import MemMsgType
 from lizard.core.rtl.messages import MemFunc, DispatchMsg, ExecuteMsg
-from lizard.util.rtl.lookup_table import LookupTableInterface, LookupTable
-from lizard.util.rtl.pipeline_stage import gen_stage, StageInterface, DropControllerInterface, PipelineStageInterface
+from lizard.util.rtl.pipeline_stage import gen_stage, StageInterface, PipelineStageInterface
 from lizard.util.rtl.killable_pipeline_wrapper import InputPipelineAdapterInterface, OutputPipelineAdapterInterface, PipelineWrapper
 from lizard.util import line_block
 from lizard.util.line_block import Divider

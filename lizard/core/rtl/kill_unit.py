@@ -1,9 +1,8 @@
 from pymtl import *
 from lizard.util.rtl.interface import Interface, UseInterface
 from lizard.util.rtl.method import MethodSpec
-from lizard.bitutil import clog2, clog2nz
-from lizard.util.rtl.register import Register, RegisterInterface
-from lizard.util.rtl.pipeline_stage import DropControllerInterface, gen_valid_value_manager
+from lizard.bitutil import clog2 
+from lizard.util.rtl.pipeline_stage import DropControllerInterface 
 from lizard.core.rtl.controlflow import KillType
 
 

@@ -1,10 +1,8 @@
 from pymtl import *
-
-from lizard.model.hardware_model import HardwareModel, Result
+from lizard.model.hardware_model import HardwareModel
 from lizard.model.flmodel import FLModel
 from lizard.core.rtl.renametable import RenameTableInterface
 from lizard.util.fl.snapshotting_registerfile import SnapshottingRegisterFileFL
-from lizard.bitutil import copy_bits
 
 
 class RenameTableFL(FLModel):

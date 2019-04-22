@@ -1,15 +1,16 @@
-from pymtl import *
+from collections import deque
 from lizard.model.hardware_model import HardwareModel
 from lizard.model.flmodel import FLModel
-from collections import deque
 
 
 class TestProcDebugBusFL(FLModel):
 
   @HardwareModel.validate
-  def __init__(s, interface, output_messages=[]):
+  def __init__(s, interface, output_messages=None):
     super(TestProcDebugBusFL, s).__init__(interface)
 
+    if output_messages is None:
+      output_messages = []
     s.state(
         output_messages=deque(output_messages),
         received_messages=deque(),

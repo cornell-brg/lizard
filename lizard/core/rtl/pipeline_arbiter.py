@@ -1,5 +1,5 @@
 from pymtl import *
-from lizard.util.rtl.interface import Interface, UseInterface
+from lizard.util.rtl.interface import UseInterface
 from lizard.util.rtl.method import MethodSpec
 from lizard.util.rtl.case_mux import CaseMux, CaseMuxInterface
 from lizard.util.rtl.arbiters import ArbiterInterface, RoundRobinArbiter

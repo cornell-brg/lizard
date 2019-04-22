@@ -1,8 +1,6 @@
 from pymtl import *
-from lizard.core.rtl.messages import PipelineMsgStatus
 
-from pclib.ifcs import InValRdyBundle, OutValRdyBundle
-from lizard.util.rtl.interface import Interface, IncludeSome, UseInterface
+from lizard.util.rtl.interface import Interface, UseInterface
 from lizard.util.rtl.method import MethodSpec
 from lizard.util.rtl.register import Register, RegisterInterface
 from lizard.util.rtl.onehot import OneHotEncoder
@@ -355,7 +353,6 @@ class ControlFlowManager(Model):
       if s.commit_call:
         # Jump to exception handler
         if s.commit_redirect:
-          # TODO jump to proper handler
           s.commit_redirect_target_.v = s.commit_redirect_target
           s.commit_redirect_.v = 1
           s.dflow_rollback_call.v = 1

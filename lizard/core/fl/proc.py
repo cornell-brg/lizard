@@ -10,7 +10,7 @@ from lizard.msg.mem import MemMsg8B
 
 class ProcFL(Model):
 
-  def __init__(s, trace_regs=False, num_cores=1):
+  def __init__(s):
     s.mngr2proc = InValRdyBundle(XLEN)
     s.proc2mngr = OutValRdyBundle(XLEN)
 

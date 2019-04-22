@@ -1,5 +1,5 @@
 from pymtl import *
-from lizard.util.rtl.interface import Interface, UseInterface
+from lizard.util.rtl.interface import UseInterface
 from lizard.util.rtl.method import MethodSpec
 from lizard.core.rtl.messages import WritebackMsg, PipelineMsgStatus
 from lizard.util.rtl.register import Register, RegisterInterface
@@ -195,9 +195,6 @@ class Commit(Model):
     s.connect(s.write_csr_value[1], s.rob.free_value.exception_info_mtval)
     s.connect(s.write_csr_call[1], s.is_exception)
     s.connect(s.write_csr_csr[2], int(CsrRegisters.mepc))
-    # TODO: care needs to be taken here, as mepc can never
-    # hold a PC value that would cause an instruction-address-misaligned
-    # exception. This is done by forcing the 2 low bits to 0
     s.connect(s.write_csr_value[2], s.rob.free_value.hdr_pc)
     s.connect(s.write_csr_call[2], s.is_exception)
 

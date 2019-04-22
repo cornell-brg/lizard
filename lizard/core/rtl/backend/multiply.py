@@ -43,15 +43,7 @@ class MultInternal(Model):
         MulPipelinedInterface(XLEN, keep_upper=True),
         nstages=num_stages,
         use_mul=True)
-    # # TODO: AARON
-    # # You have:
-    # # in_peek (rdy, msg), where msg is MultIn
-    # # in_take (call)
-    # # peek (rdy, msg), where msg is MultOut
-    # # take (call)
-    # # DO YOUR THING!
-    #
-    # # Connect input method
+    
     s.op32_a = Wire(32)
     s.op32_b = Wire(32)
     @s.combinational
@@ -102,7 +94,6 @@ class MultInputPipelineAdapter(Model):
     def set_kill_data():
       s.split_kill_data.v = 0
       s.split_kill_data.hdr.v = s.split_in_.hdr
-      # TODO AARON YOU CAN STUFF STUFF IN HERE AND USE IT WHEN IT COMES OUT
       s.split_kill_data.result.v = zext(s.split_in_.m_msg, XLEN)
       s.split_kill_data.rd.v = s.split_in_.rd
       s.split_kill_data.rd_val.v = s.split_in_.rd_val
@@ -127,8 +118,6 @@ class MultOutputPipelineAdapter(Model):
     def compute_out(XLEN_2 = 2*XLEN, num_bits = num_bits):
       s.out_mmsg.v = s.fuse_kill_data.result[:num_bits] # Magic cast
       s.out_temp.v = s.fuse_kill_data
-      # TODO AARON YOU CAN READ THE RESULT FROM fuse_kill_data.result
-      # AND USE IT TO POST-PROCESS THE INTERNAL OUT
       s.out_32.v = s.fuse_internal_out[:32]
       if s.out_mmsg.op32:
         s.out_temp.result.v = sext(s.out_32, XLEN)

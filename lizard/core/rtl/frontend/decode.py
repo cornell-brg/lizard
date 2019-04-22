@@ -1,9 +1,6 @@
 from pymtl import *
-from lizard.util.rtl.interface import Interface, UseInterface
-from lizard.util.rtl.method import MethodSpec
-from lizard.util.rtl.register import Register, RegisterInterface
+from lizard.util.rtl.interface import UseInterface
 from lizard.msg.codes import ExceptionCode
-
 from lizard.core.rtl.messages import FetchMsg, DecodeMsg, PipelineMsgStatus
 from lizard.core.rtl.frontend.imm_decoder import ImmDecoderInterface, ImmDecoder
 from lizard.core.rtl.frontend.sub_decoder import compose_decoders
