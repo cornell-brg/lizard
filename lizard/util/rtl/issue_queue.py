@@ -13,7 +13,7 @@ from lizard.util.rtl.types import canonicalize_type
 
 class AbstractIssueType(BitStructDefinition):
 
-  def __init__(s, src_tag, opaque, KillOpaqueType, ordered_bit=False):
+  def __init__(s, src_tag, opaque, KillOpaqueType):
     s.src0_val = BitField(1)
     s.src0_rdy = BitField(1)
     s.src0 = BitField(canonicalize_type(src_tag).nbits)
@@ -23,28 +23,25 @@ class AbstractIssueType(BitStructDefinition):
     # A custom opaque field for passing private info
     s.opaque = BitField(canonicalize_type(opaque).nbits)
     s.kill_opaque = BitField(canonicalize_type(KillOpaqueType).nbits)
-    if ordered_bit:
-      s.ordered = BitField(1)
 
 class IssueQueueSlotInterface(Interface):
 
-  def __init__(s, slot_type, KillArgType):
+  def __init__(s, slot_type, KillArgType, with_order=False):
     s.SlotType = slot_type
     s.SrcTag = Bits(slot_type.src0.nbits)
     s.Opaque = Bits(slot_type.opaque.nbits)
     s.KillArgType = KillArgType
+    s.WithOrder = with_order
+
     super(IssueQueueSlotInterface, s).__init__(
         [
             MethodSpec(
-                'valid',
+                'status',
                 args=None,
-                rets={'ret': Bits(1)},
-                call=False,
-                rdy=False),
-            MethodSpec(
-                'ready',
-                args=None,
-                rets={'ret': Bits(1)},
+                rets={
+                  'valid': Bits(1),
+                  'ready': Bits(1)
+                },
                 call=False,
                 rdy=False),
             MethodSpec(
@@ -85,7 +82,7 @@ class IssueQueueSlotInterface(Interface):
                 call=False,
                 rdy=False),
         ],
-        ordering_chains=[['notify', 'valid', 'ready', 'peek', 'take', 'input']],
+        ordering_chains=[['notify', 'status', 'peek', 'take', 'input']],
     )
 
 
@@ -95,7 +92,7 @@ class GenericIssueSlot(Model):
 
   """
 
-  def __init__(s, interface, make_kill):
+  def __init__(s, interface, make_kill, with_ordered=False):
     """ This model implements a generic issue slot, an issue queue has an instance
       of this for each slot in the queue
 
@@ -116,6 +113,12 @@ class GenericIssueSlot(Model):
     s.src1_ = Register(RegisterInterface(s.interface.SrcTag, enable=True))
     s.src1_val_ = Register(RegisterInterface(Bits(1), enable=True))
     s.src1_rdy_ = Register(RegisterInterface(Bits(1), enable=True))
+    # if with_ordered:
+    #   s.ordered_ = Register(RegisterInterface(Bits(1), enable=True))
+    #   s.connect(s.peek_value.ordered_, s.ordered_.read_data)
+    #   s.connect(s.ordered_.write_data, s.input_value.ordered)
+    #   s.connect(s.ordered_.write_call, s.input_call)
+
 
     s.srcs_ready_ = Wire(1)
     s.kill_ = Wire(1)
@@ -149,7 +152,7 @@ class GenericIssueSlot(Model):
     s.connect(s.val_manager_.add_msg, s.input_value.kill_opaque)
     s.connect(s.peek_value.kill_opaque, s.val_manager_.peek_msg)
     s.connect(s.val_manager_.add_call, s.input_call)
-    s.connect(s.valid_ret, s.val_manager_.peek_rdy)
+    s.connect(s.status_valid, s.val_manager_.peek_rdy)
     s.connect(s.val_manager_.take_call, s.take_call)
     # Lift the global kill notify signal
     s.connect_m(s.val_manager_.kill_notify, s.kill_notify)
@@ -166,12 +169,12 @@ class GenericIssueSlot(Model):
       s.peek_value.src0_rdy.v = s.src0_rdy_.read_data or s.src0_match_
       s.peek_value.src1_rdy.v = s.src1_rdy_.read_data or s.src1_match_
       s.srcs_ready_.v = s.peek_value.src0_rdy and s.peek_value.src1_rdy
-      s.ready_ret.v = s.valid_ret and s.srcs_ready_
+      s.status_ready.v = s.status_valid and s.srcs_ready_
 
     @s.combinational
     def set_rdy():
-      s.src0_rdy_.write_call.v = s.input_call or (s.src0_match_ and s.valid_ret)
-      s.src1_rdy_.write_call.v = s.input_call or (s.src1_match_ and s.valid_ret)
+      s.src0_rdy_.write_call.v = s.input_call or (s.src0_match_ and s.status_valid)
+      s.src1_rdy_.write_call.v = s.input_call or (s.src1_match_ and s.status_valid)
 
       if s.input_call:
         s.src0_rdy_.write_data.v = s.input_value.src0_rdy or not s.input_value.src0_val
@@ -276,7 +279,7 @@ class CompactingIssueQueue(Model):
       s.connect(s.first_valid_.decode_signal, s.valids_packer_.pack_packed)
       for i in range(num_slots):
         # Connect slot valid signal to packer
-        s.connect(s.valids_packer_.pack_in_[i], s.slots_[i].valid_ret)
+        s.connect(s.valids_packer_.pack_in_[i], s.slots_[i].status_valid)
 
     # Connect packer's output to decoder
     s.connect(s.slot_select_.decode_signal, s.pdecode_packer_.pack_packed)
@@ -304,7 +307,7 @@ class CompactingIssueQueue(Model):
       # preg notify signal
       s.connect_m(s.slots_[i].notify, s.notify)
       # Connect slot ready signal to packer
-      s.connect(s.pdecode_packer_.pack_in_[i], s.slots_[i].ready_ret)
+      s.connect(s.pdecode_packer_.pack_in_[i], s.slots_[i].status_ready)
       # Connect output to mux
       s.connect(s.mux_.mux_in_[i], s.slots_[i].peek_value)
 
@@ -325,8 +328,8 @@ class CompactingIssueQueue(Model):
       @s.combinational
       def shift0():
         # The 0th slot only shifts in if invalid or issuing
-        s.do_shift_[0].v = (not s.slots_[0].valid_ret or
-                            s.will_issue_[0]) and (s.slots_[1].valid_ret and
+        s.do_shift_[0].v = (not s.slots_[0].status_valid or
+                            s.will_issue_[0]) and (s.slots_[1].status_valid and
                                                    not s.will_issue_[1])
 
     for i in range(1, num_slots - 1):
@@ -335,8 +338,8 @@ class CompactingIssueQueue(Model):
       def shiftk(i=i):
         # We can only shift in if current slot is invalid, issuing, or shifting out
         # and predicessor is valid, and not issuing
-        s.do_shift_[i].v = (not s.slots_[i].valid_ret or s.will_issue_[i] or
-                            s.do_shift_[i - 1]) and (s.slots_[i + 1].valid_ret
+        s.do_shift_[i].v = (not s.slots_[i].status_valid or s.will_issue_[i] or
+                            s.do_shift_[i - 1]) and (s.slots_[i + 1].status_valid
                                                      and
                                                      not s.will_issue_[i + 1])
 
@@ -354,7 +357,7 @@ class CompactingIssueQueue(Model):
     # The add call, to add something to the IQ
     @s.combinational
     def add_rdy():
-      s.add_rdy.v = not s.slots_[num_slots - 1].valid_ret or s.slots_[
+      s.add_rdy.v = not s.slots_[num_slots - 1].status_valid or s.slots_[
           num_slots - 1].take_call
 
     if in_order:
