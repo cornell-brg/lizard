@@ -1,11 +1,9 @@
 from pymtl import *
-from lizard.util.rtl.interface import Interface, IncludeSome, UseInterface
+from lizard.util.rtl.interface import UseInterface
 from lizard.util.rtl.method import MethodSpec
-from lizard.util.rtl.types import Array, canonicalize_type
 from lizard.util.rtl.comparator import Comparator, ComparatorInterface, CMPFunc
-from lizard.util.rtl.register import Register, RegisterInterface
 from lizard.util.rtl.lookup_table import LookupTable, LookupTableInterface
-from lizard.bitutil import clog2, clog2nz
+from lizard.bitutil import clog2 
 from lizard.core.rtl.messages import DispatchMsg, ExecuteMsg, BranchType, OpClass
 from lizard.util.rtl.pipeline_stage import gen_stage, StageInterface, DropControllerInterface
 from lizard.core.rtl.kill_unit import PipelineKillDropController

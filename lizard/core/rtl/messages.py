@@ -4,8 +4,6 @@ from lizard.bitutil import clog2, bit_enum
 from lizard.bitutil.bit_struct_generator import *
 from lizard.msg.codes import RVInstMask
 
-from lizard.core.rtl.micro_op import MicroOp
-
 PipelineMsgStatus = bit_enum(
     'PipelineMsgStatus',
     None,

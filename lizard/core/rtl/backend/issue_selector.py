@@ -1,7 +1,6 @@
 from pymtl import *
-from lizard.util.rtl.interface import Interface, UseInterface
+from lizard.util.rtl.interface import UseInterface
 from lizard.util.rtl.method import MethodSpec
-from lizard.util.rtl.mux import Mux
 from lizard.core.rtl.pipeline_splitter import PipelineSplitterInterface, PipelineSplitterControllerInterface, PipelineSplitter
 from lizard.core.rtl.messages import IssueMsg, PipelineMsgStatus, OpClass
 

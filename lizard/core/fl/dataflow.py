@@ -1,12 +1,10 @@
 from pymtl import *
 
-from lizard.model.hardware_model import HardwareModel, Result, NotReady
+from lizard.model.hardware_model import HardwareModel
 from lizard.model.flmodel import FLModel
 from lizard.core.fl.renametable import RenameTableFL
 from lizard.util.fl.registerfile import RegisterFileFL
 from lizard.util.fl.snapshotting_freelist import SnapshottingFreeListFL
-from lizard.core.rtl.dataflow import DataFlowManagerInterface
-from lizard.bitutil import copy_bits
 
 
 class DataFlowManagerFL(FLModel):

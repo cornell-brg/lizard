@@ -2,7 +2,7 @@ from pymtl import *
 
 from lizard.model.hardware_model import HardwareModel
 from lizard.model.flmodel import FLModel
-from lizard.core.rtl.frontend.imm_decoder import ImmDecoderInterface, ImmType
+from lizard.core.rtl.frontend.imm_decoder import ImmType
 from lizard.util.arch import rv64g
 from lizard.config.general import ILEN
 

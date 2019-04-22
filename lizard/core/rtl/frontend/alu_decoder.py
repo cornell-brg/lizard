@@ -1,12 +1,6 @@
 from pymtl import *
-from lizard.bitutil import slice_len
-from lizard.util.rtl.interface import Interface, IncludeAll, UseInterface
-from lizard.util.rtl.method import MethodSpec
-from lizard.util.rtl.lookup_table import LookupTableInterface, LookupTable
-from lizard.util.rtl.logic import BinaryComparatorInterface, LogicOperatorInterface, Equals, And
-from lizard.util.rtl.case_mux import case_mux
-from lizard.core.rtl.messages import AluMsg, OpClass, AluFunc, InstMsg, PipeMsg
-from lizard.core.rtl.frontend.sub_decoder import SubDecoderInterface, GenDecoderFixed, compose_decoders
+from lizard.core.rtl.messages import AluMsg, OpClass, AluFunc 
+from lizard.core.rtl.frontend.sub_decoder import GenDecoderFixed, compose_decoders
 from lizard.core.rtl.frontend.imm_decoder import ImmType
 from lizard.msg.codes import Opcode
 

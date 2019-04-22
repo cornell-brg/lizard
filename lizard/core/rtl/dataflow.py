@@ -3,7 +3,6 @@ from lizard.msg.codes import *
 
 from lizard.util.rtl.interface import Interface, IncludeSome, UseInterface
 from lizard.util.rtl.method import MethodSpec
-from lizard.util.rtl.types import Array, canonicalize_type
 from lizard.util.rtl.mux import Mux
 from lizard.util.rtl.packers import Packer
 from lizard.util.rtl.snapshotting_freelist import SnapshottingFreeList
