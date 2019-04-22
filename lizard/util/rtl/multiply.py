@@ -376,8 +376,14 @@ class MulCombinational(Model):
         def src1_truncate():
           s.src1_.v = s.mult_src1[:plen]
 
-      s.connect(s.tmps_[0], 0)
       s.connect_wire(s.tmp_res, s.tmps_[s.interface.MultiplicandLen])
+      # PYMTL_BROKEN Direction is inferred wrong:
+      #s.connect_wire(s.tmps_[0], 0)
+
+      @s.combinational
+      def eval_base():
+        s.tmps_[0].v = 0
+
       for i in range(1, s.interface.MultiplicandLen + 1):
 
         @s.combinational
