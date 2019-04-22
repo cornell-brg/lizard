@@ -13,7 +13,7 @@ from lizard.util.rtl.types import canonicalize_type
 
 class AbstractIssueType(BitStructDefinition):
 
-  def __init__(s, src_tag, opaque, KillOpaqueType):
+  def __init__(s, src_tag, opaque, KillOpaqueType, ordered_bit=False):
     s.src0_val = BitField(1)
     s.src0_rdy = BitField(1)
     s.src0 = BitField(canonicalize_type(src_tag).nbits)
@@ -23,7 +23,8 @@ class AbstractIssueType(BitStructDefinition):
     # A custom opaque field for passing private info
     s.opaque = BitField(canonicalize_type(opaque).nbits)
     s.kill_opaque = BitField(canonicalize_type(KillOpaqueType).nbits)
-
+    if ordered_bit:
+      s.ordered = BitField(1)
 
 class IssueQueueSlotInterface(Interface):
 
@@ -55,10 +56,17 @@ class IssueQueueSlotInterface(Interface):
                 call=True,
                 rdy=False),
             MethodSpec(
-                'output',
+                'peek',
                 args=None,
                 rets={
                     'value': s.SlotType,
+                },
+                call=False,
+                rdy=False),
+            MethodSpec(
+                'take',
+                args=None,
+                rets={
                 },
                 call=True,
                 rdy=False),
@@ -77,7 +85,7 @@ class IssueQueueSlotInterface(Interface):
                 call=False,
                 rdy=False),
         ],
-        ordering_chains=[['notify', 'valid', 'ready', 'output', 'input']],
+        ordering_chains=[['notify', 'valid', 'ready', 'peek', 'take', 'input']],
     )
 
 
@@ -117,11 +125,11 @@ class GenericIssueSlot(Model):
     s.src1_match_ = Wire(1)
 
     # Connect the output method
-    s.connect(s.output_value.opaque, s.opaque_.read_data)
-    s.connect(s.output_value.src0, s.src0_.read_data)
-    s.connect(s.output_value.src0_val, s.src0_val_.read_data)
-    s.connect(s.output_value.src1, s.src1_.read_data)
-    s.connect(s.output_value.src1_val, s.src1_val_.read_data)
+    s.connect(s.peek_value.opaque, s.opaque_.read_data)
+    s.connect(s.peek_value.src0, s.src0_.read_data)
+    s.connect(s.peek_value.src0_val, s.src0_val_.read_data)
+    s.connect(s.peek_value.src1, s.src1_.read_data)
+    s.connect(s.peek_value.src1_val, s.src1_val_.read_data)
 
     # Connect inputs into registers
     s.connect(s.opaque_.write_data, s.input_value.opaque)
@@ -139,10 +147,10 @@ class GenericIssueSlot(Model):
 
     # Connect up val manager
     s.connect(s.val_manager_.add_msg, s.input_value.kill_opaque)
-    s.connect(s.output_value.kill_opaque, s.val_manager_.peek_msg)
+    s.connect(s.peek_value.kill_opaque, s.val_manager_.peek_msg)
     s.connect(s.val_manager_.add_call, s.input_call)
     s.connect(s.valid_ret, s.val_manager_.peek_rdy)
-    s.connect(s.val_manager_.take_call, s.output_call)
+    s.connect(s.val_manager_.take_call, s.take_call)
     # Lift the global kill notify signal
     s.connect_m(s.val_manager_.kill_notify, s.kill_notify)
 
@@ -155,9 +163,9 @@ class GenericIssueSlot(Model):
 
     @s.combinational
     def handle_outputs():
-      s.output_value.src0_rdy.v = s.src0_rdy_.read_data or s.src0_match_
-      s.output_value.src1_rdy.v = s.src1_rdy_.read_data or s.src1_match_
-      s.srcs_ready_.v = s.output_value.src0_rdy and s.output_value.src1_rdy
+      s.peek_value.src0_rdy.v = s.src0_rdy_.read_data or s.src0_match_
+      s.peek_value.src1_rdy.v = s.src1_rdy_.read_data or s.src1_match_
+      s.srcs_ready_.v = s.peek_value.src0_rdy and s.peek_value.src1_rdy
       s.ready_ret.v = s.valid_ret and s.srcs_ready_
 
     @s.combinational
@@ -254,6 +262,15 @@ class CompactingIssueQueue(Model):
     s.mux_ = Mux(s.interface.SlotType, num_slots)
 
     if in_order:
+      # s.wait_pred = [Wire(1) for _ in range(num_slots)]
+      # @s.combinational
+      # def set_wait_pred_0():
+      #   s.wait_pred[0].v = 0
+      #
+      # for i in range(1, num_slots):
+      #   @s.combinational
+      #   def set_wait_pred_k(i=i):
+      #     s.wait_pred[i].v = s.wait_pred[i-1] or (s.slots_[i-1].)
       s.valids_packer_ = Packer(Bits(1), num_slots)
       s.first_valid_ = PriorityDecoder(num_slots)
       s.connect(s.first_valid_.decode_signal, s.valids_packer_.pack_packed)
@@ -278,7 +295,7 @@ class CompactingIssueQueue(Model):
       @s.combinational
       def slot_input(i=i):
         s.slots_[i].input_call.v = s.do_shift_[i]
-        s.slots_[i].input_value.v = s.slots_[i + 1].output_value
+        s.slots_[i].input_value.v = s.slots_[i + 1].peek_value
 
     # Broadcast kill and notify signal to each slot
     for i in range(num_slots):
@@ -289,7 +306,7 @@ class CompactingIssueQueue(Model):
       # Connect slot ready signal to packer
       s.connect(s.pdecode_packer_.pack_in_[i], s.slots_[i].ready_ret)
       # Connect output to mux
-      s.connect(s.mux_.mux_in_[i], s.slots_[i].output_value)
+      s.connect(s.mux_.mux_in_[i], s.slots_[i].peek_value)
 
     # We need to forward the kill notify from the current cycle into the input
     @s.combinational
@@ -326,22 +343,21 @@ class CompactingIssueQueue(Model):
     @s.combinational
     def output0():
       # The 0th slot only outputs if issuing
-      s.slots_[0].output_call.v = s.will_issue_[0]
+      s.slots_[0].take_call.v = s.will_issue_[0]
 
     for i in range(1, num_slots):
 
       @s.combinational
       def outputk(i=i):
-        s.slots_[i].output_call.v = s.will_issue_[i] or s.do_shift_[i - 1]
+        s.slots_[i].take_call.v = s.will_issue_[i] or s.do_shift_[i - 1]
 
     # The add call, to add something to the IQ
     @s.combinational
     def add_rdy():
       s.add_rdy.v = not s.slots_[num_slots - 1].valid_ret or s.slots_[
-          num_slots - 1].output_call
+          num_slots - 1].take_call
 
     if in_order:
-
       @s.combinational
       def handle_remove():
         # Must be valid and first entry
