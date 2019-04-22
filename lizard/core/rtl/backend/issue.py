@@ -1,5 +1,6 @@
 from pymtl import *
 from lizard.util.rtl.interface import UseInterface
+from lizard.util.rtl.method import MethodSpec
 from lizard.util.rtl.types import Array, canonicalize_type
 from lizard.util.rtl.issue_queue import CompactingIssueQueue, IssueQueueInterface, AbstractIssueType
 from lizard.util.rtl.coders import PriorityDecoder
