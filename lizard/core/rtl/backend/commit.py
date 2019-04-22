@@ -160,10 +160,6 @@ class Commit(Model):
     s.connect(s.cflow_commit_call, s.rob_remove)
 
     s.wait_for_fence = Wire(1)
-    s.super_bob_DEBUG = Wire(1)
-    s.connect(s.super_bob_DEBUG, s.rob.peek_value.hdr_fence)
-    s.status_DEBUG = Wire(PipelineMsgStatus.bits)
-    s.connect(s.status_DEBUG, s.rob.peek_value.hdr_status)
 
     @s.combinational
     def set_rob_remove():
