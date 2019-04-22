@@ -5,3 +5,4 @@ __pycache__/
 *.py[cod]
 .pytest_cache
 riscv-gnu-toolchain
+*.egg-info
