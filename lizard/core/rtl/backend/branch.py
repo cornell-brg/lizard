@@ -3,7 +3,7 @@ from lizard.util.rtl.interface import UseInterface
 from lizard.util.rtl.method import MethodSpec
 from lizard.util.rtl.comparator import Comparator, ComparatorInterface, CMPFunc
 from lizard.util.rtl.lookup_table import LookupTable, LookupTableInterface
-from lizard.bitutil import clog2 
+from lizard.bitutil import clog2
 from lizard.core.rtl.messages import DispatchMsg, ExecuteMsg, BranchType, OpClass
 from lizard.util.rtl.pipeline_stage import gen_stage, StageInterface, DropControllerInterface
 from lizard.core.rtl.kill_unit import PipelineKillDropController

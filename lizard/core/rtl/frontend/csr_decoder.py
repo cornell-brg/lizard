@@ -1,6 +1,6 @@
 from pymtl import *
 from lizard.util.rtl.interface import UseInterface
-from lizard.core.rtl.messages import CsrMsg, OpClass, CsrFunc 
+from lizard.core.rtl.messages import CsrMsg, OpClass, CsrFunc
 from lizard.core.rtl.frontend.sub_decoder import SubDecoderInterface, GenDecoder, PayloadGeneratorInterface, compose_decoders
 from lizard.core.rtl.frontend.imm_decoder import ImmType
 from lizard.msg.codes import Opcode

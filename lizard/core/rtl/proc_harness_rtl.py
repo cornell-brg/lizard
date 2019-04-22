@@ -11,7 +11,7 @@ from lizard.core.rtl.proc import ProcInterface, Proc
 from lizard.util.arch.rv64g import assembler, DATA_PACK_DIRECTIVE
 from lizard.config.general import *
 from lizard.util import line_block
-from lizard.util.line_block import Divider 
+from lizard.util.line_block import Divider
 
 
 class ProcTestHarness(Model):
