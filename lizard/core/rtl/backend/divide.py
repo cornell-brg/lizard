@@ -1,8 +1,8 @@
 from pymtl import *
-from lizard.util.rtl.interface import Interface, UseInterface
-from lizard.core.rtl.backend.multiply import MultIn, MultOut, MultDropController
+from lizard.util.rtl.interface import UseInterface
+from lizard.core.rtl.backend.multiply import MultDropController
 from lizard.core.rtl.messages import MFunc, MVariant, DispatchMsg, ExecuteMsg, MMsg
-from lizard.util.rtl.pipeline_stage import gen_stage, StageInterface, DropControllerInterface, PipelineStageInterface, gen_valid_value_manager
+from lizard.util.rtl.pipeline_stage import PipelineStageInterface, gen_valid_value_manager
 from lizard.util.rtl.divide import DivideInterface, NonRestoringDivider
 from lizard.core.rtl.controlflow import KillType
 from lizard.config.general import *
@@ -74,8 +74,6 @@ class Div(Model):
     def handle_vvm_add_msg():
       s.vvm.add_msg.v = 0
       s.vvm.add_msg.hdr.v = s.in_peek_msg.hdr
-      # TODO AARON YOU CAN SAVE STUFF IN RESULT HERE TO DECIDE
-      # HOW TO INTERPRET IT WHEN IT COMES OUT
       s.vvm.add_msg.result.v = zext(s.in_peek_msg.m_msg, XLEN)
       s.vvm.add_msg.rd.v = s.in_peek_msg.rd
       s.vvm.add_msg.rd_val.v = s.in_peek_msg.rd_val
@@ -101,10 +99,3 @@ class Div(Model):
 
       if s.mul_msg.op32:
         s.peek_msg.result.v = sext(s.res_32, XLEN)
-
-    # TODO Aaron attach to divider
-    # s.in_peek_msg.rs1
-    # s.in_peek_msg.rs2
-    # s.in_peek_msg.m_msg_func
-    # s.in_peek_msg.m_msg_variant
-    # s.in_peek_msg.m_msg_op32
