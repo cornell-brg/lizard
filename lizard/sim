@@ -55,7 +55,7 @@ def main():
   p.add_argument('--trace', action='store_true')
   p.add_argument('--vcd', action='store_true')
   p.add_argument('--verilate', action='store_true')
-  p.add_argument('--clean', action='store_true')
+  p.add_argument('--use-cached', action='store_true')
   p.add_argument('--maxcycles', default=200000, type=int)
   p.add_argument('elf_file')
   opts = p.parse_args()
@@ -78,7 +78,7 @@ def main():
       opts.maxcycles,
       handler.handle,
       opts.trace,
-      use_cached_verilated=not opts.clean)
+      use_cached_verilated=opts.use_cached)
   sys.exit(result)
 
 
