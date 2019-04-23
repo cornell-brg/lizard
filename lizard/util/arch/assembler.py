@@ -1,7 +1,6 @@
+import struct
 from collections import namedtuple
 from pymtl import *
-from lizard.util.arch.isa import Isa
-import struct
 from lizard.util.sparse_memory_image import SparseMemoryImage
 from lizard.bitutil import data_pack_directive
 
@@ -136,7 +135,7 @@ class Assembler(object):
     for i in xrange(0, len(text_section.data), self.isa.ilen_bytes):
       bits = struct.unpack_from(
           "<I", buffer(text_section.data, i, self.isa.ilen_bytes))[0]
-      inst_str = self.isa.disassemble_inst(Bits(ILEN, bits))
+      inst_str = self.isa.disassemble_inst(Bits(self.isa.ilen_bytes * 8, bits))
       disasm_line = " {:0>8x}  {:0>8x}  {}\n".format(addr + i, bits, inst_str)
       asm_code += disasm_line
 

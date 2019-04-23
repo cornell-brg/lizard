@@ -1,15 +1,11 @@
 from pymtl import *
-from lizard.bitutil import clog2, clog2nz
+from lizard.bitutil import clog2
 from lizard.util.rtl.method import MethodSpec
 from lizard.util.rtl.mux import Mux
-from lizard.util.rtl.register import Register, RegisterInterface
 from lizard.util.rtl.interface import Interface, UseInterface
-from lizard.util.rtl.registerfile import RegisterFile, RegisterFileInterface
 from lizard.util.rtl.async_ram import AsynchronousRAM, AsynchronousRAMInterface
-from lizard.util.rtl.types import Array, canonicalize_type
 from lizard.util.rtl.pipeline_stage import gen_valid_value_manager
 from lizard.util.rtl.onehot import OneHotEncoder
-from lizard.util.pretty_print import bitstruct_values
 
 
 class ReorderBufferInterface(Interface):

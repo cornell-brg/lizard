@@ -1,8 +1,6 @@
-from pymtl import *
-
+from pymtl import Bits
 from lizard.model.hardware_model import HardwareModel
 from lizard.model.flmodel import FLModel
-from lizard.util.rtl.extenders import SextInterface
 
 
 class SextFL(FLModel):

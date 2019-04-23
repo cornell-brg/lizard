@@ -3,7 +3,6 @@ from pymtl import *
 from lizard.model.hardware_model import HardwareModel, Result
 from lizard.model.flmodel import FLModel
 from lizard.util.rtl.freelist import FreeListInterface
-from lizard.bitutil import copy_bits
 
 
 class FreeListFL(FLModel):
@@ -49,6 +48,7 @@ class FreeListFL(FLModel):
         if s.bits[i]:
           s.bits[i] = 0
           return Result(index=i, mask=(1 << i))
+      return None
 
     @s.model_method
     def release(mask):

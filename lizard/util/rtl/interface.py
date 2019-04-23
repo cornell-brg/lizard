@@ -2,8 +2,6 @@ from collections import OrderedDict
 from pymtl import *
 from lizard.util.rtl.method import MethodSpec
 from lizard.util.toposort import toposort
-from copy import deepcopy
-import inspect
 
 
 def IncludeAll(interface):
@@ -19,7 +17,7 @@ def UseInterface(s, interface):
   interface.apply(s)
 
 
-class ResidualMethodSpec:
+class ResidualMethodSpec(object):
 
   def __init__(s, model, spec, port_map, direction):
     s.model = model

@@ -2,7 +2,6 @@ from pymtl import *
 from lizard.bitutil import clog2
 from lizard.util.rtl.interface import Interface, UseInterface
 from lizard.util.rtl.method import MethodSpec
-from lizard.util.rtl.types import Array, canonicalize_type
 
 
 class WrapIncInterface(Interface):

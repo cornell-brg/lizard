@@ -15,7 +15,7 @@ from lizard.bitutil import clog2nz
 class DataFlowManagerInterface(Interface):
 
   def __init__(s, dlen, naregs, npregs, nsnapshots, nstore_queue, num_src_ports,
-               num_dst_ports, num_is_ready_ports):
+               num_dst_ports, num_is_ready_ports, num_forward_ports):
     s.DataLen = dlen
     s.NumAregs = naregs
     s.NumPregs = npregs
@@ -25,6 +25,7 @@ class DataFlowManagerInterface(Interface):
     s.NumSrcPorts = num_src_ports
     s.NumDstPorts = num_dst_ports
     s.NumIsReadyPorts = num_is_ready_ports
+    s.NumForwardPorts = num_forward_ports
     rename_table_interface = RenameTableInterface(naregs, npregs, 0, 0,
                                                   nsnapshots)
 
@@ -113,6 +114,24 @@ class DataFlowManagerInterface(Interface):
                 count=num_dst_ports,
             ),
             MethodSpec(
+                'forward',
+                args={
+                    'tag': s.Preg,
+                    'value': Bits(dlen),
+                },
+                rets=None,
+                call=True,
+                rdy=False,
+                count=num_forward_ports,
+            ),
+            MethodSpec(
+                'reset_cl_forwarded',
+                args=None,
+                rets=None,
+                call=False,
+                rdy=False,
+            ),
+            MethodSpec(
                 'get_updated',
                 args=None,
                 rets={
@@ -172,9 +191,10 @@ class DataFlowManagerInterface(Interface):
         ],
         ordering_chains=[
             [
-                'is_ready', 'write', 'get_updated', 'get_src', 'get_dst',
-                'valid_store_mask', 'get_store_id', 'free_store_id', 'commit',
-                'read', 'snapshot', 'free_snapshot', 'restore', 'rollback'
+                'is_ready', 'write', 'forward', 'get_updated', 'get_src',
+                'get_dst', 'valid_store_mask', 'get_store_id', 'free_store_id',
+                'commit', 'read', 'reset_cl_forwarded', 'snapshot',
+                'free_snapshot', 'restore', 'rollback'
             ],
         ],
     )
@@ -192,6 +212,7 @@ class DataFlowManager(Model):
     num_src_ports = s.interface.NumSrcPorts
     num_dst_ports = s.interface.NumDstPorts
     num_is_ready_ports = s.interface.NumIsReadyPorts
+    num_forward_ports = s.interface.NumForwardPorts
 
     # used to allocate snapshot IDs
     s.snapshot_allocator = SnapshottingFreeList(nsnapshots, 1, 1, nsnapshots)
@@ -378,23 +399,72 @@ class DataFlowManager(Model):
       s.connect(s.ready_table.write_call[i], s.is_write_not_zero_tag[i])
 
     # get_updated
+    s.is_forward_not_zero_tag = [Wire(1) for _ in range(num_forward_ports)]
+    for i in range(num_forward_ports):
+
+      @s.combinational
+      def check_forward(i=i):
+        s.is_forward_not_zero_tag[i].v = (s.forward_tag[i] !=
+                                          s.ZERO_TAG) and s.forward_call[i]
+
+    # Unify the write and forward ports
+    # Note that forward occurs after write
+    s.get_updated_is_not_zero_tag = [
+        Wire(1) for _ in range(num_dst_ports + num_forward_ports)
+    ]
+    s.get_updated_tags = [
+        Wire(s.interface.Preg) for _ in range(num_dst_ports + num_forward_ports)
+    ]
+    s.get_updated_values = [
+        Wire(dlen) for _ in range(num_dst_ports + num_forward_ports)
+    ]
+    for i in range(num_dst_ports):
+
+      @s.combinational
+      def connect_wire_workaround(i=i):
+        s.get_updated_is_not_zero_tag[i].v = s.is_write_not_zero_tag[i]
+
+      s.connect(s.get_updated_tags[i], s.write_tag[i])
+      s.connect(s.get_updated_values[i], s.write_value[i])
+    for i in range(num_forward_ports):
+
+      @s.combinational
+      def connect_wire_workaround(i=i):
+        s.get_updated_is_not_zero_tag[num_dst_ports +
+                                      i].v = s.is_forward_not_zero_tag[i]
+
+      s.connect(s.get_updated_tags[num_dst_ports + i], s.forward_tag[i])
+      s.connect(s.get_updated_values[num_dst_ports + i], s.forward_value[i])
+
     s.get_updated_incremental_masks = [
-        Wire(npregs) for _ in range(num_dst_ports + 1)
+        Wire(npregs) for _ in range(num_dst_ports + num_forward_ports + 1)
+    ]
+    s.get_updated_incremental_masks_temp = [
+        Wire(npregs) for _ in range(num_dst_ports + num_forward_ports + 1)
     ]
 
     # PYMTL_BROKEN
     @s.combinational
     def connect_is_broken():
       s.get_updated_incremental_masks[0].v = 0
+      s.get_updated_incremental_masks_temp[0].v = 0
 
-    for i in range(num_dst_ports):
+    for i in range(num_dst_ports + num_forward_ports):
 
       @s.combinational
       def get_updated_mask(curr=i + 1, last=i):
-        s.get_updated_incremental_masks[
+        s.get_updated_incremental_masks_temp[
             curr].v = s.get_updated_incremental_masks[last]
-        if s.is_write_not_zero_tag[last]:
-          s.get_updated_incremental_masks[curr][s.write_tag[last]].v = 1
+        if s.get_updated_is_not_zero_tag[last]:
+          s.get_updated_incremental_masks_temp[curr][
+              s.get_updated_tags[last]].v = 1
+
+      # PYMTL_BROKEN
+      # double-buffering
+      @s.combinational
+      def pymtl_connect_broken(curr=i + 1, last=i):
+        s.get_updated_incremental_masks[
+            curr].v = s.get_updated_incremental_masks_temp[curr]
 
     s.connect(s.get_updated_mask, s.get_updated_incremental_masks[-1])
 
@@ -456,6 +526,27 @@ class DataFlowManager(Model):
       s.connect(s.is_ready_ready[i], s.read_muxes_ready[i].mux_out)
 
     # read
+    s.read_forwarded_data = [
+        Wire(dlen) for _ in range(num_is_ready_ports * (num_forward_ports + 1))
+    ]
+    for i in range(num_is_ready_ports):
+
+      @s.combinational
+      def handle_read_forwarded_data_0(i=i):
+        s.read_forwarded_data[i].v = s.preg_file.read_data[i]
+
+      for j in range(num_forward_ports):
+
+        @s.combinational
+        def handle_read_forwarded_data(last=num_is_ready_ports * j + i,
+                                       now=num_is_ready_ports * (j + 1) + i,
+                                       i=i,
+                                       j=j):
+          if s.forward_call[j] and s.forward_tag[j] == s.read_tag[i]:
+            s.read_forwarded_data[now].v = s.forward_value[j]
+          else:
+            s.read_forwarded_data[now].v = s.read_forwarded_data[last]
+
     s.read_muxes_value = [Mux(Bits(dlen), 2) for _ in range(num_is_ready_ports)]
     s.read_is_zero_tag = [Wire(1) for _ in range(num_is_ready_ports)]
     for i in range(num_is_ready_ports):
@@ -465,7 +556,10 @@ class DataFlowManager(Model):
         s.read_is_zero_tag[i].v = s.read_tag[i] == s.ZERO_TAG
 
       s.connect(s.read_tag[i], s.preg_file.read_addr[i])
-      s.connect(s.read_muxes_value[i].mux_in_[0], s.preg_file.read_data[i])
+      # We take data after the forwarding has been handled
+      s.connect(
+          s.read_muxes_value[i].mux_in_[0],
+          s.read_forwarded_data[num_is_ready_ports * num_forward_ports + i])
       s.connect(s.read_muxes_value[i].mux_in_[1], 0)
       s.connect(s.read_muxes_value[i].mux_select, s.read_is_zero_tag[i])
       s.connect(s.read_value[i], s.read_muxes_value[i].mux_out)

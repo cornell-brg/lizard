@@ -1,10 +1,9 @@
 from pymtl import *
 
-from lizard.model.hardware_model import HardwareModel, NotReady, Result
+from lizard.model.hardware_model import HardwareModel
 from lizard.model.flmodel import FLModel
 from lizard.util.rtl.snapshotting_registerfile import SnapshottingRegisterFileInterface
 from lizard.util.fl.registerfile import RegisterFileFL
-from lizard.bitutil import copy_bits
 
 
 class SnapshottingRegisterFileFL(FLModel):

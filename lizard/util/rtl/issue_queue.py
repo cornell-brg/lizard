@@ -1,15 +1,14 @@
 from pymtl import *
-from lizard.bitutil import clog2, clog2nz
+from lizard.bitutil import clog2
 from lizard.util.rtl.pipeline_stage import gen_valid_value_manager
 from lizard.util.rtl.register import Register, RegisterInterface
 from lizard.util.rtl.method import MethodSpec
 from lizard.util.rtl.coders import PriorityDecoder
 from lizard.util.rtl.mux import Mux
 from lizard.util.rtl.onehot import OneHotEncoder
-from lizard.util.rtl.packers import Packer, Unpacker
+from lizard.util.rtl.packers import Packer
 from lizard.util.rtl.interface import Interface, UseInterface
-from lizard.util.rtl.types import Array, canonicalize_type
-from lizard.util.pretty_print import bitstruct_values
+from lizard.util.rtl.types import canonicalize_type
 
 
 class AbstractIssueType(BitStructDefinition):
@@ -295,7 +294,6 @@ class CompactingIssueQueue(Model):
     # We need to forward the kill notify from the current cycle into the input
     @s.combinational
     def handle_add():
-      # TODO: The kills from this cycle need to be forwarded to this:
       s.slots_[num_slots - 1].input_call.v = s.add_call
       s.last_slot_in_.v = s.add_value
       # Forward any notifications from current cycle

@@ -1,9 +1,9 @@
+from inspect import getargspec
+from functools import wraps
 from pymtl import Bits, concat
 from pymtl.datatypes import helpers
 from lizard.config.general import *
 from lizard.msg.codes import *
-from inspect import getargspec
-from functools import wraps
 from lizard.util.arch import rv64g
 
 
@@ -430,7 +430,7 @@ class RV64GSemantics(object):
 
   def csrrc_op(s, csr, rs1_is_x0, value):
     if not rs1_is_x0:
-      s.CSR[csr] = c.CSR[csr] & (not value)
+      s.CSR[csr] = s.CSR[csr] & (not value)
 
   @instr
   def execute_csrrw(s, rd, csrnum, rs1):
@@ -479,7 +479,7 @@ class RV64GSemantics(object):
     if mode == MtvecMode.direct:
       target = base
     elif mode == MtvecMode.vectored:
-      target = base + (p.mcause << 2)
+      target = base + (packet.mcause << 2)
     else:
       # this is a bad state. mtvec is curcial to handling
       # exceptions, and there is no way to handle and exception

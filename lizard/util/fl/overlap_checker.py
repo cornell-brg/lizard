@@ -1,8 +1,7 @@
 from pymtl import *
 
-from lizard.model.hardware_model import HardwareModel, Result
+from lizard.model.hardware_model import HardwareModel
 from lizard.model.flmodel import FLModel
-from lizard.util.rtl.overlap_checker import OverlapCheckerInterface
 
 
 class OverlapCheckerFL(FLModel):

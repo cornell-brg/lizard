@@ -30,7 +30,7 @@ class MemoryModel(object):
       for j in range(nbytes):
         s.mem[int(memreq.addr + j)] = memreq.data[j * 8:j * 8 + 8].uint()
       result = s.mk_wr_resp(memreq.opaque, 0)
-    elif memreq.type_ in ASO_FUNS:
+    elif memreq.type_ in MemoryModel.AMO_FUNS:
       read_data = Bits(s.data_nbits)
       for j in range(nbytes):
         read_data[j * 8:j * 8 + 8] = s.mem.get(int(memreq.addr + j), 0)
@@ -52,9 +52,9 @@ class MemoryModel(object):
       s.mem[addr + i] = data[i]
 
   def read_mem(s, addr, size):
-    assert addr + len(data) < s.size
+    assert addr + size < s.size
     result = bytearray()
-    for i in range(len(data)):
+    for i in range(size):
       result.append(s.mem.get(addr + i), 0)
     return result
 
