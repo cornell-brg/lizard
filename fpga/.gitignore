@@ -4,3 +4,4 @@ fpga-rv64gc
 *.debug
 *.str
 proc.sv
+.Xil
