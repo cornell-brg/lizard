@@ -105,7 +105,7 @@ class Proc(Model):
                                                  MAX_SPEC_DEPTH,
                                                  STORE_QUEUE_SIZE, 2, 1, 4, 1)
     s.dflow = DataFlowManager(s.dflow_interface)
-    s.connect(s.dflow.forward_call[0], 0)
+    # s.connect(s.dflow.forward_call[0], 0)
 
     # Control flow
     s.cflow_interface = ControlFlowManagerInterface(
@@ -224,7 +224,7 @@ class Proc(Model):
     s.connect_m(s.alu.kill_notify, s.kill_notifier.kill_notify)
     s.connect_m(s.alu.in_peek, s.pipe_selector.alu_peek)
     s.connect_m(s.alu.in_take, s.pipe_selector.alu_take)
-    # s.connect_m(s.alu.forward, s.dflow.forward[0])
+    s.connect_m(s.alu.forward, s.dflow.forward[0])
 
     ## Branch
     s.branch_interface = BranchInterface()
