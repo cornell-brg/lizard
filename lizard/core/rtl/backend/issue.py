@@ -2,7 +2,6 @@ from pymtl import *
 from lizard.util.rtl.interface import UseInterface
 from lizard.util.rtl.method import MethodSpec
 from lizard.util.rtl.issue_queue import CompactingIssueQueue, IssueQueueInterface, AbstractIssueType
-from lizard.util.rtl.coders import PriorityDecoder
 from lizard.util.rtl.pipeline_stage import PipelineStageInterface
 from lizard.bitutil import clog2
 from lizard.core.rtl.messages import RenameMsg, IssueMsg, PipelineMsgStatus
