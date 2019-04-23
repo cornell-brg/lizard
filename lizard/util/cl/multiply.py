@@ -2,7 +2,6 @@ from pymtl import *
 
 from lizard.model.hardware_model import HardwareModel
 from lizard.model.clmodel import CLModel
-from lizard.util.rtl.multiply import MulPipelinedInterface
 
 
 class MulCL(CLModel):

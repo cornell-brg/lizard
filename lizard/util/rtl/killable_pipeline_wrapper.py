@@ -1,9 +1,7 @@
 from pymtl import *
 from lizard.util.rtl.interface import Interface, UseInterface
 from lizard.util.rtl.method import MethodSpec
-from lizard.util.rtl.types import Array
-from lizard.util.rtl.register import Register, RegisterInterface
-from lizard.util.rtl.pipeline_stage import PipelineStageInterface, ValidValueManager, ValidValueManagerInterface, gen_valid_value_manager
+from lizard.util.rtl.pipeline_stage import PipelineStageInterface, gen_valid_value_manager
 
 KillablePipelineWrapperInterface = PipelineStageInterface
 

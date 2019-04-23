@@ -1,3 +1,4 @@
+# pylint: skip-file
 #=========================================================================
 # test_utils
 #=========================================================================
@@ -5,7 +6,8 @@
 
 from pymtl import *
 import collections
-import re, py
+import re
+import py
 
 
 class RunTestVectorSimError(Exception):
@@ -345,10 +347,9 @@ def run_rdycall_test_vector_sim(model,
     # Apply test inputs
     for method, in_value in zip(method_vector, row):
       in_value = [in_value] if isinstance(in_value, int) else in_value
-      assert len( in_value ) == len( method[ 'ret' ] ) + len(
-          method[ 'arg' ] ) + 1 or \
-          len( in_value ) == len( method[ 'ret' ] ) + len(
-          method[ 'arg' ] )
+      assert len(in_value) == len(method['ret']) + len(
+          method['arg']) + 1 or len(in_value) == len(method['ret']) + len(
+              method['arg'])
 
       method_name = method['method_name']
 

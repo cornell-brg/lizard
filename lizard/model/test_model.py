@@ -1,3 +1,4 @@
+# pylint: skip-file
 import copy
 import inspect
 import hypothesis.strategies as st
@@ -11,7 +12,6 @@ from lizard.model.wrapper import wrap_to_cl
 from lizard.model.hardware_model import NotReady, Result
 from lizard.util.pretty_print import list_string_value, list_string
 from lizard.model.translate import translate
-import copy
 
 debug = True
 
@@ -45,7 +45,7 @@ class MethodBasedRuleStrategy(SearchStrategy):
 
     rule_to_fire.sort(
       key=lambda rule: (
-        self.machine.interface.methods.keys().index( rule.method_name ),
+        self.machine.interface.methods.keys().index(rule.method_name),
         rule.index,
         rule.method_name,
       )
@@ -177,7 +177,7 @@ class TestStateMachine(GenericStateMachine):
 
     rule_to_fire.sort(
       key=lambda ruledata: (
-        self.interface.methods.keys().index( ruledata[0].method_name ),
+        self.interface.methods.keys().index(ruledata[0].method_name),
         ruledata[0].index,
         ruledata[0].method_name,
       )

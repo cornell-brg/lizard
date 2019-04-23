@@ -2,7 +2,6 @@ from pymtl import *
 
 from lizard.model.hardware_model import HardwareModel, Result
 from lizard.model.flmodel import FLModel
-from lizard.util.rtl.lookup_table import LookupTable
 
 
 class LookupTableFL(FLModel):

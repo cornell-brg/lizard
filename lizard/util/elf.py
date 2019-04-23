@@ -22,6 +22,7 @@
 # Date   : May 20, 2014
 
 import struct
+from lizard.util.sparse_memory_image import SparseMemoryImage
 #from   pydgin.utils import intmask
 intmask = lambda x: x
 try:
@@ -29,8 +30,6 @@ try:
   unpack = runpack
 except ImportError:
   unpack = struct.unpack
-
-from lizard.util.sparse_memory_image import SparseMemoryImage
 
 #-------------------------------------------------------------------------
 # ELF File Format Types

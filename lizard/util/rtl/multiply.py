@@ -1,9 +1,8 @@
 from pymtl import *
-from lizard.bitutil import clog2, clog2nz
+from lizard.bitutil import clog2
 from lizard.util.rtl.method import MethodSpec
 from lizard.util.rtl.interface import Interface, UseInterface
 from lizard.util.rtl.register import Register, RegisterInterface
-from lizard.bitutil import bit_enum
 
 
 class MulPipelinedInterface(Interface):

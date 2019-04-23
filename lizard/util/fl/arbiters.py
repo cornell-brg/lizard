@@ -2,7 +2,6 @@ from pymtl import *
 
 from lizard.model.hardware_model import HardwareModel
 from lizard.model.flmodel import FLModel
-from lizard.util.rtl.arbiters import ArbiterInterface
 
 
 class PriorityArbiterFL(FLModel):

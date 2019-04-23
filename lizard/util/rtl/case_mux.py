@@ -2,7 +2,7 @@ from pymtl import *
 from lizard.util.rtl.interface import Interface, UseInterface
 from lizard.util.rtl.method import MethodSpec
 from lizard.util.rtl.types import Array, canonicalize_type
-from lizard.bitutil import clog2, clog2nz
+from lizard.bitutil import clog2
 
 
 class CaseMuxInterface(Interface):
@@ -63,37 +63,3 @@ class CaseMux(Model):
   def line_trace(s):
     return "[{}][{}]: {}".format(', '.join([str(x) for x in s.mux_in_]),
                                  s.mux_select, s.mux_out)
-
-
-def _tupleize(thing):
-  if isinstance(thing, tuple):
-    return thing
-  else:
-    return (thing,)
-
-
-def case_mux(outs, select, case_map, defaults):
-  size = len(case_map)
-  outs = _tupleize(outs)
-  defaults = _tupleize(defaults)
-  width = sum([out.nbits for out in outs])
-  slices = [None] * len(outs)
-  base = 0
-  for i in range(len(outs)):
-    end = base + outs[i].nbits
-    slices[i] = slice(base, end)
-    base = end
-  cases, wires = zip(*list(case_map.iteritems()))
-  wires = [_tupleize(wire) for wire in wires]
-
-  mux = CaseMux(CaseMuxInterface(width, select.nbits, size), cases)
-  for i, wire_group in enumerate(wires):
-    for slice_, wire in zip(slices, wire_group):
-      s.connect(s.mux.mux_in_[i][slice_], wire)
-  s.connect(s.mux.mux_select, select)
-  for slice_, wire in zip(slices, outs):
-    s.connect(wire, s.mux.mux_out[slice_])
-  for slice_, wire in zip(slices, defaults):
-    s.connect(s.mux.mux_default[slice_], wire)
-
-  return mux

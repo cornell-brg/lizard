@@ -12,11 +12,11 @@ class CircularDependencyError(ValueError):
 
 def toposort(data):
   """Returns a toposort of a graph, or raises an exception if not possible.
-  
+
   The graph is expressed as a dictionary. A directed edge from i to j exists
   if i in data and j in data[i].
-  
-  Item i is dependent on item j if there exists a directed path from j 
+
+  Item i is dependent on item j if there exists a directed path from j
   to i in the graph.
 
   Output is a list of items, in topological order. Precisely, if item
