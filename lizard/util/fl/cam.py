@@ -61,3 +61,8 @@ class RandomReplacementCAMFL(FLModel):
           s.overwrite_counter = 0
         else:
           s.overwrite_counter = i + 1
+
+    @s.model_method
+    def clear():
+      for i in range(len(s.entries)):
+        s.entries[i] = s.Entry()

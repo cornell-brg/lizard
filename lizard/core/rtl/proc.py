@@ -105,7 +105,7 @@ class Proc(Model):
                                                  MAX_SPEC_DEPTH,
                                                  STORE_QUEUE_SIZE, 2, 1, 4, 1)
     s.dflow = DataFlowManager(s.dflow_interface)
-    # s.connect(s.dflow.forward_call[0], 0)
+    s.connect(s.dflow.forward_call[0], 0)
 
     # Control flow
     s.cflow_interface = ControlFlowManagerInterface(
@@ -224,7 +224,7 @@ class Proc(Model):
     s.connect_m(s.alu.kill_notify, s.kill_notifier.kill_notify)
     s.connect_m(s.alu.in_peek, s.pipe_selector.alu_peek)
     s.connect_m(s.alu.in_take, s.pipe_selector.alu_take)
-    s.connect_m(s.alu.forward, s.dflow.forward[0])
+    # s.connect_m(s.alu.forward, s.dflow.forward[0])
 
     ## Branch
     s.branch_interface = BranchInterface()
@@ -299,6 +299,7 @@ class Proc(Model):
     s.connect_m(s.commit.store_acks_outstanding, s.mflow.store_acks_outstanding)
     s.connect_m(s.commit.read_csr, s.csr.read)
     s.connect_m(s.commit.write_csr, s.csr.write)
+    s.connect_m(s.commit.btb_clear, s.btb.clear)
 
   def line_trace(s):
     return line_block.join([

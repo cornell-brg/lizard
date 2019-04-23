@@ -263,3 +263,27 @@ def gen_branch_collision_test():
     csrw proc2mngr, x4 > 40
   """.format(
       nop_gen=gen_nops(59),)
+
+def gen_fence_i_speculative_error_test():
+  return """
+    addi x30, x0, 42
+  btc:
+    j cow
+    csrw proc2mngr, x0 > 0
+  cow:
+    la x2, btc
+    la x3, super_nop
+    lwu x4, 0(x3)
+    sw x4, 0(x2)
+    la x2, cow
+    la x3, end_bad
+    lwu x4, 0(x3)
+    sw x4, 0(x2)
+    fence.i
+    j btc
+
+  end_bad:
+    csrw proc2mngr, x30
+  super_nop:
+    addi x0, x0, 0
+  """
