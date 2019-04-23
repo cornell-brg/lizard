@@ -10,7 +10,7 @@ from lizard.core.rtl.frontend.fetch import Fetch, FetchInterface
 from lizard.core.rtl.frontend.decode import Decode, DecodeInterface
 from lizard.core.rtl.backend.rename import Rename, RenameInterface
 from lizard.core.rtl.backend.issue_selector import IssueSelector
-from lizard.core.rtl.backend.issue import Issue, IssueInterface
+from lizard.core.rtl.backend.issue import Issue, IssueInterface, IssueInOrder, IssueOutOfOrder, IssueOrderedStores
 from lizard.core.rtl.backend.dispatch import Dispatch, DispatchInterface
 from lizard.core.rtl.backend.pipe_selector import PipeSelector
 from lizard.core.rtl.backend.alu import ALU
@@ -179,12 +179,10 @@ class Proc(Model):
     # Issue
     ## Out of Order (OO) Issue
     s.oo_issue_interface = IssueInterface()
-    s.oo_issue = Issue(
-        s.oo_issue_interface,
-        PREG_COUNT,
-        NUM_ISSUE_SLOTS,
-        False,
-        num_updated=ISSUE_NUM_UDPATED_PORTS)
+    s.oo_issue = Issue(s.oo_issue_interface, PREG_COUNT, NUM_ISSUE_SLOTS,
+                                                ISSUE_NUM_UDPATED_PORTS,
+                                                set_ordered=IssueOutOfOrder)
+
     s.connect_m(s.oo_issue.kill_notify, s.kill_notifier.kill_notify)
     s.connect_m(s.issue_selector.normal_peek, s.oo_issue.in_peek)
     s.connect_m(s.issue_selector.normal_take, s.oo_issue.in_take)
@@ -194,12 +192,9 @@ class Proc(Model):
 
     ## In Order (IO) Issue (for memory)
     s.io_issue_interface = IssueInterface()
-    s.io_issue = Issue(
-        s.io_issue_interface,
-        PREG_COUNT,
-        NUM_MEM_ISSUE_SLOTS,
-        True,
-        num_updated=ISSUE_NUM_UDPATED_PORTS)
+    s.io_issue = Issue(s.io_issue_interface, PREG_COUNT, NUM_MEM_ISSUE_SLOTS,
+                      num_updated=ISSUE_NUM_UDPATED_PORTS,
+                       set_ordered=IssueInOrder)
     s.connect_m(s.io_issue.kill_notify, s.kill_notifier.kill_notify)
     s.connect_m(s.issue_selector.mem_peek, s.io_issue.in_peek)
     s.connect_m(s.issue_selector.mem_take, s.io_issue.in_take)
