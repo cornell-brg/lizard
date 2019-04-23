@@ -294,7 +294,6 @@ class CompactingIssueQueue(Model):
     # We need to forward the kill notify from the current cycle into the input
     @s.combinational
     def handle_add():
-      # TODO: The kills from this cycle need to be forwarded to this:
       s.slots_[num_slots - 1].input_call.v = s.add_call
       s.last_slot_in_.v = s.add_value
       # Forward any notifications from current cycle
