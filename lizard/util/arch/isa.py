@@ -1,12 +1,9 @@
-import struct
-
 import abc
-from pymtl import Bits, concat
 from string import translate, maketrans
-from lizard.util.sparse_memory_image import SparseMemoryImage
+from collections import namedtuple
+from pymtl import Bits
 from lizard.config.general import *
 from lizard.msg.codes import *
-from collections import namedtuple
 from lizard.bitutil import bslice, byte_count
 
 
@@ -55,7 +52,7 @@ class FieldSpec(object):
   some positions inside an instruction.
   A field is specified by its width, the total number of bits involved,
   and by a mapping from slices in the value to slices in the target instruction.
-  This is represented as an association list by parts. 
+  This is represented as an association list by parts.
   For example, consider the following 32 instruction with a strange 29 bit imm:
 
    31                16 15 13 12        0
@@ -71,7 +68,7 @@ class FieldSpec(object):
 
   FieldSpec(3, IntFormat(), bslice(7, 4))
 
-  One special case is where some bits in the value are not actually encoded, but 
+  One special case is where some bits in the value are not actually encoded, but
   are instread required to be fixed values. In that case, instead of including
   a slice indicating a position in the target, include a value instead:
 

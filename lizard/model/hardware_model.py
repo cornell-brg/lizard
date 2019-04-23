@@ -1,9 +1,9 @@
 import abc
 from inspect import getargspec
 from functools import wraps
+from copy import deepcopy
 from lizard.util.pretty_print import list_string_value
 from lizard.bitutil import copy_bits
-from copy import deepcopy
 
 
 class HardwareModel(object):

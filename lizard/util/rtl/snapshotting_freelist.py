@@ -5,8 +5,7 @@ from lizard.util.rtl.interface import Interface, IncludeSome, UseInterface
 from lizard.util.rtl.freelist import FreeList, FreeListInterface
 from lizard.util.rtl.registerfile import RegisterFile
 from lizard.util.rtl.mux import Mux
-from lizard.util.rtl.packers import Packer, Unpacker
-from lizard.util.rtl.connection import Connection
+from lizard.util.rtl.packers import Packer
 
 
 class SnapshottingFreeListInterface(Interface):

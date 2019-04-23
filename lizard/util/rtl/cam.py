@@ -2,7 +2,7 @@ from pymtl import *
 from lizard.bitutil import clog2, clog2nz
 from lizard.util.rtl.interface import Interface, UseInterface
 from lizard.util.rtl.method import MethodSpec
-from lizard.util.rtl.types import Array, canonicalize_type
+from lizard.util.rtl.types import canonicalize_type
 from lizard.bitutil.bit_struct_generator import *
 from lizard.util.rtl.register import Register, RegisterInterface
 

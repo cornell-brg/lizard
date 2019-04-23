@@ -1,9 +1,7 @@
 from pymtl import *
-from lizard.bitutil import clog2, clog2nz
-from pclib.rtl import RegEn, RegEnRst, RegRst
+from lizard.bitutil import clog2, bit_enum
 from lizard.util.rtl.method import MethodSpec
 from lizard.util.rtl.interface import Interface, UseInterface
-from lizard.bitutil import bit_enum
 
 ALUFunc = bit_enum('ALUFunc', None, 'ALU_ADD', 'ALU_SUB', 'ALU_AND', 'ALU_OR',
                    'ALU_XOR', 'ALU_SLL', 'ALU_SRL', 'ALU_SRA', 'ALU_SLT')

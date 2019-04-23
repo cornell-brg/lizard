@@ -1,6 +1,6 @@
 from pymtl import *
 
-from lizard.model.hardware_model import HardwareModel, NotReady, Result
+from lizard.model.hardware_model import HardwareModel
 from lizard.model.flmodel import FLModel
 from lizard.util.rtl.registerfile import RegisterFileInterface
 from lizard.bitutil import copy_bits
