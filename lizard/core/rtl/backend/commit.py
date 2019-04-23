@@ -55,6 +55,7 @@ class Commit(Model):
             rets=None,
             call=True,
             rdy=False,
+            count=1,
         ),
         MethodSpec(
             'cflow_get_head',
@@ -176,8 +177,8 @@ class Commit(Model):
     def handle_commit():
       s.dataflow_commit_call.v = 0
       s.dataflow_commit_tag.v = 0
-      s.dataflow_free_store_id_call.v = 0
-      s.dataflow_free_store_id_id_.v = 0
+      s.dataflow_free_store_id_call[0].v = 0
+      s.dataflow_free_store_id_id_[0].v = 0
 
       s.cflow_commit_redirect.v = 0
       s.cflow_commit_redirect_target.v = 0
@@ -190,8 +191,8 @@ class Commit(Model):
           if s.rob.peek_value.rd_val:
             s.dataflow_commit_call.v = 1
             s.dataflow_commit_tag.v = s.rob.peek_value.rd
-          s.dataflow_free_store_id_call.v = s.rob.peek_value.hdr_is_store
-          s.dataflow_free_store_id_id_.v = s.rob.peek_value.hdr_store_id
+          s.dataflow_free_store_id_call[0].v = s.rob.peek_value.hdr_is_store
+          s.dataflow_free_store_id_id_[0].v = s.rob.peek_value.hdr_store_id
 
           if s.rob.peek_value.hdr_replay:  # Need to replay the instruction
             s.cflow_commit_redirect.v = 1
