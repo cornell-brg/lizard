@@ -1,7 +1,7 @@
 synth: proc.sv
 	vivado -mode batch -source run.tcl
 proc.sv:
-	cd ../build; ../src/gen_verilog
+	cd ../build; ../lizard/gen_verilog
 	cp ../build/$@ .
 clean:
 	rm -rf proc.sv

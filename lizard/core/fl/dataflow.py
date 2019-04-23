@@ -21,6 +21,7 @@ class DataFlowManagerFL(FLModel):
     num_src_ports = s.interface.NumSrcPorts
     num_dst_ports = s.interface.NumDstPorts
     num_is_ready_ports = s.interface.NumIsReadyPorts
+    num_forward_ports = s.interface.NumForwardPorts
 
     s.state(
         snapshot_allocator=SnapshottingFreeListFL(nsnapshots, 1, 1, nsnapshots),
@@ -97,6 +98,7 @@ class DataFlowManagerFL(FLModel):
             reset_values=initial_map,
         ),
         updated=[],
+        forwarded={},
     )
 
     @s.model_method
@@ -123,9 +125,17 @@ class DataFlowManagerFL(FLModel):
       s.updated.append(tag)
 
     @s.model_method
+    def forward(tag, value):
+      if tag == s.ZERO_TAG:
+        return
+      s.forwarded[int(tag)] = int(value)
+
+    @s.model_method
     def get_updated():
       result = Bits(npregs)
       for preg in s.updated:
+        result[preg] = 1
+      for preg in s.forwarded.keys():
         result[preg] = 1
       s.updated = []
       return result
@@ -175,7 +185,13 @@ class DataFlowManagerFL(FLModel):
       if tag == s.ZERO_TAG:
         return 0
       else:
+        if int(tag) in s.forwarded:
+          return s.forwarded[tag]
         return s.preg_file.read(addr=tag).data
+
+    @s.model_method
+    def reset_cl_forwarded():
+      s.forwarded = {}
 
     @s.ready_method
     def snapshot():
