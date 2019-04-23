@@ -9,6 +9,7 @@ from lizard.core.rtl.messages import RenameMsg, IssueMsg, PipelineMsgStatus
 from lizard.core.rtl.kill_unit import KillDropController, KillDropControllerInterface
 from lizard.core.rtl.controlflow import KillType
 from lizard.config.general import *
+from lizard.util.rtl.types import Array
 
 
 def IssueInterface():
@@ -17,9 +18,10 @@ def IssueInterface():
 
 class Issue(Model):
 
-  def __init__(s, interface, num_pregs, num_slots, in_order):
+  def __init__(s, interface, num_pregs, num_slots, in_order, num_updated):
     UseInterface(s, interface)
     s.NumPregs = num_pregs
+    s.NumUpdated = num_updated
     s.require(
         # Called on rename stage
         MethodSpec(
@@ -53,7 +55,8 @@ class Issue(Model):
             'get_updated',
             args={},
             rets={
-                'mask': Bits(num_pregs),
+                'tags': Array(PREG_IDX_NBITS, num_updated),
+                'valid': Array(1, num_updated),
             },
             call=False,
             rdy=False,
@@ -69,15 +72,15 @@ class Issue(Model):
       return KillDropController(KillDropControllerInterface(branch_mask_nbits))
 
     s.iq = CompactingIssueQueue(
-        IssueQueueInterface(SlotType(), s.interface.KillArgType),
+        IssueQueueInterface(SlotType(), s.interface.KillArgType, num_updated),
         make_kill,
         num_slots,
         in_order=in_order)
     # Connect the notify signal
-    s.updated_ = PriorityDecoder(s.NumPregs)
-    s.connect(s.updated_.decode_signal, s.get_updated_mask)
-    s.connect(s.iq.notify_value, s.updated_.decode_decoded)
-    s.connect(s.iq.notify_call, s.updated_.decode_valid)
+    for i in range(num_updated):
+      s.connect(s.iq.notify_tag[i], s.get_updated_tags[i])
+      s.connect(s.iq.notify_call[i], s.get_updated_valid[i])
+
     s.connect_m(s.iq.kill_notify, s.kill_notify)
 
     s.renamed_ = Wire(RenameMsg())
