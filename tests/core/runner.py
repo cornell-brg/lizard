@@ -11,8 +11,6 @@ from pymtl import *
 from tests.context import lizard
 
 from pclib.test import TestSource, TestSink
-from lizard.util.cl.testmemory import TestMemoryCL
-from lizard.util.cl.ports import InValRdyCLPort, OutValRdyCLPort, cl_connect
 
 from lizard.util.arch import rv64g
 from lizard.util import elf
