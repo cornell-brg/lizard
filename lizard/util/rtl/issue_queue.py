@@ -27,7 +27,7 @@ class AbstractIssueType(BitStructDefinition):
 
 class IssueQueueSlotInterface(Interface):
 
-  def __init__(s, slot_type, KillArgType, num_notify=1):
+  def __init__(s, slot_type, KillArgType, num_notify):
     s.SlotType = slot_type
     s.SrcTag = Bits(slot_type.src0.nbits)
     s.Opaque = Bits(slot_type.opaque.nbits)
@@ -162,7 +162,7 @@ class GenericIssueSlot(Model):
             s.src1_.read_data == s.notify_tag[i])
 
       s.src0_match_.v = reduce_or(s.src0_notify_match)
-      s.src1_match_.v = reduce_or(s.src0_notify_match)
+      s.src1_match_.v = reduce_or(s.src1_notify_match)
 
 
     @s.combinational
@@ -190,7 +190,7 @@ class GenericIssueSlot(Model):
 
 class IssueQueueInterface(Interface):
 
-  def __init__(s, slot_type, KillArgType, num_notify=1):
+  def __init__(s, slot_type, KillArgType, num_notify):
     s.SlotType = slot_type
     s.SrcTag = Bits(slot_type.src0.nbits)
     s.Opaque = Bits(slot_type.opaque.nbits)
