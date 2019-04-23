@@ -4,6 +4,7 @@ from lizard.msg.codes import *
 from lizard.util.rtl.interface import Interface, IncludeSome, UseInterface
 from lizard.util.rtl.method import MethodSpec
 from lizard.util.rtl.mux import Mux
+from lizard.util.rtl.types import Array
 from lizard.util.rtl.packers import Packer
 from lizard.util.rtl.snapshotting_freelist import SnapshottingFreeList
 from lizard.util.rtl.registerfile import RegisterFile
@@ -135,7 +136,8 @@ class DataFlowManagerInterface(Interface):
                 'get_updated',
                 args=None,
                 rets={
-                    'mask': Bits(npregs),
+                    'tags': Array(s.preg, num_dst_ports + num_forward_ports),
+                    'valid': Array(1, num_dst_ports + num_forward_ports),
                 },
                 call=False,
                 rdy=False,
@@ -409,65 +411,24 @@ class DataFlowManager(Model):
 
     # Unify the write and forward ports
     # Note that forward occurs after write
-    s.get_updated_is_not_zero_tag = [
+    s.get_updated_valid = [
         Wire(1) for _ in range(num_dst_ports + num_forward_ports)
-    ]
-    s.get_updated_tags = [
-        Wire(s.interface.Preg) for _ in range(num_dst_ports + num_forward_ports)
-    ]
-    s.get_updated_values = [
-        Wire(dlen) for _ in range(num_dst_ports + num_forward_ports)
     ]
     for i in range(num_dst_ports):
 
       @s.combinational
       def connect_wire_workaround(i=i):
-        s.get_updated_is_not_zero_tag[i].v = s.is_write_not_zero_tag[i]
+        s.get_updated_valid[i].v = s.is_write_not_zero_tag[i]
 
       s.connect(s.get_updated_tags[i], s.write_tag[i])
-      s.connect(s.get_updated_values[i], s.write_value[i])
     for i in range(num_forward_ports):
 
       @s.combinational
       def connect_wire_workaround(i=i):
-        s.get_updated_is_not_zero_tag[num_dst_ports +
-                                      i].v = s.is_forward_not_zero_tag[i]
+        s.get_updated_valid[num_dst_ports +i].v = s.is_forward_not_zero_tag[i]
 
       s.connect(s.get_updated_tags[num_dst_ports + i], s.forward_tag[i])
-      s.connect(s.get_updated_values[num_dst_ports + i], s.forward_value[i])
-
-    s.get_updated_incremental_masks = [
-        Wire(npregs) for _ in range(num_dst_ports + num_forward_ports + 1)
-    ]
-    s.get_updated_incremental_masks_temp = [
-        Wire(npregs) for _ in range(num_dst_ports + num_forward_ports + 1)
-    ]
-
-    # PYMTL_BROKEN
-    @s.combinational
-    def connect_is_broken():
-      s.get_updated_incremental_masks[0].v = 0
-      s.get_updated_incremental_masks_temp[0].v = 0
-
-    for i in range(num_dst_ports + num_forward_ports):
-
-      @s.combinational
-      def get_updated_mask(curr=i + 1, last=i):
-        s.get_updated_incremental_masks_temp[
-            curr].v = s.get_updated_incremental_masks[last]
-        if s.get_updated_is_not_zero_tag[last]:
-          s.get_updated_incremental_masks_temp[curr][
-              s.get_updated_tags[last]].v = 1
-
-      # PYMTL_BROKEN
-      # double-buffering
-      @s.combinational
-      def pymtl_connect_broken(curr=i + 1, last=i):
-        s.get_updated_incremental_masks[
-            curr].v = s.get_updated_incremental_masks_temp[curr]
-
-    s.connect(s.get_updated_mask, s.get_updated_incremental_masks[-1])
-
+    
     # get_src
     s.connect_m(s.get_src, s.rename_table.lookup)
 
