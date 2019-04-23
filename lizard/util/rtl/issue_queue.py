@@ -27,11 +27,12 @@ class AbstractIssueType(BitStructDefinition):
 
 class IssueQueueSlotInterface(Interface):
 
-  def __init__(s, slot_type, KillArgType):
+  def __init__(s, slot_type, KillArgType, num_notify=1):
     s.SlotType = slot_type
     s.SrcTag = Bits(slot_type.src0.nbits)
     s.Opaque = Bits(slot_type.opaque.nbits)
     s.KillArgType = KillArgType
+    s.NumNotify = num_notify
     super(IssueQueueSlotInterface, s).__init__(
         [
             MethodSpec(
@@ -64,10 +65,13 @@ class IssueQueueSlotInterface(Interface):
                 rdy=False),
             MethodSpec(
                 'notify',
-                args={'value': s.SrcTag},
+                args={
+                  'tag': s.SrcTag.nbits,
+                },
                 rets=None,
                 call=True,
-                rdy=False),
+                rdy=False,
+                count=num_notify),
             MethodSpec(
                 'kill_notify',
                 args={
@@ -146,12 +150,20 @@ class GenericIssueSlot(Model):
     # Lift the global kill notify signal
     s.connect_m(s.val_manager_.kill_notify, s.kill_notify)
 
+    s.src0_notify_match = Wire(s.interface.NumNotify)
+    s.src1_notify_match = Wire(s.interface.NumNotify)
+
     @s.combinational
     def match_src():
-      s.src0_match_.v = s.src0_val_.read_data and s.notify_call and (
-          s.src0_.read_data == s.notify_value)
-      s.src1_match_.v = s.src1_val_.read_data and s.notify_call and (
-          s.src1_.read_data == s.notify_value)
+      for i in range(s.interface.NumNotify):
+        s.src0_notify_match[i].v = s.src0_val_.read_data and s.notify_call[i] and (
+            s.src0_.read_data == s.notify_tag[i])
+        s.src1_notify_match[i].v = s.src1_val_.read_data and s.notify_call[i] and (
+            s.src1_.read_data == s.notify_tag[i])
+
+      s.src0_match_.v = reduce_or(s.src0_notify_match)
+      s.src1_match_.v = reduce_or(s.src0_notify_match)
+
 
     @s.combinational
     def handle_outputs():
@@ -178,11 +190,12 @@ class GenericIssueSlot(Model):
 
 class IssueQueueInterface(Interface):
 
-  def __init__(s, slot_type, KillArgType):
+  def __init__(s, slot_type, KillArgType, num_notify=1):
     s.SlotType = slot_type
     s.SrcTag = Bits(slot_type.src0.nbits)
     s.Opaque = Bits(slot_type.opaque.nbits)
     s.KillArgType = KillArgType
+    s.NumNotify = num_notify
 
     super(IssueQueueInterface, s).__init__([
         MethodSpec(
@@ -198,8 +211,14 @@ class IssueQueueInterface(Interface):
             call=True,
             rdy=True),
         MethodSpec(
-            'notify', args={'value': s.SrcTag}, rets=None, call=True,
-            rdy=False),
+            'notify',
+            args={
+              'tag': s.SrcTag.nbits,
+            },
+            rets=None,
+            call=True,
+            rdy=False,
+            count=num_notify),
         MethodSpec(
             'kill_notify',
             args={
@@ -237,7 +256,8 @@ class CompactingIssueQueue(Model):
     s.slots_ = [
         GenericIssueSlot(
             IssueQueueSlotInterface(s.interface.SlotType,
-                                    s.interface.KillArgType), make_kill)
+                                    s.interface.KillArgType, s.interface.NumNotify),
+                                    make_kill)
         for _ in range(num_slots)
     ]
 
@@ -291,17 +311,26 @@ class CompactingIssueQueue(Model):
       # Connect output to mux
       s.connect(s.mux_.mux_in_[i], s.slots_[i].output_value)
 
-    # We need to forward the kill notify from the current cycle into the input
+    # We need to forward the notify from the current cycle into the input
+
+    s.src0_notify_match = Wire(s.interface.NumNotify)
+    s.src1_notify_match = Wire(s.interface.NumNotify)
+
+    @s.combinational
+    def match_src():
+      for i in range(s.interface.NumNotify):
+        s.src0_notify_match[i].v = s.notify_call[i] and (
+                                          s.add_value.src0 == s.notify_tag[i])
+        s.src1_notify_match[i].v = s.notify_call[i] and (
+                                          s.add_value.src1 == s.notify_tag[i])
+
     @s.combinational
     def handle_add():
       s.slots_[num_slots - 1].input_call.v = s.add_call
       s.last_slot_in_.v = s.add_value
       # Forward any notifications from current cycle
-      if s.notify_call:
-        if s.notify_value == s.add_value.src0:
-          s.last_slot_in_.src0_rdy.v = 1
-        if s.notify_value == s.add_value.src1:
-          s.last_slot_in_.src1_rdy.v = 1
+      s.last_slot_in_.src0_rdy.v = reduce_or(s.src0_notify_match) or s.add_value.src0_rdy
+      s.last_slot_in_.src1_rdy.v = reduce_or(s.src1_notify_match) or s.add_value.src1_rdy
 
     if num_slots > 1:
 
