@@ -412,18 +412,10 @@ class DataFlowManager(Model):
     # Unify the write and forward ports
     # Note that forward occurs after write
     for i in range(num_dst_ports):
-
-      @s.combinational
-      def connect_wire_workaround(i=i):
-        s.get_updated_valid[i].v = s.is_write_not_zero_tag[i]
-
+      s.connect(s.get_updated_valid[i], s.is_write_not_zero_tag[i])
       s.connect(s.get_updated_tags[i], s.write_tag[i])
     for i in range(num_forward_ports):
-
-      @s.combinational
-      def connect_wire_workaround(i=i):
-        s.get_updated_valid[num_dst_ports +i].v = s.is_forward_not_zero_tag[i]
-
+      s.connect(s.get_updated_valid[num_dst_ports +i], s.is_forward_not_zero_tag[i])
       s.connect(s.get_updated_tags[num_dst_ports + i], s.forward_tag[i])
     
     # get_src
