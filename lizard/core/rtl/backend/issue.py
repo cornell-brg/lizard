@@ -35,7 +35,7 @@ class IssueOrderedStores(Model):
     UseInterface(s, IssueSetOrdered())
     @s.combinational
     def is_store():
-      s.ordered_ret.v = s.ordered_input.mem_msg == MemFunc.MEM_FUNC_STORE
+      s.ordered_ret.v = s.ordered_input.mem_msg_func == MemFunc.MEM_FUNC_STORE
 
 
 class IssueInOrder(Model):
