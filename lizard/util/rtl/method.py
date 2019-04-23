@@ -1,6 +1,6 @@
+from copy import deepcopy
 from pymtl import *
 from lizard.util.rtl.types import Array, canonicalize_type, type_str
-from copy import deepcopy
 
 
 def canonicalize_method_spec(spec):

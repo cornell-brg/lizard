@@ -29,7 +29,7 @@ class MuxInterface(Interface):
 
 class Mux(Model):
   """A multiplexer.
-  
+
   Parameters:
     dtype: the datatype of the inputs and the output
     nports: the number of input ports to choose from

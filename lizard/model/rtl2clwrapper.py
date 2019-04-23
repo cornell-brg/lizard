@@ -2,7 +2,7 @@ from pymtl import *
 
 from lizard.model.hardware_model import HardwareModel
 from lizard.model.clmodel import CLModel
-from lizard.model.hardware_model import NotReady, Result
+from lizard.model.hardware_model import Result
 
 from lizard.util.rtl.interface import Interface
 

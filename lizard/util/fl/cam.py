@@ -1,8 +1,7 @@
 from pymtl import *
 
-from lizard.model.hardware_model import HardwareModel, NotReady, Result
+from lizard.model.hardware_model import HardwareModel, Result
 from lizard.model.flmodel import FLModel
-from lizard.bitutil import copy_bits
 from lizard.util.rtl.cam import Entry
 from lizard.bitutil.bit_struct_generator import *
 

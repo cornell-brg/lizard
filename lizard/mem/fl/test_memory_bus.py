@@ -1,6 +1,6 @@
-from pymtl import *
 from collections import deque
 from functools import partial
+from pymtl import *
 from lizard.mem.rtl.memory_bus import MemMsgType
 from lizard.model.hardware_model import HardwareModel
 from lizard.model.flmodel import FLModel
@@ -71,7 +71,7 @@ class TestMemoryBusFL(FLModel):
       for j in range(nbytes):
         s.mem[addr + j] = req.data[j * 8:j * 8 + 8].uint()
       result = s.MemMsg.resp.mk_wr(req.opaque, 0)
-    elif req.type_ in AMO_FUNS:
+    elif req.type_ in TestMemoryBusFL.AMO_FUNS:
       read_data = Bits(s.data_nbits)
       for j in range(nbytes):
         read_data[j * 8:j * 8 + 8] = s.mem.get(addr + j, 0)

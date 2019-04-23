@@ -1,6 +1,5 @@
 from pymtl import *
 
-from lizard.model.hardware_model import HardwareModel, Result
 from lizard.model.flmodel import FLModel
 from lizard.util.fl.freelist import FreeListFL
 from lizard.util.rtl.snapshotting_freelist import SnapshottingFreeListInterface
@@ -32,9 +31,6 @@ class SnapshottingFreeListFL(FLModel):
             release_alloc_bypass=False,
             used_slots_initial=used_slots_initial),
         snapshots=copy_bits(s.zero_snapshot))
-
-    def pack(snapshot):
-      return res
 
     @s.model_method
     def get_state():

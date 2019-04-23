@@ -1,7 +1,6 @@
 from pymtl import *
 from lizard.util.rtl.interface import Interface, UseInterface
 from lizard.util.rtl.method import MethodSpec
-from lizard.util.rtl.types import Array, canonicalize_type
 from lizard.util.rtl.mux import Mux
 from lizard.util.rtl.onehot import OneHotEncoder
 from lizard.util.rtl.coders import PriorityDecoder
@@ -98,7 +97,7 @@ class FreeList(Model):
 
   Methods:
     alloc:
-      Allocates a free element, and returns that element. Requires a call signal. 
+      Allocates a free element, and returns that element. Requires a call signal.
       Only ready when the free list has elements available.
       Inputs: None
       Outputs:
@@ -125,7 +124,7 @@ class FreeList(Model):
     free_alloc_bypass controls the relative ordering between free and alloc: if True, free occurs before alloc, otherwise
     alloc occurs before free. release_alloc_bypass controls the relative ordering between release and alloc: if True, free
     occurs before release, otherwise alloc occurs before release.
-    Note that the relative ordering between release and free is undefined, and cannot be determined. 
+    Note that the relative ordering between release and free is undefined, and cannot be determined.
     (If both release and free happen either before or after alloc, the ordering of release and free does not matter.
     If one happens before alloc, and one happens after alloc, due to the configuration of the bypass flags,
     then the order of alloc, free, and release is fully defined.)

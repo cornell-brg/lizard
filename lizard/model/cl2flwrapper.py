@@ -4,7 +4,7 @@ from lizard.model.flmodel import FLModel
 class CL2FLWrapper(FLModel):
 
   def __init__(s, clmodel):
-    super(FLModel, s).__init__(clmodel.interface)
+    super(CL2FLWrapper, s).__init__(clmodel.interface)
     s.state(cl=clmodel)
 
     for method_name in s.interface.methods.keys():

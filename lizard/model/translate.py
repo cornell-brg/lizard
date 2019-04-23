@@ -1,5 +1,5 @@
-from pymtl import *
 import imp
+from pymtl import *
 
 
 def translate_class(model, use_cached_verilated=False):
