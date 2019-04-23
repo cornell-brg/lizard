@@ -4,7 +4,8 @@ from lizard.util.rtl.method import MethodSpec
 from lizard.util.rtl.issue_queue import CompactingIssueQueue, IssueQueueInterface, AbstractIssueType
 from lizard.util.rtl.pipeline_stage import PipelineStageInterface
 from lizard.bitutil import clog2
-from lizard.core.rtl.messages import RenameMsg, IssueMsg, PipelineMsgStatus
+from lizard.core.rtl.messages import RenameMsg, IssueMsg, PipelineMsgStatus, MemFunc
+from lizard.util.rtl.interface import Interface, UseInterface
 from lizard.core.rtl.kill_unit import KillDropController, KillDropControllerInterface
 from lizard.core.rtl.controlflow import KillType
 from lizard.config.general import *
@@ -15,9 +16,43 @@ def IssueInterface():
   return PipelineStageInterface(IssueMsg(), KillType(MAX_SPEC_DEPTH))
 
 
+class IssueSetOrdered(Interface):
+
+  def __init__(s):
+    super(IssueSetOrdered, s).__init__(
+        [
+            MethodSpec(
+                'ordered',
+                args={'input' : IssueMsg()},
+                rets={'ret' : Bits(1)},
+                call=False,
+                rdy=False),
+        ],
+    )
+
+class IssueOrderedStores(Model):
+  def __init__(s):
+    UseInterface(s, IssueSetOrdered())
+    @s.combinational
+    def is_store():
+      s.ordered_ret.v = s.ordered_input.mem_msg_func == MemFunc.MEM_FUNC_STORE
+
+
+class IssueInOrder(Model):
+  def __init__(s):
+    UseInterface(s, IssueSetOrdered())
+    s.connect(s.ordered_ret, 1)
+
+class IssueOutOfOrder(Model):
+  def __init__(s):
+    UseInterface(s, IssueSetOrdered())
+    s.connect(s.ordered_ret, 0)
+
+
 class Issue(Model):
 
-  def __init__(s, interface, num_pregs, num_slots, in_order, num_updated):
+  def __init__(s, interface, num_pregs, num_slots, num_updated, set_ordered=IssueOutOfOrder):
+
     UseInterface(s, interface)
     s.NumPregs = num_pregs
     s.NumUpdated = num_updated
@@ -71,10 +106,15 @@ class Issue(Model):
       return KillDropController(KillDropControllerInterface(branch_mask_nbits))
 
     s.iq = CompactingIssueQueue(
-        IssueQueueInterface(SlotType(), s.interface.KillArgType, num_updated),
+        IssueQueueInterface(SlotType(), s.interface.KillArgType, num_updated, ordered=True),
+
         make_kill,
-        num_slots,
-        in_order=in_order)
+        num_slots)
+
+    # Connect up ordered module
+    s.set_ordered = set_ordered()
+    s.connect(s.set_ordered.ordered_input, s.in_peek_msg)
+
     # Connect the notify signal
     for i in range(num_updated):
       s.connect(s.iq.notify_tag[i], s.get_updated_tags[i])
@@ -104,6 +144,7 @@ class Issue(Model):
     @s.combinational
     def handle_input():
       s.iq_slot_in.v = 0
+      s.iq_slot_in.ordered.v = s.set_ordered.ordered_ret
       # Copy header
       s.iq_msg_in.v = 0
       s.iq_msg_in.hdr.v = s.renamed_.hdr
