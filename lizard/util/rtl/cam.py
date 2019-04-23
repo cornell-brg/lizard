@@ -39,6 +39,13 @@ class CAMInterface(Interface):
             call=True,
             rdy=False,
         ),
+        MethodSpec(
+            'clear',
+            args=None,
+            rets=None,
+            call=True,
+            rdy=False,
+        ),
     ])
 
 
@@ -156,16 +163,22 @@ class RandomReplacementCAM(Model):
 
       @s.combinational
       def handle_write(i=i):
-        s.entries[i].write_call.v = s.write_call and (
-            (s.overwrite and s.overwrite_counter.read_data == i) or
-            (s.write_addr_chain[nregs - 1] == i and
-             s.write_addr_valid[nregs - 1]) or
-            (not s.write_addr_valid[nregs - 1] and
-             s.invalid_addr_chain[nregs - 1] == i and
-             s.invalid_addr_valid[nregs - 1] and not s.write_remove))
-        s.entries_write_data_key[i].v = s.write_key
-        s.entries_write_data_value[i].v = s.write_value
-        s.entries_write_data_valid[i].v = not s.write_remove
+        if not s.clear_call:
+          s.entries[i].write_call.v = s.write_call and (
+              (s.overwrite and s.overwrite_counter.read_data == i) or
+              (s.write_addr_chain[nregs - 1] == i and
+               s.write_addr_valid[nregs - 1]) or
+              (not s.write_addr_valid[nregs - 1] and
+               s.invalid_addr_chain[nregs - 1] == i and
+               s.invalid_addr_valid[nregs - 1] and not s.write_remove))
+          s.entries_write_data_key[i].v = s.write_key
+          s.entries_write_data_value[i].v = s.write_value
+          s.entries_write_data_valid[i].v = not s.write_remove
+        else:
+          s.entries[i].write_call.v = 1
+          s.entries_write_data_key[i].v = 0
+          s.entries_write_data_value[i].v = 0
+          s.entries_write_data_valid[i].v = 0
 
     @s.combinational
     def update_overwrite_counter(nregsm1=nregs - 1):

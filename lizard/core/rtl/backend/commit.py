@@ -121,6 +121,13 @@ class Commit(Model):
             rdy=False,
             count=5,
         ),
+        MethodSpec(
+            'btb_clear',
+            args=None,
+            rets=None,
+            call=True,
+            rdy=False,
+        ),
     )
 
     s.advance = Wire(1)
@@ -184,6 +191,7 @@ class Commit(Model):
       s.cflow_commit_redirect_target.v = 0
 
       s.is_exception.v = 0
+      s.btb_clear_call.v = 0
 
       # The head is ready to commit
       if s.rob_remove:
@@ -199,6 +207,8 @@ class Commit(Model):
             s.cflow_commit_redirect_target.v = (
                 s.rob.peek_value.hdr_pc + ILEN_BYTES if
                 s.rob.peek_value.hdr_replay_next else s.rob.peek_value.hdr_pc)
+          if s.rob.peek_value.hdr_fence:
+            s.btb_clear_call.v = 1
         else:
           s.cflow_commit_redirect.v = 1
           s.cflow_commit_redirect_target.v = s.exception_target

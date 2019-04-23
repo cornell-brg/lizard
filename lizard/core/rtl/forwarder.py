@@ -103,6 +103,7 @@ class ForwardingStage(Model):
   def line_trace(s):
     return s.stage.line_trace()
 
+
 class ForwardingPipelineStage(Model):
 
   def __init__(s, stage_class, drop_controller_class=None):
@@ -139,6 +140,7 @@ class ForwardingPipelineStage(Model):
 
   def line_trace(s):
     return s.gen_stage.line_trace()
+
 
 def gen_forwarding_stage(stage_class, drop_controller_class=None):
   name = ''.join([
