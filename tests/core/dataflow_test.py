@@ -9,7 +9,7 @@ from lizard.model.wrapper import wrap_to_cl
 
 @pytest.mark.parametrize("model", [DataFlowManager, DataFlowManagerFL])
 def test_method(model):
-  df = wrap_to_cl(model(DataFlowManagerInterface(64, 32, 64, 4, 2, 2, 1, 4)))
+  df = wrap_to_cl(model(DataFlowManagerInterface(64, 32, 64, 4, 2, 2, 1, 4, 1)))
   df.reset()
 
   # simulate add x2, x1, x0
@@ -48,8 +48,9 @@ def test_method(model):
   df.cycle()
 
 
-def test_state_machine():
+@pytest.mark.parametrize('translate', ['verilate', 'sim'])
+def test_state_machine(translate):
   run_test_state_machine(
       DataFlowManager,
-      DataFlowManagerFL, (DataFlowManagerInterface(64, 32, 64, 4, 2, 2, 1, 4)),
-      translate_model=False)
+      DataFlowManagerFL, (DataFlowManagerInterface(64, 32, 64, 4, 2, 2, 1, 4, 4)),
+      translate_model=(translate == 'verilate'))

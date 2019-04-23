@@ -101,9 +101,14 @@ class Proc(Model):
     )
 
     # Dataflow
-    s.dflow_interface = DataFlowManagerInterface(
-        XLEN, AREG_COUNT, PREG_COUNT, MAX_SPEC_DEPTH, STORE_QUEUE_SIZE, 2, 1, 4)
+    s.dflow_interface = DataFlowManagerInterface(XLEN, AREG_COUNT, PREG_COUNT,
+                                                 MAX_SPEC_DEPTH,
+                                                 STORE_QUEUE_SIZE, 2, 1, 4, 4)
     s.dflow = DataFlowManager(s.dflow_interface)
+    for i in range(4):
+      s.connect(s.dflow.forward_call[i], 0)
+      s.connect(s.dflow.forward_tag[i], 0)
+      s.connect(s.dflow.forward_value[i], 0)
 
     # Control flow
     s.cflow_interface = ControlFlowManagerInterface(
