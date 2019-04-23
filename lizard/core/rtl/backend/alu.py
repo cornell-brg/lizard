@@ -4,7 +4,8 @@ from lizard.util.rtl import alu
 from lizard.util.rtl.lookup_table import LookupTable, LookupTableInterface
 from lizard.bitutil import clog2
 from lizard.core.rtl.messages import DispatchMsg, ExecuteMsg, AluFunc
-from lizard.util.rtl.pipeline_stage import gen_stage, StageInterface, DropControllerInterface
+from lizard.util.rtl.pipeline_stage import StageInterface, DropControllerInterface
+from lizard.core.rtl.forwarder import gen_forwarding_stage
 from lizard.core.rtl.kill_unit import PipelineKillDropController
 from lizard.core.rtl.controlflow import KillType
 from lizard.config.general import *
@@ -16,8 +17,8 @@ def ALUInterface():
 
 class ALUStage(Model):
 
-  def __init__(s, alu_interface):
-    UseInterface(s, alu_interface)
+  def __init__(s):
+    UseInterface(s, ALUInterface())
 
     imm_len = DispatchMsg().imm.nbits
     data_len = XLEN
@@ -138,4 +139,4 @@ def ALUDropController():
                               KillType(MAX_SPEC_DEPTH)))
 
 
-ALU = gen_stage(ALUStage, ALUDropController)
+ALU = gen_forwarding_stage(ALUStage, ALUDropController)

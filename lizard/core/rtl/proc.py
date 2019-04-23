@@ -13,7 +13,7 @@ from lizard.core.rtl.backend.issue_selector import IssueSelector
 from lizard.core.rtl.backend.issue import Issue, IssueInterface
 from lizard.core.rtl.backend.dispatch import Dispatch, DispatchInterface
 from lizard.core.rtl.backend.pipe_selector import PipeSelector
-from lizard.core.rtl.backend.alu import ALU, ALUInterface
+from lizard.core.rtl.backend.alu import ALU
 from lizard.core.rtl.backend.branch import Branch, BranchInterface
 from lizard.core.rtl.backend.csr import CSR, CSRInterface
 from lizard.core.rtl.backend.mem_pipe import MemInterface, Mem
@@ -103,12 +103,9 @@ class Proc(Model):
     # Dataflow
     s.dflow_interface = DataFlowManagerInterface(XLEN, AREG_COUNT, PREG_COUNT,
                                                  MAX_SPEC_DEPTH,
-                                                 STORE_QUEUE_SIZE, 2, 1, 4, 4)
+                                                 STORE_QUEUE_SIZE, 2, 1, 4, 1)
     s.dflow = DataFlowManager(s.dflow_interface)
-    for i in range(4):
-      s.connect(s.dflow.forward_call[i], 0)
-      s.connect(s.dflow.forward_tag[i], 0)
-      s.connect(s.dflow.forward_value[i], 0)
+    # s.connect(s.dflow.forward_call[0], 0)
 
     # Control flow
     s.cflow_interface = ControlFlowManagerInterface(
@@ -223,11 +220,11 @@ class Proc(Model):
 
     # Execute
     ## ALU
-    s.alu_interface = ALUInterface()
-    s.alu = ALU(s.alu_interface)
+    s.alu = ALU()
     s.connect_m(s.alu.kill_notify, s.kill_notifier.kill_notify)
     s.connect_m(s.alu.in_peek, s.pipe_selector.alu_peek)
     s.connect_m(s.alu.in_take, s.pipe_selector.alu_take)
+    s.connect_m(s.alu.forward, s.dflow.forward[0])
 
     ## Branch
     s.branch_interface = BranchInterface()
