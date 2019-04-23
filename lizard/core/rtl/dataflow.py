@@ -129,6 +129,7 @@ class DataFlowManagerInterface(Interface):
                 rets=None,
                 call=True,
                 rdy=False,
+                count=num_dst_ports,
             ),
             MethodSpec(
                 'commit',
