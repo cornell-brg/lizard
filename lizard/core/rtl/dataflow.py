@@ -136,8 +136,8 @@ class DataFlowManagerInterface(Interface):
                 'get_updated',
                 args=None,
                 rets={
-                    'tags': Array(s.preg, num_dst_ports + num_forward_ports),
-                    'valid': Array(1, num_dst_ports + num_forward_ports),
+                    'tags': Array(s.Preg, num_dst_ports + num_forward_ports),
+                    'valid': Array(Bits(1), num_dst_ports + num_forward_ports),
                 },
                 call=False,
                 rdy=False,
@@ -411,9 +411,6 @@ class DataFlowManager(Model):
 
     # Unify the write and forward ports
     # Note that forward occurs after write
-    s.get_updated_valid = [
-        Wire(1) for _ in range(num_dst_ports + num_forward_ports)
-    ]
     for i in range(num_dst_ports):
 
       @s.combinational

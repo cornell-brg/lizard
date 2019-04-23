@@ -1,6 +1,6 @@
 from pymtl import *
 
-from lizard.model.hardware_model import HardwareModel
+from lizard.model.hardware_model import HardwareModel, Result
 from lizard.model.flmodel import FLModel
 from lizard.core.fl.renametable import RenameTableFL
 from lizard.util.fl.registerfile import RegisterFileFL
@@ -132,13 +132,20 @@ class DataFlowManagerFL(FLModel):
 
     @s.model_method
     def get_updated():
-      result = Bits(npregs)
+      len_ = s.interface['get_updated'].rets['tags'].length
+      tags = [0] * len_
+      valid = [0] * len_
+      i = 0
       for preg in s.updated:
-        result[preg] = 1
+        tags[i] = preg
+        valid[i] = 1
+        i += 1
       for preg in s.forwarded.keys():
-        result[preg] = 1
+        tags[i] = preg
+        valid[i] = 1
+        i += 1
       s.updated = []
-      return result
+      return Result(tags=tags, valid=valid)
 
     @s.model_method
     def get_src(areg):
