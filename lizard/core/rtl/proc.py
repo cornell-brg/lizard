@@ -101,11 +101,15 @@ class Proc(Model):
     )
 
     # Dataflow
+    DFLOW_NUM_SRC_PORTS = 2
+    DFLOW_NUM_DST_PORTS = 1
+    DFLOW_NUM_IS_READY_PORTS = 4
+    DFLOW_NUM_FORWARD_PORTS = 1
+    ISSUE_NUM_UDPATED_PORTS = DFLOW_NUM_DST_PORTS + DFLOW_NUM_FORWARD_PORTS
     s.dflow_interface = DataFlowManagerInterface(XLEN, AREG_COUNT, PREG_COUNT,
                                                  MAX_SPEC_DEPTH,
-                                                 STORE_QUEUE_SIZE, 2, 1, 4, 1)
+                                                 STORE_QUEUE_SIZE, DFLOW_NUM_SRC_PORTS, DFLOW_NUM_DST_PORTS, DFLOW_NUM_IS_READY_PORTS, DFLOW_NUM_FORWARD_PORTS)
     s.dflow = DataFlowManager(s.dflow_interface)
-    # s.connect(s.dflow.forward_call[0], 0)
 
     # Control flow
     s.cflow_interface = ControlFlowManagerInterface(
@@ -174,7 +178,7 @@ class Proc(Model):
     # Issue
     ## Out of Order (OO) Issue
     s.oo_issue_interface = IssueInterface()
-    s.oo_issue = Issue(s.oo_issue_interface, PREG_COUNT, NUM_ISSUE_SLOTS, False, num_updated=2)
+    s.oo_issue = Issue(s.oo_issue_interface, PREG_COUNT, NUM_ISSUE_SLOTS, False, num_updated=ISSUE_NUM_UDPATED_PORTS)
     s.connect_m(s.oo_issue.kill_notify, s.kill_notifier.kill_notify)
     s.connect_m(s.issue_selector.normal_peek, s.oo_issue.in_peek)
     s.connect_m(s.issue_selector.normal_take, s.oo_issue.in_take)
@@ -185,7 +189,7 @@ class Proc(Model):
     ## In Order (IO) Issue (for memory)
     s.io_issue_interface = IssueInterface()
     s.io_issue = Issue(s.io_issue_interface, PREG_COUNT, NUM_MEM_ISSUE_SLOTS,
-                       True, num_updated=2)
+                       True, num_updated=ISSUE_NUM_UDPATED_PORTS)
     s.connect_m(s.io_issue.kill_notify, s.kill_notifier.kill_notify)
     s.connect_m(s.issue_selector.mem_peek, s.io_issue.in_peek)
     s.connect_m(s.issue_selector.mem_take, s.io_issue.in_take)
