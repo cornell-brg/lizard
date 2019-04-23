@@ -138,7 +138,9 @@ def _connect_m(parent, dst, src, src_to_dst_map=None):
 def _connect_ports(model, source_port, target_port):
   if isinstance(source_port, list):
     if len(source_port) != len(target_port):
-      raise ValueError('Port length mismatch: source_port: {} target_port: {}'.format(len(source_port), len(target_port)))
+      raise ValueError(
+          'Port length mismatch: source_port: {} target_port: {}'.format(
+              len(source_port), len(target_port)))
     for sp, tp in zip(source_port, target_port):
       _connect_ports(model, sp, tp)
   else:
