@@ -93,18 +93,17 @@ class Fetch(Model):
 
     @s.combinational
     def handle_redirect():
+      # Insert BTB here!
+      s.btb_read_key.v = s.pc.read_data
       if s.check_redirect_redirect:
         # drop if in flight
         s.drop_unit.drop_call.v = s.in_flight.read_data
         # the new PC is the target
         s.pc.write_data.v = s.check_redirect_target
         s.pc.write_call.v = 1
-        s.btb_read_key.v = 0
       else:
         s.drop_unit.drop_call.v = 0
         # if we are issuing now, the new PC is just ilen_bytes more than the last one
-        # Insert BTB here!
-        s.btb_read_key.v = s.pc.read_data
         if s.btb_read_valid and enable_btb:
           s.pc.write_data.v = s.btb_read_value
         else:
