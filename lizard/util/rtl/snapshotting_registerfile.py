@@ -134,15 +134,15 @@ class SnapshottingRegisterFile(Model):
           else:
             s.restore_vector[j].v = s.snapshot_muxes[j].mux_out
     else:
+      @s.combinational
+      def compute_should_restore():
+        if s.snapshot_call and s.restore_call and s.snapshot_target_id == s.restore_source_id:
+          s.should_restore.v = 0
+        else:
+          s.should_restore.v = s.restore_call
       for j in range(nregs):
         s.connect(s.restore_vector[j], s.snapshot_muxes[j].mux_out)
 
-        @s.combinational
-        def compute_should_restore(j=j):
-          if s.snapshot_call and s.restore_call and s.snapshot_target_id == s.restore_source_id:
-            s.should_restore.v = 0
-          else:
-            s.should_restore.v = s.restore_call
 
     # Handle the restore-set conflict for case 2
     s.set_vector = [Wire(dtype) for _ in range(nregs)]
