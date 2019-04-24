@@ -23,6 +23,15 @@ class MemoryArbiterInterface(Interface):
             rdy=True,
         ),
         MethodSpec(
+            'store_acks_outstanding',
+            args=None,
+            rets={
+                'ret': Bits(1),
+            },
+            call=False,
+            rdy=False,
+        ),
+        MethodSpec(
             'send_store',
             args={
                 'addr': s.Addr,
@@ -32,15 +41,6 @@ class MemoryArbiterInterface(Interface):
             rets=None,
             call=True,
             rdy=True,
-        ),
-        MethodSpec(
-            'store_acks_outstanding',
-            args=None,
-            rets={
-                'ret': Bits(1),
-            },
-            call=False,
-            rdy=False,
         ),
         MethodSpec(
             'send_load',
@@ -131,9 +131,4 @@ class MemoryArbiter(Model):
         s.mb_send_call.v = 0
         s.store_in_flight.write_data.v = s.store_in_flight_after_recv
 
-    @s.combinational
-    def handle_store_acks_outstanding():
-      if s.send_store_call:
-        s.store_acks_outstanding_ret.v = 1
-      else:
-        s.store_acks_outstanding_ret.v = s.store_in_flight_after_recv
+    s.connect(s.store_acks_outstanding_ret, s.store_in_flight_after_recv)
