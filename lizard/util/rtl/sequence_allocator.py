@@ -70,16 +70,12 @@ class SequenceAllocator(Model):
     s.connect(s.allocate_idx, s.tail.read_data)
     s.connect(s.get_head_idx, s.head.read_data)
 
+    # All the following comb blocks are for ROB stuff:
     @s.combinational
     def set_method_rdy():
       s.allocate_rdy.v = not s.full_
       s.get_head_rdy.v = not s.empty_
       s.free_rdy.v = not s.empty_
-
-    # All the following comb blocks are for ROB stuff:
-    @s.combinational
-    def set_get_head_rdy():
-      s.get_head_rdy.v = not s.empty_
 
     @s.combinational
     def set_flags():
