@@ -142,7 +142,7 @@ class Proc(Model):
     s.connect_m(s.db_send, s.csr.debug_send)
 
     # BTB
-    s.btb = RandomReplacementCAM(CAMInterface(XLEN, XLEN, BTB_SIZE))
+    s.btb = RandomReplacementCAM(CAMInterface(XLEN, XLEN), BTB_SIZE)
 
     # Fetch
     s.fetch_interface = FetchInterface()
