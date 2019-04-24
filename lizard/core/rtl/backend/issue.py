@@ -18,31 +18,40 @@ def IssueInterface():
 class IssueSetOrdered(Interface):
 
   def __init__(s):
-    super(IssueSetOrdered, s).__init__(
-        [
-            MethodSpec(
-                'ordered',
-                args={'input' : IssueMsg()},
-                rets={'ret' : Bits(1)},
-                call=False,
-                rdy=False),
-        ],
-    )
+    super(IssueSetOrdered, s).__init__([
+        MethodSpec(
+            'ordered',
+            args={
+                'input': IssueMsg(),
+            },
+            rets={
+                'ret': Bits(1),
+            },
+            call=False,
+            rdy=False,
+        ),
+    ])
+
 
 class IssueOrderedStores(Model):
+
   def __init__(s):
     UseInterface(s, IssueSetOrdered())
+
     @s.combinational
     def is_store():
       s.ordered_ret.v = s.ordered_input.mem_msg_func == MemFunc.MEM_FUNC_STORE
 
 
 class IssueInOrder(Model):
+
   def __init__(s):
     UseInterface(s, IssueSetOrdered())
     s.connect(s.ordered_ret, 1)
 
+
 class IssueOutOfOrder(Model):
+
   def __init__(s):
     UseInterface(s, IssueSetOrdered())
     s.connect(s.ordered_ret, 0)
@@ -50,7 +59,12 @@ class IssueOutOfOrder(Model):
 
 class Issue(Model):
 
-  def __init__(s, interface, num_pregs, num_slots, num_updated, set_ordered=IssueOutOfOrder):
+  def __init__(s,
+               interface,
+               num_pregs,
+               num_slots,
+               num_updated,
+               set_ordered=IssueOutOfOrder):
 
     UseInterface(s, interface)
     s.NumPregs = num_pregs
@@ -105,10 +119,9 @@ class Issue(Model):
       return KillDropController(KillDropControllerInterface(branch_mask_nbits))
 
     s.iq = CompactingIssueQueue(
-        IssueQueueInterface(SlotType(), s.interface.KillArgType, num_updated, ordered=True),
-
-        make_kill,
-        num_slots)
+        IssueQueueInterface(
+            SlotType(), s.interface.KillArgType, num_updated, ordered=True),
+        make_kill, num_slots)
 
     # Connect up ordered module
     s.set_ordered = set_ordered()
