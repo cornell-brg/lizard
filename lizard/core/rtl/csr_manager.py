@@ -28,6 +28,19 @@ class CSRManagerInterface(Interface):
             count=num_read_ports,
         ),
         MethodSpec(
+            'write',
+            args={
+                'csr': Bits(CSR_SPEC_NBITS),
+                'value': Bits(XLEN),
+            },
+            rets={
+                'valid': Bits(1),
+            },
+            call=True,
+            rdy=False,
+            count=num_write_ports,
+        ),
+        MethodSpec(
             'op',
             args={
                 'csr': Bits(CSR_SPEC_NBITS),
@@ -41,19 +54,6 @@ class CSRManagerInterface(Interface):
             },
             call=True,
             rdy=False,
-        ),
-        MethodSpec(
-            'write',
-            args={
-                'csr': Bits(CSR_SPEC_NBITS),
-                'value': Bits(XLEN),
-            },
-            rets={
-                'valid': Bits(1),
-            },
-            call=True,
-            rdy=False,
-            count=num_write_ports,
         ),
     ])
 
@@ -178,9 +178,10 @@ class CSRManager(Model):
     # Since we use s.connect on the ports below, we must use
     # s.connect on all array elements
     s.connect(s.csr_file.read_key[num_read_ports], s.temp_read_key)
-    s.connect(s.csr_file.write_key[0], s.temp_write_key)
-    s.connect(s.csr_file.write_value[0], s.temp_write_value)
-    s.connect(s.csr_file.write_call[0], s.temp_write_call)
+    # Use the last write port to overwrite everything else
+    s.connect(s.csr_file.write_key[num_write_ports], s.temp_write_key)
+    s.connect(s.csr_file.write_value[num_write_ports], s.temp_write_value)
+    s.connect(s.csr_file.write_call[num_write_ports], s.temp_write_call)
 
     for i in range(num_read_ports):
       s.connect(s.csr_file.read_key[i], s.read_csr[i])
@@ -188,7 +189,7 @@ class CSRManager(Model):
       s.connect(s.read_valid[i], s.csr_file.read_valid[i])
 
     for i in range(num_write_ports):
-      s.connect(s.csr_file.write_key[i + 1], s.write_csr[i])
-      s.connect(s.csr_file.write_value[i + 1], s.write_value[i])
-      s.connect(s.csr_file.write_call[i + 1], s.write_call[i])
-      s.connect(s.write_valid[i], s.csr_file.write_valid[i + 1])
+      s.connect(s.csr_file.write_key[i], s.write_csr[i])
+      s.connect(s.csr_file.write_value[i], s.write_value[i])
+      s.connect(s.csr_file.write_call[i], s.write_call[i])
+      s.connect(s.write_valid[i], s.csr_file.write_valid[i])
