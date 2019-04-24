@@ -23,10 +23,10 @@ class AbstractIssueType(BitStructDefinition):
     # A custom opaque field for passing private info
     s.opaque = BitField(canonicalize_type(opaque).nbits)
     s.kill_opaque = BitField(canonicalize_type(KillOpaqueType).nbits)
-    s.ordered = BitField(1) # This is ignore if the interface is not ordered
+    s.ordered = BitField(1)  # This is ignore if the interface is not ordered
+
 
 class IssueQueueSlotInterface(Interface):
-
 
   def __init__(s, slot_type, KillArgType, num_notify, with_order=False):
     s.SlotType = slot_type
@@ -39,7 +39,7 @@ class IssueQueueSlotInterface(Interface):
 
     status_rets = {'valid': Bits(1), 'ready': Bits(1)}
     if s.WithOrder:
-      status_rets['ordered'] =  Bits(1)
+      status_rets['ordered'] = Bits(1)
     super(IssueQueueSlotInterface, s).__init__(
         [
             MethodSpec(
@@ -47,7 +47,8 @@ class IssueQueueSlotInterface(Interface):
                 args=None,
                 rets=status_rets,
                 call=False,
-                rdy=False),
+                rdy=False,
+            ),
             MethodSpec(
                 'input',
                 args={
@@ -55,7 +56,8 @@ class IssueQueueSlotInterface(Interface):
                 },
                 rets=None,
                 call=True,
-                rdy=False),
+                rdy=False,
+            ),
             MethodSpec(
                 'peek',
                 args=None,
@@ -63,14 +65,15 @@ class IssueQueueSlotInterface(Interface):
                     'value': s.SlotType,
                 },
                 call=False,
-                rdy=False),
+                rdy=False,
+            ),
             MethodSpec(
                 'take',
                 args=None,
-                rets={
-                },
+                rets={},
                 call=True,
-                rdy=False),
+                rdy=False,
+            ),
             MethodSpec(
                 'notify',
                 args={
@@ -79,7 +82,8 @@ class IssueQueueSlotInterface(Interface):
                 rets=None,
                 call=True,
                 rdy=False,
-                count=num_notify),
+                count=num_notify,
+            ),
             MethodSpec(
                 'kill_notify',
                 args={
@@ -87,7 +91,8 @@ class IssueQueueSlotInterface(Interface):
                 },
                 rets=None,
                 call=False,
-                rdy=False),
+                rdy=False,
+            ),
         ],
         ordering_chains=[['notify', 'status', 'peek', 'take', 'input']],
     )
@@ -126,7 +131,6 @@ class GenericIssueSlot(Model):
       s.connect(s.status_ordered, s.ordered_.read_data)
       s.connect(s.ordered_.write_data, s.input_value.ordered)
       s.connect(s.ordered_.write_call, s.input_call)
-
 
     s.srcs_ready_ = Wire(1)
     s.kill_ = Wire(1)
@@ -188,8 +192,10 @@ class GenericIssueSlot(Model):
 
     @s.combinational
     def set_rdy():
-      s.src0_rdy_.write_call.v = s.input_call or (s.src0_match_ and s.status_valid)
-      s.src1_rdy_.write_call.v = s.input_call or (s.src1_match_ and s.status_valid)
+      s.src0_rdy_.write_call.v = s.input_call or (s.src0_match_ and
+                                                  s.status_valid)
+      s.src1_rdy_.write_call.v = s.input_call or (s.src1_match_ and
+                                                  s.status_valid)
 
       if s.input_call:
         s.src0_rdy_.write_data.v = s.input_value.src0_rdy or not s.input_value.src0_val
@@ -203,7 +209,6 @@ class GenericIssueSlot(Model):
 
 
 class IssueQueueInterface(Interface):
-
 
   def __init__(s, slot_type, KillArgType, num_notify, ordered=False):
     s.SlotType = slot_type
@@ -271,12 +276,11 @@ class CompactingIssueQueue(Model):
     # Create all the slots in our issue queue
     s.slots_ = [
         GenericIssueSlot(
-            IssueQueueSlotInterface(s.interface.SlotType,
-                                    s.interface.KillArgType,
-
-                                    s.interface.NumNotify,
-                                    with_order=s.interface.Ordered), make_kill)
-
+            IssueQueueSlotInterface(
+                s.interface.SlotType,
+                s.interface.KillArgType,
+                s.interface.NumNotify,
+                with_order=s.interface.Ordered), make_kill)
         for _ in range(num_slots)
     ]
 
@@ -294,15 +298,17 @@ class CompactingIssueQueue(Model):
 
     if s.interface.Ordered:
       s.wait_pred = [Wire(1) for _ in range(num_slots)]
+
       @s.combinational
       def set_wait_pred_0():
         s.wait_pred[0].v = 0
 
       for i in range(1, num_slots):
+
         @s.combinational
         def set_wait_pred_k(i=i):
-          s.wait_pred[i].v = s.wait_pred[i-1] or (
-                  s.slots_[i-1].status_valid and s.slots_[i-1].status_ordered)
+          s.wait_pred[i].v = s.wait_pred[i - 1] or (
+              s.slots_[i - 1].status_valid and s.slots_[i - 1].status_ordered)
 
       # s.valids_packer_ = Packer(Bits(1), num_slots)
       # s.first_valid_ = PriorityDecoder(num_slots)
@@ -380,9 +386,9 @@ class CompactingIssueQueue(Model):
         # We can only shift in if current slot is invalid, issuing, or shifting out
         # and predicessor is valid, and not issuing
         s.do_shift_[i].v = (not s.slots_[i].status_valid or s.will_issue_[i] or
-                            s.do_shift_[i - 1]) and (s.slots_[i + 1].status_valid
-                                                     and
-                                                     not s.will_issue_[i + 1])
+                            s.do_shift_[i - 1]) and (
+                                s.slots_[i + 1].status_valid and
+                                not s.will_issue_[i + 1])
 
     @s.combinational
     def output0():
@@ -402,10 +408,12 @@ class CompactingIssueQueue(Model):
           num_slots - 1].take_call
 
     if s.interface.Ordered:
+
       @s.combinational
       def handle_remove():
         # Must be valid and first entry
-        s.remove_rdy.v = s.slot_select_.decode_valid and (not s.wait_pred[s.slot_select_.decode_decoded])
+        s.remove_rdy.v = s.slot_select_.decode_valid and (
+            not s.wait_pred[s.slot_select_.decode_decoded])
         s.remove_value.v = s.mux_.mux_out
         for i in range(num_slots):
           s.will_issue_[i].v = (

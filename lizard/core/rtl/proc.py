@@ -179,9 +179,12 @@ class Proc(Model):
     # Issue
     ## Out of Order (OO) Issue
     s.oo_issue_interface = IssueInterface()
-    s.oo_issue = Issue(s.oo_issue_interface, PREG_COUNT, NUM_ISSUE_SLOTS,
-                                                ISSUE_NUM_UDPATED_PORTS,
-                                                set_ordered=IssueOutOfOrder)
+    s.oo_issue = Issue(
+        s.oo_issue_interface,
+        PREG_COUNT,
+        NUM_ISSUE_SLOTS,
+        ISSUE_NUM_UDPATED_PORTS,
+        set_ordered=IssueOutOfOrder)
 
     s.connect_m(s.oo_issue.kill_notify, s.kill_notifier.kill_notify)
     s.connect_m(s.issue_selector.normal_peek, s.oo_issue.in_peek)
@@ -192,9 +195,12 @@ class Proc(Model):
 
     ## In Order (IO) Issue (for memory)
     s.io_issue_interface = IssueInterface()
-    s.io_issue = Issue(s.io_issue_interface, PREG_COUNT, NUM_MEM_ISSUE_SLOTS,
-                      num_updated=ISSUE_NUM_UDPATED_PORTS,
-                       set_ordered=IssueInOrder)
+    s.io_issue = Issue(
+        s.io_issue_interface,
+        PREG_COUNT,
+        NUM_MEM_ISSUE_SLOTS,
+        num_updated=ISSUE_NUM_UDPATED_PORTS,
+        set_ordered=IssueInOrder)
     s.connect_m(s.io_issue.kill_notify, s.kill_notifier.kill_notify)
     s.connect_m(s.issue_selector.mem_peek, s.io_issue.in_peek)
     s.connect_m(s.issue_selector.mem_take, s.io_issue.in_take)
