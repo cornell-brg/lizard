@@ -9,9 +9,7 @@ from lizard.util.rtl.register import Register, RegisterInterface
 
 class CAMInterface(Interface):
 
-  def __init__(s, Key, Value, nregs):
-    s.nregs = nregs
-    s.Addr = Bits(clog2nz(nregs))
+  def __init__(s, Key, Value):
     s.Key = canonicalize_type(Key)
     s.Value = canonicalize_type(Value)
 
@@ -60,11 +58,10 @@ def Entry(Key, Value):
 
 class RandomReplacementCAM(Model):
 
-  def __init__(s, interface):
+  def __init__(s, interface, nregs):
     UseInterface(s, interface)
 
-    nregs = s.interface.nregs
-    Addr = s.interface.Addr
+    Addr = Bits(clog2nz(nregs))
     Key = s.interface.Key
     Value = s.interface.Value
 

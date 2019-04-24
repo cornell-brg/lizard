@@ -7,9 +7,10 @@ from lizard.util.fl.cam import RandomReplacementCAMFL
 from lizard.model.wrapper import wrap_to_cl
 
 
-def test_state_machine():
+@pytest.mark.parametrize('size', [1, 2, 3, 4, 20])
+def test_state_machine(size):
   run_test_state_machine(
       RandomReplacementCAM,
       RandomReplacementCAMFL,
-      CAMInterface(Bits(4), Bits(8), 4),
+      (CAMInterface(Bits(4), Bits(8)), size),
       translate_model=True)

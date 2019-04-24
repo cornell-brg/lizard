@@ -3,16 +3,16 @@ from pymtl import *
 from lizard.model.hardware_model import HardwareModel, Result
 from lizard.model.flmodel import FLModel
 from lizard.util.rtl.cam import Entry
+from lizard.bitutil import clog2, clog2nz
 from lizard.bitutil.bit_struct_generator import *
 
 
 class RandomReplacementCAMFL(FLModel):
 
   @HardwareModel.validate
-  def __init__(s, interface):
+  def __init__(s, interface, nregs):
     super(RandomReplacementCAMFL, s).__init__(interface)
-    nregs = s.interface.nregs
-    Addr = s.interface.Addr
+    Addr = Bits(clog2nz(nregs))
     Key = s.interface.Key
     Value = s.interface.Value
 
