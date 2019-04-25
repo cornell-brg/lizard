@@ -50,7 +50,24 @@ def test_method(model):
 
 @pytest.mark.parametrize('translate', ['verilate', 'sim'])
 def test_state_machine(translate):
+
+  def get_updated_compare(dut_result, ref_result):
+    valid_tags_dut = [
+        tag for valid, tag in zip(dut_result["valid"], dut_result["tags"])
+        if valid
+    ]
+    valid_tags_ref = [
+        tag for valid, tag in zip(ref_result["valid"], ref_result["tags"])
+        if valid
+    ]
+
+    return len(valid_tags_dut) == len(valid_tags_ref) and all(
+        tag_dut == tag_ref for tag_dut, tag_ref in zip(
+            sorted(set(valid_tags_dut)), sorted(set(valid_tags_ref))))
+
   run_test_state_machine(
       DataFlowManager,
-      DataFlowManagerFL, (DataFlowManagerInterface(64, 32, 64, 4, 2, 2, 1, 4, 4)),
-      translate_model=(translate == 'verilate'))
+      DataFlowManagerFL,
+      (DataFlowManagerInterface(64, 32, 64, 4, 2, 2, 1, 4, 4)),
+      translate_model=(translate == 'verilate'),
+      customized_comparators={"get_updated": get_updated_compare})
