@@ -297,17 +297,15 @@ class CompactingIssueQueue(Model):
     # nth entry is shifted from nth slot to n-1 slot
     s.do_shift_ = [Wire(1) for _ in range(num_slots - 1)]
     s.will_issue_ = [Wire(1) for _ in range(num_slots)]
+
+    s.prev_rdy_ = Wire(num_slots)
+    s.first_rdy_ = Wire(num_slots)
+
     # PYMTL-BROKEN: array -> bitstruct -> element assignment broken
     s.last_slot_in_ = Wire(s.interface.SlotType)
 
-    s.slot_select_ = PriorityDecoder(num_slots)
-    s.slot_issue_ = OneHotEncoder(num_slots)
-    s.pdecode_packer_ = Packer(Bits(1), num_slots)
-    # Mux all the outputs from the slots
-    s.mux_ = Mux(s.interface.SlotType, num_slots)
-
     if s.interface.Ordered:
-      s.wait_pred = [Wire(1) for _ in range(num_slots)]
+      s.wait_pred = Wire(num_slots)
 
       @s.combinational
       def set_wait_pred_0():
@@ -320,19 +318,23 @@ class CompactingIssueQueue(Model):
           s.wait_pred[i].v = s.wait_pred[i - 1] or (
               s.slots_[i - 1].status_valid and s.slots_[i - 1].status_ordered)
 
-      # s.valids_packer_ = Packer(Bits(1), num_slots)
-      # s.first_valid_ = PriorityDecoder(num_slots)
-      # s.connect(s.first_valid_.decode_signal, s.valids_packer_.pack_packed)
-      # for i in range(num_slots):
-      #   # Connect slot valid signal to packer
-      #   s.connect(s.valids_packer_.pack_in_[i], s.slots_[i].status_valid)
+    @s.combinational
+    def set_first_rdy():
+      s.prev_rdy_[0].v = 0
+      s.first_rdy_[0].v = s.slots_[0].status_ready
 
-    # Connect packer's output to decoder
-    s.connect(s.slot_select_.decode_signal, s.pdecode_packer_.pack_packed)
-    # Connect slot select mux from decoder's output
-    s.connect(s.mux_.mux_select, s.slot_select_.decode_decoded)
-    # Also connect slot select mux to onehot encode
-    s.connect(s.slot_issue_.encode_number, s.slot_select_.decode_decoded)
+    for i in range(1, num_slots):
+      @s.combinational
+      def set_first_rdy(i=i):
+        s.prev_rdy_[i].v = s.prev_rdy_[i-1].v or s.slots_[i].status_ready
+        s.first_rdy_[i].v.v = not s.prev_rdy_[i-1].v and s.slots_[i].status_ready
+
+    @s.combinational
+    def mux_output():
+      s.remove_value.v = 0
+      for i in range(num_slots):
+        if s.will_issue_[i]:
+          s.remove_value.v = s.slots_[i].peek_value
 
     @s.combinational
     def last_slot_input():
@@ -352,10 +354,6 @@ class CompactingIssueQueue(Model):
       s.connect_m(s.slots_[i].kill_notify, s.kill_notify)
       # preg notify signal
       s.connect_m(s.slots_[i].notify, s.notify)
-      # Connect slot ready signal to packer
-      s.connect(s.pdecode_packer_.pack_in_[i], s.slots_[i].status_ready)
-      # Connect output to mux
-      s.connect(s.mux_.mux_in_[i], s.slots_[i].peek_value)
 
     # We need to forward the notify from the current cycle into the input
 
@@ -422,23 +420,16 @@ class CompactingIssueQueue(Model):
       @s.combinational
       def handle_remove():
         # Must be valid and first entry
-        s.remove_rdy.v = s.slot_select_.decode_valid and (
-            not s.wait_pred[s.slot_select_.decode_decoded])
-        s.remove_value.v = s.mux_.mux_out
+        s.remove_rdy.v = s.first_rdy_ != 0 and ((s.first_rdy_ & ~s.wait_pred) != 0)
         for i in range(num_slots):
-          s.will_issue_[i].v = (
-              s.slot_select_.decode_valid and s.remove_call and
-              s.slot_issue_.encode_onehot[i] and not s.wait_pred[i])
+          s.will_issue_[i].v = s.first_rdy_ != 0 and s.remove_call and (s.first_rdy_[i] and not s.wait_pred[i])
     else:
 
       @s.combinational
       def handle_remove():
-        s.remove_rdy.v = s.slot_select_.decode_valid
-        s.remove_value.v = s.mux_.mux_out
+        s.remove_rdy.v = s.first_rdy_ != 0
         for i in range(num_slots):
-          s.will_issue_[i].v = (
-              s.slot_select_.decode_valid and s.remove_call and
-              s.slot_issue_.encode_onehot[i])
+          s.will_issue_[i].v = s.remove_call and s.first_rdy_[i]
 
   def line_trace(s):
     return ":".join(["{}".format(x.valid_out) for x in s.slots_])
