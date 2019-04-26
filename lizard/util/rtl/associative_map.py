@@ -7,106 +7,113 @@ from lizard.util.rtl.async_ram import AsynchronousRAMInterface, AsynchronousRAM
 from lizard.bitutil.bit_struct_generator import *
 from lizard.bitutil import clog2nz
 
+
 class SearcherInterface(Interface):
+
   def __init__(s, Key, n):
     s.Key = canonicalize_type(Key)
     s.Index = clog2nz(n)
     super(SearcherInterface, s).__init__([
-      MethodSpec(
-        'find',
-        args={
-          'valid': Array(Bits(1), n),
-          'keys': Array(s.Key, n),
-          'target': s.Key,
-        },
-        rets={
-          'index': s.Index,
-          'found': Bits(1),
-        },
-        call=False,
-        rdy=False,
-      ),
+        MethodSpec(
+            'find',
+            args={
+                'valid': Array(Bits(1), n),
+                'keys': Array(s.Key, n),
+                'target': s.Key,
+            },
+            rets={
+                'index': s.Index,
+                'found': Bits(1),
+            },
+            call=False,
+            rdy=False,
+        ),
     ])
 
+
 class EvictorInterface(Interface):
+
   def __init__(s, n):
     s.Index = clog2nz(n)
     super(EvictorInterface, s).__init__([
-      MethodSpec(
-        'evict',
-        args={
-          'valid': Array(Bits(1), n),
-        },
-        rets={
-          'index': s.Index,
-        },
-        call=True,
-        rdy=False,
-      ),
+        MethodSpec(
+            'evict',
+            args={
+                'valid': Array(Bits(1), n),
+            },
+            rets={
+                'index': s.Index,
+            },
+            call=True,
+            rdy=False,
+        ),
     ])
 
 
 class LookupLineInterface(Interface):
+
   def __init__(s, Key, Data, n):
     s.Key = canonicalize_type(Key)
     s.Data = canonicalize_type(Data)
     s.Index = clog2nz(n)
     super(LookupLineInterface, s).__init__([
-      MethodSpec(
-        'in_',
-        args={
-          'valid': Array(Bits(1), n),
-          'keys': Array(s.Key, n),
-          'data': Array(s.Data, n),
-        },
-        rets=None,
-        call=False,
-        rdy=False,
-      ),
-      MethodSpec(
-        'read',
-        args={
-          'key': s.Key,
-        },
-        rets={
-          'data': s.Data,
-          'found': Bits(1),
-        },
-        call=False,
-        rdy=False,
-      ),
-      MethodSpec(
-        'write',
-        args={
-          'key': s.Key,
-          'data': s.Data,
-          'remove': Bits(1),
-        },
-        rets={
-          'found': Bits(1),
-        },
-        call=True,
-        rdy=False,
-      ),
-      MethodSpec(
-        'out',
-        args={
-          'valid': Array(Bits(1), n),
-          'keys': Array(s.Key, n),
-          'data': Array(s.Data, n),
-        },
-        rets=None,
-        call=False,
-        rdy=False,
-      ),
+        MethodSpec(
+            'in_',
+            args={
+                'valid': Array(Bits(1), n),
+                'keys': Array(s.Key, n),
+                'data': Array(s.Data, n),
+            },
+            rets=None,
+            call=False,
+            rdy=False,
+        ),
+        MethodSpec(
+            'read',
+            args={
+                'key': s.Key,
+            },
+            rets={
+                'data': s.Data,
+                'found': Bits(1),
+            },
+            call=False,
+            rdy=False,
+        ),
+        MethodSpec(
+            'write',
+            args={
+                'key': s.Key,
+                'data': s.Data,
+                'remove': Bits(1),
+            },
+            rets={
+                'found': Bits(1),
+            },
+            call=True,
+            rdy=False,
+        ),
+        MethodSpec(
+            'out',
+            args={
+                'valid': Array(Bits(1), n),
+                'keys': Array(s.Key, n),
+                'data': Array(s.Data, n),
+            },
+            rets=None,
+            call=False,
+            rdy=False,
+        ),
     ])
 
+
 class Searcher(Model):
+
   def __init__(s, Key, n):
     UseInterface(s, SearcherInterface(Key, n))
 
-    s.valid_chain = [Wire(1) for _ in range(n+1)]
-    s.index_chain = [Wire(s.interface.Index) for _ in range(n+1)]
+    s.valid_chain = [Wire(1) for _ in range(n + 1)]
+    s.index_chain = [Wire(s.interface.Index) for _ in range(n + 1)]
 
     @s.combinational
     def chain_0():
@@ -114,8 +121,9 @@ class Searcher(Model):
       s.index_chain[0].v = 0
 
     for i in range(n):
+
       @s.combinational
-      def chain(i=i, j=i+1):
+      def chain(i=i, j=i + 1):
         if s.find_valid[i] and s.find_keys[i] == s.find_target:
           s.valid_chain[j].v = 1
           s.index_chain[j].v = i
@@ -126,11 +134,14 @@ class Searcher(Model):
     s.connect(s.find_found, s.valid_chain[-1])
     s.connect(s.find_index, s.index_chain[-1])
 
+
 class IncrementingEvictor(Model):
+
   def __init__(s, Data, n):
     UseInterface(s, EvictorInterface(Data, n))
 
-    s.counter = Register(RegisterInterface(s.interface.Index, enable=True), reset_value=0)
+    s.counter = Register(
+        RegisterInterface(s.interface.Index, enable=True), reset_value=0)
     s.invalid_finder = Searcher(s, Bits(1), n)
     for i in range(n):
       s.connect(s.invalid_finder.find_valid[i], 1)
@@ -138,19 +149,21 @@ class IncrementingEvictor(Model):
     s.connect(s.invalid_finder.evict_target, 0)
 
     @s.combinational
-    def evict(nm1=n-1):
+    def evict(nm1=n - 1):
       if s.counter.read_data == nm1:
         s.counter.write_data.v = 0
       else:
         s.counter.write_data.v = s.counter.read_data + 1
       s.counter.write_call.v = s.invalid_finder.find_found
-      
+
       if s.invalid_finder.find_found:
         s.evict_index.v = s.invalid_finder.find_index
       else:
         s.evict_index.v = s.counter.read_data
 
+
 class LookupLine(Model):
+
   def __init__(s, Key, Data, n):
     UseInterface(s, LookupLineInterface(Key, Data, n))
     s.read_searcher = Searcher(Key, n)
@@ -172,7 +185,7 @@ class LookupLine(Model):
     @s.combinational
     def read():
       s.read_data.v = s.in__data[s.read_searcher.find_index]
-    
+
     s.write_index = Wire(s.interface.Index)
 
     @s.combinational
@@ -185,6 +198,7 @@ class LookupLine(Model):
         s.evictor.evict_call.v = s.write_call and not s.write_remove
 
     for i in range(n):
+
       def out(i=i):
         if s.write_call:
           if s.write_remove:
@@ -209,7 +223,9 @@ class LookupLine(Model):
           s.out_keys[i].v = s.in__keys[i]
           s.out_data[i].v = s.in__data[i]
 
+
 class AssociativeMapInterface(Interface):
+
   def __init__(s, Key, Data):
     s.Key = canonicalize_type(Key)
     s.Data = canonicalize_type(Data)
@@ -254,7 +270,9 @@ class AssociativeMapInterface(Interface):
         ),
     ])
 
+
 class AssociativeMap(Model):
+
   def __init__(s, Key, Data, capacity, associativity):
     UseInterface(s, AssociativeMapInterface(Key, Data))
 
@@ -264,12 +282,9 @@ class AssociativeMap(Model):
           Field('key', Key),
           Field('data', Data),
           Field('valid', 1),
-        ]
+      ]
 
     entry_nbits = Entry().nbits
     nlines = capacity // associativity
     assert capacity % associativity == 0
     # s.ram = AsynchronousRAM(AsynchronousRAMInterface(entry_nbits, nlines, 2
-
-
-
