@@ -183,7 +183,6 @@ class GenericIssueSlot(Model):
       s.src0_match_.v = reduce_or(s.src0_notify_match)
       s.src1_match_.v = reduce_or(s.src1_notify_match)
 
-
     @s.combinational
     def handle_ready():
       s.peek_value.src0_rdy.v = s.src0_rdy_.read_data or s.src0_match_
@@ -191,14 +190,15 @@ class GenericIssueSlot(Model):
       s.status_ready.v = s.status_valid and s.srcs_ready_
 
     if bypass_ready:
+
       @s.combinational
       def handle_srcs_ready():
         s.srcs_ready_.v = s.peek_value.src0_rdy and s.peek_value.src1_rdy
     else:
+
       @s.combinational
       def handle_srcs_ready():
         s.srcs_ready_.v = s.src0_rdy_.read_data and s.src1_rdy_.read_data
-
 
     @s.combinational
     def set_reg_rdy():
