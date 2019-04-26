@@ -64,7 +64,8 @@ class Issue(Model):
                num_pregs,
                num_slots,
                num_updated,
-               set_ordered=IssueOutOfOrder):
+               set_ordered=IssueOutOfOrder,
+               bypass_ready=True):
 
     UseInterface(s, interface)
     s.NumPregs = num_pregs
@@ -121,7 +122,7 @@ class Issue(Model):
     s.iq = CompactingIssueQueue(
         IssueQueueInterface(
             SlotType(), s.interface.KillArgType, num_updated, ordered=True),
-        make_kill, num_slots)
+        make_kill, num_slots, bypass_ready)
 
     # Connect up ordered module
     s.set_ordered = set_ordered()

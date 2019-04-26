@@ -70,6 +70,7 @@ class TestStateMachine(GenericStateMachine):
   __method_rules = {}
   __always_rules = {}
   __condition_rules = {}
+  __comparators = {}
 
   def __init__(self):
     super(TestStateMachine, self).__init__()
@@ -133,8 +134,22 @@ class TestStateMachine(GenericStateMachine):
     - actual value   : {actual_msg}
   """
 
-    for k in r_result.keys():
-      if r_result[k] != '?' and not r_result[k] == m_result[k]:
+    compare = self.comparators(method_name)
+    if compare == None:
+      for k in r_result.keys():
+        if r_result[k] != '?' and not r_result[k] == m_result[k]:
+          m_ret_names = set(sorted(m_result.keys()))
+          m_result_list = [value for (key, value) in sorted(m_result.items())]
+          r_result_list = [value for (key, value) in sorted(r_result.items())]
+          error_msg = value_error_msg.format(
+              method_name=method_name,
+              arg=arg,
+              ret_name=list_string(m_ret_names),
+              expected_msg=list_string_value(r_result_list),
+              actual_msg=list_string_value(m_result_list))
+          self._error_line_trace(method_line_trace, error_msg)
+    else:
+      if not compare(m_result, r_result):
         m_ret_names = set(sorted(m_result.keys()))
         m_result_list = [value for (key, value) in sorted(m_result.items())]
         r_result_list = [value for (key, value) in sorted(r_result.items())]
@@ -350,6 +365,15 @@ class TestStateMachine(GenericStateMachine):
     target = cls.__preconditions.setdefault(cls, {})
     return target.setdefault(method, None)
 
+  @classmethod
+  def set_comparators(cls, comparators):
+    cls.__comparators[cls] = comparators
+
+  @classmethod
+  def comparators(cls, method):
+    target = cls.__comparators.setdefault(cls, {})
+    return target.get(method, None)
+
 
 #-------------------------------------------------------------------------
 # DefineMethod
@@ -545,7 +569,8 @@ class TestModel(TestStateMachine):
                                  parameters,
                                  argument_strategy={},
                                  translate_model=False,
-                                 release_cycle_accuracy=False):
+                                 release_cycle_accuracy=False,
+                                 customized_comparators={}):
 
     if isinstance(parameters, dict):
       parameters_string = "_".join(
@@ -614,6 +639,7 @@ class TestModel(TestStateMachine):
     Test.sim = sim
     Test.reference = reference
     Test.release_cycle_accuracy = release_cycle_accuracy
+    Test.set_comparators(customized_comparators)
 
     return Test
 
@@ -632,14 +658,16 @@ def run_test_state_machine(rtl_class,
                            parameters,
                            translate_model=False,
                            argument_strategy={},
-                           release_cycle_accuracy=False):
+                           release_cycle_accuracy=False,
+                           customized_comparators={}):
   state_machine_factory = TestModel._create_test_state_machine(
       rtl_class,
       reference_class,
       parameters,
       translate_model=translate_model,
       argument_strategy=argument_strategy,
-      release_cycle_accuracy=release_cycle_accuracy)
+      release_cycle_accuracy=release_cycle_accuracy,
+      customized_comparators=customized_comparators)
   TestModel._run_state_machine(state_machine_factory)
 
 
@@ -708,7 +736,8 @@ def run_parameterized_test_state_machine(rtl_class,
                                          reference_class,
                                          method_strategy_class,
                                          translate_model=False,
-                                         release_cycle_accuracy=False):
+                                         release_cycle_accuracy=False,
+                                         customized_comparators={}):
 
   parameter_strategy = getattr(method_strategy_class.__init__,
                                INIT_STRATEGY_MARKER, None)
@@ -754,7 +783,8 @@ def run_parameterized_test_state_machine(rtl_class,
         parameters,
         translate_model=translate_model,
         argument_strategy=arguments,
-        release_cycle_accuracy=release_cycle_accuracy)
+        release_cycle_accuracy=release_cycle_accuracy,
+        customized_comparators=customized_comparators)
     TestModel._run_state_machine(state_machine_factory)
 
   run_multiple_state_machines()

@@ -104,7 +104,7 @@ class GenericIssueSlot(Model):
 
   """
 
-  def __init__(s, interface, make_kill):
+  def __init__(s, interface, make_kill, bypass_ready=True):
     """ This model implements a generic issue slot, an issue queue has an instance
       of this for each slot in the queue
 
@@ -183,15 +183,25 @@ class GenericIssueSlot(Model):
       s.src0_match_.v = reduce_or(s.src0_notify_match)
       s.src1_match_.v = reduce_or(s.src1_notify_match)
 
-    @s.combinational
-    def handle_outputs():
-      s.peek_value.src0_rdy.v = s.src0_rdy_.read_data or s.src0_match_
-      s.peek_value.src1_rdy.v = s.src1_rdy_.read_data or s.src1_match_
-      s.srcs_ready_.v = s.peek_value.src0_rdy and s.peek_value.src1_rdy
-      s.status_ready.v = s.status_valid and s.srcs_ready_
 
     @s.combinational
-    def set_rdy():
+    def handle_ready():
+      s.peek_value.src0_rdy.v = s.src0_rdy_.read_data or s.src0_match_
+      s.peek_value.src1_rdy.v = s.src1_rdy_.read_data or s.src1_match_
+      s.status_ready.v = s.status_valid and s.srcs_ready_
+
+    if bypass_ready:
+      @s.combinational
+      def handle_srcs_ready():
+        s.srcs_ready_.v = s.peek_value.src0_rdy and s.peek_value.src1_rdy
+    else:
+      @s.combinational
+      def handle_srcs_ready():
+        s.srcs_ready_.v = s.src0_rdy_.read_data and s.src1_rdy_.read_data
+
+
+    @s.combinational
+    def set_reg_rdy():
       s.src0_rdy_.write_call.v = s.input_call or (s.src0_match_ and
                                                   s.status_valid)
       s.src1_rdy_.write_call.v = s.input_call or (s.src1_match_ and
@@ -210,7 +220,7 @@ class GenericIssueSlot(Model):
 
 class IssueQueueInterface(Interface):
 
-  def __init__(s, slot_type, KillArgType, num_notify, ordered=False):
+  def __init__(s, slot_type, KillArgType, num_notify, ordered=True):
     s.SlotType = slot_type
     s.SrcTag = Bits(slot_type.src0.nbits)
     s.Opaque = Bits(slot_type.opaque.nbits)
@@ -253,7 +263,7 @@ class IssueQueueInterface(Interface):
 
 class CompactingIssueQueue(Model):
 
-  def __init__(s, interface, make_kill, num_slots=4):
+  def __init__(s, interface, make_kill, num_slots=4, bypass_ready=False):
     """ This model implements a generic issue queue
 
       create_slot: A function that instatiates a model that conforms
@@ -280,7 +290,7 @@ class CompactingIssueQueue(Model):
                 s.interface.SlotType,
                 s.interface.KillArgType,
                 s.interface.NumNotify,
-                with_order=s.interface.Ordered), make_kill)
+                with_order=s.interface.Ordered), make_kill, bypass_ready)
         for _ in range(num_slots)
     ]
 
