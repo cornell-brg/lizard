@@ -399,7 +399,7 @@ class GeneralAssociativeMap(Model):
 
     # Writes to the RAM must be bypassed to support 2 consecutive calls to "write" (on this map) (MW)
     # This is because a write takes 2 cycles: Read Request (R), Read Response and Write (W)
-    # So assume to map writes occur right after each other:
+    # So assume 2 map writes occur right after each other:
     # Op | 0 | 1 | 2 | 3 | 4 |
     # ---|---|---|---|---|---|
     # MW | R | W |   |   |   |
