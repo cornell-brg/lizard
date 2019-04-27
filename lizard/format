@@ -4,10 +4,9 @@ import os
 import argparse
 import sys
 
-BINARY = "yapf-brg"
+BINARY = "yapf"
 DIR = os.path.dirname(os.path.realpath(__file__))
-STYLE_BRG = DIR + "/.style_brg.yapf"
-STYLE_SANE = DIR + "/.style_sane.yapf"
+STYLE = DIR + "/.style.yapf"
 
 
 def format(diff, style):
@@ -21,9 +20,8 @@ def format(diff, style):
 def main():
   parser = argparse.ArgumentParser(description='Format source code')
   parser.add_argument('-d', '--diff', action='store_true')
-  parser.add_argument('--sane', action='store_true')
   args = parser.parse_args()
-  sys.exit(format(args.diff, STYLE_SANE if args.sane else STYLE_BRG))
+  sys.exit(format(args.diff, STYLE))
 
 
 if __name__ == '__main__':
