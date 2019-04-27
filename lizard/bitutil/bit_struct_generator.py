@@ -133,6 +133,8 @@ def Field(name, type_):
         name,
         NestedField(name, type_),
     )
+  elif isinstance(type_, Bits) and not hasattr(type_, '_bitfields'):
+    return PrimitiveField(name, type_.nbits)
   else:
     raise ValueError('Unknown field type: {}'.format(type(type_)))
 
