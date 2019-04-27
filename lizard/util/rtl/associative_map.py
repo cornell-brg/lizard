@@ -120,12 +120,12 @@ class LineWriterInterface(Interface):
         ),
         MethodSpec(
             'out',
-            args={
+            args=None,
+            rets={
                 'valid': Array(Bits(1), n),
                 'keys': Array(s.Key, n),
                 'data': Array(s.Data, n),
             },
-            rets=None,
             call=False,
             rdy=False,
         ),
@@ -286,9 +286,14 @@ class LineWriter(Model):
 
 class AssociativeMapInterface(Interface):
 
-  def __init__(s, Key, Data):
+  def __init__(s, Key, Data, has_update):
     s.Key = canonicalize_type(Key)
     s.Data = canonicalize_type(Data)
+
+    def add_update(spec):
+      if has_update:
+        spec['update'] = Bits(1)
+      return spec
 
     super(AssociativeMapInterface, s).__init__([
         MethodSpec(
@@ -312,12 +317,11 @@ class AssociativeMapInterface(Interface):
         ),
         MethodSpec(
             'write',
-            args={
+            args=add_update({
                 'key': s.Key,
                 'remove': Bits(1),
-                'update': Bits(1),
                 'data': s.Data,
-            },
+            }),
             rets=None,
             call=True,
             rdy=False,
@@ -335,7 +339,7 @@ class AssociativeMapInterface(Interface):
 class GeneralAssociativeMap(Model):
 
   def __init__(s, Key, Data, capacity, associativity):
-    UseInterface(s, AssociativeMapInterface(Key, Data))
+    UseInterface(s, AssociativeMapInterface(Key, Data, True))
     s.require(
         MethodSpec(
             'update',
@@ -456,8 +460,8 @@ class GeneralAssociativeMap(Model):
       s.connect(s.line_writer.in__keys[i], s.write_unpacker.unpack_out[i].key)
       s.connect(s.line_writer.in__data[i], s.write_unpacker.unpack_out[i].data)
 
-      s.connect_wire(s.write_packer.pack_in_[i].key, s.line_writer.out_keys[i])
-      s.connect_wire(s.write_packer.pack_in_[i].data, s.line_writer.out_data[i])
+      s.connect(s.write_packer.pack_in_[i].key, s.line_writer.out_keys[i])
+      s.connect(s.write_packer.pack_in_[i].data, s.line_writer.out_data[i])
 
       @s.combinational
       def connect_in_valids(i=i):
@@ -513,12 +517,16 @@ class NullUpdater(Model):
 class BasicAssociativeMap(Model):
 
   def __init__(s, Key, Data, capacity, associativity):
-    UseInterface(s, AssociativeMapInterface(Key, Data))
+    UseInterface(s, AssociativeMapInterface(Key, Data, False))
 
     s.map = GeneralAssociativeMap(Key, Data, capacity, associativity)
     s.updater = NullUpdater(Data)
     s.connect_m(s.map.read, s.read)
     s.connect_m(s.map.read_next, s.read_next)
-    s.connect_m(s.map.write, s.write)
+    s.connect(s.map.write_key, s.write_key)
+    s.connect(s.map.write_remove, s.write_remove)
+    s.connect(s.map.write_data, s.write_data)
+    s.connect(s.map.write_call, s.write_call)
+    s.connect(s.map.write_update, 0)
     s.connect_m(s.map.clear, s.clear)
     s.connect_m(s.map.update, s.updater.update)
