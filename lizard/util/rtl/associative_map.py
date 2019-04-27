@@ -134,14 +134,16 @@ class LineWriterInterface(Interface):
 
 class UpdaterInterface(Interface):
 
-  def __init__(s, Data):
+  def __init__(s, Data, Arg):
     s.Data = canonicalize_type(Data)
+    s.Arg = canonicalize_type(Arg)
     super(UpdaterInterface, s).__init__([
         MethodSpec(
             'update',
             args={
                 'found': Bits(1),
                 'old': s.Data,
+                'arg': s.Arg,
             },
             rets={
                 'new': s.Data,
@@ -284,18 +286,14 @@ class LineWriter(Model):
           s.out_data[i].v = s.in__data[i]
 
 
-class AssociativeMapInterface(Interface):
+class GeneralAssociativeMapInterface(Interface):
 
-  def __init__(s, Key, Data, has_update):
+  def __init__(s, Key, Data, UpdateArg):
     s.Key = canonicalize_type(Key)
     s.Data = canonicalize_type(Data)
+    s.UpdateArg = canonicalize_type(UpdateArg)
 
-    def add_update(spec):
-      if has_update:
-        spec['update'] = Bits(1)
-      return spec
-
-    super(AssociativeMapInterface, s).__init__([
+    super(GeneralAssociativeMapInterface, s).__init__([
         MethodSpec(
             'read',
             args=None,
@@ -317,11 +315,10 @@ class AssociativeMapInterface(Interface):
         ),
         MethodSpec(
             'write',
-            args=add_update({
+            args={
                 'key': s.Key,
-                'remove': Bits(1),
-                'data': s.Data,
-            }),
+                'update_arg': s.UpdateArg,
+            },
             rets=None,
             call=True,
             rdy=False,
@@ -338,14 +335,15 @@ class AssociativeMapInterface(Interface):
 
 class GeneralAssociativeMap(Model):
 
-  def __init__(s, Key, Data, capacity, associativity):
-    UseInterface(s, AssociativeMapInterface(Key, Data, True))
+  def __init__(s, Key, Data, capacity, associativity, UpdateArg):
+    UseInterface(s, GeneralAssociativeMapInterface(Key, Data, UpdateArg))
     s.require(
         MethodSpec(
             'update',
             args={
                 'found': Bits(1),
                 'old': Data,
+                'arg': UpdateArg,
             },
             rets={
                 'new': Data,
@@ -359,7 +357,7 @@ class GeneralAssociativeMap(Model):
     assert capacity % associativity == 0
     high_nbits = clog2(nlines)
     assert 2**high_nbits == nlines
-    key_nbits = Key.nbits
+    key_nbits = s.interface.Key.nbits
     low_nbits = key_nbits - high_nbits
 
     state = 'n'
@@ -426,21 +424,18 @@ class GeneralAssociativeMap(Model):
     s.read_next_key_low_reg = Register(RegisterInterface(low_nbits))
     s.write_key_reg_high = Register(RegisterInterface(high_nbits))
     s.write_key_reg_low = Register(RegisterInterface(low_nbits))
-    s.write_remove_reg = Register(RegisterInterface(Bits(1)))
-    s.write_update_reg = Register(RegisterInterface(Bits(1)))
-    s.write_data_reg = Register(RegisterInterface(Data))
+    s.write_update_arg_reg = Register(RegisterInterface(UpdateArg))
     s.write_call_reg = Register(RegisterInterface(Bits(1)), reset_value=0)
 
     s.connect(s.read_next_key_high_reg.write_data, s.read_next_key_high)
     s.connect(s.read_next_key_low_reg.write_data, s.read_next_key_low)
     s.connect(s.write_key_reg_high.write_data, s.write_key_high)
     s.connect(s.write_key_reg_low.write_data, s.write_key_low)
-    s.connect(s.write_remove_reg.write_data, s.write_remove)
-    s.connect(s.write_update_reg.write_data, s.write_update)
-    s.connect(s.write_data_reg.write_data, s.write_data)
+    s.connect(s.write_update_arg_reg.write_data, s.write_update_arg)
 
     s.connect(s.update_found, s.line_writer.write_found)
     s.connect(s.update_old, s.line_writer.write_old)
+    s.connect(s.update_arg, s.write_update_arg_reg.read_data)
 
     @s.combinational
     def handle_write_clear():
@@ -494,39 +489,90 @@ class GeneralAssociativeMap(Model):
 
     @s.combinational
     def handle_write_update():
-      if s.write_update_reg.read_data:
-        s.line_writer.write_data.v = s.update_new
-        s.line_writer.write_remove.v = s.update_remove
-      else:
-        s.line_writer.write_data.v = s.write_data_reg.read_data
-        s.line_writer.write_remove.v = s.write_remove_reg.read_data
+      s.line_writer.write_data.v = s.update_new
+      s.line_writer.write_remove.v = s.update_remove
 
     s.connect(s.line_writer.write_call, s.write_call_reg.read_data)
     s.connect(s.ram.write_call[0], s.write_call_reg.read_data)
 
 
+@bit_struct_generator
+def NullUpdaterArg(Data):
+  return [
+      Field('data', Data),
+      Field('remove', 1),
+  ]
+
+
 class NullUpdater(Model):
 
   def __init__(s, Data):
-    UseInterface(s, UpdaterInterface(Data))
+    UseInterface(s, UpdaterInterface(Data, NullUpdaterArg(Data)))
 
-    s.connect(s.update_new, 0)
-    s.connect(s.update_remove, 0)
+    s.connect(s.update_new, s.update_arg.data)
+    s.connect(s.update_remove, s.update_arg.remove)
+
+
+class BasicAssociativeMapInterface(Interface):
+
+  def __init__(s, Key, Data):
+    s.Key = canonicalize_type(Key)
+    s.Data = canonicalize_type(Data)
+
+    super(BasicAssociativeMapInterface, s).__init__([
+        MethodSpec(
+            'read',
+            args=None,
+            rets={
+                'data': s.Data,
+                'found': Bits(1)
+            },
+            call=False,
+            rdy=False,
+        ),
+        MethodSpec(
+            'read_next',
+            args={
+                'key': s.Key,
+            },
+            rets=None,
+            call=False,
+            rdy=False,
+        ),
+        MethodSpec(
+            'write',
+            args={
+                'key': s.Key,
+                'data': s.Data,
+                'remove': Bits(1),
+            },
+            rets=None,
+            call=True,
+            rdy=False,
+        ),
+        MethodSpec(
+            'clear',
+            args=None,
+            rets=None,
+            call=True,
+            rdy=False,
+        ),
+    ])
 
 
 class BasicAssociativeMap(Model):
 
   def __init__(s, Key, Data, capacity, associativity):
-    UseInterface(s, AssociativeMapInterface(Key, Data, False))
+    UseInterface(s, BasicAssociativeMapInterface(Key, Data))
 
-    s.map = GeneralAssociativeMap(Key, Data, capacity, associativity)
     s.updater = NullUpdater(Data)
+    s.map = GeneralAssociativeMap(Key, Data, capacity, associativity,
+                                  s.updater.interface.Arg)
     s.connect_m(s.map.read, s.read)
     s.connect_m(s.map.read_next, s.read_next)
     s.connect(s.map.write_key, s.write_key)
-    s.connect(s.map.write_remove, s.write_remove)
-    s.connect(s.map.write_data, s.write_data)
+    s.connect(s.map.write_update_arg.remove, s.write_remove)
+    s.connect(s.map.write_update_arg.data, s.write_data)
     s.connect(s.map.write_call, s.write_call)
-    s.connect(s.map.write_update, 0)
     s.connect_m(s.map.clear, s.clear)
     s.connect_m(s.map.update, s.updater.update)
