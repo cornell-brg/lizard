@@ -137,14 +137,14 @@ def run_test_vector_sim(model,
   for row_num, row in enumerate(test_vectors):
     for port_name, in_value in zip(port_names, row):
       if port_name[-1] != "*":
-        exec ("model.{}.v = in_value".format(port_name))
+        exec("model.{}.v = in_value".format(port_name))
 
     sim.eval_combinational()
     sim.print_line_trace()
 
     for port_name, ref_value in zip(port_names, row):
       if port_name[-1] == "*":
-        exec ("out_value = model.{}".format(port_name[0:-1]))
+        exec("out_value = model.{}".format(port_name[0:-1]))
         if (ref_value != '?') and (out_value != ref_value):
           error_msg = """
  run_test_vector_sim received an incorrect value!
@@ -191,10 +191,10 @@ def run_test_vector_sim2(model,
     assert hasattr(model, pname)
     # TODO assert direction
     for input in ins:
-      exec ("assert(hasattr( model.{}, input ))".format(pname))
+      exec("assert(hasattr( model.{}, input ))".format(pname))
 
     for output in outs:
-      exec ("assert(hasattr( model.{}, output ))".format(pname))
+      exec("assert(hasattr( model.{}, output ))".format(pname))
 
   # Setup the model
   model.vcd_file = dump_vcd
@@ -218,7 +218,7 @@ def run_test_vector_sim2(model,
       # Set the value on each signal
       assert len(input_names) == len(port_inputs)
       for sname, value, in zip(input_names, port_inputs):
-        exec ("model.{}.{}.v = value".format(port, sname))
+        exec("model.{}.{}.v = value".format(port, sname))
 
     sim.eval_combinational()
     # Display line trace output
@@ -229,7 +229,7 @@ def run_test_vector_sim2(model,
       # Set the value on each signal
       assert len(output_names) == len(port_outputs)
       for sname, value, in zip(output_names, port_outputs):
-        exec ("out_value = model.{}.{}".format(port, sname))
+        exec("out_value = model.{}.{}".format(port, sname))
         if value != '?' and out_value != value:
           error_msg = """
            run_rdycall_test_vector_sim received an incorrect value!
@@ -354,8 +354,8 @@ def run_rdycall_test_vector_sim(model,
       method_name = method['method_name']
 
       rdy = True
-      exec ("hascall = hasattr( model.{}, 'call' )".format(method_name))
-      exec (
+      exec("hascall = hasattr( model.{}, 'call' )".format(method_name))
+      exec(
           "if hascall and in_value[ -1 ] and hasattr( model.{}, 'rdy' ): rdy = model.{}.rdy"
           .format(method_name, method_name)) in locals()
 
@@ -369,13 +369,13 @@ def run_rdycall_test_vector_sim(model,
         raise RunTestVectorSimError(
             error_msg.format(row_number=row_num, method_name=method_name))
 
-      exec ("if hascall: model.{}.call.v = in_value[ -1 ]".format(method_name))
+      exec("if hascall: model.{}.call.v = in_value[ -1 ]".format(method_name))
 
       if method['arg_start'] >= 0:
         args = method['arg']
         arg_start = method['arg_start']
         for i in range(len(method['arg'])):
-          exec ("model.{}.{}.v = in_value[ arg_start + i ]".format(
+          exec("model.{}.{}.v = in_value[ arg_start + i ]".format(
               method['method_name'], method['arg'][i]))
 
       sim.eval_combinational()
@@ -398,8 +398,8 @@ def run_rdycall_test_vector_sim(model,
         for i in range(len(method['ret'])):
           ref_value = in_value[ret_start + i]
           if ref_value != '?':
-            exec ("out_value = model.{}.{}".format(method['method_name'],
-                                                   method['ret'][i]))
+            exec("out_value = model.{}.{}".format(method['method_name'],
+                                                  method['ret'][i]))
             if ref_value != out_value:
 
               error_msg = """
@@ -457,7 +457,7 @@ def create_test_bitstruct(bitstruct, eq=None):
       for bitfield in s._bitfields.keys():
         condition = _TestBitstruct.__dc_conditions.get(bitfield, None)
         if condition and condition(s):
-          exec ("self_.{} = other.{}".format(bitfield, bitfield)) in locals()
+          exec("self_.{} = other.{}".format(bitfield, bitfield)) in locals()
       if eq:
         return eq(self_, other[:])
       return Bits.__eq__(self_, other)
