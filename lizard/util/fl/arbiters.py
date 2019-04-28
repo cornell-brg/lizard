@@ -26,20 +26,25 @@ class RoundRobinArbiterFL(FLModel):
   def __init__(s, interface):
     super(RoundRobinArbiterFL, s).__init__(interface)
 
-    s.state(last_grant=0)
+    s.state(last_grant=None)
 
     @s.model_method
     def grant(reqs):
       reqs = Bits(s.interface.nreqs, int(reqs))
 
-      for i in range(s.last_grant, s.interface.nreqs):
-        if reqs[i]:
-          s.last_grant = i
-          return 1 << i
-      for i in range(s.last_grant):
+      if s.last_grant is not None:
+        end = s.last_grant + 1
+        for i in range(s.last_grant + 1, s.interface.nreqs):
+          if reqs[i]:
+            s.last_grant = i
+            return 1 << i
+      else:
+        end = s.interface.nreqs
+
+      for i in range(end):
         if reqs[i]:
           s.last_grant = i
           return 1 << i
 
-      s.last_grant = 0
+      s.last_grant = None
       return 0
