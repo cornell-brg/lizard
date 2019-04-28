@@ -10,11 +10,11 @@ def test_state_machine_priority():
   run_test_state_machine(
       PriorityArbiter,
       PriorityArbiterFL, (ArbiterInterface(4)),
-      translate_model=True)
+      translate_model=False)
 
 
 def test_state_machine_round_robin():
   run_test_state_machine(
       RoundRobinArbiter,
       RoundRobinArbiterFL, (ArbiterInterface(4)),
-      translate_model=True)
+      translate_model=False)

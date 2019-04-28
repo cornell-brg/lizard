@@ -67,7 +67,10 @@ class RoundRobinArbiter(Model):
       else:
         s.final_grant.v = s.masked_arb.grant_grant
 
-    s.connect(s.mask.write_data, s.final_grant)
+    @s.combinational
+    def shift_write():
+      s.mask.write_data.v = s.final_grant << 1
+
     s.connect(s.grant_grant, s.final_grant)
 
   def line_trace(s):
