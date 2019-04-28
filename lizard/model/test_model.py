@@ -457,7 +457,7 @@ class ArgumentStrategy(object):
               ArgumentStrategy.bits_strategy(slice_.stop - slice_.start))
         else:
           data = draw(kwargs[name])
-        exec ("new_bitstruct.{} = data".format(name)) in locals()
+        exec("new_bitstruct.{} = data".format(name)) in locals()
       return new_bitstruct
 
     return strategy()
