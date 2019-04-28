@@ -34,12 +34,13 @@ class RoundRobinArbiterFL(FLModel):
 
       if s.last_grant is not None:
         end = s.last_grant + 1
-        for i in range(s.last_grant + 1, s.interface.nreqs):
-          if reqs[i]:
-            s.last_grant = i
-            return 1 << i
       else:
         end = s.interface.nreqs
+
+      for i in range(end, s.interface.nreqs):
+        if reqs[i]:
+          s.last_grant = i
+          return 1 << i
 
       for i in range(end):
         if reqs[i]:
