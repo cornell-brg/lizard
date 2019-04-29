@@ -1,0 +1,133 @@
+#!/usr/bin/env python
+#=========================================================================
+# summarize-results [options] <constraint> <vsrc> <vcd> <innovus-area> <innovus-summary> <processed-saif> <pt-report>
+#=========================================================================
+# Prepares a summary after power analysis which includes: source verilog
+# file, input data set, area, cycle time, execution time, average power,
+# and energy.
+#
+#  -h --help     Display this message
+#  -v --verbose  Verbose mode
+#
+# Author : Christopher Batten
+# Date   : February 12, 2019
+#
+
+from __future__ import print_function
+
+import argparse
+import sys
+import gzip
+import datetime
+
+#-------------------------------------------------------------------------
+# Command line processing
+#-------------------------------------------------------------------------
+
+class ArgumentParserWithCustomError(argparse.ArgumentParser):
+  def error( self, msg = "" ):
+    if ( msg ): print("\n ERROR: %s" % msg)
+    print("")
+    file = open( sys.argv[0] )
+    for ( lineno, line ) in enumerate( file ):
+      if ( line[0] != '#' ): sys.exit(msg != "")
+      if ( (lineno == 2) or (lineno >= 4) ): print( line[1:].rstrip("\n") )
+
+def parse_cmdline():
+  p = ArgumentParserWithCustomError( add_help=False )
+
+  # Standard command line arguments
+
+  p.add_argument( "-v", "--verbose", action="store_true" )
+  p.add_argument( "-h", "--help",    action="store_true" )
+
+  # Additional commane line arguments
+
+  p.add_argument( "constraint" )
+  p.add_argument( "vsrc" )
+  p.add_argument( "vcd" )
+  p.add_argument( "innovus_area" )
+  p.add_argument( "innovus_summary" )
+  p.add_argument( "processed_saif" )
+  p.add_argument( "pt_report" )
+
+  opts = p.parse_args()
+  if opts.help: p.error()
+  return opts
+
+#-------------------------------------------------------------------------
+# Main
+#-------------------------------------------------------------------------
+
+def main():
+  opts = parse_cmdline()
+
+  # Results
+
+  vsrc       = opts.vsrc
+  input_     = opts.vcd
+  timestamp  = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+  area       = None
+  constraint = float(opts.constraint)
+  slack      = None
+  exec_time  = None
+  power      = None
+  energy     = None
+
+  # Scan through innovus report for area
+
+  for line in open( opts.innovus_area ):
+
+    if line.startswith("Total area of Standard cells(Subtracting Physical Cells): "):
+      area = float(line.split(': ')[1].split(' ')[0])
+      continue
+
+  # Scan through innovus summary for slack
+
+  for line in gzip.open( opts.innovus_summary, 'rb' ):
+
+    if line.startswith("|           WNS (ns):|"):
+      slack = float(line.split('|')[2])
+      continue
+
+  # Scan through processed SAIF for duration
+
+  for line in open( opts.processed_saif ):
+
+    line = line.split("#")[0].strip()
+
+    if line.startswith("(DURATION "):
+      exec_time_10ps = int(line.split(' ')[1].strip(')'))
+      exec_time = int(exec_time_10ps/(constraint*100.0))
+
+  # Scan through primetime power report
+
+  for line in open( opts.pt_report ):
+
+    line = line.split("#")[0].strip()
+
+    if line.startswith("Total Power "):
+      power = float(line.split('=')[1].strip().split(' ')[0])*1000
+      energy = power * exec_time * constraint / 1000
+
+  # All done scanning, print summary
+
+  print(
+"""\
+#=========================================================================
+# Final Results
+#=========================================================================
+
+  vsrc       = {vsrc}
+  input      = {input_}
+  timestamp  = {timestamp}
+  area       = {area} # um^2
+  constraint = {constraint} # ns
+  slack      = {slack} # ns
+  exec_time  = {exec_time} # cycles
+  power      = {power} # mW
+  energy     = {energy} # nJ
+\
+""".format(**locals()))
+
+main()

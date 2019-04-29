@@ -1,0 +1,171 @@
+#!/usr/bin/env python
+#=========================================================================
+# preprocess-saif [options] <cycle_time> <input-saif-file> <output-saif-file> <output-clk-def-file>
+#=========================================================================
+# Scan through input SAIF file and scale all of the time durations to
+# match the target cycle time. Also generate clock definition file file
+# to override the one in the .sdc file.
+#
+#  -h --help       Display this message
+#  -v --verbose    Verbose mode
+#  --verilog-flow  Use with pure Verilog flow
+#
+# Author : Christopher Batten
+# Date   : February 11, 2019
+#
+
+from __future__ import print_function
+
+import argparse
+import sys
+import re
+
+#-------------------------------------------------------------------------
+# Command line processing
+#-------------------------------------------------------------------------
+
+class ArgumentParserWithCustomError(argparse.ArgumentParser):
+  def error( self, msg = "" ):
+    if ( msg ): print("\n ERROR: %s" % msg)
+    print("")
+    file = open( sys.argv[0] )
+    for ( lineno, line ) in enumerate( file ):
+      if ( line[0] != '#' ): sys.exit(msg != "")
+      if ( (lineno == 2) or (lineno >= 4) ): print( line[1:].rstrip("\n") )
+
+def parse_cmdline():
+  p = ArgumentParserWithCustomError( add_help=False )
+
+  # Standard command line arguments
+
+  p.add_argument( "-v", "--verbose",      action="store_true" )
+  p.add_argument( "-h", "--help",         action="store_true" )
+  p.add_argument(       "--verilog-flow", action="store_true" )
+
+  # Additional commane line arguments
+
+  p.add_argument( "cycle_time" )
+  p.add_argument( "saif_filename_in" )
+  p.add_argument( "saif_filename_out" )
+  p.add_argument( "clk_def_filename_out" )
+
+  opts = p.parse_args()
+  if opts.help: p.error()
+  return opts
+
+#-------------------------------------------------------------------------
+# Main
+#-------------------------------------------------------------------------
+
+def main():
+  opts = parse_cmdline()
+
+  # Target clock period provided on command line
+
+  cycle_time = opts.cycle_time
+
+  if opts.verbose:
+    print( "cycle_time = ", cycle_time )
+
+  # Write the clock definition file
+
+  clk_def = open( opts.clk_def_filename_out, 'w' )
+  clk_def.writelines( "remove_clock [all_clocks]\n" )
+  clk_def.writelines( "create_clock [get_ports clk] -name ideal_clock1  -period " + cycle_time + "  -waveform {0 " + str( float(cycle_time) / 2 ) + "}\n" )
+  clk_def.writelines( "set_propagated_clock [get_ports clk]\n" )
+  clk_def.close()
+
+  # For now we always assume original cycle time was 1 ns and since the
+  # target cycle time is also in ns, the scale is just the target cycle
+  # time. In other words, if the target cycle time is 1.2 ns we need to
+  # scale all of the numbers in the SAIF by a factor of 1.2x
+
+  scale = float(cycle_time)
+
+  # Unless we are using the pure Verilog flow, in which case we assume
+  # the timescale is 1s and the clock period is 10s (defaults for
+  # iverilog).
+
+  if opts.verilog_flow:
+    scale = 10 * float(cycle_time)
+
+  # Now scan through input SAIF file. For some reason, the SAIF file now
+  # does not include the TZ field!
+
+  timescale_pattern = re.compile(r'\(TIMESCALE (.*)\)')
+  duration_pattern  = re.compile(r'\(DURATION (\d+)\)')
+  tfieldsA_pattern  = re.compile(r'^(\s*)\(T0 (\d+)\) \(T1 (\d+)\) \(TX (\d+)\)')
+  tfieldsB_pattern  = re.compile(r'^(\s*)\(T0 (\d+)\) \(T1 (\d+)\) \(TX (\d+)\) \(TZ (\d+)\)')
+
+  fout = open( opts.saif_filename_out, "w" )
+  for line in open( opts.saif_filename_in ):
+
+    # Test regular expressions
+
+    match_timescale = timescale_pattern.match(line)
+    match_duration  = duration_pattern.match(line)
+    match_tfieldsA  = tfieldsA_pattern.match(line)
+    match_tfieldsB  = tfieldsB_pattern.match(line)
+
+    # Adjust TIMESCALE field
+
+    if match_timescale:
+      line = "(TIMESCALE 10 ps)\n"
+
+    # Scale DURATION field
+
+    elif match_duration:
+      duration_old = int(match_duration.group(1))
+      duration_new = int(round(duration_old * scale))
+      line = "(DURATION {})\n".format(duration_new)
+
+    # Scale T0/T1/TX fields
+
+    elif match_tfieldsA:
+
+      T0_old = int(match_tfieldsA.group(2))
+      T0_new = int(round(T0_old * scale))
+
+      T1_old = int(match_tfieldsA.group(3))
+      T1_new = int(round(T1_old * scale))
+
+      TX_old = int(match_tfieldsA.group(4))
+      TX_new = int(round(TX_old * scale))
+
+      line = "{}(T0 {}) (T1 {}) (TX {}) \n".format(
+        match_tfieldsA.group(1),
+        T0_new,
+        T1_new,
+        TX_new,
+      )
+
+    # Scale T0/T1/TX/TZ fields
+
+    elif match_tfieldsB:
+
+      T0_old = int(match_tfieldsB.group(2))
+      T0_new = int(round(T0_old * scale))
+
+      T1_old = int(match_tfieldsB.group(3))
+      T1_new = int(round(T1_old * scale))
+
+      TX_old = int(match_tfieldsB.group(4))
+      TX_new = int(round(TX_old * scale))
+
+      TZ_old = int(match_tfieldsB.group(5))
+      TZ_new = int(round(TZ_old * scale))
+
+      line = "{}(T0 {}) (T1 {}) (TX {}) (TZ {})\n".format(
+        match_tfieldsB.group(1),
+        T0_new,
+        T1_new,
+        TX_new,
+        TZ_new,
+      )
+
+    # Write preprocessed line
+
+    fout.write( line )
+
+main()
+

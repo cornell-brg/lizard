@@ -1,0 +1,115 @@
+#!/usr/bin/env python
+#=========================================================================
+# summarize-results [options] <constraint> <vsrc> <vcd> <saif> <qor_report>
+#=========================================================================
+# Prepares a summary after synthesis which includes: source verilog
+# file, input data set, cycle time, execution time.
+#
+#  -h --help     Display this message
+#  -v --verbose  Verbose mode
+#
+# Author : Christopher Batten
+# Date   : February 12, 2019
+#
+
+from __future__ import print_function
+
+import argparse
+import sys
+import gzip
+import datetime
+
+#-------------------------------------------------------------------------
+# Command line processing
+#-------------------------------------------------------------------------
+
+class ArgumentParserWithCustomError(argparse.ArgumentParser):
+  def error( self, msg = "" ):
+    if ( msg ): print("\n ERROR: %s" % msg)
+    print("")
+    file = open( sys.argv[0] )
+    for ( lineno, line ) in enumerate( file ):
+      if ( line[0] != '#' ): sys.exit(msg != "")
+      if ( (lineno == 2) or (lineno >= 4) ): print( line[1:].rstrip("\n") )
+
+def parse_cmdline():
+  p = ArgumentParserWithCustomError( add_help=False )
+
+  # Standard command line arguments
+
+  p.add_argument( "-v", "--verbose", action="store_true" )
+  p.add_argument( "-h", "--help",    action="store_true" )
+
+  # Additional commane line arguments
+
+  p.add_argument( "constraint" )
+  p.add_argument( "vsrc" )
+  p.add_argument( "vcd" )
+  p.add_argument( "saif" )
+  p.add_argument( "qor_report" )
+
+  opts = p.parse_args()
+  if opts.help: p.error()
+  return opts
+
+#-------------------------------------------------------------------------
+# Main
+#-------------------------------------------------------------------------
+
+def main():
+  opts = parse_cmdline()
+
+  # Results
+
+  vsrc       = opts.vsrc
+  input_     = opts.vcd
+  timestamp  = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+  constraint = float(opts.constraint)
+  slack      = None
+  exec_time  = None
+
+  # Then scan through QOR file for area and cycle time
+
+  slack_temp      = 0.0
+  constraint_temp = 0.0
+  for line in open( opts.qor_report ):
+
+    line = line.strip()
+
+    if line.startswith("Critical Path Slack:"):
+      slack_temp = float(line.split(':')[1])
+      if slack == None or slack_temp < slack:
+        slack = slack_temp
+
+    elif line.startswith("Design Area:"):
+      area = int(round(float(line.split(':')[1])))
+
+  # Scan through SAIF for duration, assume 1ns clk period
+
+  for line in open( opts.saif ):
+
+    line = line.split("#")[0].strip()
+
+    if line.startswith("(DURATION "):
+      exec_time_10ps = int(line.split(' ')[1].strip(')'))
+      exec_time = int(exec_time_10ps/100.0)
+
+  # All done scanning, print summary
+
+  print(
+"""\
+#=========================================================================
+# Post-Synthesis Results
+#=========================================================================
+
+  vsrc       = {vsrc}
+  input      = {input_}
+  timestamp  = {timestamp}
+  area       = {area} # um^2
+  constraint = {constraint} # ns
+  slack      = {slack} # ns
+  exec_time  = {exec_time} # cycles
+\
+""".format(**locals()))
+
+main()
