@@ -282,7 +282,7 @@ class Proc(Model):
     s.writeback_arbiter_interface = PipelineArbiterInterface(ExecuteMsg())
     s.writeback_arbiter = PipelineArbiter(
         s.writeback_arbiter_interface,
-        ['alu', 'csr', 'branch', 'mem', 'm_pipe'])
+        ['mem', 'alu', 'm_pipe', 'branch', 'csr'])
     s.connect_m(s.writeback_arbiter.alu_peek, s.alu.peek)
     s.connect_m(s.writeback_arbiter.alu_take, s.alu.take)
     s.connect_m(s.writeback_arbiter.csr_peek, s.csr_pipe.peek)
