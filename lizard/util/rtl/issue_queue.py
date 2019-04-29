@@ -325,8 +325,9 @@ class CompactingIssueQueue(Model):
     @s.combinational
     def set_first_rdy():
       for i in range(1, num_slots):
-        s.prev_rdy_[i].v = s.prev_rdy_[i-1].v or s.slots_[i].status_ready
-        s.first_rdy_[i].v.v = not s.prev_rdy_[i-1].v and s.slots_[i].status_ready
+        s.prev_rdy_[i].v = s.prev_rdy_[i - 1].v or s.slots_[i].status_ready
+        s.first_rdy_[i].v.v = not s.prev_rdy_[i -
+                                              1].v and s.slots_[i].status_ready
 
     @s.combinational
     def mux_output():
@@ -419,9 +420,11 @@ class CompactingIssueQueue(Model):
       @s.combinational
       def handle_remove():
         # Must be valid and first entry
-        s.remove_rdy.v = s.first_rdy_ != 0 and ((s.first_rdy_ & ~s.wait_pred) != 0)
+        s.remove_rdy.v = s.first_rdy_ != 0 and (
+            (s.first_rdy_ & ~s.wait_pred) != 0)
         for i in range(num_slots):
-          s.will_issue_[i].v = s.first_rdy_ != 0 and s.remove_call and (s.first_rdy_[i] and not s.wait_pred[i])
+          s.will_issue_[i].v = s.first_rdy_ != 0 and s.remove_call and (
+              s.first_rdy_[i] and not s.wait_pred[i])
     else:
 
       @s.combinational
