@@ -58,16 +58,19 @@ class OverlapChecker(Model):
     s.base_l = Wire(s.interface.Base)
     s.end_s = Wire(s.interface.Base)
 
-    @s.combinational
-    def compute_smaller():
-      if s.check_base_a < s.check_base_b:
-        s.base_l.v = s.check_base_b
-        s.end_s.v = s.end_a
-      else:
-        s.base_l.v = s.check_base_a
-        s.end_s.v = s.end_b
+    # @s.combinational
+    # def compute_smaller():
+    #   if s.check_base_a < s.check_base_b:
+    #     s.base_l.v = s.check_base_b
+    #     s.end_s.v = s.end_a
+    #   else:
+    #     s.base_l.v = s.check_base_a
+    #     s.end_s.v = s.end_b
 
     @s.combinational
     def compute_disjoint():
       # Since end is exclusive, if it equals start we are still OK
-      s.check_disjoint.v = s.end_s <= s.base_l
+      s.check_disjoint.v = ((s.check_base_a >= s.check_base_b) and (
+                                    s.check_base_a < s.end_b)) or (
+                                    (s.check_base_b >= s.check_base_a) and (
+                                    s.check_base_b < s.end_a))
