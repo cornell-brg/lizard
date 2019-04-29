@@ -70,7 +70,7 @@ class OverlapChecker(Model):
     @s.combinational
     def compute_disjoint():
       # Since end is exclusive, if it equals start we are still OK
-      s.check_disjoint.v = not (((s.check_base_a >= s.check_base_b) and (
-                                    s.check_base_a < s.end_b)) or (
-                                    (s.check_base_b >= s.check_base_a) and (
-                                    s.check_base_b < s.end_a)))
+      s.check_disjoint.v = not (((s.check_base_a >= s.check_base_b) and
+                                 (s.check_base_a < s.end_b)) or
+                                ((s.check_base_b >= s.check_base_a) and
+                                 (s.check_base_b < s.end_a)))
