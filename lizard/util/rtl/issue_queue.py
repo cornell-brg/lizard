@@ -311,21 +311,20 @@ class CompactingIssueQueue(Model):
       def set_wait_pred_0():
         s.wait_pred[0].v = 0
 
-      for i in range(1, num_slots):
-
-        @s.combinational
-        def set_wait_pred_k(i=i):
+      @s.combinational
+      def set_wait_pred_k():
+        for i in range(1, num_slots):
           s.wait_pred[i].v = s.wait_pred[i - 1] or (
               s.slots_[i - 1].status_valid and s.slots_[i - 1].status_ordered)
 
     @s.combinational
     def set_first_rdy():
-      s.prev_rdy_[0].v = 0
+      s.prev_rdy_[0].v = s.slots_[0].status_ready
       s.first_rdy_[0].v = s.slots_[0].status_ready
 
-    for i in range(1, num_slots):
-      @s.combinational
-      def set_first_rdy(i=i):
+    @s.combinational
+    def set_first_rdy():
+      for i in range(1, num_slots):
         s.prev_rdy_[i].v = s.prev_rdy_[i-1].v or s.slots_[i].status_ready
         s.first_rdy_[i].v.v = not s.prev_rdy_[i-1].v and s.slots_[i].status_ready
 
