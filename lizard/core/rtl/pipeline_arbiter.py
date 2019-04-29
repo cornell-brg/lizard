@@ -2,7 +2,7 @@ from pymtl import *
 from lizard.util.rtl.interface import UseInterface
 from lizard.util.rtl.method import MethodSpec
 from lizard.util.rtl.case_mux import CaseMux, CaseMuxInterface
-from lizard.util.rtl.arbiters import ArbiterInterface, RoundRobinArbiter
+from lizard.util.rtl.arbiters import ArbiterInterface, PriorityArbiter
 from lizard.util.rtl.pipeline_stage import PipelineStageInterface
 
 
@@ -45,7 +45,7 @@ class PipelineArbiter(Model):
       s.connect(s.index_peek_rdy[i], getattr(s, '{}_peek'.format(client)).rdy)
       s.connect(getattr(s, '{}_take'.format(client)).call, s.index_take_call[i])
 
-    s.arb = RoundRobinArbiter(ArbiterInterface(ninputs))
+    s.arb = PriorityArbiter(ArbiterInterface(ninputs))
     s.mux = CaseMux(
         CaseMuxInterface(s.interface.MsgType, Bits(ninputs), ninputs),
         [1 << i for i in range(ninputs)])
