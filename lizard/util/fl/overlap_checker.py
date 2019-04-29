@@ -22,11 +22,26 @@ class OverlapCheckerFL(FLModel):
       end_a = base_a + size_a
       end_b = base_b + size_b
 
-      if base_a < base_b:
-        base_l = base_b
-        end_s = end_a
-      else:
-        base_l = base_a
-        end_s = end_b
 
-      return end_s <= base_l
+      # Have to make it agree in this annoying case
+      if size_a == 0 or size_b == 0:
+        return ((base_a >= base_b) and (base_a < end_b)) or ((base_b >= base_a) and (
+                                      base_b < end_a))
+      else:
+        # I know this looks stupid, but otherwise the RTL and the FL would be the same
+        addrs = {int(base_a + i) for i in range(size_a)}
+        for j in range(size_b):
+          if int(base_b + j) in addrs:
+            return True
+        return 0
+
+      # if size_a == 0 or size_b == 0:
+      #   return 0
+      # elif base_a < base_b:
+      #   base_l = base_b
+      #   end_s = end_a
+      # else:
+      #   base_l = base_a
+      #   end_s = end_b
+      #
+      # return end_s <= base_l
