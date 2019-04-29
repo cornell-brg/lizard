@@ -5,7 +5,7 @@ build*/
 __pycache__/
 autom4te.cache/
 *.py[cod]
-*/.pytest_cache
+.pytest_cache
 riscv-gnu-toolchain
 *.egg-info
 .DS_Store
