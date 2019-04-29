@@ -16,8 +16,8 @@
 ifeq ($(design),megaproc)
   design_name   = proc
   clock_period  = 4.0
-  design_v      = ../proc.sv 
-  activity_vcd  = ../ubmark-vvadd-verilate.verilator.vcd
+  design_v      = ../proc/proc.sv 
+  activity_vcd  = ../proc/ubmark-vvadd-verilate.verilator.vcd
 endif
 
 ifeq ($(design),sort-unit)
