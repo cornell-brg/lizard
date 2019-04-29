@@ -23,8 +23,8 @@ class OverlapCheckerFL(FLModel):
       end_b = base_b + size_b
 
       if size_a == 0 or size_b == 0:
-        return not (((base_a >= base_b) and
-                (base_a < end_b)) or ((base_b >= base_a) and (base_b < end_a)))
+        return not (((base_a >= base_b) and (base_a < end_b)) or
+                    ((base_b >= base_a) and (base_b < end_a)))
 
       if base_a < base_b:
         base_l = base_b
