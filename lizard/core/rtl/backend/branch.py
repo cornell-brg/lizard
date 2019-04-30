@@ -61,6 +61,9 @@ class BranchStage(Model):
 
     s.take_branch_ = Wire(1)
     s.branch_target_ = Wire(data_len)
+    s.branch_target_pcimm_ = Wire(data_len)
+    s.branch_target_rs1imm_ = Wire(data_len)
+    s.branch_target_fallthrough_ = Wire(data_len)
 
     OP_LUT_MAP = {
         BranchType.BRANCH_TYPE_EQ: CMPFunc.CMP_EQ,
@@ -102,16 +105,21 @@ class BranchStage(Model):
       # PYMTL_BROKEN: sext(s.msg_.imm) does not create valid verilog
       # Vivado errors: "range is not allowed in prefix"
       s.imm_.v = sext(s.msg_imm_, data_len)
+      s.branch_target_pcimm_.v = s.msg_.hdr_pc + s.imm_
+      s.branch_target_rs1imm_.v = (s.msg_.rs1 + s.imm_) & (1 << XLEN - 1)
+      s.branch_target_fallthrough_.v = s.msg_.hdr_pc + ILEN_BYTES
+
+      s.branch_target_.v = s.branch_target_fallthrough_
+
       if s.take_branch_:
+        # Branch or JAL
         if s.msg_.op_class == OpClass.OP_CLASS_BRANCH or not s.msg_.rs1_val:
-          s.branch_target_.v = s.msg_.hdr_pc + s.imm_
-        elif s.msg_.rs1_val:
-          s.branch_target_.v = s.msg_.rs1 + s.imm_
-          s.branch_target_[0].v = 0
+          s.branch_target_.v = s.branch_target_pcimm_
         else:
-          s.branch_target_.v = 0
+          s.branch_target_.v = s.branch_target_rs1imm_
       else:
-        s.branch_target_.v = s.msg_.hdr_pc + ILEN_BYTES
+        s.branch_target_.v = s.branch_target_fallthrough_
+
 
     @s.combinational
     def set_value_reg_input():

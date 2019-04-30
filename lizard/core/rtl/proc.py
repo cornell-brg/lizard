@@ -10,7 +10,7 @@ from lizard.core.rtl.frontend.fetch import Fetch, FetchInterface
 from lizard.core.rtl.frontend.decode import Decode, DecodeInterface
 from lizard.core.rtl.backend.rename import Rename, RenameInterface
 from lizard.core.rtl.backend.issue_selector import IssueSelector
-from lizard.core.rtl.backend.issue import Issue, IssueInterface, IssueInOrder, IssueOutOfOrder
+from lizard.core.rtl.backend.issue import Issue, IssueInterface, IssueInOrder, IssueOutOfOrder, IssueOrderedStores
 from lizard.core.rtl.backend.dispatch import Dispatch, DispatchInterface
 from lizard.core.rtl.backend.pipe_selector import PipeSelector
 from lizard.core.rtl.backend.alu import ALU
@@ -201,7 +201,7 @@ class Proc(Model):
         PREG_COUNT,
         NUM_MEM_ISSUE_SLOTS,
         num_updated=ISSUE_NUM_UDPATED_PORTS,
-        set_ordered=IssueInOrder,
+        set_ordered=IssueOrderedStores,
         bypass_ready=False)
     s.connect_m(s.io_issue.kill_notify, s.kill_notifier.kill_notify)
     s.connect_m(s.issue_selector.mem_peek, s.io_issue.in_peek)
