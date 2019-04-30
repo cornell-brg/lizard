@@ -251,7 +251,6 @@ class MulPipelined(Model):
       s.src2_usign_.v = (~s.mult_src2 + 1) if (
           s.mult_src2[m - 1] and s.mult_src2_signed) else s.mult_src2
 
-
     @s.combinational
     def connect_unit0():
       s.units_[0].mult_src1.v = s.src1_usign_

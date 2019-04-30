@@ -137,7 +137,6 @@ class CSRManager(Model):
       s.temp_write_value.v = 0
       s.temp_write_call.v = 0
 
-
       if s.op_csr == CsrRegisters.proc2mngr:
         if s.op_op == CsrFunc.CSR_FUNC_READ_WRITE and s.debug_send_rdy:
           s.temp_debug_send_call.v = s.op_call

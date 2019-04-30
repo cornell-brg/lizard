@@ -134,11 +134,9 @@ class RenameStage(Model):
       else:
         s.out_.exception_info.v = s.decoded_.exception_info
 
-
     @s.combinational
     def set_accepted():
       s.accepted_.v = s.register_success and s.register_call
-
 
   def line_trace(s):
     return s.register_seq.hex()[2:]

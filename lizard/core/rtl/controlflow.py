@@ -300,8 +300,8 @@ class ControlFlowManager(Model):
       # Free the snapshot
       s.dflow_free_snapshot_call.v = s.redirect_call
       # Look up if the predicted PC saved during register is correct
-      s.branch_redirect_.v = s.redirect_call and (s.redirect_target !=
-                                    s.pc_pred.read_data[0] or s.redirect_force)
+      s.branch_redirect_.v = s.redirect_call and (
+          s.redirect_target != s.pc_pred.read_data[0] or s.redirect_force)
 
       if s.branch_redirect_:
         # Kill everything except preceeding branches
@@ -325,8 +325,7 @@ class ControlFlowManager(Model):
       s.register_success.v = (
           s.seq.allocate_rdy and  # ROB slot availible
           (not s.register_speculative or s.dflow_snapshot_rdy) and
-          (not s.register_store or s.dflow_get_store_id_rdy)
-          and  # RT snapshot
+          (not s.register_store or s.dflow_get_store_id_rdy) and  # RT snapshot
           (not s.register_serialize or
            not s.seq.free_rdy) and  # Serialized inst
           not s.serial.read_data)
