@@ -1,0 +1,16 @@
+#! /bin/bash
+
+set -e
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+cd "$DIR"
+
+./setup
+cd build
+make
+cd "$DIR/../build"
+
+BENCHMARKS="ubmark-bsearch ubmark-cmult ubmark-mfilt ubmark-quicksort ubmark-vvadd"
+for BENCHMARK in $BENCHMARKS; do
+  echo $BENCHMARK
+  ../lizard/sim --verilate ../app/build/$BENCHMARK
+done
