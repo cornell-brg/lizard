@@ -182,6 +182,7 @@ class ControlFlowManager(Model):
     s.commit_redirect_ = Wire(1)
     s.commit_redirect_target_ = Wire(xlen)
 
+    # Note that these signals are guaranteed to be zero if register_call = 0
     s.register_success_ = Wire(1)
     s.spec_register_success_ = Wire(1)
     s.store_register_success_ = Wire(1)
@@ -247,7 +248,6 @@ class ControlFlowManager(Model):
 
     # Connect up register method rets
     s.connect(s.register_seq, s.seq.allocate_idx)
-    s.connect(s.register_success, s.register_success_)
     s.connect(s.register_spec_idx, s.dflow_snapshot_id_)
     s.connect(s.register_branch_mask, s.bmask_curr_)
     s.connect(s.seq.allocate_call, s.register_success_)
@@ -262,16 +262,14 @@ class ControlFlowManager(Model):
     # All the backend kill signals are registered to avoid comb. loops
     @s.combinational
     def set_kill_pend():
+      # We need to update this if there is a redirect even if  branch resolved correctly
       s.update_kills_.v = s.kill_pend.read_data or s.is_redirect_ or s.redirect_call
       s.kill_pend.write_data.v = s.is_redirect_ or s.redirect_call
-      s.reg_force.write_data.v = 0
-      s.reg_kill.write_data.v = 0
-      s.reg_clear.write_data.v = 0
-      if s.update_kills_:
-        s.reg_force.write_data.v = (s.branch_redirect_ and
-                                    s.redirect_force) or (s.commit_redirect_)
-        s.reg_kill.write_data.v = s.kill_mask_
-        s.reg_clear.write_data.v = s.clear_mask_
+
+      s.reg_force.write_data.v = (s.branch_redirect_ and
+                                  s.redirect_force) or (s.commit_redirect_)
+      s.reg_kill.write_data.v = s.kill_mask_
+      s.reg_clear.write_data.v = s.clear_mask_
 
     # This prioritizes reset redirection, then exceptions, then a branch reidrect call
     @s.combinational
@@ -288,7 +286,7 @@ class ControlFlowManager(Model):
 
     @s.combinational
     def set_serial():
-      s.serial.write_call.v = ((s.register_success and s.register_serialize) or
+      s.serial.write_call.v = ((s.register_success_ and s.register_serialize) or
                                (s.serial.read_data and s.commit_call))
       s.serial.write_data.v = not s.serial.read_data  #  we are always inverting it
 
@@ -298,22 +296,18 @@ class ControlFlowManager(Model):
       # These are set after a redirect call
       s.kill_mask_.v = 0
       s.clear_mask_.v = 0
-      s.branch_redirect_.v = 0
-      s.redirect_target_.v = 0
-      s.dflow_free_snapshot_call.v = 0
-      if s.redirect_call:
-        # Free the snapshot
-        s.dflow_free_snapshot_call.v = 1
-        # Look up if the predicted PC saved during register is correct
-        s.branch_redirect_.v = s.redirect_target != s.pc_pred.read_data[
-            0] or s.redirect_force
-        if s.branch_redirect_:
-          s.redirect_target_.v = s.redirect_target
-          # Kill everything except preceeding branches
-          s.kill_mask_.v = s.redirect_mask.encode_onehot | (
-              ~s.redirect_branch_mask)
-        else:
-          s.clear_mask_.v = s.redirect_mask.encode_onehot
+      s.redirect_target_.v = s.redirect_target
+      # Free the snapshot
+      s.dflow_free_snapshot_call.v = s.redirect_call
+      # Look up if the predicted PC saved during register is correct
+      s.branch_redirect_.v = s.redirect_call and (s.redirect_target !=
+                                    s.pc_pred.read_data[0] or s.redirect_force)
+
+      if s.branch_redirect_:
+        # Kill everything except preceeding branches
+        s.kill_mask_.v = s.redirect_mask.encode_onehot | ~s.redirect_branch_mask
+      elif s.redirect_call:
+        s.clear_mask_.v = s.redirect_mask.encode_onehot
 
     @s.combinational
     def handle_bmask():
@@ -328,34 +322,26 @@ class ControlFlowManager(Model):
 
     @s.combinational
     def handle_register():
-      s.register_success_.v = 0
-      s.spec_register_success_.v = 0
-      s.store_register_success_.v = 0
-      if s.register_call:
-        s.register_success_.v = (
-            s.seq.allocate_rdy and  # ROB slot availible
-            (not s.register_speculative or s.dflow_snapshot_rdy) and
-            (not s.register_store or s.dflow_get_store_id_rdy)
-            and  # RT snapshot
-            (not s.register_serialize or
-             not s.seq.free_rdy) and  # Serialized inst
-            not s.serial.read_data)
+      s.register_success.v = (
+          s.seq.allocate_rdy and  # ROB slot availible
+          (not s.register_speculative or s.dflow_snapshot_rdy) and
+          (not s.register_store or s.dflow_get_store_id_rdy)
+          and  # RT snapshot
+          (not s.register_serialize or
+           not s.seq.free_rdy) and  # Serialized inst
+          not s.serial.read_data)
 
-        s.spec_register_success_.v = s.register_success_.v and s.register_speculative
-        s.store_register_success_.v = s.register_success_.v and s.register_store
+      s.register_success_.v = s.register_call and s.register_success
+      s.spec_register_success_.v = s.register_success_.v and s.register_speculative
+      s.store_register_success_.v = s.register_success_.v and s.register_store
 
     @s.combinational
     def handle_commit():
-      s.dflow_rollback_call.v = 0
       s.commit_redirect_.v = 0
-      s.commit_redirect_target_.v = 0
+      s.commit_redirect_target_.v = s.commit_redirect_target
       # If we are committing there are a couple cases
-      if s.commit_call:
-        # Jump to exception handler
-        if s.commit_redirect:
-          s.commit_redirect_target_.v = s.commit_redirect_target
-          s.commit_redirect_.v = 1
-          s.dflow_rollback_call.v = 1
+      s.commit_redirect_.v = s.commit_call and s.commit_redirect
+      s.dflow_rollback_call.v = s.commit_call and s.commit_redirect
 
     @s.combinational
     def update_seq():
