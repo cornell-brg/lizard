@@ -88,12 +88,11 @@ class Comparator(Model):
     @s.combinational
     def eval_comb():
       s.res_.v = 0
-      if s.exec_call:
-        if s.func_ == CMPFunc.CMP_EQ:
-          s.res_.v = s.eq_
-        elif s.func_ == CMPFunc.CMP_NE:
-          s.res_.v = not s.eq_
-        elif s.func_ == CMPFunc.CMP_LT:
-          s.res_.v = s.lt_
-        elif s.func_ == CMPFunc.CMP_GE:
-          s.res_.v = not s.lt_ or s.eq_
+      if s.func_ == CMPFunc.CMP_EQ:
+        s.res_.v = s.eq_
+      elif s.func_ == CMPFunc.CMP_NE:
+        s.res_.v = not s.eq_
+      elif s.func_ == CMPFunc.CMP_LT:
+        s.res_.v = s.lt_
+      elif s.func_ == CMPFunc.CMP_GE:
+        s.res_.v = not s.lt_ or s.eq_

@@ -41,17 +41,16 @@ class WritebackStage(Model):
       s.dataflow_write_tag.v = 0
       s.dataflow_write_value.v = 0
 
-      if s.process_call:
-        if s.process_in_.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID:
-          s.process_out.rd_val_pair.v = s.process_in_.rd_val_pair
-          s.process_out.areg_d.v = s.process_in_.areg_d
+      if s.process_in_.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID:
+        s.process_out.rd_val_pair.v = s.process_in_.rd_val_pair
+        s.process_out.areg_d.v = s.process_in_.areg_d
 
-          # write the data if the destination is valid
-          s.dataflow_write_call.v = s.process_in_.rd_val
-          s.dataflow_write_tag.v = s.process_in_.rd
-          s.dataflow_write_value.v = s.process_in_.result
-        else:
-          s.process_out.exception_info.v = s.process_in_.exception_info
+        # write the data if the destination is valid
+        s.dataflow_write_call.v = s.process_in_.rd_val and s.process_call
+        s.dataflow_write_tag.v = s.process_in_.rd
+        s.dataflow_write_value.v = s.process_in_.result
+      else:
+        s.process_out.exception_info.v = s.process_in_.exception_info
 
   def line_trace(s):
     return s.process_in_.hdr_seq.hex()[2:]
