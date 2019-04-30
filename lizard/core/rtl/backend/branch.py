@@ -106,10 +106,9 @@ class BranchStage(Model):
       # Vivado errors: "range is not allowed in prefix"
       s.imm_.v = sext(s.msg_imm_, data_len)
       s.branch_target_pcimm_.v = s.msg_.hdr_pc + s.imm_
-      s.branch_target_rs1imm_.v = (s.msg_.rs1 + s.imm_) & (1 << XLEN - 1)
+      s.branch_target_rs1imm_.v = s.msg_.rs1 + s.imm_
+      s.branch_target_rs1imm_[0].v = 0
       s.branch_target_fallthrough_.v = s.msg_.hdr_pc + ILEN_BYTES
-
-      s.branch_target_.v = s.branch_target_fallthrough_
 
       if s.take_branch_:
         # Branch or JAL
