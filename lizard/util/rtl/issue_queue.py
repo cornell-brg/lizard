@@ -333,7 +333,7 @@ class CompactingIssueQueue(Model):
     def mux_output():
       s.remove_value.v = 0
       for i in range(num_slots):
-        if s.will_issue_[i]:
+        if s.first_rdy_[i]:
           s.remove_value.v = s.slots_[i].peek_value
 
     @s.combinational

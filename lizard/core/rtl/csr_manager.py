@@ -137,36 +137,33 @@ class CSRManager(Model):
       s.temp_write_value.v = 0
       s.temp_write_call.v = 0
 
-      if s.op_call:
-        if s.op_csr == CsrRegisters.proc2mngr:
-          if s.op_op == CsrFunc.CSR_FUNC_READ_WRITE and s.debug_send_rdy:
-            s.temp_debug_send_call.v = 1
-            s.temp_debug_send_msg.v = s.op_value
 
-            s.temp_op_success.v = 1
-            s.temp_op_old.v = 0
-        elif s.op_csr == CsrRegisters.mngr2proc:
-          if s.op_op != CsrFunc.CSR_FUNC_READ_WRITE and s.debug_recv_rdy and s.op_rs1_is_x0:
-            s.temp_debug_recv_call.v = 1
+      if s.op_csr == CsrRegisters.proc2mngr:
+        if s.op_op == CsrFunc.CSR_FUNC_READ_WRITE and s.debug_send_rdy:
+          s.temp_debug_send_call.v = s.op_call
+          s.temp_debug_send_msg.v = s.op_value
 
-            s.temp_op_success.v = 1
-            s.temp_op_old.v = s.debug_recv_msg
-        else:
-          s.temp_op_success.v = s.csr_file.read_valid[num_read_ports]
-          s.temp_read_key.v = s.op_csr
-          s.temp_op_old.v = s.csr_file.read_value[num_read_ports]
-          if s.op_op == CsrFunc.CSR_FUNC_READ_WRITE:
-            s.temp_write_key.v = s.op_csr
-            s.temp_write_value.v = s.op_value
-            s.temp_write_call.v = 1
-          elif s.op_op == CsrFunc.CSR_FUNC_READ_SET:
-            s.temp_write_key.v = s.op_csr
-            s.temp_write_value.v = s.op_value | s.temp_op_old
-            s.temp_write_call.v = 1
-          elif s.op_op == CsrFunc.CSR_FUNC_READ_CLEAR:
-            s.temp_write_key.v = s.op_csr
-            s.temp_write_value.v = s.op_value & (~s.temp_op_old)
-            s.temp_write_call.v = 1
+          s.temp_op_success.v = 1
+          s.temp_op_old.v = 0
+      elif s.op_csr == CsrRegisters.mngr2proc:
+        if s.op_op != CsrFunc.CSR_FUNC_READ_WRITE and s.debug_recv_rdy and s.op_rs1_is_x0:
+          s.temp_debug_recv_call.v = s.op_call
+          s.temp_op_success.v = 1
+          s.temp_op_old.v = s.debug_recv_msg
+      else:
+        s.temp_op_success.v = s.csr_file.read_valid[num_read_ports]
+        s.temp_read_key.v = s.op_csr
+        s.temp_op_old.v = s.csr_file.read_value[num_read_ports]
+        s.temp_write_call.v = s.op_call
+        if s.op_op == CsrFunc.CSR_FUNC_READ_WRITE:
+          s.temp_write_key.v = s.op_csr
+          s.temp_write_value.v = s.op_value
+        elif s.op_op == CsrFunc.CSR_FUNC_READ_SET:
+          s.temp_write_key.v = s.op_csr
+          s.temp_write_value.v = s.op_value | s.temp_op_old
+        elif s.op_op == CsrFunc.CSR_FUNC_READ_CLEAR:
+          s.temp_write_key.v = s.op_csr
+          s.temp_write_value.v = s.op_value & (~s.temp_op_old)
 
       s.debug_recv_call.v = s.temp_debug_recv_call
       s.debug_send_call.v = s.temp_debug_send_call

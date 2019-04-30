@@ -92,22 +92,21 @@ class ALU(Model):
     @s.combinational
     def eval_comb():
       s.res_.v = 0
-      if s.exec_call:
-        if s.func_ == ALUFunc.ALU_ADD:
-          s.res_.v = s.s0_ + s.s1_
-        elif s.func_ == ALUFunc.ALU_SUB:
-          s.res_.v = s.s0_ - s.s1_
-        elif s.func_ == ALUFunc.ALU_AND:
-          s.res_.v = s.s0_ & s.s1_
-        elif s.func_ == ALUFunc.ALU_OR:
-          s.res_.v = s.s0_ | s.s1_
-        elif s.func_ == ALUFunc.ALU_XOR:
-          s.res_.v = s.s0_ ^ s.s1_
-        elif s.func_ == ALUFunc.ALU_SLL:
-          s.res_.v = s.s0_ << s.shamt_
-        elif s.func_ == ALUFunc.ALU_SRL:
-          s.res_.v = s.s0_ >> s.shamt_
-        elif s.func_ == ALUFunc.ALU_SRA:
-          s.res_.v = s.sra_[:xlen]
-        elif s.func_ == ALUFunc.ALU_SLT:
-          s.res_.v = zext(s.cmp_u_, xlen)
+      if s.func_ == ALUFunc.ALU_ADD:
+        s.res_.v = s.s0_ + s.s1_
+      elif s.func_ == ALUFunc.ALU_SUB:
+        s.res_.v = s.s0_ - s.s1_
+      elif s.func_ == ALUFunc.ALU_AND:
+        s.res_.v = s.s0_ & s.s1_
+      elif s.func_ == ALUFunc.ALU_OR:
+        s.res_.v = s.s0_ | s.s1_
+      elif s.func_ == ALUFunc.ALU_XOR:
+        s.res_.v = s.s0_ ^ s.s1_
+      elif s.func_ == ALUFunc.ALU_SLL:
+        s.res_.v = s.s0_ << s.shamt_
+      elif s.func_ == ALUFunc.ALU_SRL:
+        s.res_.v = s.s0_ >> s.shamt_
+      elif s.func_ == ALUFunc.ALU_SRA:
+        s.res_.v = s.sra_[:xlen]
+      elif s.func_ == ALUFunc.ALU_SLT:
+        s.res_.v = zext(s.cmp_u_, xlen)
