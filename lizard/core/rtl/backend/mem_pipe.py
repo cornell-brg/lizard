@@ -222,6 +222,7 @@ class MemResponseStage(Model):
       s.process_out.result.v = s.result
       s.process_out.rd.v = s.process_in_.rd
       s.process_out.rd_val.v = s.process_in_.rd_val
+      s.process_out.areg_d.v = s.process_in_.areg_d
 
   def line_trace(s):
     return s.process_in_.hdr_seq.hex()[2:]

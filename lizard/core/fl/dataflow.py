@@ -56,9 +56,6 @@ class DataFlowManagerFL(FLModel):
 
     preg_reset = [0 for _ in range(npregs)]
     ready_reset = [1 for _ in range(npregs)]
-    inverse_reset = [s.interface.Areg for _ in range(npregs)]
-    for x in range(naregs - 1):
-      inverse_reset[x] = x + 1
 
     s.state(
         preg_file=RegisterFileFL(
@@ -79,15 +76,6 @@ class DataFlowManagerFL(FLModel):
             False,
             reset_values=ready_reset,
         ),
-        inverse=RegisterFileFL(
-            s.interface.Areg,
-            npregs,
-            num_dst_ports,
-            num_dst_ports,
-            True,
-            False,
-            reset_values=inverse_reset,
-        ),
         areg_file=RegisterFileFL(
             s.interface.Preg,
             naregs,
@@ -106,13 +94,12 @@ class DataFlowManagerFL(FLModel):
       s.store_ids.free(id_)
 
     @s.model_method
-    def commit(tag):
+    def commit(tag, areg):
       if tag == s.ZERO_TAG:
         return
-      old_areg = s.inverse.read(tag).data
-      old_preg = s.areg_file.read(old_areg).data
+      old_preg = s.areg_file.read(areg).data
       s.free_regs.free(old_preg)
-      s.areg_file.write(addr=old_areg, data=tag)
+      s.areg_file.write(addr=areg, data=tag)
       s.arch_used_pregs.write(addr=old_preg, data=0)
       s.arch_used_pregs.write(addr=tag, data=1)
 
@@ -176,7 +163,6 @@ class DataFlowManagerFL(FLModel):
 
       s.rename_table.update(areg=areg, preg=allocation.index)
       s.ready_table.write(addr=allocation.index, data=0)
-      s.inverse.write(addr=allocation.index, data=areg)
 
       return allocation.index
 

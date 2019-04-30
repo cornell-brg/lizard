@@ -44,6 +44,7 @@ class WritebackStage(Model):
       if s.process_call:
         if s.process_in_.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID:
           s.process_out.rd_val_pair.v = s.process_in_.rd_val_pair
+          s.process_out.areg_d.v = s.process_in_.areg_d
 
           # write the data if the destination is valid
           s.dataflow_write_call.v = s.process_in_.rd_val

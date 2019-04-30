@@ -105,6 +105,7 @@ class MultInputPipelineAdapter(Model):
       s.split_kill_data.result.v = zext(s.split_in_.m_msg, XLEN)
       s.split_kill_data.rd.v = s.split_in_.rd
       s.split_kill_data.rd_val.v = s.split_in_.rd_val
+      s.split_kill_data.areg_d.v = s.split_in_.areg_d
 
 
 def MultOutputPipelineAdapterInterface():

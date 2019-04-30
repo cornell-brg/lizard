@@ -77,6 +77,7 @@ class Div(Model):
       s.vvm.add_msg.result.v = zext(s.in_peek_msg.m_msg, XLEN)
       s.vvm.add_msg.rd.v = s.in_peek_msg.rd
       s.vvm.add_msg.rd_val.v = s.in_peek_msg.rd_val
+      s.vvm.add_msg.areg_d.v = s.in_peek_msg.areg_d
 
     s.mul_msg = Wire(MMsg())
     s.res_32 = Wire(32)

@@ -173,6 +173,7 @@ class Issue(Model):
         s.iq_msg_in.execution_data.v = s.renamed_.execution_data
         s.iq_msg_in.rd.v = s.renamed_.rd
         s.iq_msg_in.rd_val.v = s.renamed_.rd_val
+        s.iq_msg_in.areg_d.v = s.renamed_.areg_d
         # Copy over the non-opaque fields
         s.iq_slot_in.src0.v = s.renamed_.rs1
         s.iq_slot_in.src0_val.v = s.renamed_.rs1_val

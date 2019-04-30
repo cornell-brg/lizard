@@ -120,6 +120,7 @@ class BranchStage(Model):
       s.process_out.result.v = s.msg_.hdr_pc + ILEN_BYTES
       s.process_out.rd.v = s.msg_.rd
       s.process_out.rd_val.v = s.msg_.rd_val
+      s.process_out.areg_d.v = s.msg_.areg_d
 
     @s.combinational
     def update_btb():

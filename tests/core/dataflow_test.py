@@ -29,7 +29,7 @@ def test_method(model):
   df.write(tag=d1_preg.preg, value=0)
   df.cycle()
 
-  df.commit(tag=d1_preg.preg)
+  df.commit(tag=d1_preg.preg, areg=2)
   df.cycle()
 
   # simulate addi x2, x2, 42
@@ -44,7 +44,7 @@ def test_method(model):
   df.write(tag=d1_preg.preg, value=42)
   df.cycle()
 
-  df.commit(tag=d1_preg.preg)
+  df.commit(tag=d1_preg.preg, areg=2)
   df.cycle()
 
 

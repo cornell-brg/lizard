@@ -300,6 +300,7 @@ def RenamePayload():
       ValidValuePair('rs1', PREG_IDX_NBITS),
       ValidValuePair('rs2', PREG_IDX_NBITS),
       ValidValuePair('rd', PREG_IDX_NBITS),
+      Field('areg_d', AREG_IDX_NBITS),
       ExecutionDataGroup,
   ]
 
@@ -313,6 +314,7 @@ def IssuePayload():
       ValidValuePair('rs1', PREG_IDX_NBITS),
       ValidValuePair('rs2', PREG_IDX_NBITS),
       ValidValuePair('rd', PREG_IDX_NBITS),
+      Field('areg_d', AREG_IDX_NBITS),
       ExecutionDataGroup,
   ]
 
@@ -326,6 +328,7 @@ def DispatchPayload():
       ValidValuePair('rs1', XLEN),
       ValidValuePair('rs2', XLEN),
       ValidValuePair('rd', PREG_IDX_NBITS),
+      Field('areg_d', AREG_IDX_NBITS),
       ExecutionDataGroup,
   ]
 
@@ -338,6 +341,7 @@ def ExecutePayload():
   return [
       ValidValuePair('rd', PREG_IDX_NBITS),
       ValidValuePair('result', XLEN),
+      Field('areg_d', AREG_IDX_NBITS),
   ]
 
 
@@ -348,6 +352,7 @@ ExecuteMsg = BackendMsg(ExecutePayload())
 def WritebackPayload():
   return [
       ValidValuePair('rd', PREG_IDX_NBITS),
+      Field('areg_d', AREG_IDX_NBITS),
   ]
 
 

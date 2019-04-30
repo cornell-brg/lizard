@@ -56,6 +56,7 @@ class DispatchStage(Model):
         s.dispatched_.rs2_val.v = s.process_in_.rs2_val
         s.dispatched_.rd.v = s.process_in_.rd
         s.dispatched_.rd_val.v = s.process_in_.rd_val
+        s.dispatched_.areg_d.v = s.process_in_.areg_d
         s.dispatched_.execution_data.v = s.process_in_.execution_data
 
   def line_trace(s):
