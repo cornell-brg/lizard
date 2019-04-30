@@ -255,9 +255,12 @@ class MulPipelined(Model):
     def connect_unit0():
       s.units_[0].mult_src1.v = s.src1_usign_
       s.units_[0].mult_src2.v = s.src2_usign_[:k]
-      for i in range(1, nstages):
-        s.units_[i].mult_src1.v = s.src1_[i - 1].read_data
-        s.units_[i].mult_src2.v = s.src2_[i - 1].read_data[:k]
+
+    for i in range(1, nstages):
+      @s.combinational
+      def connect_unitk(i=i):
+          s.units_[i].mult_src1.v = s.src1_[i - 1].read_data
+          s.units_[i].mult_src2.v = s.src2_[i - 1].read_data[:k]
 
     @s.combinational
     def set_rdy_last():
