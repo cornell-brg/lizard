@@ -128,6 +128,7 @@ class RenameStage(Model):
         s.out_.rs1.v = s.get_src_preg[0]
         s.out_.rs2.v = s.get_src_preg[1]
         s.out_.rd.v = s.get_dst_preg
+        s.out_.areg_d.v = s.decoded_.rd
         # Copy the execution stuff
         s.out_.execution_data.v = s.decoded_.execution_data
       else:

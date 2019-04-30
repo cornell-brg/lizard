@@ -128,6 +128,7 @@ class ALUStage(Model):
       s.process_out.result.v = s.res_trunc_
       s.process_out.rd.v = s.msg_.rd
       s.process_out.rd_val.v = s.msg_.rd_val
+      s.process_out.areg_d.v = s.msg_.areg_d
 
   def line_trace(s):
     return s.process_in_.hdr_seq.hex()[2:]

@@ -156,6 +156,7 @@ class DataFlowManagerInterface(Interface):
                 'commit',
                 args={
                     'tag': s.Preg,
+                    'areg': s.Areg,
                 },
                 rets=None,
                 call=True,
@@ -259,15 +260,6 @@ class DataFlowManager(Model):
                                  nsnapshots, True, initial_map)
     s.ZERO_TAG = s.rename_table.ZERO_TAG
 
-    # Build the inverse (preg -> areg map) initial state
-    inverse_reset = [s.interface.Areg for _ in range(npregs)]
-
-    # Only the first (naregs - 1) physical registers,
-    # those that are initially mapped to x1..x(naregs-1)
-    for x in range(naregs - 1):
-      # Initially p0 is x1
-      inverse_reset[x] = x + 1
-
     # The physical register file, which stores the values
     # and ready states
     # Number of read ports is the same as number of source ports
@@ -304,19 +296,6 @@ class DataFlowManager(Model):
         ),
         reset_values=1,
     )
-    # The preg -> areg map, written to during get_dst, and read from
-    # during commit
-    s.inverse = AsynchronousRAM(
-        AsynchronousRAMInterface(
-            s.interface.Areg,
-            npregs,
-            num_dst_ports,
-            num_dst_ports,
-            True,
-        ),
-        reset_values=inverse_reset,
-    )
-
     # The arhitectural areg -> preg mapping
     # Written and read only in commit
     # No write-read bypass
@@ -348,10 +327,8 @@ class DataFlowManager(Model):
         s.is_commit_not_zero_tag[i].v = (s.commit_tag[i] !=
                                          s.ZERO_TAG) and s.commit_call[i]
 
-      # Read the areg associated with this tag
-      s.connect(s.inverse.read_addr[i], s.commit_tag[i])
       # Read the preg currently associated with this areg
-      s.connect(s.areg_file.read_addr[i], s.inverse.read_data[i])
+      s.connect(s.areg_file.read_addr[i], s.commit_areg[i])
       # Free the preg currently backing this areg
       s.connect(s.free_regs.free_index[i], s.areg_file.read_data[i])
       # Only free if not the zero tag
@@ -362,7 +339,7 @@ class DataFlowManager(Model):
       s.connect(s.store_ids.free_call[i], s.free_store_id_call[i])
 
       # Write into the ARF the new preg
-      s.connect(s.areg_file.write_addr[i], s.inverse.read_data[i])
+      s.connect(s.areg_file.write_addr[i], s.commit_areg[i])
       s.connect(s.areg_file.write_data[i], s.commit_tag[i])
       # Only write if not the zero tag
       s.connect(s.areg_file.write_call[i], s.is_commit_not_zero_tag[i])
@@ -456,10 +433,6 @@ class DataFlowManager(Model):
       s.connect(s.ready_table.write_data[i + num_dst_ports], 0)
       s.connect(s.ready_table.write_call[i + num_dst_ports],
                 s.get_dst_need_writeback[i])
-      # save the inverse
-      s.connect(s.inverse.write_addr[i], s.get_dst_preg[i])
-      s.connect(s.inverse.write_data[i], s.get_dst_areg[i])
-      s.connect(s.inverse.write_call[i], s.get_dst_need_writeback[i])
 
     # is_ready
     s.read_muxes_ready = [Mux(Bits(1), 2) for _ in range(num_is_ready_ports)]

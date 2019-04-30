@@ -51,6 +51,7 @@ class CSRStage(Model):
         if s.process_in_.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID:
           if s.process_in_.op_class == OpClass.OP_CLASS_CSR:
             s.process_out.rd_val_pair.v = s.process_in_.rd_val_pair
+            s.process_out.areg_d.v = s.process_in_.areg_d
             s.process_out.result.v = s.csr_op_old
             s.csr_op_csr.v = s.process_in_.csr_msg_csr_num
             s.csr_op_op.v = s.process_in_.csr_msg_func

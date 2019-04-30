@@ -42,6 +42,7 @@ class Commit(Model):
             'dataflow_commit',
             args={
                 'tag': PREG_IDX_NBITS,
+                'areg': AREG_IDX_NBITS,
             },
             rets=None,
             call=True,
@@ -184,6 +185,7 @@ class Commit(Model):
     def handle_commit():
       s.dataflow_commit_call.v = 0
       s.dataflow_commit_tag.v = 0
+      s.dataflow_commit_areg.v = 0
       s.dataflow_free_store_id_call[0].v = 0
       s.dataflow_free_store_id_id_[0].v = 0
 
@@ -199,6 +201,7 @@ class Commit(Model):
           if s.rob.peek_value.rd_val:
             s.dataflow_commit_call.v = 1
             s.dataflow_commit_tag.v = s.rob.peek_value.rd
+            s.dataflow_commit_areg.v = s.rob.peek_value.areg_d
           s.dataflow_free_store_id_call[0].v = s.rob.peek_value.hdr_is_store
           s.dataflow_free_store_id_id_[0].v = s.rob.peek_value.hdr_store_id
 
