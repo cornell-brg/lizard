@@ -68,7 +68,7 @@ export dc_saif_handoff = $(collect_dir.dc-synthesis)/activity.saif
 
 # Clock period
 
-export dc_clock_period = $(clock_period)
+export dc_clock_period = $(synth_period)
 
 # alib
 #
@@ -221,5 +221,3 @@ debug-synth-elaborated: debug-dc-synthesis-elaborated
 
 debug-synth-shell:
 	$(dc_exec) -output_log_file $(logs_dir.dc-synthesis)/interactive.log
-
-
