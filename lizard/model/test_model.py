@@ -43,13 +43,11 @@ class MethodBasedRuleStrategy(SearchStrategy):
         rule_to_fire += [self.condition_rules[remaining_rules[i]]]
         del remaining_rules[i]
 
-    rule_to_fire.sort(
-      key=lambda rule: (
+    rule_to_fire.sort(key=lambda rule: (
         self.machine.interface.methods.keys().index(rule.method_name),
         rule.index,
         rule.method_name,
-      )
-    )
+    ))
 
     if rule_to_fire:
       return [
@@ -190,13 +188,11 @@ class TestStateMachine(GenericStateMachine):
 
     rule_to_fire = rule_to_fire.values()
 
-    rule_to_fire.sort(
-      key=lambda ruledata: (
+    rule_to_fire.sort(key=lambda ruledata: (
         self.interface.methods.keys().index(ruledata[0].method_name),
         ruledata[0].index,
         ruledata[0].method_name,
-      )
-    )
+    ))
 
     for (rule, data) in rule_to_fire:
       # For dependency reason we do allow rules invalid in the first place
@@ -457,7 +453,7 @@ class ArgumentStrategy(object):
               ArgumentStrategy.bits_strategy(slice_.stop - slice_.start))
         else:
           data = draw(kwargs[name])
-        exec("new_bitstruct.{} = data".format(name)) in locals()
+        exec ("new_bitstruct.{} = data".format(name)) in locals()
       return new_bitstruct
 
     return strategy()
