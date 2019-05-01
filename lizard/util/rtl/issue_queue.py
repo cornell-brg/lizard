@@ -3,10 +3,6 @@ from lizard.bitutil import clog2
 from lizard.util.rtl.pipeline_stage import gen_valid_value_manager
 from lizard.util.rtl.register import Register, RegisterInterface
 from lizard.util.rtl.method import MethodSpec
-from lizard.util.rtl.coders import PriorityDecoder
-from lizard.util.rtl.mux import Mux
-from lizard.util.rtl.onehot import OneHotEncoder
-from lizard.util.rtl.packers import Packer
 from lizard.util.rtl.interface import Interface, UseInterface
 from lizard.util.rtl.types import canonicalize_type
 
