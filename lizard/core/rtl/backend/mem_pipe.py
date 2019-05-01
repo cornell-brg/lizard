@@ -11,6 +11,59 @@ from lizard.core.rtl.kill_unit import KillDropController, KillDropControllerInte
 from lizard.config.general import *
 
 
+def MemDataInterface():
+  return PipelineStageInterface(None, None)
+
+
+class MemData(Model):
+
+  def __init__(s, interface):
+    UseInterface(s, interface)
+
+    s.require(
+        MethodSpec(
+            'in_peek',
+            args=None,
+            rets={
+                'msg': DispatchMsg(),
+            },
+            call=False,
+            rdy=True,
+        ),
+        MethodSpec(
+            'in_take',
+            args=None,
+            rets=None,
+            call=True,
+            rdy=False,
+        ),
+        MethodSpec(
+            'enter_store_data',
+            args={
+                'id_': STORE_IDX_NBITS,
+                'data': XLEN,
+            },
+            rets=None,
+            call=True,
+            rdy=False,
+        ),
+    )
+
+    s.connect(s.in_take_call, s.in_peek_rdy)
+    s.connect(s.enter_store_data_id_, s.in_peek_msg.hdr_store_id)
+    s.connect(s.enter_store_data_data, s.in_peek_msg.rs2)
+    s.connect(s.enter_store_data_call, s.in_peek_rdy)
+
+  def line_trace(s):
+    incoming = s.in_peek_msg.hdr_seq.hex()[2:]
+    if not s.in_take_call:
+      incoming = ' ' * len(incoming)
+      incoming = '  ' + incoming
+    else:
+      incoming = '* ' + incoming
+    return incoming
+
+
 def MemRequestInterface():
   return StageInterface(DispatchMsg(), DispatchMsg())
 
@@ -45,12 +98,11 @@ class MemRequestStage(Model):
             rdy=True,
         ),
         MethodSpec(
-            'enter_store',
+            'enter_store_address',
             args={
                 'id_': STORE_IDX_NBITS,
                 'addr': XLEN,
                 'size': MEM_SIZE_NBITS,
-                'data': XLEN,
             },
             rets=None,
             call=True,
@@ -126,13 +178,12 @@ class MemRequestStage(Model):
         s.sending_store.v = s.can_send and s.process_call
 
     s.connect(s.send_load_call, s.sending_load)
-    s.connect(s.enter_store_call, s.sending_store)
+    s.connect(s.enter_store_address_call, s.sending_store)
     s.connect(s.send_load_addr, s.addr)
     s.connect(s.send_load_size, s.len)
-    s.connect(s.enter_store_id_, s.process_in_.hdr_store_id)
-    s.connect(s.enter_store_addr, s.addr)
-    s.connect(s.enter_store_size, s.len)
-    s.connect(s.enter_store_data, s.process_in_.rs2)
+    s.connect(s.enter_store_address_id_, s.process_in_.hdr_store_id)
+    s.connect(s.enter_store_address_addr, s.addr)
+    s.connect(s.enter_store_address_size, s.len)
 
     s.connect(s.process_out, s.process_in_)
 
@@ -276,12 +327,11 @@ class MemJoint(Model):
             rdy=True,
         ),
         MethodSpec(
-            'enter_store',
+            'enter_store_address',
             args={
                 'id_': STORE_IDX_NBITS,
                 'addr': XLEN,
                 'size': MEM_SIZE_NBITS,
-                'data': XLEN,
             },
             rets=None,
             call=True,
@@ -299,7 +349,7 @@ class MemJoint(Model):
     )
     s.connect_m(s.mem_request.store_pending, s.store_pending)
     s.connect_m(s.mem_request.send_load, s.send_load)
-    s.connect_m(s.mem_request.enter_store, s.enter_store)
+    s.connect_m(s.mem_request.enter_store_address, s.enter_store_address)
     s.connect_m(s.mem_request.valid_store_mask, s.valid_store_mask)
     s.connect_m(s.mem_response.recv_load, s.recv_load)
 

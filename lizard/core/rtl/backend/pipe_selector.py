@@ -8,7 +8,7 @@ from lizard.core.rtl.messages import DispatchMsg, PipelineMsgStatus, OpClass
 class PipeSelectorController(Model):
 
   def __init__(s):
-    UseInterface(s, PipelineSplitterControllerInterface(DispatchMsg(), 4))
+    UseInterface(s, PipelineSplitterControllerInterface(DispatchMsg(), 5))
 
     @s.combinational
     def handle_sort():
@@ -22,6 +22,8 @@ class PipeSelectorController(Model):
         s.sort_pipe.v = 2  # Branch pipe
       elif s.sort_msg.op_class == OpClass.OP_CLASS_MUL:
         s.sort_pipe.v = 3  # Mul pipe
+      elif s.sort_msg.op_class == OpClass.OP_CLASS_MEM:
+        s.sort_pipe.v = 4  # Mem data pipe
       else:
         s.sort_pipe.v = 0  # Error CSR pipe
 
@@ -33,8 +35,8 @@ class PipeSelector(Model):
     # This is bad
     UseInterface(
         s,
-        PipelineSplitterInterface(DispatchMsg(),
-                                  ['csr', 'alu', 'branch', 'm_pipe']))
+        PipelineSplitterInterface(
+            DispatchMsg(), ['csr', 'alu', 'branch', 'm_pipe', 'mem_data']))
     s.require(
         MethodSpec(
             'in_peek',
