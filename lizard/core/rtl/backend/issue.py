@@ -1,5 +1,5 @@
 from pymtl import *
-from lizard.util.rtl.interface import Interface, UseInterface
+from lizard.util.rtl.interface import Interface, UseInterface, IncludeAll
 from lizard.util.rtl.method import MethodSpec
 from lizard.util.rtl.issue_queue import CompactingIssueQueue, IssueQueueInterface, AbstractIssueType
 from lizard.util.rtl.pipeline_stage import PipelineStageInterface
@@ -11,8 +11,24 @@ from lizard.config.general import *
 from lizard.util.rtl.types import Array
 
 
-def IssueInterface():
-  return PipelineStageInterface(IssueMsg(), KillType(MAX_SPEC_DEPTH))
+class IssueInterface(Interface):
+
+  def __init__(s):
+    base = PipelineStageInterface(IssueMsg(), KillType(MAX_SPEC_DEPTH))
+    super(IssueInterface, s).__init__(
+        [
+            MethodSpec(
+                'can_take',
+                args=None,
+                rets=None,
+                rdy=True,
+                call=False,
+            ),
+        ],
+        bases=[IncludeAll(base)],
+    )
+
+    s.KillArgType = base.KillArgType
 
 
 class IssueSetOrdered(Interface):
@@ -150,6 +166,7 @@ class Issue(Model):
     def set_accepted():
       s.accepted_.v = s.in_peek_rdy and s.iq.add_rdy
 
+    s.connect(s.can_take_rdy, s.iq.add_rdy)
     s.connect(s.in_take_call, s.accepted_)
     s.connect(s.iq.add_call, s.accepted_)
 
