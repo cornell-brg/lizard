@@ -15,8 +15,9 @@
 
 ifeq ($(design),megaproc)
   design_name   = proc
+  synth_period  = 2.9
   clock_period  = 3.0
-  design_v      = ../proc/proc.sv 
+  design_v      = ../proc/proc.sv
   activity_vcd  = ../proc/ubmark-vvadd-verilate.verilator.vcd
 endif
 
@@ -193,4 +194,3 @@ endif
 #-------------------------------------------------------------------------
 
 export design_name
-
