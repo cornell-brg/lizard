@@ -97,6 +97,17 @@ class Commit(Model):
             rdy=False,
         ),
         MethodSpec(
+            'store_data_available',
+            args={
+                'id_': STORE_IDX_NBITS,
+            },
+            rets={
+                'ret': Bits(1),
+            },
+            call=False,
+            rdy=False,
+        ),
+        MethodSpec(
             'read_csr',
             args={
                 'csr': Bits(CSR_SPEC_NBITS),
@@ -165,6 +176,9 @@ class Commit(Model):
     s.wait_for_fence = Wire(1)
     s.wait_for_store = Wire(1)
 
+    # Check on the store ID for the store at the ROB head
+    s.connect(s.store_data_available_id_, s.rob.peek_value.hdr_store_id)
+
     @s.combinational
     def set_rob_remove():
       s.wait_for_fence.v = 1
@@ -174,7 +188,8 @@ class Commit(Model):
         if s.rob.peek_value.hdr_fence:
           s.wait_for_fence.v = not s.store_acks_outstanding_ret
         if s.rob.peek_value.hdr_is_store:
-          s.wait_for_store.v = s.send_store_rdy
+          # Make sure the store data is available before we commit it
+          s.wait_for_store.v = s.send_store_rdy and s.store_data_available_ret
 
       s.rob_remove.v = s.cflow_get_head_rdy and s.rob.check_done_is_rdy and s.wait_for_fence and s.wait_for_store
 

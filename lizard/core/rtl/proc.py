@@ -16,7 +16,7 @@ from lizard.core.rtl.backend.pipe_selector import PipeSelector
 from lizard.core.rtl.backend.alu import ALU
 from lizard.core.rtl.backend.branch import Branch, BranchInterface
 from lizard.core.rtl.backend.csr import CSR, CSRInterface
-from lizard.core.rtl.backend.mem_pipe import MemInterface, Mem
+from lizard.core.rtl.backend.mem_pipe import MemInterface, Mem, MemDataInterface, MemData
 from lizard.core.rtl.backend.m_pipe import MPipe
 from lizard.core.rtl.pipeline_arbiter import PipelineArbiter, PipelineArbiterInterface
 from lizard.core.rtl.backend.writeback import Writeback, WritebackInterface
@@ -190,6 +190,7 @@ class Proc(Model):
     s.connect_m(s.oo_issue.kill_notify, s.kill_notifier.kill_notify)
     s.connect_m(s.issue_selector.normal_peek, s.oo_issue.in_peek)
     s.connect_m(s.issue_selector.normal_take, s.oo_issue.in_take)
+    s.connect_m(s.issue_selector.normal_can_take, s.oo_issue.can_take)
     s.connect_m(s.dflow.is_ready[0], s.oo_issue.is_ready[0])
     s.connect_m(s.dflow.is_ready[1], s.oo_issue.is_ready[1])
     s.connect_m(s.dflow.get_updated, s.oo_issue.get_updated)
@@ -206,6 +207,7 @@ class Proc(Model):
     s.connect_m(s.io_issue.kill_notify, s.kill_notifier.kill_notify)
     s.connect_m(s.issue_selector.mem_peek, s.io_issue.in_peek)
     s.connect_m(s.issue_selector.mem_take, s.io_issue.in_take)
+    s.connect_m(s.issue_selector.mem_can_take, s.io_issue.can_take)
     s.connect_m(s.dflow.is_ready[2], s.io_issue.is_ready[0])
     s.connect_m(s.dflow.is_ready[3], s.io_issue.is_ready[1])
     s.connect_m(s.dflow.get_updated, s.io_issue.get_updated)
@@ -267,6 +269,14 @@ class Proc(Model):
     s.connect_m(s.m_pipe.kill_notify, s.kill_notifier.kill_notify)
 
     ## Mem
+    ### Store Data
+    s.mem_data_interface = MemDataInterface()
+    s.mem_data = MemData(s.mem_data_interface)
+    s.connect_m(s.mem_data.in_peek, s.pipe_selector.mem_data_peek)
+    s.connect_m(s.mem_data.in_take, s.pipe_selector.mem_data_take)
+    s.connect_m(s.mem_data.enter_store_data, s.mflow.enter_store_data)
+
+    ### Loads and AGU
     s.mem_interface = MemInterface()
     s.mem = Mem(s.mem_interface)
     s.connect_m(s.mem.in_peek, s.io_dispatch.peek)
@@ -274,7 +284,7 @@ class Proc(Model):
     s.connect_m(s.mem.kill_notify, s.kill_notifier.kill_notify)
     s.connect_m(s.mem.store_pending, s.mflow.store_pending)
     s.connect_m(s.mem.send_load, s.mflow.send_load)
-    s.connect_m(s.mem.enter_store, s.mflow.enter_store)
+    s.connect_m(s.mem.enter_store_address, s.mflow.enter_store_address)
     s.connect_m(s.mem.valid_store_mask, s.dflow.valid_store_mask)
     s.connect_m(s.mem.recv_load, s.mflow.recv_load)
 
@@ -314,6 +324,7 @@ class Proc(Model):
     s.connect_m(s.cflow.get_head, s.commit.cflow_get_head)
     s.connect_m(s.commit.send_store, s.mflow.send_store)
     s.connect_m(s.commit.store_acks_outstanding, s.mflow.store_acks_outstanding)
+    s.connect_m(s.commit.store_data_available, s.mflow.store_data_available)
     s.connect_m(s.commit.read_csr, s.csr.read)
     s.connect_m(s.commit.write_csr, s.csr.write)
     s.connect_m(s.commit.btb_clear, s.btb.clear)
@@ -350,6 +361,10 @@ class Proc(Model):
                 'm',
                 Divider(': '),
                 s.mem.line_trace(),
+            ]).normalized().blocks + line_block.join([
+                'd',
+                Divider(': '),
+                s.mem_data.line_trace(),
             ]).normalized().blocks +
             line_block.join(['M', Divider(': '),
                              s.m_pipe.line_trace()]).normalized().blocks),
