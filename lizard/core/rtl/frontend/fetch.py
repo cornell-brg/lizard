@@ -169,11 +169,11 @@ class Fetch(Model):
 
   def line_trace(s):
     pc = s.pc.read_data.hex()[2:]
+    empty = ' ' * len(pc)
     if s.advance_f1:
-      trace = '* {}'.format(pc)
+      trace = pc
     elif s.peek_rdy:
-      trace = '# {}'.format(s.last_trace_pc)
+      trace = '#{}'.format(empty[1:])
     else:
-      trace = '  ' + ' ' * len(pc)
-    s.last_trace_pc = pc
+      trace = empty
     return trace

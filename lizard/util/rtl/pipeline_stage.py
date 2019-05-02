@@ -392,12 +392,11 @@ def gen_stage(stage_class, drop_controller_class=None):
       internal_trace = s.stage.line_trace()
       empty = ' ' * len(internal_trace)
       if s.pipeline_stage.taking:
-        trace = '* {}'.format(internal_trace)
+        trace = internal_trace
       elif not s.pipeline_stage.output_clear:
-        trace = '# {}'.format(s.last_internal_trace)
+        trace = '#{}'.format(empty[1:])
       else:
-        trace = '  {}'.format(empty)
-      s.last_internal_trace = internal_trace
+        trace = empty
       return trace
 
   Pipelined.__name__ = name

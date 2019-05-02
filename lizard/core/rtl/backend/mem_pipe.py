@@ -58,9 +58,6 @@ class MemData(Model):
     incoming = s.in_peek_msg.hdr_seq.hex()[2:]
     if not s.in_take_call:
       incoming = ' ' * len(incoming)
-      incoming = '  ' + incoming
-    else:
-      incoming = '* ' + incoming
     return incoming
 
 

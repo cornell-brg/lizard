@@ -334,41 +334,54 @@ class Proc(Model):
         s.fetch.line_trace(),
         Divider(' | '),
         s.decode.line_trace(),
-        Divider(' | '),
+        Divider(' || '),
         s.rename.line_trace(),
         Divider(' | '),
         LineBlock(
-            line_block.join(['O', Divider(': '),
-                             s.oo_issue.line_trace()]).normalized().blocks +
-            line_block.join(['I', Divider(': '),
-                             s.io_issue.line_trace()]).normalized().blocks),
-        Divider(' | '),
-        LineBlock(
-            line_block.join(
-                ['O', Divider(': '),
-                 s.oo_dispatch.line_trace()]).normalized().blocks + line_block
-            .join(['I', Divider(': '),
-                   s.io_dispatch.line_trace()]).normalized().blocks),
-        Divider(' | '),
-        LineBlock(
-            line_block.join(['A', Divider(': '),
-                             s.alu.line_trace()]).normalized().blocks +
-            line_block.join(['B', Divider(': '),
-                             s.branch.line_trace()]).normalized().blocks +
-            line_block.join(['C', Divider(': '),
-                             s.csr_pipe.line_trace()]).normalized().blocks +
             line_block.join([
-                'm',
+                'O',
                 Divider(': '),
-                s.mem.line_trace(),
+                s.oo_issue.line_trace(),
             ]).normalized().blocks + line_block.join([
+                'I',
+                Divider(': '),
+                s.io_issue.line_trace(),
+            ]).normalized().blocks),
+        Divider(' | '),
+        LineBlock(
+            line_block.join([
+                s.oo_dispatch.line_trace(),
+            ]).normalized().blocks + line_block.join([
+                s.io_dispatch.line_trace(),
+            ]).normalized().blocks),
+        Divider(' |( '),
+        LineBlock(
+            line_block.join([
+                'A',
+                Divider(': '),
+                s.alu.line_trace(),
+                Divider(' '),
+                'B',
+                Divider(': '),
+                s.branch.line_trace(),
+                Divider(' '),
+                'C',
+                Divider(': '),
+                s.csr_pipe.line_trace(),
+                Divider(' '),
                 'd',
                 Divider(': '),
                 s.mem_data.line_trace(),
-            ]).normalized().blocks +
-            line_block.join(['M', Divider(': '),
-                             s.m_pipe.line_trace()]).normalized().blocks),
-        Divider(' | '),
+                Divider(' '),
+                'M',
+                Divider(': '),
+                s.m_pipe.line_trace(),
+            ]).normalized().blocks + line_block.join([
+                'm',
+                Divider(': '),
+                s.mem.line_trace(),
+            ]).normalized().blocks),
+        Divider(' )| '),
         s.writeback.line_trace(),
         Divider(' | '),
         s.commit.line_trace()
