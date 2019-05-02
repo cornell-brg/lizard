@@ -119,7 +119,6 @@ class BranchStage(Model):
       else:
         s.branch_target_.v = s.branch_target_fallthrough_
 
-
     @s.combinational
     def set_value_reg_input():
       s.process_out.v = 0

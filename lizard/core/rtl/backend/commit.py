@@ -313,4 +313,4 @@ class Commit(Model):
     outgoing = s.rob.peek_value.hdr_seq.hex()[2:]
     if not s.rob_remove:
       outgoing = ' ' * len(outgoing)
-    return '{} : {}'.format(incoming, outgoing)
+    return '{}/{}'.format(incoming, outgoing)
