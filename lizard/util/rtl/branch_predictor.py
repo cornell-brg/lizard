@@ -125,7 +125,7 @@ class GlobalBranchPredictor(Model):
         s.bhsrt.read_next_addr[0].v = s.predict_pc[0:hist_idx_nbits]
         s.idx_to_bhsrt.write_data[0].v = s.bhsrt.read_next_addr[0]
     else:
-      s.connect_wire(s.bhsrt.read_next[0], 0)
+      s.connect_wire(s.bhsrt.read_next_addr[0], 0)
       s.connect_wire(s.idx_to_bhsrt.write_data[0], 0)
 
 

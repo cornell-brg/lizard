@@ -4,7 +4,12 @@ from lizard.util.rtl.branch_predictor import BranchPredictorInterface, GlobalBra
 from lizard.model.translate import translate
 
 
-def test_translation():
+def test_translation0():
   iface = BranchPredictorInterface(32, 32)
-  model = GlobalBranchPredictor(iface, 2, 2, 4, hasher='concat')
+  model = GlobalBranchPredictor(iface, 0, 0, 0, hasher='xor')
+  translate(model)
+
+def test_translation1():
+  iface = BranchPredictorInterface(32, 32)
+  model = GlobalBranchPredictor(iface, 1, 2, 3, hasher='xor')
   translate(model)
