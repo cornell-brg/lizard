@@ -19,6 +19,8 @@ class BranchPredictorInterface(Interface):
             'predict',
             args={
                 'pc': s.pc_nbits,
+            },
+            rets={
                 'idx': s.pred_idx,
             },
             call=True,
@@ -49,9 +51,8 @@ class GlobalBranchPredictor(Model):
   def __init__(s, interface, hist_idx_nbits, hist_nbits, pht_nbits, hasher='concat'):
     UseInterface(s, interface)
     assert hasher in ['xor', 'concat']
-
+    assert hist_nbits <= pht_nbits
     pred_idx = s.interface.pred_idx
-
 
     # Handle the annoying Bits(0)
     hist_nbits_nz = max(1, hist_nbits)
@@ -69,12 +70,12 @@ class GlobalBranchPredictor(Model):
 
     # This stores the global history
     hist_iface = SynchronousRAMInterface(hist_nbits_nz, 2**hist_idx_nbits, 2, 1,
-                                         False)
+                                         True)
     s.bhsrt = SynchronousRAM(hist_iface)
 
     # Store the saturating counter
-    pht_iface = SynchronousRAMInterface(2, 2**nbits_pht_idx_nz, 2, 1, False)
-    s.pht = SynchronousRAM( pht_iface)
+    pht_iface = SynchronousRAMInterface(2, 2**nbits_pht_idx_nz, 2, 1, True)
+    s.pht = SynchronousRAM(pht_iface)
 
     # Store the PC on a prediction
     s.reg_pc_predict = Register(
