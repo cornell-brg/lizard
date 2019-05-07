@@ -202,7 +202,7 @@ class GlobalBranchPredictor(Model):
     if hist_nbits > 0:
       @s.combinational
       def set_update_hist_writeback():
-        s.bhsrt.write_data[0].v = (s.bhsrt.read_data[1] << 1) + s.reg_update_taken.read_data
+        s.bhsrt.write_data[0].v = (s.bhsrt.read_data[1] << 1) | zext(s.reg_update_taken.read_data, hist_nbits)
     else:
       s.connect(s.bhsrt.write_data[0], 0)
 
