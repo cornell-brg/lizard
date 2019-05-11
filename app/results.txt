@@ -7,7 +7,7 @@ instructions: 3140
   [ passed ] 
 
 ubmark-cmult
-cycles: 3443
+cycles: 2065
 
 instructions: 2017
 
@@ -15,7 +15,7 @@ instructions: 2017
   [ passed ] 
 
 ubmark-mfilt
-cycles: 9140
+cycles: 9164
 
 instructions: 8557
 
@@ -23,7 +23,7 @@ instructions: 8557
   [ passed ] 
 
 ubmark-quicksort
-cycles: 19425
+cycles: 19672
 
 instructions: 12256
 
@@ -31,7 +31,7 @@ instructions: 12256
   [ passed ] 
 
 ubmark-vvadd
-cycles: 857
+cycles: 862
 
 instructions: 817
 
