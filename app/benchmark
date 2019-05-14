@@ -12,5 +12,5 @@ cd "$DIR/../build"
 BENCHMARKS="ubmark-bsearch ubmark-cmult ubmark-mfilt ubmark-quicksort ubmark-vvadd"
 for BENCHMARK in $BENCHMARKS; do
   echo $BENCHMARK
-  ../lizard/sim --verilate ../app/build/$BENCHMARK
+  ../lizard/sim.py --verilate ../app/build/$BENCHMARK
 done
