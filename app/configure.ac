@@ -46,7 +46,7 @@ AC_CANONICAL_HOST
 
 # Check for C compiler and set default C compiler flags
 AC_PROG_CC
-AC_SUBST([CFLAGS],["-Wall -g -O3"])
+AC_SUBST([CFLAGS],["-Wall -g -O3 -march=rv64im -mabi=lp64"])
 
 # Check for C++ compiler and set default C++ compiler flags
 AC_PROG_CXX
@@ -54,7 +54,7 @@ AS_IF([ test "${host}" != "riscv64-unknown-elf" ],
   [
     AC_SUBST([CXXFLAGS],["-Wall -g -O3"])
   ],[
-    AC_SUBST([CXXFLAGS],["-Wall -g -D_RISCV -fno-builtin -fno-exceptions -fno-rtti -O3 -march=rv64im"])
+    AC_SUBST([CXXFLAGS],["-Wall -g -D_RISCV -fno-builtin -fno-exceptions -fno-rtti -O3 -march=rv64im -mabi=lp64"])
     AC_SUBST([LDFLAGS], ["-nostdlib -lc -T../scripts/link.ld"])
   ])
 
