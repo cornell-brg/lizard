@@ -6,14 +6,11 @@ int main();
 }
 
 void _exception_handler() {
-  wprintf(L"EXCEPTION\n");
   uint64_t mepc, mcause, mtval;
   CSRR(MEPC_CSR, mepc);
   CSRR(MCAUSE_CSR, mcause);
   CSRR(MTVAL_CSR, mtval);
-  wprinth(mepc);
-  wprinth(mcause);
-  wprinth(mtval);
+  lizard_printf("EXCEPTION: mepc: %lx mcause: %lx mtval: %lx\n", mepc, mcause, mtval);
   sim_exit(-1);
 }
 

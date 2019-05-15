@@ -6,11 +6,13 @@ int main() {
   const char* s2 = "beta";
 
   if (strcmp(s1, s2) < 0) {
-    wprintf(L"s1 was first\n");
+    lizard_print("s1 was first\n");
   } else {
-    wprintf(L"s2 was first\n");
+    lizard_print("s2 was first\n");
   }
 
-  wprintf(L"Hello World!\n");
+  lizard_print("Hello World!\n");
+  lizard_printf("The best number is: %d\n", 42);
+
   return 42;
 }
