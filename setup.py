@@ -149,7 +149,7 @@ setup(
     # Similar to `install_requires` above, these must be valid existing
     # projects.
     extras_require={  # Optional
-        'test': ['coverage', 'pytest'],
+        'test': ['pytest-cov', 'pytest'],
     },
 
     # To provide executable scripts, use entry points in preference to the
