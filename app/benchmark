@@ -10,7 +10,9 @@ make
 cd "$DIR/../build"
 
 BENCHMARKS="ubmark-bsearch ubmark-cmult ubmark-mfilt ubmark-quicksort ubmark-vvadd"
+CACHE_FLAG=
 for BENCHMARK in $BENCHMARKS; do
   echo $BENCHMARK
-  ../lizard/sim --verilate ../app/build/$BENCHMARK
+  ../lizard/sim.py --verilate $CACHE_FLAG ../app/build/$BENCHMARK
+  CACHE_FLAG=--use-cached
 done

@@ -138,7 +138,7 @@ setup(
     #
     # For an analysis of "install_requires" vs pip's requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=[],  # Optional
+    install_requires=['pymtl @ http://github.com/cornell-brg/pymtl/tarball/master'],  # Optional
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). Users will be able to install these using the "extras"
@@ -149,7 +149,7 @@ setup(
     # Similar to `install_requires` above, these must be valid existing
     # projects.
     extras_require={  # Optional
-        'test': ['coverage', 'pytest'],
+        'test': ['pytest-cov', 'pytest'],
     },
 
     # To provide executable scripts, use entry points in preference to the
@@ -161,7 +161,8 @@ setup(
     # executes the function `main` from this package when invoked:
     entry_points={  # Optional
         'console_scripts': [
-            'sim=sim:main',
+            'lizard-sim=lizard.sim:main',
+            'lizard-gen=lizard.gen_verilog:gen_verilog',
         ],
     },
 
