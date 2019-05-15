@@ -244,8 +244,8 @@ class HardwareModel(object):
     return frozen
 
   def _back_prop_track(s, method_name, call_index, result):
-    s.back_prop_tracking.append((method_name, call_index, result,
-                                 s._freeze_result_to_dict(result)))
+    s.back_prop_tracking.append(
+        (method_name, call_index, result, s._freeze_result_to_dict(result)))
 
     for method_name, call_index, result, frozen in s.back_prop_tracking:
       if s._freeze_result_to_dict(result) != frozen:

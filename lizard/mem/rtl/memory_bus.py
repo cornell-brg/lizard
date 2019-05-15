@@ -192,8 +192,10 @@ class MemMsg(object):
     s.resp = MemRespMsg(opaque_nbits, test_nbits, data_nbytes)
 
   def __str__(s):
-    return 'MemMsg: op: {} ts: {} ad: {} da: {}'.format(
-        s.opaque_nbits, s.test_nbits, s.addr_nbits, s.data_nbytes)
+    return 'MemMsg: op: {} ts: {} ad: {} da: {}'.format(s.opaque_nbits,
+                                                        s.test_nbits,
+                                                        s.addr_nbits,
+                                                        s.data_nbytes)
 
 
 class MemoryBusInterface(Interface):
@@ -210,6 +212,13 @@ class MemoryBusInterface(Interface):
     methods = []
     for i in range(num_ports):
       methods.extend([
+          MethodSpec(
+              'cl_delay_{}'.format(i),
+              args=None,
+              rets=None,
+              call=False,
+              rdy=False,
+          ),
           MethodSpec(
               'recv_{}'.format(i),
               args=None,
