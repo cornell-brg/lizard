@@ -1,40 +1,60 @@
+checking build system type... x86_64-unknown-linux-gnu
+checking host system type... riscv64-unknown-elf
+checking for riscv64-unknown-elf-gcc... riscv64-unknown-elf-gcc
+checking whether the C compiler works... yes
+checking for C compiler default output file name... a.out
+checking for suffix of executables... 
+checking whether we are cross compiling... yes
+checking for suffix of object files... o
+checking whether we are using the GNU C compiler... yes
+checking whether riscv64-unknown-elf-gcc accepts -g... yes
+checking for riscv64-unknown-elf-gcc option to accept ISO C89... none needed
+checking for riscv64-unknown-elf-g++... riscv64-unknown-elf-g++
+checking whether we are using the GNU C++ compiler... yes
+checking whether riscv64-unknown-elf-g++ accepts -g... yes
+checking for riscv64-unknown-elf-ar... riscv64-unknown-elf-ar
+checking for riscv64-unknown-elf-ranlib... riscv64-unknown-elf-ranlib
+checking for a BSD-compatible install... /usr/bin/install -c
+checking for riscv64-unknown-elf-isa-run... no
+checking for riscv64-unknown-elf-run... riscv64-unknown-elf-run
+configure: configuring internal subproject common
+configure: configuring internal subproject ubmark
+configure: creating ./config.status
+config.status: creating common.mk
+config.status: creating ubmark.mk
+config.status: creating Makefile
+config.status: creating common-config.h
+config.status: common-config.h is unchanged
+config.status: creating ubmark-config.h
+config.status: ubmark-config.h is unchanged
+make: Nothing to be done for 'default'.
 ubmark-bsearch
 cycles: 4162
-
 instructions: 3140
-
 
   [ passed ] 
 
 ubmark-cmult
 cycles: 2065
-
 instructions: 2017
-
 
   [ passed ] 
 
 ubmark-mfilt
-cycles: 9164
-
+cycles: 9134
 instructions: 8557
-
 
   [ passed ] 
 
 ubmark-quicksort
 cycles: 19672
-
 instructions: 12256
-
 
   [ passed ] 
 
 ubmark-vvadd
 cycles: 862
-
 instructions: 817
-
 
   [ passed ] 
 
