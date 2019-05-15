@@ -97,11 +97,13 @@ class MulRetimedPipelined(Model):
       s.sign_in_.v = (s.mult_src1_signed and s.mult_src1[m - 1]) ^ (
           s.mult_src2_signed and s.mult_src2[m - 1])
 
-      s.src1_usign_.v = (~s.mult_src1 + 1) if (
-          s.mult_src1[m - 1] and s.mult_src1_signed) else s.mult_src1
+      s.src1_usign_.v = (~s.mult_src1 +
+                         1) if (s.mult_src1[m - 1] and
+                                s.mult_src1_signed) else s.mult_src1
 
-      s.src2_usign_.v = (~s.mult_src2 + 1) if (
-          s.mult_src2[m - 1] and s.mult_src2_signed) else s.mult_src2
+      s.src2_usign_.v = (~s.mult_src2 +
+                         1) if (s.mult_src2[m - 1] and
+                                s.mult_src2_signed) else s.mult_src2
 
     @s.combinational
     def set_rdy_last():
@@ -245,11 +247,13 @@ class MulPipelined(Model):
       s.sign_in_.v = (s.mult_src1_signed and s.mult_src1[m - 1]) ^ (
           s.mult_src2_signed and s.mult_src2[m - 1])
 
-      s.src1_usign_.v = (~s.mult_src1 + 1) if (
-          s.mult_src1[m - 1] and s.mult_src1_signed) else s.mult_src1
+      s.src1_usign_.v = (~s.mult_src1 +
+                         1) if (s.mult_src1[m - 1] and
+                                s.mult_src1_signed) else s.mult_src1
 
-      s.src2_usign_.v = (~s.mult_src2 + 1) if (
-          s.mult_src2[m - 1] and s.mult_src2_signed) else s.mult_src2
+      s.src2_usign_.v = (~s.mult_src2 +
+                         1) if (s.mult_src2[m - 1] and
+                                s.mult_src2_signed) else s.mult_src2
 
     @s.combinational
     def connect_unit0():

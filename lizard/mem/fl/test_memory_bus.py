@@ -1,4 +1,3 @@
-from collections import deque
 from functools import partial
 from pymtl import *
 from lizard.mem.rtl.memory_bus import MemMsgType
@@ -21,38 +20,53 @@ class TestMemoryBusFL(FLModel):
   }
 
   @HardwareModel.validate
-  def __init__(s, memory_bus_interface, initial_memory=None):
+  def __init__(s, memory_bus_interface, initial_memory=None, delays=None):
     super(TestMemoryBusFL, s).__init__(memory_bus_interface)
     if initial_memory is None:
       initial_memory = {}
+    if delays is None:
+      delays = [0] * memory_bus_interface.num_ports
+    s.delays = delays
     s.data_nbytes = s.interface.data_nbytes
     s.data_nbits = s.data_nbytes * 8
     s.num_ports = memory_bus_interface.num_ports
     s.MemMsg = s.interface.MemMsg
     s.max_addr = s.MemMsg.req.addr._max
 
-    s.state(results=[deque() for _ in range(s.num_ports)],)
+    s.state(
+        results_delay=[-1 for _ in range(s.num_ports)],
+        results=[None for _ in range(s.num_ports)],
+    )
     s.mem = initial_memory
 
     for i in range(s.num_ports):
       recv_name = 'recv_{}'.format(i)
       send_name = 'send_{}'.format(i)
+      cl_delay_name = 'cl_delay_{}'.format(i)
+      s.model_method_explicit(cl_delay_name, partial(s.cl_delay, i), False)
       s.ready_method_explicit(recv_name, partial(s.recv_rdy, i), False)
       s.ready_method_explicit(send_name, partial(s.send_rdy, i), False)
       s.model_method_explicit(recv_name, partial(s.recv, i), False)
       s.model_method_explicit(send_name, partial(s.send, i), False)
 
   def recv_rdy(s, port):
-    return len(s.results[port]) != 0
+    return s.results_delay[port] == 0
 
   def recv(s, port):
-    return s.results[port].popleft()
+    s.results_delay[port] = -1
+    return s.results[port]
+
+  def cl_delay(s, port):
+    if s.results_delay[port] != -1:
+      if s.results_delay[port] != 0:
+        s.results_delay[port] -= 1
 
   def send_rdy(s, port):
-    return len(s.results[port]) == 0
+    return s.results_delay[port] == -1
 
   def send(s, port, msg):
-    s.results[port].append(s.handle_request(msg))
+    s.results_delay[port], s.results[port] = s.delays[port], s.handle_request(
+        msg)
 
   def handle_request(s, req):
     nbytes = int(req.len_)

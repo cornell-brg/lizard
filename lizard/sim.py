@@ -71,6 +71,8 @@ def main():
       default=200000,
       type=int,
       help="maximum number of cycles to simulate")
+  p.add_argument('--imem-delay', default=0, type=int, help="imem delay")
+  p.add_argument('--dmem-delay', default=0, type=int, help="dmem delay")
   p.add_argument('elf_file', help="the ELF file to run")
   opts = p.parse_args()
 
@@ -92,7 +94,9 @@ def main():
       opts.maxcycles,
       handler.handle,
       opts.trace,
-      use_cached_verilated=opts.use_cached)
+      use_cached_verilated=opts.use_cached,
+      imem_delay=opts.imem_delay,
+      dmem_delay=opts.dmem_delay)
   sys.exit(result)
 
 

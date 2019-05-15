@@ -171,8 +171,8 @@ def gen_amo_consistency_variants(name, args, simple_args, opcode_mask, opcode):
     mod = Bits(ILEN, opcode)
     fields["aq"].assemble(mod, aq)
     fields["rl"].assemble(mod, rl)
-    result.append(("{}{}".format(name, suffix), args, simple_args, opcode_mask,
-                   int(mod)))
+    result.append(
+        ("{}{}".format(name, suffix), args, simple_args, opcode_mask, int(mod)))
   return result
 
 
@@ -187,8 +187,8 @@ def gen_amo_width_variants(name, args, simple_args, opcode_mask, opcode):
   for suffix, funct3 in amo_width_pairs:
     mod = Bits(ILEN, opcode)
     fields["funct3"].assemble(mod, funct3)
-    result.append(("{}{}".format(name, suffix), args, simple_args, opcode_mask,
-                   int(mod)))
+    result.append(
+        ("{}{}".format(name, suffix), args, simple_args, opcode_mask, int(mod)))
   return result
 
 

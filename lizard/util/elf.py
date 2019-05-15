@@ -472,8 +472,8 @@ def elf_reader(file_obj, is_64bit=False):
 
   # Read the data for the ELF header
 
-  ehdr_data = file_obj.read(ElfHeader.NBYTES64 if is_64bit else ElfHeader
-                            .NBYTES)
+  ehdr_data = file_obj.read(
+      ElfHeader.NBYTES64 if is_64bit else ElfHeader.NBYTES)
   # Construct an ELF header object
   ehdr = ElfHeader(ehdr_data, is_64bit=is_64bit)
 
