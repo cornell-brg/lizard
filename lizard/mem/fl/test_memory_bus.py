@@ -31,10 +31,8 @@ class TestMemoryBusFL(FLModel):
     s.MemMsg = s.interface.MemMsg
     s.max_addr = s.MemMsg.req.addr._max
 
-    s.state(
-        results=[deque() for _ in range(s.num_ports)],
-        mem=initial_memory,
-    )
+    s.state(results=[deque() for _ in range(s.num_ports)],)
+    s.mem = initial_memory
 
     for i in range(s.num_ports):
       recv_name = 'recv_{}'.format(i)
@@ -69,6 +67,7 @@ class TestMemoryBusFL(FLModel):
       result = s.MemMsg.resp.mk_rd(req.opaque, req.len_, read_data)
     elif req.type_ == MemMsgType.WRITE:
       for j in range(nbytes):
+        s.write_history[addr + j] = s.mem.get(addr + j, 0)
         s.mem[addr + j] = req.data[j * 8:j * 8 + 8].uint()
       result = s.MemMsg.resp.mk_wr(req.opaque, 0)
     elif req.type_ in TestMemoryBusFL.AMO_FUNS:
@@ -77,6 +76,7 @@ class TestMemoryBusFL(FLModel):
         read_data[j * 8:j * 8 + 8] = s.mem.get(addr + j, 0)
       write_data = s.AMO_FUNS[req.type_.uint()](read_data, req.data)
       for j in range(nbytes):
+        s.write_history[addr + j] = s.mem.get(addr + j, 0)
         s.mem[addr + j] = write_data[j * 8:j * 8 + 8].uint()
       result = s.MemMsg.resp.mk_msg(req.type_, req.opaque, 0, req.len_,
                                     read_data)
@@ -97,3 +97,10 @@ class TestMemoryBusFL(FLModel):
     for i in range(size):
       result[i * 8:i * 8 + 8] = s.mem.get(addr + i)
     return result
+
+  def _snapshot_model_state(s):
+    s.write_history = {}
+
+  def _restore_model_state(s, state):
+    for addr, old_data in s.write_history.iteritems():
+      s.mem[addr] = old_data
