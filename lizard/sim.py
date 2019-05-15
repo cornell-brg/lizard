@@ -52,13 +52,26 @@ class Proc2MngrHandler():
 
 
 def main():
-  p = argparse.ArgumentParser(add_help=False)
-  p.add_argument('--trace', action='store_true')
-  p.add_argument('--vcd', action='store_true')
-  p.add_argument('--verilate', action='store_true')
-  p.add_argument('--use-cached', action='store_true')
-  p.add_argument('--maxcycles', default=200000, type=int)
-  p.add_argument('elf_file')
+  p = argparse.ArgumentParser(
+      description="Simulate the Lizard Core running an ELF file")
+  p.add_argument(
+      '--trace',
+      action='store_true',
+      help="set to print out a line trace while the program runs")
+  p.add_argument(
+      '--vcd', action='store_true', help="set to generate a waveform .vcd file")
+  p.add_argument(
+      '--verilate',
+      action='store_true',
+      help="set to simulate with a verilated model")
+  p.add_argument(
+      '--use-cached', action='store_true', help="use a cached verilated model")
+  p.add_argument(
+      '--maxcycles',
+      default=200000,
+      type=int,
+      help="maximum number of cycles to simulate")
+  p.add_argument('elf_file', help="the ELF file to run")
   opts = p.parse_args()
 
   with open(opts.elf_file, 'rb') as ef:
