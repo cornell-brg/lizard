@@ -1,0 +1,40 @@
+ubmark-bsearch
+cycles: 6256
+
+instructions: 3140
+
+
+  [ passed ] 
+
+ubmark-cmult
+cycles: 2645
+
+instructions: 2017
+
+
+  [ passed ] 
+
+ubmark-mfilt
+cycles: 10952
+
+instructions: 8557
+
+
+  [ passed ] 
+
+ubmark-quicksort
+cycles: 26045
+
+instructions: 12256
+
+
+  [ passed ] 
+
+ubmark-vvadd
+cycles: 1443
+
+instructions: 817
+
+
+  [ passed ] 
+

@@ -7,16 +7,16 @@
 #endif
 
 #include <stdint.h>
-#include "common-wprint.h"
+#include "common_print.h"
 #include "csr_utils.h"
 
 #ifdef _RISCV
 
 inline void test_fail(int index, int val, int ref) {
-  wprintf(L"\n");
-  wprintf(L"  [ FAILED ] dest[%d] != ref[%d] (%d != %d)\n", index, index, val,
+  lizard_printf("\n");
+  lizard_printf("  [ FAILED ] dest[%d] != ref[%d] (%d != %d)\n", index, index, val,
           ref);
-  wprintf(L"\n");
+  lizard_printf("\n");
   sim_exit(1);
 }
 
@@ -35,9 +35,9 @@ inline void test_fail(int index, int val, int ref) {
 #ifdef _RISCV
 
 inline void test_pass() {
-  wprintf(L"\n");
-  wprintf(L"  [ passed ] \n");
-  wprintf(L"\n");
+  lizard_printf("\n");
+  lizard_printf("  [ passed ] \n");
+  lizard_printf("\n");
   sim_exit(0);
 }
 
@@ -90,7 +90,7 @@ inline void test_stats_off() {
   uint64_t minstret;
   read_stat_counters(mcycle, minstret);
 
-  wprintf(L"cycles: %d\ninstructions: %d\n", mcycle, minstret);
+  lizard_printf("cycles: %d\ninstructions: %d\n", mcycle, minstret);
 };
 
 #endif /* COMMON_MISC_H */

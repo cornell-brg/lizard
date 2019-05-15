@@ -11,15 +11,13 @@ common_libs     = @common_libs@
 
 common_hdrs = \
   common.h \
-  common-wprint.h \
-  common-bthread.h \
+  common_print.h \
+	common_misc.h \
 
 common_srcs = \
-  common-wprint.c \
-  common-bthread.c \
+  common_print.c \
 
-common_install_prog_srcs = \
-  common-wprint-ex.c \
+common_install_prog_srcs = 
 
 ifeq ($(riscv_crosscompile),yes)
 

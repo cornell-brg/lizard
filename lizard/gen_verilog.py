@@ -1,5 +1,5 @@
 #! /usr/bin/env python2
-
+from util import pythonpath
 from pymtl import *
 from model.translate import translate
 from mem.rtl.memory_bus import MemoryBusInterface
@@ -7,7 +7,7 @@ from core.rtl.proc import ProcInterface, Proc
 import subprocess
 
 
-def main():
+def gen_verilog():
   mbi = MemoryBusInterface(2, 1, 2, 64, 8)
   proc = Proc(ProcInterface(), mbi.MemMsg)
   proc.explicit_modulename = 'proc'
@@ -21,4 +21,4 @@ def main():
 
 
 if __name__ == '__main__':
-  main()
+  gen_verilog()
