@@ -1,6 +1,7 @@
 #! /usr/bin/env python2
 
 from __future__ import print_function
+from util import pythonpath
 import argparse
 from pymtl import *
 from lizard.core.rtl.proc_harness_rtl import run_mem_image

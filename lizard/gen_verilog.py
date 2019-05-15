@@ -1,5 +1,5 @@
 #! /usr/bin/env python2
-
+from util import pythonpath
 from pymtl import *
 from model.translate import translate
 from mem.rtl.memory_bus import MemoryBusInterface
