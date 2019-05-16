@@ -21,9 +21,11 @@ class ProcTestHarness(Model):
                mngr2proc_msgs,
                translate,
                vcd_file,
-               use_cached_verilated=False):
+               use_cached_verilated=False,
+               imem_delay=0,
+               dmem_delay=0):
     s.mbi = MemoryBusInterface(2, 1, 2, 64, 8)
-    s.tmb = TestMemoryBusFL(s.mbi, initial_mem)
+    s.tmb = TestMemoryBusFL(s.mbi, initial_mem, [imem_delay, dmem_delay])
     s.mb = wrap_to_rtl(s.tmb)
 
     s.dbi = ProcDebugBusInterface(XLEN)
@@ -54,7 +56,9 @@ def run_mem_image(mem_image,
                   max_cycles,
                   proc2mngr_handler,
                   trace,
-                  use_cached_verilated=False):
+                  use_cached_verilated=False,
+                  imem_delay=0,
+                  dmem_delay=0):
 
   def tp(thing):
     if trace:
@@ -84,7 +88,9 @@ def run_mem_image(mem_image,
       mngr2proc_data,
       translate,
       vcd_file,
-      use_cached_verilated=use_cached_verilated)
+      use_cached_verilated=use_cached_verilated,
+      imem_delay=imem_delay,
+      dmem_delay=dmem_delay)
   dut = wrap_to_cl(pth)
 
   curr = 0

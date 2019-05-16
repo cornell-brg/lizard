@@ -213,6 +213,13 @@ class MemoryBusInterface(Interface):
     for i in range(num_ports):
       methods.extend([
           MethodSpec(
+              'cl_delay_{}'.format(i),
+              args=None,
+              rets=None,
+              call=False,
+              rdy=False,
+          ),
+          MethodSpec(
               'recv_{}'.format(i),
               args=None,
               rets={'msg': s.MemMsg.resp},
