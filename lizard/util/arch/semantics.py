@@ -491,8 +491,8 @@ class RV64GSemantics(object):
 
   def execute(self, inst):
     foo = getattr(
-        self, 'execute_{}'.format(
-            self.isa.decode_inst_name(inst).replace('.', '_')))
+        self,
+        'execute_{}'.format(self.isa.decode_inst_name(inst).replace('.', '_')))
     result = foo(inst)
     if isinstance(result, ProcException):
       self.handle_exception(inst, result)

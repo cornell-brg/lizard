@@ -113,8 +113,10 @@ class Proc(Model):
     s.dflow = DataFlowManager(s.dflow_interface)
 
     # Control flow
-    s.cflow_interface = ControlFlowManagerInterface(
-        XLEN, INST_IDX_NBITS, SPEC_IDX_NBITS, SPEC_MASK_NBITS, STORE_IDX_NBITS)
+    s.cflow_interface = ControlFlowManagerInterface(XLEN, INST_IDX_NBITS,
+                                                    SPEC_IDX_NBITS,
+                                                    SPEC_MASK_NBITS,
+                                                    STORE_IDX_NBITS)
     s.cflow = ControlFlowManager(s.cflow_interface, RESET_VECTOR)
     s.connect_m(s.cflow.dflow_get_store_id, s.dflow.get_store_id[0])
     s.connect_m(s.cflow.dflow_snapshot, s.dflow.snapshot)
