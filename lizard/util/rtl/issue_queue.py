@@ -317,13 +317,15 @@ class CompactingIssueQueue(Model):
       @s.combinational
       def set_wait_pred_k():
         for i in range(1, num_slots):
-          s.prev_ordered[i].v = s.prev_ordered[i-1] or (s.slots_[i - 1].status_valid and s.slots_[i - 1].status_ordered)
-          s.prev_nonordered[i].v = s.prev_nonordered[i-1] or (s.slots_[i - 1].status_valid and not s.slots_[i - 1].status_ordered)
-          if s.slots_[i].status_ordered: # If ordered, must make sure first one
+          s.prev_ordered[i].v = s.prev_ordered[i - 1] or (
+              s.slots_[i - 1].status_valid and s.slots_[i - 1].status_ordered)
+          s.prev_nonordered[i].v = s.prev_nonordered[i - 1] or (
+              s.slots_[i - 1].status_valid and
+              not s.slots_[i - 1].status_ordered)
+          if s.slots_[i].status_ordered:  # If ordered, must make sure first one
             s.wait_pred[i].v = s.prev_ordered[i] or s.prev_nonordered[i]
-          else: # Otherwise only need to make sure there is not aordered predecessor
+          else:  # Otherwise only need to make sure there is not aordered predecessor
             s.wait_pred[i].v = s.prev_ordered[i]
-
 
     @s.combinational
     def set_first_rdy():
@@ -420,8 +422,9 @@ class CompactingIssueQueue(Model):
     # The add call, to add something to the IQ
     @s.combinational
     def add_rdy():
-      s.add_rdy.v = not s.slots_[num_slots - 1].status_valid or s.slots_[
-          num_slots - 1].take_call
+      s.add_rdy.v = not s.slots_[num_slots -
+                                 1].status_valid or s.slots_[num_slots -
+                                                             1].take_call
 
     if s.interface.Ordered:
 

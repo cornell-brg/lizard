@@ -54,10 +54,10 @@ class NonRestoringDividerStepInterface(Interface):
                 'dividend': Bits(s.DataLen),
             },
             rets={
-                'acc_next':
-                    Bits(s.DataLen + 1),  # Eventually becomes the remainder
-                'dividend_next': Bits(
-                    s.DataLen),  # Eventually becomes the quotient
+                'acc_next': Bits(s.DataLen +
+                                 1),  # Eventually becomes the remainder
+                'dividend_next': Bits(s.DataLen
+                                     ),  # Eventually becomes the quotient
             },
             call=False,
             rdy=False,
@@ -131,8 +131,8 @@ class NonRestoringDivider(Model):
       s.result_quotient.v = s.dividend.read_data
       s.result_rem.v = s.acc.read_data[:s.interface.DataLen]
       # Figure out if we need to negative
-      s.negate.write_data.v = s.div_signed and (
-          s.div_divisor[END] ^ s.div_dividend[END])
+      s.negate.write_data.v = s.div_signed and (s.div_divisor[END]
+                                                ^ s.div_dividend[END])
       s.negate_rem.write_data.v = s.div_signed and s.div_dividend[END]
 
     @s.combinational

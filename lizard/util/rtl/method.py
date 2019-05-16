@@ -4,8 +4,9 @@ from lizard.util.rtl.types import Array, canonicalize_type, type_str
 
 
 def canonicalize_method_spec(spec):
-  return dict(
-      [(key, canonicalize_type(value)) for key, value in spec.iteritems()])
+  return dict([
+      (key, canonicalize_type(value)) for key, value in spec.iteritems()
+  ])
 
 
 def instantiate_port(data_type, port_type):
