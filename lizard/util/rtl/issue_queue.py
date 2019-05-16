@@ -303,16 +303,29 @@ class CompactingIssueQueue(Model):
     if s.interface.Ordered:
       s.wait_pred = Wire(num_slots)
 
+      s.prev_ordered = Wire(num_slots)
+      s.prev_nonordered = Wire(num_slots)
+
       @s.combinational
       def set_wait_pred_0():
+        # Is there a ordered predicessor
+        s.prev_ordered[0].v = 0
+        # Is there non-ordered predecessor
+        s.prev_nonordered[0].v = 0
         s.wait_pred[0].v = 0
 
       @s.combinational
       def set_wait_pred_k():
         for i in range(1, num_slots):
-          s.wait_pred[i].v = s.wait_pred[i -
-                                         1] or (s.slots_[i - 1].status_valid and
-                                                s.slots_[i - 1].status_ordered)
+          s.prev_ordered[i].v = s.prev_ordered[i - 1] or (
+              s.slots_[i - 1].status_valid and s.slots_[i - 1].status_ordered)
+          s.prev_nonordered[i].v = s.prev_nonordered[i - 1] or (
+              s.slots_[i - 1].status_valid and
+              not s.slots_[i - 1].status_ordered)
+          if s.slots_[i].status_ordered:  # If ordered, must make sure first one
+            s.wait_pred[i].v = s.prev_ordered[i] or s.prev_nonordered[i]
+          else:  # Otherwise only need to make sure there is not aordered predecessor
+            s.wait_pred[i].v = s.prev_ordered[i]
 
     @s.combinational
     def set_first_rdy():

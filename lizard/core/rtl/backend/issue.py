@@ -38,7 +38,7 @@ class IssueSetOrdered(Interface):
         MethodSpec(
             'ordered',
             args={
-                'input': IssueMsg(),
+                'input': RenameMsg(),
             },
             rets={
                 'ret': Bits(1),
