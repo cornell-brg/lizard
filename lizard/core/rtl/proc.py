@@ -204,7 +204,7 @@ class Proc(Model):
         PREG_COUNT,
         NUM_MEM_ISSUE_SLOTS,
         num_updated=ISSUE_NUM_UDPATED_PORTS,
-        set_ordered=IssueInOrder,
+        set_ordered=IssueOrderedStores,
         bypass_ready=False)
     s.connect_m(s.io_issue.kill_notify, s.kill_notifier.kill_notify)
     s.connect_m(s.issue_selector.mem_peek, s.io_issue.in_peek)
