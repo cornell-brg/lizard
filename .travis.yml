@@ -39,9 +39,9 @@ before_script:
  - .travis/fetch-riscv-gnu-toolchain
  - export PATH="$TRAVIS_BUILD_DIR/riscv-gnu-toolchain/bin:$PATH"
  - tests/core/program/build-riscv-tests
+ - pip install -e .[test]
  - mkdir -p build
  - cd build
- - pip install -e .[test]
 
 script:
  - py.test --verbose -k program_test ../tests
