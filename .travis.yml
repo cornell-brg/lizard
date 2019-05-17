@@ -35,8 +35,8 @@ install:
  - export PYMTL_VERILATOR_INCLUDE_DIR=${VERILATOR_ROOT}/share/verilator/include
  - verilator --version
  - pip install --upgrade pip
- - sudo pip install -U $(pip freeze | cut -d '=' -f 1)
  - pip --version
+ - pip install --upgrade pytest
 
 before_script:
  - .travis/fetch-riscv-gnu-toolchain
