@@ -48,4 +48,4 @@ before_script:
 
 script:
  - py.test --verbose -k program_test ../tests
- - ../src/format --diff --sane
+ - ../lizard/format --diff
