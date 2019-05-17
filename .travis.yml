@@ -34,6 +34,7 @@ install:
  - export PATH=${VERILATOR_ROOT}/bin:${PATH}
  - export PYMTL_VERILATOR_INCLUDE_DIR=${VERILATOR_ROOT}/share/verilator/include
  - verilator --version
+ - sudo pip2 install --upgrade pip
 
 before_script:
  - .travis/fetch-riscv-gnu-toolchain
