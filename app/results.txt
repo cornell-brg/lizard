@@ -41,7 +41,7 @@ instructions: 2017
   [ passed ] 
 
 ubmark-mfilt
-cycles: 9134
+cycles: 9164
 instructions: 8557
 
   [ passed ] 
