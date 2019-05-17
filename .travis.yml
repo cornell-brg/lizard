@@ -34,20 +34,15 @@ install:
  - export PATH=${VERILATOR_ROOT}/bin:${PATH}
  - export PYMTL_VERILATOR_INCLUDE_DIR=${VERILATOR_ROOT}/share/verilator/include
  - verilator --version
- - pip -q install git+https://github.com/cornell-brg/pymtl.git@jng55-generate-senses
- - pip -q install git+https://github.com/wizard97/yapf.git
- - pip -q install futures
- - pip -q install hypothesis
- - pip -q install pytest-xdist
- - pip list --format=columns
 
 before_script:
  - .travis/fetch-riscv-gnu-toolchain
  - export PATH="$TRAVIS_BUILD_DIR/riscv-gnu-toolchain/bin:$PATH"
- - src/test/core/program/build-riscv-tests
+ - tests/core/program/build-riscv-tests
  - mkdir -p build
  - cd build
+ - pip install -e .[test]
 
 script:
- - py.test -n auto --continue-on-collection-errors --verbose ../src/test
+ - py.test --verbose -k program_test ../tests
  - ../src/format --diff --sane
