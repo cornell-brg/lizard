@@ -47,5 +47,5 @@ before_script:
  - cd build
 
 script:
- - py.test --verbose -k program_test ../tests
+ - py.test ../tests/core/program_test.py::test_rtl_proc -k verilate -v
  - ../lizard/format --diff
