@@ -36,8 +36,7 @@ install:
  - verilator --version
  - pip install --upgrade pip
  - pip --version
- - pip install --upgrade pytest
- - pip install --upgrade yapf
+ - pip install --upgrade pytest yapf futures
 
 before_script:
  - .travis/fetch-riscv-gnu-toolchain
