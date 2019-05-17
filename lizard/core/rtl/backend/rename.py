@@ -90,6 +90,11 @@ class RenameStage(Model):
     s.connect(s.get_dst_areg, s.decoded_.rd)
 
     # Outgoing call's call signal:
+    @s.combinational
+    def handle_register_call():
+      if s.process_call:
+        s.register_call = not (s.decoded_.rd_val and not s.get_dst_rdy)
+
     s.connect(s.register_call, s.process_call)
 
     @s.combinational
