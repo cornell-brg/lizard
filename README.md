@@ -1,6 +1,13 @@
 [![Build Status](https://travis-ci.com/cornell-brg/lizard.svg?token=ZakjYd6szqJoghAvvsaY&branch=master)](https://travis-ci.com/cornell-brg/lizard)
 # The Lizard Core :lizard:
 
+The Lizard Core was designed by Jacob Glueck and Aaron Wisner during the Fall 2018
+and Spring 2019 semesters as a Master's of Engineering project at Cornell University.
+The Lizard Core is synthesizable, out-of-order, RISC-V RV64IM core written in PyMTL.
+It can additionally meet timing at 350 MHz in a 45 nm standard cell-based design flow.
+
+Detailed information about the design of the core is [available in the report](https://github.com/cornell-brg/lizard/releases/download/v1.0.0/lizard-core-report.pdf).
+
 ## Installation
 
 ### Perquisites
