@@ -63,7 +63,7 @@ without `pip`, simply clone the repository:
 ```
 git clone https://github.com/cornell-brg/lizard
 ```
-The two scripts will be `lizard/sim.py` and `lizard/gen\_verilog.py`,
+The two scripts will be `lizard/sim.py` and `lizard/gen_verilog.py`,
 and can be manually invoked.
 
 ### Running tests
@@ -96,11 +96,11 @@ system contains a linker script, and handles the GCC `-march` and
 `-mabi` flags, as well as some others. The runtime library is very
 simple, and contained in the `app/common` folder. It contains:
 
--   A `crt0.s` assembly program which contains the `\_start` symbol.
+-   A `crt0.s` assembly program which contains the `_start` symbol.
     This program configures the stack pointer and the global pointer,
-    and then dispatches the `\_runtime\_start` function.
+    and then dispatches the `_runtime_start` function.
 
--   `runtime\_start.c`, which defines the `\_runtime\_start` function.
+-   `runtime_start.c`, which defines the `_runtime_start` function.
     This function configures a simple exception handler, which prints
     information about the exception and then aborts the program. Then,
     it invokes `main()`, with no arguments. After the conclusion of
@@ -108,15 +108,15 @@ simple, and contained in the `app/common` folder. It contains:
     with the return code, which causes the simulator to exit with the
     same return code.
 
--   `csr\_utils.h` contains various macros and functions for reading and
+-   `csr_utils.h` contains various macros and functions for reading and
     writing the Control Status Registers (CSRs), including reading and
     writing from the processor debug bus.
 
--   `common\_print.h` defines a series of functions for printing
+-   `common_print.h` defines a series of functions for printing
     information through the simulator. These functions work by sending
     data to the simulator through the processor debug bus. The simulator
     then prints the data. The main function defined here is
-    `lizard\_printf(const char\* format, ...)`, which functions almost
+    `lizard_printf(const char\* format, ...)`, which functions almost
     like `printf`. However, it has a maximum length of 65536 characters,
     and some format strings might not work. Internally, it uses
     `snprintf`, which for some format strings, attempts to call
@@ -124,11 +124,11 @@ simple, and contained in the `app/common` folder. It contains:
     to be minimal. Luckily, it appears that only floating point
     specifiers cause this problem.
 
--   `common\_misc.h` contains a series of benchmarking tools tools,
+-   `common_misc.h` contains a series of benchmarking tools tools,
     which manipulate the `minstret` and `mcycle` CSRs.
 
--   `common.h` includes `common\_misc.h`, `common.h`, and (indirectly),
-    `csr\_utils.h`. User programs should simply include `common.h` to
+-   `common.h` includes `common_misc.h`, `common.h`, and (indirectly),
+    `csr_utils.h`. User programs should simply include `common.h` to
     have access the runtime.
 
 The easiest way to write a new program is to add make a C file in the
