@@ -101,7 +101,7 @@ def test_fail3():
       dut.take()
     if tup is not None:
       print(tup[0])
-      dut.mult(signed=tup[0], src1=tup[1], src2=tup[2])
+      dut.mult(src1_signed=tup[0], src2_signed=tup[0], src1=tup[1], src2=tup[2])
     dut.cycle()
 
   dut.reset()

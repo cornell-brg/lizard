@@ -9,4 +9,4 @@ from lizard.model.translate import translate
 
 def test_translate():
   translate(
-      DataFlowManager(DataFlowManagerInterface(64, 32, 64, 4, 2, 2, 1, 4)))
+      DataFlowManager(DataFlowManagerInterface(64, 32, 64, 4, 2, 2, 1, 4, 1)))

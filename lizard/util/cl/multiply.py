@@ -44,8 +44,12 @@ class MulCL(CLModel):
       return s.results[0] is None
 
     @s.model_method
-    def mult(src1, src2, signed):
-      if signed:
+    def mult(src1, src2, src1_signed, src2_signed):
+      if src1_signed and not src2_signed:
+        res = sext(Bits(64, src1), 128) * zext(Bits(64, src2), 128)
+      elif not src1_signed and src2_signed:
+        res = zext(Bits(64, src1), 128) * sext(Bits(64, src2), 128)
+      elif src1_signed and src2_signed:
         res = sext(Bits(64, src1), 128) * sext(Bits(64, src2), 128)
       else:
         res = zext(Bits(64, src1), 128) * zext(Bits(64, src2), 128)
