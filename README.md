@@ -6,6 +6,8 @@ and Spring 2019 semesters as a Master's of Engineering project at Cornell Univer
 The Lizard Core is synthesizable, out-of-order, RISC-V RV64IM core written in PyMTL.
 It can meet timing at 350 MHz in a 45 nm standard cell-based design flow.
 
+![alt text](https://github.com/cornell-brg/lizard/images/lizard-pipeline-diagram.png "Lizard Pipeline")
+
 Detailed information about the design of the core is [available in the report](https://github.com/cornell-brg/lizard/releases/download/v1.0.0/lizard-core-report.pdf).
 
 ## Installation
