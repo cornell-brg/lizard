@@ -228,6 +228,20 @@ To generate Verilog, run `lizard-gen`. The Verilog, and a couple other
 files, will be created in the working directory. The Verilog is
 `proc.sv`.
 
+
+## Configuring Parameters
+
+The Lizard Core was designed to be as parameterizable as possible. Almost
+everything has a parameter than can be adjusted. The main
+parameters of the core can be found in `lizard/config/general.py`. Changing these
+will affect everything, including the generated `proc.sv` file.
+
+More detailed parameters can be found in the actual arguments passed
+in the constructors to instantiate the modules that make up the processor.
+The top level module that connects everything together can be found in
+`lizard/core/rtl/proc.py`.
+
+
 ### Using the ASIC Toolflow
 
 The ASIC toolflow is contained inside the `asic` directory. It is based
