@@ -33,8 +33,8 @@ Lizard requires:
     should also work (complied with `–enable-multilib`), however the
     default set of architectures and ABIs generated for a multilib
     compiler does not include `rv64im-lp64`. It is possible to patch the
-    compiler sources to achieve this, however. See:
-    <https://github.com/orangeturtle739/panther/blob/master/sys-devel/riscv-gnu-toolchain/files/multilib-rv64im-lp64.patch>.
+    compiler sources to achieve this, however. See: [`app/multilib-rv64im-lp64.patch`](app/multilib-rv64im-lp64.patch).
+    If on Gentoo, you can use the [panther](https://github.com/orangeturtle739/panther) overlay and install `sys-devel/riscv-gnu-toolchain-9999`.
 
 ### Installing
 
