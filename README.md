@@ -242,7 +242,7 @@ The top level module that connects everything together can be found in
 `lizard/core/rtl/proc.py`.
 
 
-### Using the ASIC Toolflow
+## Using the ASIC Toolflow
 
 The ASIC toolflow is contained inside the `asic` directory. It is based
 off of the Alloy Asic project
