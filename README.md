@@ -134,7 +134,7 @@ simple, and contained in the `app/common` folder. It contains:
     `csr_utils.h`. User programs should simply include `common.h` to
     have access the runtime.
 
-The easiest way to write a new program is to add make a C file in the
+The easiest way to write a new program is to make a C file in the
 `ubmark` directory, and add the file to `ubmark.mk.in`. For more complex
 programs, another subproject might be required. `ubmark/hello-world.c`,
 shown below, is a simple example program:
