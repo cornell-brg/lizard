@@ -2,7 +2,7 @@
 # The Lizard Core :lizard:
 
 The Lizard Core was designed by Jacob Glueck and Aaron Wisner during the Fall 2018
-and Spring 2019 semesters as a Master's of Engineering project 
+and Spring 2019 semesters as a Master of Engineering project 
 in the [Batten Research Group](http://www.csl.cornell.edu/~cbatten/) at Cornell University.
 The Lizard Core is a modular, synthesizable, out-of-order, RISC-V RV64IM core written in PyMTL.
 It can meet timing at 350 MHz in a 45 nm standard cell-based design flow.
