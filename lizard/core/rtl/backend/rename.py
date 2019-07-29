@@ -95,8 +95,6 @@ class RenameStage(Model):
       s.register_call.v = s.process_call and (not (s.decoded_.rd_val and
                                                    not s.get_dst_rdy))
 
-    s.connect(s.register_call, s.process_call)
-
     @s.combinational
     def handle_register():
       s.no_except_.v = s.decoded_.hdr_status == PipelineMsgStatus.PIPELINE_MSG_STATUS_VALID
